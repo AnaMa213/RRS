@@ -43,3 +43,15 @@
 - source_spec: none
   summary: `_bmad/config.toml`'s `document_output_language` flipped from `English` to `French` in the same uncommitted diff where `_bmad-output/implementation-artifacts/epic-0-context.md` was rewritten from French to English -- the two changes move in opposite directions with no stated reconciliation.
   evidence: Both changes were sitting uncommitted before Story 0.4 review started and are unrelated to Story 0.4's scaffold scope; a human needs to decide which language BMAD output should actually be in and re-align the config with the docs (or vice versa).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-3-unity-cloud-services-lobby-and-relay-readiness.md`
+  summary: Story 0.3 was closed to `done` on explicit user request (to move on to Story 0.5) before `VAL-013` to `VAL-015` (Steam private lobby runtime, `NetworkManager` connection, `MaxPlayers = 4` cap, invite/Lobby ID wrapper) received any real proof; they remain `In Progress` in `docs/setup/tooling-validation-log.md`.
+  evidence: These four proofs are exactly the lobby/networking readiness evidence the Epic 0 go/no-go gate (Story 0.8) needs before Epic 1/2 online work starts; must be captured and the log updated with real evidence before Story 0.8 can pass.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-5-codex-claude-unity-mcp-and-blender-mcp-configuration.md`
+  summary: No license/provenance/adoption-register entry exists for the third-party MCP tooling being adopted (CoplayDev `unity-mcp`, ahujasid `blender-mcp`), even though the project tracks exactly that (license, cost, maintenance, dependency risk) for other third-party code via the Story 0.7 adoption register.
+  evidence: `docs/setup/addon-adoption-register.md`'s criteria (license, cost, Unity compatibility, maintenance, dependency impact, source/editability) apply just as much to MCP server tooling as to UI/controller/asset packages, but Story 0.5's tutorial and VAL-020/VAL-023 never route through that register; a human should decide whether Story 0.5 or Story 0.7 owns recording this.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-5-codex-claude-unity-mcp-and-blender-mcp-configuration.md`
+  summary: Blender `5.2 LTS` installation is listed as a Story 0.5 step (`VAL-022`) and also as Story 0.6's own manual-action row in `docs/setup/epic-0-readiness-checklist.md:51`, with no cross-reference clarifying whether one installation satisfies both or the validations are duplicated under two different IDs.
+  evidence: This overlap originates in `_bmad-output/planning-artifacts/epics.md` itself (Story 0.5's Blender MCP smoke test implies Blender is already installed, while Story 0.6's AC independently requires proving the Blender `5.2 LTS` install) -- a human should clarify which story owns the install proof before Story 0.6 starts.

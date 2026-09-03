@@ -2,7 +2,7 @@
 title: 'Story 0.3 : Steamworks, lobby et readiness Networking Sockets'
 type: 'chore'
 created: '2026-09-02'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 baseline_commit: 'dc57d7d983e0890a8e5967a114323ff04d1ea64c'
 context:
@@ -80,6 +80,7 @@ context:
 - 2026-09-03 : Passage d'implementation locale demande par l'utilisateur. Ajoute `steam_appid.txt` avec `480`, un helper Unity Editor `RoadRageSteamworksSmokeTest` exposant le menu `RoadRage > Steamworks > Run AppID 480 Smoke Test`, et une synchronisation des documents de suivi. `VAL-007` passe `Pass` sur preuve locale du transport Facepunch resolu ; `VAL-012` a `VAL-015` restent `In Progress` car l'utilisateur doit encore lancer Unity avec Steam ouvert et fournir les preuves caviardees.
 - 2026-09-03 : Correctif compilation apres retour utilisateur : le package amont Facepunch contient un `#endregion` surnumeraire dans `Runtime/FacepunchTransport.cs`, provoquant `CS1028 Unexpected preprocessor directive`. Le package est embarque dans `Packages/com.community.netcode.transport.facepunch/` et le `#endregion` en trop est retire ; le cache Unity local a aussi ete corrige pour debloquer l'Editor ouvert.
 - 2026-09-03 : Preuve utilisateur `VAL-012` recue : capture Console Unity a 20:19:46 montrant `SteamClient.Init succeeded for AppID 480 (Spacewar)` puis shutdown complet du smoke test, sans Steam account ID ni Lobby ID visible. `VAL-012` passe `Pass` ; `VAL-013` a `VAL-015` restent `In Progress` jusqu'aux preuves runtime lobby, NetworkManager, cap joueurs et invite/Lobby ID.
+- 2026-09-03 : Cloture demandee explicitement par l'utilisateur pour avancer vers Story 0.5 sans attendre les preuves runtime restantes. Statut de la spec passe `in-review` -> `done` sur decision humaine, en connaissance de cause : `VAL-013` a `VAL-015` (lobby prive runtime, NetworkManager, cap `MaxPlayers = 4`, invite/Lobby ID) n'ont jamais recu de preuve reelle et restent `In Progress` dans `docs/setup/tooling-validation-log.md` -- ce document n'a pas ete altere pour simuler un `Pass`. Le gap est trace dans `deferred-work.md` pour rattrapage avant Story 0.8 (smoke tests et porte go/no-go Epic 0), qui ne peut pas passer sans ces preuves.
 
 ## Notes De Design
 
