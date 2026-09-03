@@ -1,0 +1,27 @@
+{
+    "name": "RoadRage.App",
+    "rootNamespace": "RoadRage.App",
+    "references": [
+        "RoadRage.Shared",
+        "RoadRage.Features.Boss",
+        "RoadRage.Features.Economy",
+        "RoadRage.Features.Lobby",
+        "RoadRage.Features.OnFoot",
+        "RoadRage.Features.PassengerActions",
+        "RoadRage.Features.Players",
+        "RoadRage.Features.Rage",
+        "RoadRage.Features.Run",
+        "RoadRage.Features.SandboxStops",
+        "RoadRage.Features.UI",
+        "RoadRage.Features.Vehicles"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

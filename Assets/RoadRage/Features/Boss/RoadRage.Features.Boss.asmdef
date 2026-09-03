@@ -1,0 +1,17 @@
+{
+    "name": "RoadRage.Features.Boss",
+    "rootNamespace": "RoadRage.Features.Boss",
+    "references": [
+        "RoadRage.Shared",
+        "Unity.Netcode.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

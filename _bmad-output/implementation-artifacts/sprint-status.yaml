@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 2026-09-03 20:26
+last_updated: 2026-09-03 21:20
 project: RoadRage_Simulator
 project_key: NOKEY
 tracking_system: file-system
@@ -39,7 +39,7 @@ development_status:
   0-1-setup-readiness-checklist-and-local-workspace-baseline: done
   0-2-unity-editor-project-creation-and-package-pinning: done
   0-3-unity-cloud-services-lobby-and-relay-readiness: review
-  0-4-project-structure-scenes-namespaces-and-runtime-state-skelet: backlog
+  0-4-project-structure-scenes-namespaces-and-runtime-state-skelet: review
   0-5-codex-claude-unity-mcp-and-blender-mcp-configuration: backlog
   0-6-blender-and-3d-asset-intake-pipeline: backlog
   0-7-unity-add-on-ui-library-and-asset-adoption-register: backlog

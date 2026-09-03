@@ -1,0 +1,32 @@
+{
+    "name": "RoadRage.Tests.EditMode",
+    "rootNamespace": "RoadRage.Tests.EditMode",
+    "references": [
+        "RoadRage.App",
+        "RoadRage.Shared",
+        "RoadRage.Features.Boss",
+        "RoadRage.Features.Economy",
+        "RoadRage.Features.Players",
+        "RoadRage.Features.Rage",
+        "RoadRage.Features.Run",
+        "RoadRage.Features.Vehicles",
+        "Unity.Netcode.Runtime",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

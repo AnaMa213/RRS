@@ -1,0 +1,16 @@
+{
+    "name": "RoadRage.Features.OnFoot",
+    "rootNamespace": "RoadRage.Features.OnFoot",
+    "references": [
+        "RoadRage.Shared"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

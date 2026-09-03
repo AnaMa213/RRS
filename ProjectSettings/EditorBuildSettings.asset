@@ -6,8 +6,26 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/RoadRage/App/Scenes/Bootstrap.unity
+    guid: ea24d3e3c3a34b8999591ac1a5962aca
+  - enabled: 1
+    path: Assets/RoadRage/App/Scenes/MainMenuLobby.unity
+    guid: d77b6360b9e342aeb2d4c1c3878d00b7
+  - enabled: 1
+    path: Assets/RoadRage/App/Scenes/MVP_Run.unity
+    guid: ee081d5cbff641bb9dd499b4f13a8d62
+  - enabled: 0
+    path: Assets/RoadRage/App/Scenes/Dev_VehicleSandbox.unity
+    guid: 63ff42310f6a42aca867f666cd8adb59
+  - enabled: 0
+    path: Assets/RoadRage/App/Scenes/Dev_OnFootSandbox.unity
+    guid: ea2706f93a6d41b8b201aff4baa6a330
+  - enabled: 0
+    path: Assets/RoadRage/App/Scenes/Dev_RageSandbox.unity
+    guid: 16434d2f325046f5bc80df46643a57de
+  - enabled: 0
+    path: Assets/RoadRage/App/Scenes/Dev_LobbySmokeTest.unity
+    guid: 9991fbcb4fbb42399cdee19f5b98d805
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

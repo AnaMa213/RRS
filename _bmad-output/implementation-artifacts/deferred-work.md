@@ -39,3 +39,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-0-2-unity-editor-project-creation-and-package-pinning.md`
   summary: No fallback guidance for restricted-network/corporate-proxy scenarios blocking Unity Hub sign-in or package downloads.
   evidence: The tutorial assumes unrestricted home internet access, consistent with the project's solo-beginner target, but offers no troubleshooting note if that assumption fails.
+
+- source_spec: none
+  summary: `_bmad/config.toml`'s `document_output_language` flipped from `English` to `French` in the same uncommitted diff where `_bmad-output/implementation-artifacts/epic-0-context.md` was rewritten from French to English -- the two changes move in opposite directions with no stated reconciliation.
+  evidence: Both changes were sitting uncommitted before Story 0.4 review started and are unrelated to Story 0.4's scaffold scope; a human needs to decide which language BMAD output should actually be in and re-align the config with the docs (or vice versa).

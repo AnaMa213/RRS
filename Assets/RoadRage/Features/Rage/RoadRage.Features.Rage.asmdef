@@ -1,0 +1,17 @@
+{
+    "name": "RoadRage.Features.Rage",
+    "rootNamespace": "RoadRage.Features.Rage",
+    "references": [
+        "RoadRage.Shared",
+        "Unity.Netcode.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
