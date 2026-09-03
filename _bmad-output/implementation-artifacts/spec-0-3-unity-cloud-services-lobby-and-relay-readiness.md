@@ -4,7 +4,7 @@ type: 'chore'
 created: '2026-09-02'
 status: 'in-review'
 review_loop_iteration: 0
-baseline_commit: '0265868e0d5a7cbf15459e413c47680ac8247f48'
+baseline_commit: 'dc57d7d983e0890a8e5967a114323ff04d1ea64c'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-0-context.md'
   - '{project-root}/docs/setup/tooling-validation-log.md'
@@ -79,6 +79,7 @@ context:
 - 2026-09-03 : Course-correction (`_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-02.md`) -- remplacement complet du premisse Story 0.3 : Unity Cloud/Unity Gaming Services/Multiplayer Services Sessions/Relay retires, remplaces par Steamworks (AppID de test 480, lobby prive `ISteamMatchmaking`, Networking Sockets/Steam Datagram Relay, invite Steam natif ou Lobby ID). Declenche par une contrainte financiere solo-dev (pas de revenu recurrent) identifiee par l'utilisateur et confirmee apres recherche de precedents (Lethal Company, How to Fish, Meccha Chameleon utilisent tous un modele equivalent gratuit). Remplacement propre : aucune preuve VAL-012 a VAL-015 n'existait encore sur l'ancien chemin, donc aucun rollback necessaire.
 - 2026-09-03 : Passage d'implementation locale demande par l'utilisateur. Ajoute `steam_appid.txt` avec `480`, un helper Unity Editor `RoadRageSteamworksSmokeTest` exposant le menu `RoadRage > Steamworks > Run AppID 480 Smoke Test`, et une synchronisation des documents de suivi. `VAL-007` passe `Pass` sur preuve locale du transport Facepunch resolu ; `VAL-012` a `VAL-015` restent `In Progress` car l'utilisateur doit encore lancer Unity avec Steam ouvert et fournir les preuves caviardees.
 - 2026-09-03 : Correctif compilation apres retour utilisateur : le package amont Facepunch contient un `#endregion` surnumeraire dans `Runtime/FacepunchTransport.cs`, provoquant `CS1028 Unexpected preprocessor directive`. Le package est embarque dans `Packages/com.community.netcode.transport.facepunch/` et le `#endregion` en trop est retire ; le cache Unity local a aussi ete corrige pour debloquer l'Editor ouvert.
+- 2026-09-03 : Preuve utilisateur `VAL-012` recue : capture Console Unity a 20:19:46 montrant `SteamClient.Init succeeded for AppID 480 (Spacewar)` puis shutdown complet du smoke test, sans Steam account ID ni Lobby ID visible. `VAL-012` passe `Pass` ; `VAL-013` a `VAL-015` restent `In Progress` jusqu'aux preuves runtime lobby, NetworkManager, cap joueurs et invite/Lobby ID.
 
 ## Notes De Design
 
@@ -95,7 +96,8 @@ Story 0.3 doit rester une readiness story : elle peut produire un tutoriel, des 
 - `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; if ($log -notmatch "\|\s*VAL-007\s*\|\s*``Pass``") { throw 'VAL-007 doit etre Pass apres installation du transport Facepunch' }` -- attendu : aucune erreur.
 - `$fp = Get-Content -LiteralPath 'Packages/com.community.netcode.transport.facepunch/Runtime/FacepunchTransport.cs' -Raw; if ($fp -notmatch 'SteamNetworkingSockets\.CreateRelaySocket') { throw 'transport Facepunch local incomplet' }; if ($fp -match '(?s)#endregion\s*#endregion\s*}\s*}') { throw 'endregion surnumeraire Facepunch encore present' }` -- attendu : aucune erreur.
 - `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; foreach ($id in 'VAL-012','VAL-013','VAL-014','VAL-015') { if ($log -notmatch "\|\s*$id\s*\|") { throw "$id manquant" } }` -- attendu : aucune erreur.
-- `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; foreach ($id in 'VAL-012','VAL-013','VAL-014','VAL-015') { if ($log -notmatch "\|\s*$id\s*\|\s*``(Not Started|In Progress)``") { throw "$id ne doit pas etre Pass sans preuve" } }` -- attendu : aucune erreur.
+- `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; if ($log -notmatch "\|\s*VAL-012\s*\|\s*``Pass``") { throw 'VAL-012 doit etre Pass apres preuve Unity Console' }` -- attendu : aucune erreur.
+- `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; foreach ($id in 'VAL-013','VAL-014','VAL-015') { if ($log -notmatch "\|\s*$id\s*\|\s*``In Progress``") { throw "$id doit rester In Progress sans preuve runtime" } }` -- attendu : aucune erreur.
 - `$yaml = Get-Content -LiteralPath '_bmad-output/implementation-artifacts/sprint-status.yaml' -Raw; if ($yaml -notmatch '(?m)^  0-3-unity-cloud-services-lobby-and-relay-readiness: review$') { throw 'sprint-status story 0.3 doit etre review' }` -- attendu : aucune erreur.
 - `$t = Get-Content -LiteralPath 'docs/setup/story-0-3-unity-cloud-services-tutorial.md' -Raw; foreach ($needle in '480','Spacewar','SteamClient.Init','ISteamMatchmaking','Networking Sockets','[REDACTED_TOKEN]','MaxPlayers = 4','Arret obligatoire avant Story 0.4','Story 2.2','Story 2.3','VAL-029','room pleine','session expiree') { if ($t -notmatch [regex]::Escape($needle)) { throw "tutoriel manque $needle" } }` -- attendu : aucune erreur.
 
