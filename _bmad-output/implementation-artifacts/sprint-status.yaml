@@ -1,0 +1,114 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 2026-09-02 16:30
+last_updated: 2026-09-02 22:45
+project: RoadRage_Simulator
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+development_status:
+  epic-0: in-progress
+  0-1-setup-readiness-checklist-and-local-workspace-baseline: done
+  0-2-unity-editor-project-creation-and-package-pinning: done
+  0-3-unity-cloud-services-lobby-and-relay-readiness: review
+  0-4-project-structure-scenes-namespaces-and-runtime-state-skelet: backlog
+  0-5-codex-claude-unity-mcp-and-blender-mcp-configuration: backlog
+  0-6-blender-and-3d-asset-intake-pipeline: backlog
+  0-7-unity-add-on-ui-library-and-asset-adoption-register: backlog
+  0-8-epic-0-smoke-tests-and-go-no-go-gate: backlog
+  epic-0-retrospective: optional
+
+  epic-1: backlog
+  1-1-bootstrap-and-main-menu-launch: backlog
+  1-2-local-lobby-shell-and-match-settings-draft: backlog
+  1-3-rough-character-creation-and-player-profile-selection: backlog
+  1-4-first-rough-character-car-and-building-asset-seeds: backlog
+  1-5-empty-map-entry-and-local-on-foot-movement: backlog
+  1-6-epic-1-playable-checkpoint: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-online-services-bootstrap-and-status-feedback: backlog
+  2-2-host-created-private-room-with-join-code: backlog
+  2-3-join-by-code-and-invite-link-wrapper: backlog
+  2-4-lobby-roster-ready-state-and-settings-sync: backlog
+  2-5-networked-player-spawn-in-empty-world: backlog
+  2-6-in-game-hud-foundation: backlog
+  2-7-player-lifecycle-disconnect-and-host-quit-handling: backlog
+  2-8-epic-2-online-playable-checkpoint: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-shared-player-car-prefab-and-vehicle-module-boundary: backlog
+  3-2-driver-control-and-local-vehicle-camera: backlog
+  3-3-seat-entry-exit-and-passenger-presence: backlog
+  3-4-simple-route-collision-and-vehicle-recovery: backlog
+  3-5-vehicle-damage-hook-and-team-wipe-contract-stub: backlog
+  3-6-epic-3-driving-playable-checkpoint: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-rage-state-module-and-definitions: backlog
+  4-2-passenger-action-framework-and-host-validated-intent: backlog
+  4-3-passenger-action-one-changes-rage: backlog
+  4-4-passenger-action-two-creates-an-incident-or-resource-opportu: backlog
+  4-5-passenger-action-three-provides-crew-help: backlog
+  4-6-epic-4-passenger-chaos-playable-checkpoint: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-three-ai-vehicles-on-the-route: backlog
+  5-2-basic-ai-route-following-and-recovery: backlog
+  5-3-rage-driven-ai-behavior-states: backlog
+  5-4-rage-road-event-trigger: backlog
+  5-5-ai-traffic-networking-and-client-presentation: backlog
+  5-6-epic-5-ai-traffic-playable-checkpoint: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-on-foot-transition-for-confrontation-and-sandbox-stops: backlog
+  6-2-compact-rage-road-confrontation-resolution: backlog
+  6-3-shared-money-reward-for-road-rage-victory: backlog
+  6-4-compact-sandbox-stop-with-happenings: backlog
+  6-5-one-upgrade-purchase: backlog
+  6-6-upgrade-effect-on-the-next-driving-loop: backlog
+  6-7-economy-confrontation-and-stop-ui-feedback: backlog
+  6-8-epic-6-economy-loop-playable-checkpoint: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-integrated-mvp-run-state-machine: backlog
+  7-2-simple-boss-endpoint: backlog
+  7-3-boss-kill-victory-flow: backlog
+  7-4-team-wipe-restart-from-beginning: backlog
+  7-5-complete-mvp-loop-integration: backlog
+  7-6-mvp-stabilization-build-and-handoff-notes: backlog
+  epic-7-retrospective: optional

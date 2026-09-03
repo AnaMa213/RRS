@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Road Rage Simulator - Forge Report</title>
+  <style>
+    :root {
+      --ink: #161616;
+      --paper: #f5f0e7;
+      --line: #2e2a24;
+      --accent: #b72626;
+      --gold: #c79733;
+      --muted: #62594e;
+    }
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #171717, #3a3029);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.55;
+    }
+    main {
+      max-width: 920px;
+      margin: 40px auto;
+      padding: 40px;
+      background: var(--paper);
+      border: 3px solid var(--line);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+    }
+    header {
+      display: grid;
+      grid-template-columns: 1fr 150px;
+      gap: 28px;
+      align-items: center;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 24px;
+      margin-bottom: 28px;
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+      line-height: 1.1;
+    }
+    h1 {
+      font-size: 42px;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 24px;
+      border-bottom: 1px solid rgba(46, 42, 36, 0.35);
+      padding-bottom: 6px;
+    }
+    p {
+      margin: 0 0 14px;
+    }
+    ul {
+      padding-left: 22px;
+      margin: 0 0 18px;
+    }
+    li {
+      margin: 7px 0;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 18px;
+    }
+    .seal {
+      width: 140px;
+      height: 140px;
+    }
+    .stamp {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 7px 12px;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+      font-weight: bold;
+      text-transform: uppercase;
+      transform: rotate(-2deg);
+    }
+    .callout {
+      margin: 24px 0;
+      padding: 18px 20px;
+      border-left: 6px solid var(--accent);
+      background: rgba(183, 38, 38, 0.08);
+      font-size: 18px;
+    }
+    .voices {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .voice {
+      border: 1px solid rgba(46, 42, 36, 0.35);
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.28);
+    }
+    .voice strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+    footer {
+      margin-top: 32px;
+      padding-top: 18px;
+      border-top: 2px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media (max-width: 700px) {
+      main {
+        margin: 0;
+        padding: 24px;
+        border-width: 0;
+      }
+      header {
+        grid-template-columns: 1fr;
+      }
+      h1 {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Road Rage Simulator</h1>
+        <p class="subtitle">Forge Idea Report - noyau clarifie pour prototype</p>
+        <span class="stamp">Clarified</span>
+      </div>
+      <svg class="seal" viewBox="0 0 160 160" role="img" aria-label="Stamped outcome">
+        <circle cx="80" cy="80" r="68" fill="#b72626"/>
+        <circle cx="80" cy="80" r="54" fill="none" stroke="#f5d68a" stroke-width="4"/>
+        <path d="M42 84c18-28 53-34 76-7" fill="none" stroke="#f5d68a" stroke-width="7" stroke-linecap="round"/>
+        <path d="M52 103h56" stroke="#f5d68a" stroke-width="7" stroke-linecap="round"/>
+        <text x="80" y="48" text-anchor="middle" fill="#f5d68a" font-size="13" font-family="Georgia" font-weight="bold">BMAD</text>
+        <text x="80" y="128" text-anchor="middle" fill="#f5d68a" font-size="14" font-family="Georgia" font-weight="bold">CLARIFIED</text>
+      </svg>
+    </header>
+
+    <section>
+      <h2>Outcome</h2>
+      <div class="callout">
+        Le concept n'est pas encore assez ferme pour devenir un PRD complet, mais son noyau jouable est maintenant visible: conduite coop chaotique, rage par vehicule, provocations passager, crises de road rage, argent, upgrades, puis reprise du trajet.
+      </div>
+    </section>
+
+    <section>
+      <h2>Locked Decisions</h2>
+      <ul>
+        <li>La rage est une jauge par vehicule ennemi, pas une jauge globale.</li>
+        <li>Les passagers ont un gameplay actif dans la voiture: provoquer, jeter, menacer, gener, ramasser, declencher des incidents.</li>
+        <li>Les actions absurdes peuvent etre simples et fun a court terme si elles alimentent les happenings.</li>
+        <li>L'argent significatif vient surtout du road rage: affronter et battre les chauffards.</li>
+        <li>Le jeu assume deux modes: en voiture et a pied.</li>
+        <li>Les villes sont des zones bac a sable avec happenings et opportunites, pas des zones destructibles.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Rejected Or Delayed</h2>
+      <ul>
+        <li>Ne pas commencer par une ville riche en contenu: trop de dette de production.</li>
+        <li>Ne pas commencer par un boss complexe: il peut attendre que la boucle de road rage soit prouvee.</li>
+        <li>Ne pas commencer par quatre joueurs: deux joueurs suffisent pour tester conducteur/passager.</li>
+        <li>Ne pas commencer par une economie profonde, beaucoup d'armes ou de nombreux archetypes.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Surviving Weak Points</h2>
+      <ul>
+        <li>Deux gameplays complets peuvent diluer l'identite si le mode a pied ne nourrit pas la boucle de route.</li>
+        <li>Les villes bac a sable demandent assez de happenings pour ne pas devenir des pauses farming repetitives.</li>
+        <li>Les passagers doivent rester actifs sans transformer la coop en sabotage gratuit permanent.</li>
+        <li>Le MVP doit prouver le fun systemique avant d'ajouter progression, boss et contenu.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>MVP Candidate</h2>
+      <ul>
+        <li>Une route jouable.</li>
+        <li>Une voiture joueur avec conducteur et passager.</li>
+        <li>Trois vehicules IA avec jauge de rage individuelle.</li>
+        <li>Trois actions passager qui modifient ou exploitent la rage.</li>
+        <li>Un declenchement Rage Road: fuite, barrage, attaque belier ou bagarre simple.</li>
+        <li>Une mini zone bac a sable avec une source d'argent, un achat et un happening.</li>
+        <li>Une amelioration de voiture qui change concretement la prochaine sequence de route.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Pressure Test Voices</h2>
+      <div class="voices">
+        <div class="voice">
+          <strong>Mary - Business Analyst</strong>
+          A pousse la question de l'identite: le jeu doit prouver une fantasy claire, pas additionner conduite, bagarre, economie et road trip.
+        </div>
+        <div class="voice">
+          <strong>John - Product Manager</strong>
+          A force la priorite MVP: prouver la boucle centrale avant de parler progression, boss ou gros contenu.
+        </div>
+        <div class="voice">
+          <strong>Sally - UX Designer</strong>
+          A defendu le role actif des passagers et le besoin de consequences immediates, lisibles et droles.
+        </div>
+        <div class="voice">
+          <strong>Winston - Architect</strong>
+          A signale le risque technique des deux modes complets et la necessite de ressources/systemes partages.
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Session: _bmad-output/forge/road-rage-simulator. Result: CLARIFIED.
+    </footer>
+  </main>
+</body>
+</html>
