@@ -112,3 +112,10 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Python caches from local BMAD script/test execution
+__pycache__/
+*.py[cod]
+
+# BMAD installer personal answers; team config lives in _bmad/config.toml
+/_bmad/config.user.toml
