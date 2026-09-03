@@ -23,25 +23,32 @@ Ce tutoriel est le chemin manuel pour executer la Story 0.3. Il couvre la config
 - Reference les preuves avec un chemin, une capture caviardee ou une note re-verifiable. Si un secret arrive dans le repo ou l'historique Git, arrete la validation, purge la preuve, fais tourner/revoque le secret concerne, puis documente la remediation sans recopier le secret.
 - Si Steamworks demande un service payant, matchmaking public, dedicated server, host migration, native deep link OS, changement de cap joueurs, stockage de token, distribution hors-Steam pour le online, ou dependance externe non approuvee, arrete-toi et demande une approbation humaine.
 
+**Preparation locale deja faite par l'agent (2026-09-03) :**
+
+- `steam_appid.txt` existe a la racine du projet Unity et contient `480`.
+- `Assets/Editor/RoadRageSteamworksSmokeTest.cs` ajoute le menu Unity `RoadRage > Steamworks > Run AppID 480 Smoke Test`.
+- Le helper appelle `SteamClient.Init(480, false)` puis `SteamNetworkingUtils.InitRelayNetworkAccess()` sans logger de Steam ID, Lobby ID, invite ou credential.
+- Cette preparation ne prouve pas encore que Steam fonctionne sur ta machine : VAL-012 reste `In Progress` tant que tu n'as pas lance le menu dans Unity avec Steam ouvert et conserve un log Console caviarde.
+
 ## Etape 1 -- Configurer l'AppID de test Steamworks (480 / Spacewar)
 
-1. A la racine du dossier de build/Editor utilise pour les tests locaux, cree un fichier `steam_appid.txt` contenant une seule ligne : `480`.
+1. A la racine du projet Unity `RRS`, verifie que `steam_appid.txt` existe et contient une seule ligne : `480`. Si tu testes un build Windows separe plus tard, copie aussi ce fichier a la racine du dossier du build.
 2. Assure-toi que le client Steam est installe et connecte avec un compte Steam valide (ton compte de developpement) avant de lancer le projet depuis Unity Editor.
 3. Ouvre le projet `RRS` dans Unity Editor et confirme que le transport Steamworks (installe en Story 0.2 revisee) est present dans `Packages/manifest.json`.
-4. Ajoute un point d'initialisation minimal du SDK Steamworks (`SteamClient.Init(480)` ou l'appel equivalent du transport choisi) dans un script de test ou de bootstrap temporaire, uniquement pour verifier que l'initialisation reussit -- ne cable pas encore le flux `Bootstrap`/`MainMenuLobby` complet (ca reste Story 0.4/Epic 2).
-5. Lance l'Editor (ou un build de test) avec Steam ouvert et confirme dans la Console Unity que `SteamClient.Init` reussit sans exception.
+4. Dans Unity Editor, utilise le helper deja present : menu `RoadRage > Steamworks > Run AppID 480 Smoke Test`. Il initialise Steamworks uniquement pour le smoke test puis ferme le client initialise par le test ; ne cable pas encore le flux `Bootstrap`/`MainMenuLobby` complet (ca reste Story 0.4/Epic 2).
+5. Lance le menu avec Steam ouvert et confirme dans la Console Unity que `SteamClient.Init` reussit sans exception.
 
-**Preuve a fournir (VAL-012 -- Configuration AppID test Steamworks) :** capture ou note montrant `steam_appid.txt` avec `480`, et un log Console confirmant `SteamClient.Init` reussi. Caviarde tout identifiant de compte Steam sensible. Tant que cette preuve n'existe pas, VAL-012 reste `Not Started` ou `In Progress`.
+**Preuve a fournir (VAL-012 -- Configuration AppID test Steamworks) :** capture ou note montrant `steam_appid.txt` avec `480`, le menu `RoadRage > Steamworks > Run AppID 480 Smoke Test`, et un log Console confirmant `SteamClient.Init` reussi. Caviarde tout identifiant de compte Steam sensible. Tant que cette preuve n'existe pas, VAL-012 reste `In Progress`.
 
 **Cas limite -- Steam indisponible :** si le client Steam n'est pas installe, pas connecte, ou si `SteamClient.Init` echoue de maniere repetee, marque VAL-012 `Blocked`, note l'erreur exacte rencontree et l'impact.
 
 ## Etape 2 -- Confirmer le transport Networking Sockets
 
-1. Verifie que le transport Steamworks choisi en Story 0.2 revisee (`com.community.netcode.transport.facepunch` ou `com.community.netcode.transport.steamnetworkingsockets`) est assigne comme transport actif du futur `NetworkManager` (meme si `NetworkManager` lui-meme reste a creer en Story 0.4).
-2. Confirme dans la documentation du transport choisi que Networking Sockets (Steam Datagram Relay) est bien le chemin reseau utilise -- pas de connexion directe IP uniquement.
+1. Verifie que le transport Steamworks choisi en Story 0.2 revisee (`com.community.netcode.transport.facepunch` ou `com.community.netcode.transport.steamnetworkingsockets`) est present dans `Packages/manifest.json` et `Packages/packages-lock.json`. Ne marque pas encore "transport assigne au NetworkManager" tant que le `NetworkManager` reel n'existe pas.
+2. Confirme dans la documentation ou le code du transport choisi que Networking Sockets (Steam Datagram Relay) est bien le chemin reseau utilise -- pas de connexion directe IP uniquement. Pour le transport Facepunch installe ici, `Library/PackageCache/com.community.netcode.transport.facepunch@27d3e825ecdd/Runtime/FacepunchTransport.cs` appelle `SteamNetworkingUtils.InitRelayNetworkAccess()`, `SteamNetworkingSockets.ConnectRelay(...)` et `SteamNetworkingSockets.CreateRelaySocket(...)`.
 3. N'active pas public matchmaking, dedicated servers, host migration ou un palier payant sans approbation humaine explicite.
 
-**Preuve a fournir (VAL-013 -- Lobby Steam et Networking Sockets) :** captures ou notes montrant le transport assigne, la reference a Networking Sockets/Steam Datagram Relay dans sa documentation, et si possible un test de creation de lobby minimal (`ISteamMatchmaking.CreateLobby` ou l'appel equivalent du transport) reussi en environnement AppID 480. Caviarde tout identifiant ou Lobby ID utilisable. Tant que cette preuve n'existe pas, VAL-013 reste `Not Started` ou `In Progress`.
+**Preuve a fournir (VAL-013 -- Lobby Steam et Networking Sockets) :** captures ou notes montrant le transport installe, la reference a Networking Sockets/Steam Datagram Relay dans sa documentation ou son code, puis plus tard le transport assigne au `NetworkManager` quand il existe. Si possible, ajoute un test de creation de lobby minimal (`ISteamMatchmaking.CreateLobby` ou l'appel equivalent du transport) reussi en environnement AppID 480. Caviarde tout identifiant ou Lobby ID utilisable. Tant que cette preuve runtime n'existe pas, VAL-013 reste `In Progress`.
 
 **Cas limite -- service indisponible :** si Networking Sockets ou la creation de lobby echoue de maniere repetee, marque VAL-013 `Blocked`, note la documentation consultee, l'option manquante et l'impact sur les stories online.
 

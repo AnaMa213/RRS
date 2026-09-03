@@ -4,7 +4,7 @@ type: 'chore'
 created: '2026-09-02'
 status: 'in-review'
 review_loop_iteration: 0
-baseline_commit: '4ec846e5df7ad671609b2b77ba6889aa96c80c4c'
+baseline_commit: '6e04205cba0d7bf27124a88b4ca278e111439037'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-0-context.md'
   - '{project-root}/docs/setup/tooling-validation-log.md'
@@ -42,6 +42,8 @@ context:
 ## Code Map
 
 - `docs/setup/story-0-3-unity-cloud-services-tutorial.md` -- Tutoriel manuel reecrit pour Steamworks, AppID de test 480, lobby prive, Networking Sockets, `MaxPlayers = 4`, invite Steam/Lobby ID et preuves sans secret.
+- `steam_appid.txt` -- Fichier AppID Steam local pour les tests Editor/build avec l'AppID public Valve `480` (Spacewar).
+- `Assets/Editor/RoadRageSteamworksSmokeTest.cs` -- Helper editor-only expose via `RoadRage > Steamworks > Run AppID 480 Smoke Test`, appelle `SteamClient.Init(480, false)` puis `SteamNetworkingUtils.InitRelayNetworkAccess()` sans logger d'identifiant sensible.
 - `docs/setup/tooling-validation-log.md` -- Lignes `VAL-012` a `VAL-015` retargetees sur Steamworks a pointer vers le tutoriel ; `VAL-032` peut recevoir une note d'exigence d'erreurs UI visibles, sans pretendre aux smoke tests finaux.
 - `docs/setup/epic-0-readiness-checklist.md` -- Ligne action manuelle et validation agent Story 0.3 synchronisee avec le tutoriel Steamworks et les preuves attendues.
 - `Packages/manifest.json` et `Packages/packages-lock.json` -- Preuves read-only que le transport Steamworks (Story 0.2 revisee) est present avant la configuration Steamworks.
@@ -56,6 +58,9 @@ context:
 - [x] `docs/setup/epic-0-readiness-checklist.md` -- Synchroniser les lignes Story 0.3 pour distinguer action manuelle utilisateur et validation agent.
 - [x] `_bmad-output/implementation-artifacts/sprint-status.yaml` -- Garder Story 0.3 en `in-progress` pendant la creation du tutoriel, puis `review` quand le travail agent-executable est pret a relire.
 - [x] Course-correction : remplacer le contenu Unity Cloud/Unity Gaming Services/Relay par Steamworks/AppID 480/Networking Sockets dans le tutoriel, cette spec, et les lignes VAL-012 a VAL-015.
+- [x] `steam_appid.txt` -- Ajouter le fichier AppID local `480` a la racine du projet Unity pour preparer le smoke test Steamworks.
+- [x] `Assets/Editor/RoadRageSteamworksSmokeTest.cs` -- Ajouter un menu Unity editor-only qui lance l'initialisation Steamworks AppID 480 et l'acces Steam Relay sans demarrer le futur lobby gameplay.
+- [x] `docs/setup/tooling-validation-log.md` et `docs/setup/epic-0-readiness-checklist.md` -- Marquer `VAL-007` en `Pass`, passer `VAL-012` a `VAL-015` en `In Progress`, et documenter precisement les preuves utilisateur restantes.
 
 **Criteres d'acceptation :**
 - Given Story 0.2 est `done` (avec le transport Steamworks installe apres revision), when le tutoriel Story 0.3 est lu, then il guide la configuration AppID de test Steamworks et la creation de lobby prive/Networking Sockets sans demander a l'agent d'effectuer les actions externes.
@@ -70,6 +75,7 @@ context:
 - 2026-09-02 : Implementation agent cree le tutoriel Story 0.3, synchronise les lignes de preuve et passe le suivi sprint en `review`.
 - 2026-09-02 : Revue BMAD appliquee : distinction `review` documentaire vs preuves Unity manuelles, exigences join-code/VAL-032 precisees, et remediation secrets documentee.
 - 2026-09-03 : Course-correction (`_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-02.md`) -- remplacement complet du premisse Story 0.3 : Unity Cloud/Unity Gaming Services/Multiplayer Services Sessions/Relay retires, remplaces par Steamworks (AppID de test 480, lobby prive `ISteamMatchmaking`, Networking Sockets/Steam Datagram Relay, invite Steam natif ou Lobby ID). Declenche par une contrainte financiere solo-dev (pas de revenu recurrent) identifiee par l'utilisateur et confirmee apres recherche de precedents (Lethal Company, How to Fish, Meccha Chameleon utilisent tous un modele equivalent gratuit). Remplacement propre : aucune preuve VAL-012 a VAL-015 n'existait encore sur l'ancien chemin, donc aucun rollback necessaire.
+- 2026-09-03 : Passage d'implementation locale demande par l'utilisateur. Ajoute `steam_appid.txt` avec `480`, un helper Unity Editor `RoadRageSteamworksSmokeTest` exposant le menu `RoadRage > Steamworks > Run AppID 480 Smoke Test`, et une synchronisation des documents de suivi. `VAL-007` passe `Pass` sur preuve locale du transport Facepunch resolu ; `VAL-012` a `VAL-015` restent `In Progress` car l'utilisateur doit encore lancer Unity avec Steam ouvert et fournir les preuves caviardees.
 
 ## Notes De Design
 
@@ -79,7 +85,15 @@ Story 0.3 doit rester une readiness story : elle peut produire un tutoriel, des 
 
 **Commandes :**
 - `Test-Path docs/setup/story-0-3-unity-cloud-services-tutorial.md` -- attendu : `True` apres implementation.
+- `Test-Path steam_appid.txt` -- attendu : `True`.
+- `$appid = (Get-Content -LiteralPath 'steam_appid.txt' -Raw).Trim(); if ($appid -ne '480') { throw "steam_appid.txt doit contenir 480" }` -- attendu : aucune erreur.
+- `Test-Path Assets/Editor/RoadRageSteamworksSmokeTest.cs` -- attendu : `True`.
+- `$smoke = Get-Content -LiteralPath 'Assets/Editor/RoadRageSteamworksSmokeTest.cs' -Raw; foreach ($needle in 'SteamClient.Init(TestSteamAppId, false)','SteamNetworkingUtils.InitRelayNetworkAccess','RoadRage/Steamworks/Run AppID 480 Smoke Test') { if ($smoke -notmatch [regex]::Escape($needle)) { throw "helper smoke test manque $needle" } }` -- attendu : aucune erreur.
+- `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; if ($log -notmatch "\|\s*VAL-007\s*\|\s*``Pass``") { throw 'VAL-007 doit etre Pass apres installation du transport Facepunch' }` -- attendu : aucune erreur.
 - `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; foreach ($id in 'VAL-012','VAL-013','VAL-014','VAL-015') { if ($log -notmatch "\|\s*$id\s*\|") { throw "$id manquant" } }` -- attendu : aucune erreur.
 - `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; foreach ($id in 'VAL-012','VAL-013','VAL-014','VAL-015') { if ($log -notmatch "\|\s*$id\s*\|\s*``(Not Started|In Progress)``") { throw "$id ne doit pas etre Pass sans preuve" } }` -- attendu : aucune erreur.
 - `$yaml = Get-Content -LiteralPath '_bmad-output/implementation-artifacts/sprint-status.yaml' -Raw; if ($yaml -notmatch '(?m)^  0-3-unity-cloud-services-lobby-and-relay-readiness: review$') { throw 'sprint-status story 0.3 doit etre review' }` -- attendu : aucune erreur.
 - `$t = Get-Content -LiteralPath 'docs/setup/story-0-3-unity-cloud-services-tutorial.md' -Raw; foreach ($needle in '480','Spacewar','SteamClient.Init','ISteamMatchmaking','Networking Sockets','[REDACTED_TOKEN]','MaxPlayers = 4','Arret obligatoire avant Story 0.4','Story 2.2','Story 2.3','VAL-029','room pleine','session expiree') { if ($t -notmatch [regex]::Escape($needle)) { throw "tutoriel manque $needle" } }` -- attendu : aucune erreur.
+
+**Tentative non comptabilisee :**
+- Unity batchmode a ete lance pour verifier la compilation du helper, mais Unity a quitte pendant la phase licence avec `Access token is unavailable` avant compilation verifiable. Le log local a ete supprime car il contenait des identifiants machine/licence ; la validation Unity reste donc a faire manuellement via l'Editor.
