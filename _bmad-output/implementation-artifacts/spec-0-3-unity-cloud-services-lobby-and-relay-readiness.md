@@ -4,7 +4,7 @@ type: 'chore'
 created: '2026-09-02'
 status: 'in-review'
 review_loop_iteration: 0
-baseline_commit: '6e04205cba0d7bf27124a88b4ca278e111439037'
+baseline_commit: '0265868e0d5a7cbf15459e413c47680ac8247f48'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-0-context.md'
   - '{project-root}/docs/setup/tooling-validation-log.md'
@@ -44,6 +44,7 @@ context:
 - `docs/setup/story-0-3-unity-cloud-services-tutorial.md` -- Tutoriel manuel reecrit pour Steamworks, AppID de test 480, lobby prive, Networking Sockets, `MaxPlayers = 4`, invite Steam/Lobby ID et preuves sans secret.
 - `steam_appid.txt` -- Fichier AppID Steam local pour les tests Editor/build avec l'AppID public Valve `480` (Spacewar).
 - `Assets/Editor/RoadRageSteamworksSmokeTest.cs` -- Helper editor-only expose via `RoadRage > Steamworks > Run AppID 480 Smoke Test`, appelle `SteamClient.Init(480, false)` puis `SteamNetworkingUtils.InitRelayNetworkAccess()` sans logger d'identifiant sensible.
+- `Packages/com.community.netcode.transport.facepunch/Runtime/FacepunchTransport.cs` -- Copie embarquee du transport Facepunch issue de l'amont `f5d80002708c530ad5b95b66f4c20751e0925123`, avec suppression du `#endregion` surnumeraire qui bloque la compilation Unity.
 - `docs/setup/tooling-validation-log.md` -- Lignes `VAL-012` a `VAL-015` retargetees sur Steamworks a pointer vers le tutoriel ; `VAL-032` peut recevoir une note d'exigence d'erreurs UI visibles, sans pretendre aux smoke tests finaux.
 - `docs/setup/epic-0-readiness-checklist.md` -- Ligne action manuelle et validation agent Story 0.3 synchronisee avec le tutoriel Steamworks et les preuves attendues.
 - `Packages/manifest.json` et `Packages/packages-lock.json` -- Preuves read-only que le transport Steamworks (Story 0.2 revisee) est present avant la configuration Steamworks.
@@ -60,6 +61,7 @@ context:
 - [x] Course-correction : remplacer le contenu Unity Cloud/Unity Gaming Services/Relay par Steamworks/AppID 480/Networking Sockets dans le tutoriel, cette spec, et les lignes VAL-012 a VAL-015.
 - [x] `steam_appid.txt` -- Ajouter le fichier AppID local `480` a la racine du projet Unity pour preparer le smoke test Steamworks.
 - [x] `Assets/Editor/RoadRageSteamworksSmokeTest.cs` -- Ajouter un menu Unity editor-only qui lance l'initialisation Steamworks AppID 480 et l'acces Steam Relay sans demarrer le futur lobby gameplay.
+- [x] `Packages/com.community.netcode.transport.facepunch/Runtime/FacepunchTransport.cs` -- Embarquer et patcher le transport Facepunch pour supprimer le `#endregion` en trop detecte dans `Library/PackageCache/.../FacepunchTransport.cs`.
 - [x] `docs/setup/tooling-validation-log.md` et `docs/setup/epic-0-readiness-checklist.md` -- Marquer `VAL-007` en `Pass`, passer `VAL-012` a `VAL-015` en `In Progress`, et documenter precisement les preuves utilisateur restantes.
 
 **Criteres d'acceptation :**
@@ -76,6 +78,7 @@ context:
 - 2026-09-02 : Revue BMAD appliquee : distinction `review` documentaire vs preuves Unity manuelles, exigences join-code/VAL-032 precisees, et remediation secrets documentee.
 - 2026-09-03 : Course-correction (`_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-02.md`) -- remplacement complet du premisse Story 0.3 : Unity Cloud/Unity Gaming Services/Multiplayer Services Sessions/Relay retires, remplaces par Steamworks (AppID de test 480, lobby prive `ISteamMatchmaking`, Networking Sockets/Steam Datagram Relay, invite Steam natif ou Lobby ID). Declenche par une contrainte financiere solo-dev (pas de revenu recurrent) identifiee par l'utilisateur et confirmee apres recherche de precedents (Lethal Company, How to Fish, Meccha Chameleon utilisent tous un modele equivalent gratuit). Remplacement propre : aucune preuve VAL-012 a VAL-015 n'existait encore sur l'ancien chemin, donc aucun rollback necessaire.
 - 2026-09-03 : Passage d'implementation locale demande par l'utilisateur. Ajoute `steam_appid.txt` avec `480`, un helper Unity Editor `RoadRageSteamworksSmokeTest` exposant le menu `RoadRage > Steamworks > Run AppID 480 Smoke Test`, et une synchronisation des documents de suivi. `VAL-007` passe `Pass` sur preuve locale du transport Facepunch resolu ; `VAL-012` a `VAL-015` restent `In Progress` car l'utilisateur doit encore lancer Unity avec Steam ouvert et fournir les preuves caviardees.
+- 2026-09-03 : Correctif compilation apres retour utilisateur : le package amont Facepunch contient un `#endregion` surnumeraire dans `Runtime/FacepunchTransport.cs`, provoquant `CS1028 Unexpected preprocessor directive`. Le package est embarque dans `Packages/com.community.netcode.transport.facepunch/` et le `#endregion` en trop est retire ; le cache Unity local a aussi ete corrige pour debloquer l'Editor ouvert.
 
 ## Notes De Design
 
@@ -90,6 +93,7 @@ Story 0.3 doit rester une readiness story : elle peut produire un tutoriel, des 
 - `Test-Path Assets/Editor/RoadRageSteamworksSmokeTest.cs` -- attendu : `True`.
 - `$smoke = Get-Content -LiteralPath 'Assets/Editor/RoadRageSteamworksSmokeTest.cs' -Raw; foreach ($needle in 'SteamClient.Init(TestSteamAppId, false)','SteamNetworkingUtils.InitRelayNetworkAccess','RoadRage/Steamworks/Run AppID 480 Smoke Test') { if ($smoke -notmatch [regex]::Escape($needle)) { throw "helper smoke test manque $needle" } }` -- attendu : aucune erreur.
 - `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; if ($log -notmatch "\|\s*VAL-007\s*\|\s*``Pass``") { throw 'VAL-007 doit etre Pass apres installation du transport Facepunch' }` -- attendu : aucune erreur.
+- `$fp = Get-Content -LiteralPath 'Packages/com.community.netcode.transport.facepunch/Runtime/FacepunchTransport.cs' -Raw; if ($fp -notmatch 'SteamNetworkingSockets\.CreateRelaySocket') { throw 'transport Facepunch local incomplet' }; if ($fp -match '(?s)#endregion\s*#endregion\s*}\s*}') { throw 'endregion surnumeraire Facepunch encore present' }` -- attendu : aucune erreur.
 - `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; foreach ($id in 'VAL-012','VAL-013','VAL-014','VAL-015') { if ($log -notmatch "\|\s*$id\s*\|") { throw "$id manquant" } }` -- attendu : aucune erreur.
 - `$log = Get-Content -LiteralPath 'docs/setup/tooling-validation-log.md' -Raw; foreach ($id in 'VAL-012','VAL-013','VAL-014','VAL-015') { if ($log -notmatch "\|\s*$id\s*\|\s*``(Not Started|In Progress)``") { throw "$id ne doit pas etre Pass sans preuve" } }` -- attendu : aucune erreur.
 - `$yaml = Get-Content -LiteralPath '_bmad-output/implementation-artifacts/sprint-status.yaml' -Raw; if ($yaml -notmatch '(?m)^  0-3-unity-cloud-services-lobby-and-relay-readiness: review$') { throw 'sprint-status story 0.3 doit etre review' }` -- attendu : aucune erreur.

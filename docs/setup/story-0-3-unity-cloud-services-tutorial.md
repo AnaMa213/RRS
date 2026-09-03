@@ -27,6 +27,7 @@ Ce tutoriel est le chemin manuel pour executer la Story 0.3. Il couvre la config
 
 - `steam_appid.txt` existe a la racine du projet Unity et contient `480`.
 - `Assets/Editor/RoadRageSteamworksSmokeTest.cs` ajoute le menu Unity `RoadRage > Steamworks > Run AppID 480 Smoke Test`.
+- `Packages/com.community.netcode.transport.facepunch/Runtime/FacepunchTransport.cs` embarque le transport Facepunch avec un correctif local du `#endregion` en trop present dans l'amont `f5d80002708c530ad5b95b66f4c20751e0925123`.
 - Le helper appelle `SteamClient.Init(480, false)` puis `SteamNetworkingUtils.InitRelayNetworkAccess()` sans logger de Steam ID, Lobby ID, invite ou credential.
 - Cette preparation ne prouve pas encore que Steam fonctionne sur ta machine : VAL-012 reste `In Progress` tant que tu n'as pas lance le menu dans Unity avec Steam ouvert et conserve un log Console caviarde.
 
@@ -44,8 +45,8 @@ Ce tutoriel est le chemin manuel pour executer la Story 0.3. Il couvre la config
 
 ## Etape 2 -- Confirmer le transport Networking Sockets
 
-1. Verifie que le transport Steamworks choisi en Story 0.2 revisee (`com.community.netcode.transport.facepunch` ou `com.community.netcode.transport.steamnetworkingsockets`) est present dans `Packages/manifest.json` et `Packages/packages-lock.json`. Ne marque pas encore "transport assigne au NetworkManager" tant que le `NetworkManager` reel n'existe pas.
-2. Confirme dans la documentation ou le code du transport choisi que Networking Sockets (Steam Datagram Relay) est bien le chemin reseau utilise -- pas de connexion directe IP uniquement. Pour le transport Facepunch installe ici, `Library/PackageCache/com.community.netcode.transport.facepunch@27d3e825ecdd/Runtime/FacepunchTransport.cs` appelle `SteamNetworkingUtils.InitRelayNetworkAccess()`, `SteamNetworkingSockets.ConnectRelay(...)` et `SteamNetworkingSockets.CreateRelaySocket(...)`.
+1. Verifie que le transport Steamworks choisi en Story 0.2 revisee (`com.community.netcode.transport.facepunch` ou `com.community.netcode.transport.steamnetworkingsockets`) est present dans `Packages/manifest.json`, `Packages/packages-lock.json` et la copie embarquee `Packages/com.community.netcode.transport.facepunch/`. Ne marque pas encore "transport assigne au NetworkManager" tant que le `NetworkManager` reel n'existe pas.
+2. Confirme dans la documentation ou le code du transport choisi que Networking Sockets (Steam Datagram Relay) est bien le chemin reseau utilise -- pas de connexion directe IP uniquement. Pour le transport Facepunch installe ici, `Packages/com.community.netcode.transport.facepunch/Runtime/FacepunchTransport.cs` appelle `SteamNetworkingUtils.InitRelayNetworkAccess()`, `SteamNetworkingSockets.ConnectRelay(...)` et `SteamNetworkingSockets.CreateRelaySocket(...)`.
 3. N'active pas public matchmaking, dedicated servers, host migration ou un palier payant sans approbation humaine explicite.
 
 **Preuve a fournir (VAL-013 -- Lobby Steam et Networking Sockets) :** captures ou notes montrant le transport installe, la reference a Networking Sockets/Steam Datagram Relay dans sa documentation ou son code, puis plus tard le transport assigne au `NetworkManager` quand il existe. Si possible, ajoute un test de creation de lobby minimal (`ISteamMatchmaking.CreateLobby` ou l'appel equivalent du transport) reussi en environnement AppID 480. Caviarde tout identifiant ou Lobby ID utilisable. Tant que cette preuve runtime n'existe pas, VAL-013 reste `In Progress`.
