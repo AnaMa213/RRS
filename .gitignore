@@ -119,3 +119,6 @@ __pycache__/
 
 # BMAD installer personal answers; team config lives in _bmad/config.toml
 /_bmad/config.user.toml
+
+# Blender scratch/test exports — never commit test .glb output
+/Blender/exports_test/
