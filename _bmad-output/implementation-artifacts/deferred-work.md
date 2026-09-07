@@ -99,3 +99,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
   summary: No versioning/overwrite policy exists for re-saving a `.blend` source or re-exporting an FBX/GLB of the same name after a correction (e.g. after fixing a scale or normals issue found late).
   evidence: Silent overwrite risks losing traceability between asset versions; a real policy (overwrite-in-place vs. suffix/version folders) needs a human decision, not an invented default.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-intake-step-2-4-mcp.md`
+  summary: Sprint status cannot represent that the Story 0.6 tutorial/spec is in review while a concrete VAL-025 asset intake run is only partially complete.
+  evidence: `sprint-status.yaml` keeps Story 0.6 at `review` from the tutorial work, while `tooling-validation-log.md` correctly keeps `VAL-025` at `In Progress` until part 5 is complete; changing that semantics needs a tracking policy decision rather than a silent regression.

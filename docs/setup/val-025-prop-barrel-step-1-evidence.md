@@ -43,7 +43,7 @@ Preuve apres sauvegarde interactive :
 - `bpy.data.is_dirty` apres seconde sauvegarde : `false`
 - Fichier present sur disque : oui
 - Taille du fichier : `95 658` octets
-- SHA-256 : `9A5B45E16457DDEAE0FC11DD84B5D4CF36759A92C7E57B014017740932C42F24`
+- SHA-256 a la fin de la partie 1, avant execution des parties 2 a 4 : `9A5B45E16457DDEAE0FC11DD84B5D4CF36759A92C7E57B014017740932C42F24`
 - Meta Unity generee par import cible de la source `.blend` : `Assets/RoadRage/ArtSource/Blender/Prop_Barrel.blend.meta`
 - GUID Unity source : `41919fd127a8e5342a391465fef78685`
 - Objet actif/selectionne : `Prop_Barrel`
@@ -85,3 +85,5 @@ La verification Blender en background n'a pas pu etre executee depuis le termina
 Aucune action des parties 2 a 5 n'a ete effectuee ici : pas de validation d'echelle par reference, pas de reduction materiaux, pas de recalcul normals, pas de nettoyage geometrie, pas d'export FBX/GLB, pas d'import Unity controle sous `ArtExports`, pas de prefab.
 
 Le fichier `.blend` vit sous `Assets/`, donc Unity lui a cree une metadata de source et le voit comme asset importable. Cette importation ciblee sert uniquement a stabiliser le GUID du fichier source ; elle ne remplace pas l'export controle FBX/GLB ni le test d'echelle Unity de l'etape 5.
+
+Note de suivi : apres cette preuve, les parties 2 a 4 ont modifie le fichier source. Le hash courant du `.blend` est documente dans `docs/setup/val-025-prop-barrel-step-2-4-evidence.md`.
