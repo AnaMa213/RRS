@@ -12,7 +12,7 @@
 
 [core]
 project_name = "RoadRage_Simulator"
-document_output_language = "English"
+document_output_language = "French"
 output_folder = "{project-root}/_bmad-output"
 
 [modules.bmm]

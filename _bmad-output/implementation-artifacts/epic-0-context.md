@@ -1,60 +1,60 @@
-# Epic 0 Context: Gate de readiness technique, outils et assets/add-ons
+# Epic 0 Context: Technical, Tools & Asset/Addon Readiness Gate
 
-Note BMAD : le prefixe `# Epic 0 Context:` est conserve volontairement pour que le cache de contexte Epic reste reconnaissable par le workflow.
+<!-- Compiled from planning artifacts. Edit freely. Regenerate with compile-epic-context if planning docs change. -->
 
-<!-- Compile depuis les artefacts de planning. Modifiable librement. Regenerer avec compile-epic-context si les docs de planning changent. -->
+## Goal
 
-## Objectif
-
-L'Epic 0 etablit la baseline de production de RoadRage_Simulator avant tout travail gameplay. Elle bloque l'Epic 1 tant que Unity, Blender, Unity services, les packages requis, les outils IA/MCP, la structure projet, les regles d'adoption add-on/asset et les preuves de smoke tests ne sont pas documentes et valides. Les agents peuvent guider le setup manuel, creer les artefacts de suivi, inspecter les fichiers generes, valider les preuves et emettre le go/no-go Epic 1 ; ils ne doivent pas pretendre automatiser les installations GUI externes, la creation de comptes, les approbations de services ou les acces outils non verifies.
+Epic 0 establishes the production readiness gate for RoadRage_Simulator before gameplay development starts. It makes Epic 1 safe to begin by documenting and validating the Unity project, package stack, Steamworks networking path, Blender asset pipeline, AI/MCP workflow, add-on and asset adoption rules, smoke-test evidence, and final go/no-go status. Agents guide manual setup, create tracking documents, inspect generated files, validate evidence, and report blockers; they do not claim to automate external GUI installs, account setup, service approvals, or unverified tool access.
 
 ## Stories
 
-- Story 0.1: Checklist de readiness setup et baseline workspace locale
-- Story 0.2: Installation Unity Editor, creation du projet et verrouillage des packages
-- Story 0.3: Readiness Steamworks, lobby et Networking Sockets
-- Story 0.4: Structure projet, scenes, namespaces et squelette runtime state
-- Story 0.5: Configuration Codex, Claude, Unity MCP et Blender MCP
-- Story 0.6: Blender et pipeline d'intake des assets 3D
-- Story 0.7: Registre d'adoption add-on Unity, librairie UI et assets
-- Story 0.8: Smoke tests Epic 0 et gate go/no-go
+- Story 0.1: Setup Readiness Checklist and Local Workspace Baseline
+- Story 0.2: Unity Editor, Project Creation, and Package Pinning
+- Story 0.3: Steamworks, Lobby, and Networking Sockets Readiness
+- Story 0.4: Project Structure, Scenes, Namespaces, and Runtime State Skeleton
+- Story 0.5: Codex, Claude, Unity MCP, and Blender MCP Configuration
+- Story 0.6: Blender and 3D Asset Intake Pipeline
+- Story 0.7: Unity Add-On, UI Library, and Asset Adoption Register
+- Story 0.8: Epic 0 Smoke Tests and Go/No-Go Gate
 
-## Exigences & Contraintes
+## Requirements & Constraints
 
-L'Epic 0 est obligatoire et bloque l'Epic 1 jusqu'a ce que le gate final soit marque `Pass` ou `Accepted With Known Blockers`. La checklist de setup doit distinguer les actions manuelles utilisateur des validations agent, suivre les statuts `Not Started`, `In Progress`, `Pass`, `Blocked` et `Not Applicable`, et rendre les bloqueurs visibles avant le debut du gameplay.
+Epic 0 is mandatory and blocks Epic 1 until the final gate is marked `Pass` or `Accepted With Known Blockers`. Setup tracking must include `docs/setup/epic-0-readiness-checklist.md`, `docs/setup/tooling-validation-log.md`, and `docs/setup/addon-adoption-register.md`, with clear statuses for `Not Started`, `In Progress`, `Pass`, `Blocked`, and `Not Applicable`. The checklist must separate manual user actions from agent validation steps.
 
-La fondation MVP doit rester faisable pour un developpeur solo : prouver la boucle online greybox avec des primitives avant les assets 3D polis, eviter les stacks paralleles moteur/rendu/input/reseau, et reutiliser des packages Unity, starter assets, fondations UI, scaffolds controller ou add-ons compatibles seulement apres revue. Tout asset ou add-on tiers doit etre evalue avant import selon licence, cout, compatibilite Unity, maintenance, impact dependances, impact multiplayer, disponibilite/editabilite du source et alignement avec l'architecture spine.
+The MVP foundation must stay feasible for one solo developer. Prove the online co-op loop with greybox primitives before polished generated assets. Do not introduce parallel engines, render pipelines, input stacks, networking stacks, or duplicated runtime truth. Prefer compatible built-in, official, open-source, or otherwise approved Unity foundations when they reduce risk, but evaluate them before import.
 
-Le projet Unity doit etre cree sous le nom `RRS` (RoadRageSimulator), utiliser le stack Universal 3D/URP approuve, et exposer `Packages/manifest.json`, `Packages/packages-lock.json`, `ProjectSettings/` et `Assets/` pour validation. Les ecarts de versions doivent etre consignes avant l'Epic 1. La cible initiale est le build de developpement Windows PC, branche sur une configuration Steamworks non-production (AppID de test `480`/Spacewar).
+Third-party add-ons, UI libraries, controller packages, starter assets, and generated/downloaded assets require an adoption review before use. The register must capture purpose, source, license, cost, Unity compatibility, maintenance status, dependency impact, multiplayer impact, source/editability, and fit with the architecture. Paid or closed-source candidates require explicit human approval and a documented justification before adoption.
 
-La readiness online doit valider des lobbies prives crees par l'host via `ISteamMatchmaking`, un flow invite Steam natif/Lobby ID, Networking Sockets (Steam Datagram Relay), `MaxPlayers = 4`, aucune ouverture de port routeur cote host, et des invites comme wrappers UI autour du Lobby ID sauf deep links natifs verifies plus tard. Les echecs de join, Networking Sockets, service, disconnect et host quit doivent avoir des exigences d'erreurs Lobby/UI visibles capturees pour implementation ulterieure. (Remplace l'approche initiale Unity Cloud/Unity Gaming Services/Relay -- voir `_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-02.md`.)
+The Unity project must be named `RRS` and use the approved Universal 3D/URP stack. The agent must be able to validate `Packages/manifest.json`, `Packages/packages-lock.json`, `ProjectSettings/`, and `Assets/`; package mismatches must be recorded before Epic 1 begins. The initial target is Windows PC development builds using the Steamworks test AppID `480`/Spacewar until public-release readiness is confirmed.
 
-Les secrets, API keys, tokens et credentials de service ne doivent jamais etre stockes dans les prompts, scripts, scenes, ScriptableObjects ou fichiers commites. Les identifiants Steam generes par le projet peuvent apparaitre dans les fichiers de configuration locaux, mais les captures, logs et prompts doivent caviarder tout identifiant compte/Lobby ID sensible sauf revue explicite. Les preuves finales de readiness doivent couvrir le smoke test local host/client Multiplayer Play Mode, le smoke test distant deux joueurs via Steamworks Networking Sockets, la validation du cap quatre joueurs, la gestion host quit, et les preuves ou notes d'implementation d'erreurs Lobby/UI visibles.
+Online readiness must validate private host-created Steam lobbies, `MaxPlayers = 4`, native Steam invite first, Lobby ID as the fallback join-code wrapper, Steamworks Networking Sockets through Steam Datagram Relay, and no host router port forwarding. Public matchmaking, lobby browsing, dedicated servers, host migration, persistent accounts, cloud saves, analytics, anti-cheat, and secure backend economy are outside the MVP readiness gate.
 
-## Decisions Techniques
+Secrets must not be stored in prompts, scripts, scenes, ScriptableObjects, screenshots, logs, or committed files. Final readiness evidence must cover local Multiplayer Play Mode host/client smoke testing, a remote two-player Steamworks Networking Sockets smoke test, four-player session cap validation, host-quit handling, and visible Lobby/UI error requirements for join, networking, disconnect, and service failures.
 
-Le stack verrouille est Unity `6000.6.0f1` sur la release track Unity 6 Update, C# 9.0 tel que supporte par Unity, Universal 3D/URP, Netcode for GameObjects `2.13.2`, un transport Steamworks communautaire (`com.community.netcode.transport.facepunch` ou `.steamnetworkingsockets`, commit/tag epingle a l'installation), Unity Transport `6.6.0`, Universal Render Pipeline `17.6.0`, Multiplayer Play Mode `3.0.0`, Input System `1.20.0`, Cinemachine `6.6.0`, Blender `5.2 LTS`, et FBX ou GLB pour l'interchange 3D.
+## Technical Decisions
 
-Le projet suit l'approche Feature-Sliced Host-Authoritative Unity. `Assets/RoadRage` est organise autour de `App`, `Shared`, `Features`, dossiers source/export art, materiaux, prefabs, ScriptableObjects et tests. Les namespaces et limites d'assemblies sont `RoadRage.App`, `RoadRage.Shared` et `RoadRage.Features.<Feature>`. Les scenes seed sont `Bootstrap`, `MainMenuLobby`, `MVP_Run`, plus les sandboxes de developpement vehicle, on-foot, rage et lobby smoke test.
+The locked stack is Unity `6000.6.0f1` on the Unity 6 Update track, Unity-supported C# 9.0, Universal 3D/URP, Netcode for GameObjects `2.13.2`, a Steamworks Netcode transport (`com.community.netcode.transport.facepunch` or `.steamnetworkingsockets`) pinned by commit or tag, Unity Transport `6.6.0`, Universal Render Pipeline `17.6.0`, Multiplayer Play Mode `3.0.0`, Input System `1.20.0`, Cinemachine `6.6.0`, Blender `5.2 LTS`, and FBX or GLB for 3D interchange.
 
-La verite runtime appartient a l'host. Les clients soumettent des intentions joueur ; l'host valide et mute l'etat gameplay partage. Les `NetworkObject` gameplay-authoritative sont owned par l'host et les `NetworkVariable` gameplay sont server-write par defaut. Les types d'etat canonique a preserver sont `NetworkedRunState`, `NetworkedPlayerState`, `NetworkedAIVehicleState`, `NetworkedRageState`, `NetworkedCrewEconomyState` et `NetworkedBossState`.
+The architecture is Feature-Sliced Host-Authoritative Unity. `Assets/RoadRage` is organized around `App`, `Shared`, feature slices, art source/export folders, materials, prefabs, ScriptableObjects, and tests. Namespaces and assembly boundaries are `RoadRage.App`, `RoadRage.Shared`, and `RoadRage.Features.<Feature>`. Seed scenes are `Bootstrap`, `MainMenuLobby`, `MVP_Run`, `Dev_VehicleSandbox`, `Dev_OnFootSandbox`, `Dev_RageSandbox`, and `Dev_LobbySmokeTest`.
 
-Les donnees statiques authoring utilisent des ScriptableObjects avec ids globaux stables ; les valeurs de session runtime vivent dans des `NetworkBehaviour` et `NetworkVariable` host-owned. Le setup initial doit preserver les futurs modules Vehicle, OnFoot, PassengerActions, Rage, Economy, Lobby/Network, Run, Boss, SandboxStops et UI.
+The host owns shared gameplay state. Clients send typed player intent; the host validates actor, run phase, mode or seat, cooldown, target, range, and payload version before mutating state. Gameplay-authoritative NetworkObjects are host-owned, and gameplay NetworkVariables are server-write by default. Canonical runtime state is split into `NetworkedRunState`, `NetworkedPlayerState`, `NetworkedAIVehicleState`, `NetworkedRageState`, `NetworkedCrewEconomyState`, and `NetworkedBossState`.
 
-Tout asset 3D genere par IA ou telecharge doit passer par un nettoyage Blender avant utilisation prefab Unity. Le chemin d'intake doit sauvegarder la source Blender, exporter en FBX ou GLB, importer dans Unity, creer le prefab apres test d'echelle, et garder l'identite prefab gameplay, l'enregistrement `NetworkObject`, les composants gameplay, les colliders et les definition ids stables quand l'art est remplace.
+Static authored gameplay data uses ScriptableObject definitions with stable globally unique lowercase ids. Runtime session values live in host-owned NetworkBehaviours and NetworkVariables, not ScriptableObject assets. Future feature slices to preserve are Lobby/Network, Run, Players, Vehicles, Rage, PassengerActions, OnFoot, SandboxStops, Economy, Boss, and UI.
 
-Unity MCP doit privilegier Unity Official MCP si disponible ; sinon utiliser CoplayDev Unity MCP epingle a un tag de release. Blender MCP doit privilegier Blender Lab MCP si stable ; sinon utiliser le fallback ahujasid Blender MCP. Les MCP sont des assistants controles : toute modification de scenes, prefabs, scripts, packages ou assets doit etre revue dans Unity/Blender et commitee par petites etapes. Les MCP ne doivent pas ajouter silencieusement des services payants, changer les versions de packages, convertir vers dedicated servers, stocker des secrets ou contourner l'asset intake.
+Every AI-generated or downloaded 3D asset must pass through Blender cleanup before Unity prefab use. The intake path saves source files, applies transforms, checks scale and normals, reduces material and geometry issues, exports FBX or GLB, tests scene scale in Unity, then creates prefabs. Prefab identity, NetworkObject registration, gameplay components, colliders, and definition ids remain stable when art is replaced.
 
-## UX & Patterns D'interaction
+Unity MCP should prefer Unity Official MCP if available; otherwise use CoplayDev Unity MCP pinned to a release tag. Blender MCP should prefer Blender Lab MCP if stable; otherwise use the ahujasid Blender MCP fallback. MCP tools are controlled assistants only: all scene, prefab, package, script, and asset changes must be reviewed in Unity or Blender and committed in small steps. MCP tools must not silently add paid services, change package versions, convert to dedicated servers, store secrets, or bypass asset intake.
 
-Le travail UX de l'Epic 0 concerne surtout le setup : checklists et logs de validation doivent rendre faciles a scanner les statuts de readiness, actions manuelles, validations agent, bloqueurs et preuves. Le registre d'adoption add-on doit enregistrer les premieres decisions pour les fondations menu/UI et mouvement/controller avant l'Epic 1, meme si la decision est d'utiliser les packages Unity built-in.
+## UX & Interaction Patterns
 
-Les exigences lobby a capturer pour la suite : creer une room privee, afficher une invite Steam/Lobby ID, rejoindre via l'overlay Steam ou par Lobby ID, traiter le Lobby ID comme wrapper de secours, et afficher des erreurs visibles pour join, Networking Sockets, disconnect, service et host quit. Les scripts UI/input restent des couches presentation/intention et ne mutent pas directement l'etat gameplay partage.
+Epic 0 UX is primarily setup and validation UX. Checklists, logs, and adoption registers must be easy to scan for status, evidence, owner, blocker, manual action, and agent validation. The adoption register must record initial choices for menu/UI foundation and on-foot movement/controller foundation before Epic 1, even when the decision is to stay with built-in Unity packages.
 
-## Dependances Cross-Story
+Lobby requirements captured during this gate must support Epic 2 UI work: create a private room, expose native Steam invite, show a Lobby ID fallback, join by Lobby ID, and display visible errors for join failure, Networking Sockets failure, disconnect, service failure, and host quit. Input and UI scripts remain presentation and intent layers; they must not mutate shared gameplay state directly.
 
-Story 0.1 cree les documents de setup que toutes les stories Epic 0 suivantes mettront a jour. Story 0.2 depend de la checklist et de la creation manuelle du projet Unity avant validation des packages. Story 0.3 depend du projet Unity et du transport Steamworks avant validation de l'AppID de test, Networking Sockets, Lobby ID et exigences d'erreurs service.
+## Cross-Story Dependencies
 
-Story 0.4 depend de la baseline projet/packages, puis etablit scenes, dossiers, namespaces, boundaries d'assemblies et suivi du squelette runtime state pour tous les epics gameplay. Story 0.5 depend des decisions tooling et consigne l'usage sur Codex/Claude/MCP plus les smoke tests Unity et Blender MCP sans danger. Story 0.6 depend de l'installation Blender et definit le pipeline asset intake que le futur travail art doit suivre.
+Story 0.1 creates the setup documents that the remaining Epic 0 stories update. Story 0.2 depends on the checklist and manual Unity project creation before package validation. Story 0.3 depends on the Unity project and Steamworks transport before lobby, AppID, invite, Lobby ID, Networking Sockets, and network error evidence can be validated.
 
-Story 0.7 doit enregistrer les decisions initiales de fondation UI/menu et movement/controller avant le debut Epic 1. Story 0.8 depend de toutes les stories setup precedentes terminees ou explicitement bloquees, puis consigne la decision finale `Pass`, `Blocked` ou `Accepted With Known Blockers` qui controle le demarrage de l'Epic 1.
+Story 0.4 depends on the project and package baseline, then establishes scenes, folders, namespaces, assembly boundaries, and runtime state skeletons for later gameplay epics. Story 0.5 depends on tooling decisions and records Codex/Claude/MCP configuration plus harmless Unity and Blender MCP smoke tests. Story 0.6 depends on Blender installation and defines the asset intake process used by later art work.
+
+Story 0.7 must record initial menu/UI and movement/controller adoption decisions before Epic 1 starts. Story 0.8 depends on all prior setup stories being complete or explicitly blocked, then records the final `Pass`, `Blocked`, or `Accepted With Known Blockers` readiness decision that controls Epic 1 start.
