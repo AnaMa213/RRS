@@ -13,9 +13,9 @@ context: []
 
 ## Intent
 
-**Problem:** L'utilisateur a fourni quatre captures d'ecran comme preuve pour VAL-020 a VAL-024 (Story 0.5), mais les documents de suivi (`tooling-validation-log.md`, `epic-0-readiness-checklist.md`) n'etaient pas a jour, et les captures fournies ne couvraient en realite que le cote Blender (VAL-022 a VAL-024), pas Unity (VAL-020, VAL-021).
+**Problem:** L'utilisateur a fourni des captures d'ecran comme preuve pour VAL-020 a VAL-024 (Story 0.5), mais les documents de suivi (`tooling-validation-log.md`, `epic-0-readiness-checklist.md`) n'etaient pas a jour ; le premier lot de quatre captures ne couvrait en realite que le cote Blender (VAL-022 a VAL-024), et le second lot (Unity) montrait un bridge non identifie et une inspection lecture seule sans le smoke test de creation/suppression requis.
 
-**Approach:** Verifier chaque capture par rapport a la preuve exacte attendue dans `story-0-5-mcp-tooling-configuration-tutorial.md`, completer par une verification agent en direct via le pont Blender MCP maintenant fonctionnel dans cette session (inspection de la scene, du materiau et du fichier `.glb` exporte sur disque), puis mettre a jour `tooling-validation-log.md` et `epic-0-readiness-checklist.md` en consequence -- en gardant VAL-020/VAL-021 `Not Started` puisqu'aucune preuve Unity n'a ete fournie, plutot que de les marquer `Pass` a tort.
+**Approach:** Verifier chaque capture par rapport a la preuve exacte attendue dans `story-0-5-mcp-tooling-configuration-tutorial.md` ; completer par une verification agent en direct via les ponts Blender MCP puis Unity MCP devenus disponibles dans cette session (inspection de la scene, du materiau et du fichier `.glb` exporte sur disque cote Blender ; identification du package via les logs console et un cycle complet creation/verification/suppression de `MCP_SmokeTest` cote Unity) ; puis mettre a jour `tooling-validation-log.md` et `epic-0-readiness-checklist.md` en consequence -- en ne marquant `Pass` que ce qui est reellement prouve a chaque etape, jamais par anticipation.
 
 </frozen-after-approval>
 
@@ -32,15 +32,18 @@ context: []
 - Smoke test Blender MCP verifie en direct par l'agent (objet `Cube` + materiau `Cube_Material`, export `scene_test.glb` present sur disque) plutot que sur la seule foi de la capture.
   [`tooling-validation-log.md:53`](../../docs/setup/tooling-validation-log.md#L53)
 
-**VAL-020/VAL-021 laissees `Not Started` malgre la demande initiale**
+**Preuves Unity passees en `Pass` (identification du bridge + smoke test complete en direct)**
 
-- Aucune des quatre captures ne montre l'Unity Editor ; note aussi une entree `unity_mcp`/`relay_win.exe` deja presente en config, non documentee par le tutoriel, a clarifier avant preuve.
+- Bridge identifie sans ambiguite comme `com.unity.ai.assistant` (Unity Official, pas CoplayDev) via la stack trace `Unity_GetConsoleLogs`, chemin de config confirme sur les trois clients sans secret.
   [`tooling-validation-log.md:49`](../../docs/setup/tooling-validation-log.md#L49)
+
+- Smoke test complete par l'agent : creation, verification et suppression de `MCP_SmokeTest`, hierarchie identique a l'etat initial apres nettoyage.
+  [`tooling-validation-log.md:50`](../../docs/setup/tooling-validation-log.md#L50)
 
 **Synchronisation du gate Epic 0**
 
-- Ligne action manuelle Story 0.5 passee `Not Started` -> `In Progress` avec le detail Blender fait / Unity restant.
+- Lignes action manuelle et validation agent Story 0.5 passees `Pass`, VAL-020 a VAL-024 toutes closes.
   [`epic-0-readiness-checklist.md:50`](../../docs/setup/epic-0-readiness-checklist.md#L50)
 
-- Ligne validation agent Story 0.5 et resume du Gate Epic 1 mis a jour avec le meme etat.
-  [`epic-0-readiness-checklist.md:66`](../../docs/setup/epic-0-readiness-checklist.md#L66)
+- Resume du Gate Epic 1 mis a jour avec le meme etat.
+  [`epic-0-readiness-checklist.md:24`](../../docs/setup/epic-0-readiness-checklist.md#L24)
