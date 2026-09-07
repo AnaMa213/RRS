@@ -122,3 +122,7 @@ __pycache__/
 
 # Blender scratch/test exports — never commit test .glb output
 /Blender/exports_test/
+
+# Blender scratch source files created outside the controlled ArtSource intake path
+/Blender/*.blend
+/Blender/*.blend.meta
