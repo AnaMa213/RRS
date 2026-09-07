@@ -10,9 +10,13 @@
         "RoadRage.Features.Rage",
         "RoadRage.Features.Run",
         "RoadRage.Features.Vehicles",
+        "RoadRage.Features.UI",
         "Unity.Netcode.Runtime",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"

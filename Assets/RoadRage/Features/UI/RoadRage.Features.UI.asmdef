@@ -2,7 +2,9 @@
     "name": "RoadRage.Features.UI",
     "rootNamespace": "RoadRage.Features.UI",
     "references": [
-        "RoadRage.Shared"
+        "RoadRage.Shared",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

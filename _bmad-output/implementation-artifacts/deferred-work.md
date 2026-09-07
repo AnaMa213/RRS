@@ -99,3 +99,19 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
   summary: No versioning/overwrite policy exists for re-saving a `.blend` source or re-exporting an FBX/GLB of the same name after a correction (e.g. after fixing a scale or normals issue found late).
   evidence: Silent overwrite risks losing traceability between asset versions; a real policy (overwrite-in-place vs. suffix/version folders) needs a human decision, not an invented default.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-1-bootstrap-and-main-menu-launch.md`
+  summary: `UserNoticeChannel.Clear()` does not raise a "cleared" notification, so a UI subscriber that already rendered a notice has no signal to hide it when the channel is cleared while the notice is still displayed.
+  evidence: Currently unreachable in Story 1.1 (no shipped production code calls `Notices.Publish(...)` yet -- the channel only exists for Epic 2 to wire real join/socket/service failures into), so fixing it now risks guessing an API shape (event vs. UI polling) that Epic 2's real usage should drive instead.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-1-bootstrap-and-main-menu-launch.md`
+  summary: `AppSceneRouter.LoadMainMenu()` has no defensive handling if the target scene is missing from Build Settings at runtime -- a shipped build would silently hang with no user-facing notice or fallback.
+  evidence: Low probability today (the scene is locked by an EditMode test plus an explicit spec `Ask First` boundary on renaming/reordering build scenes), but the same unguarded `SceneManager.LoadScene` pattern will recur every time a future story adds a scene transition -- worth a project-wide convention rather than a one-off fix inside this story.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-1-bootstrap-and-main-menu-launch.md`
+  summary: The two EditMode "architecture guard" tests (`UiFeatureSourceNeverCallsSceneManagementOrApplicationQuit`, `QuitApplicationIsGuardedAndOnlyCallsApplicationQuitOutsideTheEditor`) verify their contract via raw source-text/substring matching, not executed behavior -- they can false-positive-fail on harmless reformatting and false-negative-pass on an equivalent call routed through an alias, a fully-qualified name, or reflection.
+  evidence: This mirrors the project's existing convention (`RoadRageScaffoldTests.RunCompositionRootDoesNotStartGameplay` uses the same source-inspection style for a similarly hard-to-runtime-test guard), so it was a deliberate, accepted trade-off at plan time rather than an oversight -- but it is a real methodology weakness worth reconsidering project-wide if these architecture rules become load-bearing.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-1-bootstrap-and-main-menu-launch.md`
+  summary: If `MainMenuFlowController`'s serialized `screen` reference is ever unassigned in the shipped scene, the failure mode is a single Editor-only console warning with no in-game user-visible error, even though the story's own boundary requires visible errors for service/network failures.
+  evidence: Today this misconfiguration path is guarded by the checked-in EditMode test `MainMenuLobbySceneContainsWiredComponents` (which fails the build/CI if the reference is ever unassigned in the committed scene), so the gap is only reachable via a manual, uncommitted Editor edit -- low severity, but worth revisiting once Story 1.2+ adds more serialized UI wiring where this pattern could repeat.

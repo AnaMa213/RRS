@@ -1,0 +1,28 @@
+{
+    "name": "RoadRage.Tests.PlayMode",
+    "rootNamespace": "RoadRage.Tests.PlayMode",
+    "references": [
+        "RoadRage.App",
+        "RoadRage.Shared",
+        "RoadRage.Features.UI",
+        "Unity.Netcode.Runtime",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
