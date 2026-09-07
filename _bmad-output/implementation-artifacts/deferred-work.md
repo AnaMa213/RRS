@@ -59,3 +59,43 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-0-5-mcp-validation-evidence-update.md`
   summary: `Blender/Untitled.blend` and `Blender/Untitled.blend1` (the Story 0.5 Blender MCP smoke-test source file) sit untracked in the repo with no recorded decision on whether to commit them or add them to `.gitignore`; only the generated `Blender/exports_test/` output is currently ignored.
   evidence: Per `[[project_blender_asset_intake_gate]]`, Blender MCP output is draft/scratch material until Story 0.6's intake pipeline exists, which argues for keeping the source `.blend` out of version control too, but that is a repo-hygiene call for the user rather than something to decide unilaterally while just updating validation evidence.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: The Story 0.6 intake tutorial's worked example covers only a single static primitive (a cube); multi-object hierarchies, rigged/skinned meshes, and assets that already carry colliders have no dedicated guidance.
+  evidence: `mcp-tooling-setup.md`'s 9-step checklist and AD-13/AD-27 are written generically; nothing in the architecture spine or epics.md AC requires per-asset-type guidance yet, and no real non-trivial asset has entered the pipeline so far -- adding this now would be speculative rather than grounded in an actual case.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: No remediation/undo guidance exists for a prefab that was created before completing the scale-test step (only prevention -- "refuse the conversion" -- is documented, not correction after the fact).
+  evidence: This touches prefab lifecycle/versioning policy once gameplay may already reference the prefab, which is a bigger decision than this docs-only story's scope and overlaps AD-27's stability guarantees; needs explicit human policy before being documented as a rule.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: `VAL-025` bundles five distinct proof stages (Blender cleanup, export, Unity import, scale test, prefab conversion) under one status field, so partial progress (e.g. steps 1-3 done, 4-5 pending) cannot be represented.
+  evidence: `VAL-025` was already reserved as a single row by a prior story before Story 0.6 touched it; splitting it into sub-IDs (VAL-025a..e) changes the tooling-validation-log.md schema/numbering convention used across all of Epic 0 and needs a human decision, not a silent patch inside one story.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: No objective threshold defines when an asset transitions from "brouillon" (scratch/draft, like `Blender/exports_test/`) to requiring storage under `Assets/RoadRage/ArtSource/Blender/`.
+  evidence: Two operators following the tutorial today could reasonably store the same in-progress asset in different locations; low real risk while this is a solo-dev project with one active example, but worth a clearer rule if the pipeline sees real throughput.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: Placing a `.blend` file directly under `Assets/` (as the tutorial instructs for `Assets/RoadRage/ArtSource/Blender/`) triggers Unity's native Blender-file auto-import, independent of the explicit FBX/GLB export -> ArtExports -> scale-test -> prefab path the rest of the tutorial documents as the controlled route -- this interaction is never addressed.
+  evidence: The project's own `.gitignore` comment notes Unity supports Blender asset imports natively; nothing in the tutorial says whether that native auto-import is acceptable, should be disabled, or is a silent duplicate-import risk. Needs a human decision on the intended behavior before documenting a rule.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: No guidance on FBX-vs-GLB texture/material portability (FBX commonly needs external texture files kept relative to it; GLB can embed textures) -- a common real-world Blender-to-Unity intake failure mode not mentioned anywhere in the tutorial.
+  evidence: Etape 3/4/5 cover material slots, normals, and import warnings but never texture file portability specifically; only one worked example (a simple material, no textures) exists so far, making this speculative rather than grounded in an actual failure.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: The frozen I/O & Edge-Case Matrix has no scenario for the AD-27 "art replaces an existing gameplay greybox" path, even though AD-27 replacement stability is one of the two rules this story exists to document.
+  evidence: Root cause is inside the spec's `<frozen-after-approval>` block (human-owned intent), so it cannot be silently amended during a bad_spec loopback -- needs the human to decide whether a replacement-scenario I/O row belongs in this story or a later one (no real art replacement has happened yet).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: No file/asset organization or naming convention exists within `ArtSource/Blender/`, `ArtExports/`, or `Prefabs/` once more than one asset exists (flat vs. per-asset subfolder, naming tied to source object name).
+  evidence: Defensible as an intentional "Ask First" scope limit for a solo-dev, single-example story; becomes a real gap once the pipeline sees real throughput with multiple assets.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: The "Plan collider" section's two cases (new asset vs. art replacement) have no third case for authoring a brand-new gameplay object type that needs its first-ever `NetworkObject` registration and gameplay component wiring, not just colliders.
+  evidence: This touches networked-gameplay authoring conventions (Netcode ownership, component wiring) that belong with a gameplay feature-slice story, not a Blender-side asset-cleanup tutorial; needs human scoping before being folded into either this story or a later one.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-0-6-blender-and-3d-asset-intake-pipeline.md`
+  summary: No versioning/overwrite policy exists for re-saving a `.blend` source or re-exporting an FBX/GLB of the same name after a correction (e.g. after fixing a scale or normals issue found late).
+  evidence: Silent overwrite risks losing traceability between asset versions; a real policy (overwrite-in-place vs. suffix/version folders) needs a human decision, not an invented default.
