@@ -1,6 +1,6 @@
 # Tutoriel Story 0.6 : Pipeline d'intake Blender et assets 3D
 
-Ce tutoriel est le chemin manuel unique pour executer la Story 0.6. Il distille la checklist 9 etapes deja actee dans `mcp-tooling-setup.md` (nettoyage Blender -> export -> import controle -> prefab) en 5 etapes numerotees, avec les dossiers source/export/prefab exacts, la regle de gate AD-13, la regle de stabilite prefab AD-27, et un plan collider explicite pour tout asset entierement nouveau. Reprend le mesh brouillon `Blender/exports_test/scene_test.glb` (Story 0.5) comme exemple travaille, documente honnetement comme non converti. L'agent relit les preuves apres coup ; il ne fait pas le nettoyage Blender ou l'import Unity a ta place, et ne marque aucune ligne `Pass` sans preuve reelle fournie par toi.
+Ce tutoriel est le chemin manuel unique pour executer la Story 0.6. Il distille la checklist 9 etapes deja actee dans `mcp-tooling-setup.md` (nettoyage Blender -> export -> import controle -> prefab) en 5 etapes numerotees, avec les dossiers source/export/prefab exacts, la regle de gate AD-13, la regle de stabilite prefab AD-27, et un plan collider explicite pour tout asset entierement nouveau. Reprend le mesh brouillon `Blender/exports_test/scene_test.glb` (Story 0.5) comme exemple travaille, documente honnetement comme non converti. Par defaut, l'agent relit les preuves apres coup ; il ne fait pas le nettoyage Blender ou l'import Unity a ta place, sauf demande explicite d'execution MCP/Codex tracee.
 
 **Principe (rappel `mcp-tooling-setup.md`) :** tout asset 3D genere par IA ou telecharge doit passer par Blender avant tout usage prefab gameplay dans Unity. Tant que la checklist n'est pas suivie de bout en bout, tout mesh reste un brouillon.
 
@@ -18,10 +18,10 @@ Ce tutoriel est le chemin manuel unique pour executer la Story 0.6. Il distille 
 
 - Utilise uniquement les statuts `Not Started`, `In Progress`, `Pass`, `Blocked`, `Not Applicable`.
 - Caviarde tout identifiant sensible (chemin utilisateur, token, credential) qui apparaitrait dans une capture ou une note avec `[REDACTED_TOKEN]`. Ne colle jamais de secret dans un fichier Blender, une capture ou ce tutoriel.
-- Le nettoyage Blender et l'import Unity restent des actions manuelles que tu realises toi-meme ; l'agent guide les etapes et verifie les preuves apres coup.
-- Exception sur demande explicite : si tu demandes a l'agent d'executer une partie via Blender MCP/Codex, il peut automatiser les actions Blender des Etapes 1 a 4, a condition de consigner les commandes/outils, chemins, resultats structures, hashes et limites. Cette execution assistee ne suffit pas a marquer `VAL-025` en `Pass` tant que toutes les parties, y compris l'Etape 5 Unity/prefab/collider, ne sont pas relues et prouvees.
+- Par defaut, le nettoyage Blender et l'import Unity restent des actions manuelles que tu realises toi-meme ; l'agent guide les etapes et verifie les preuves apres coup.
+- Exception sur demande explicite : si tu demandes a l'agent d'executer une partie via Blender MCP/Codex ou Unity MCP/Codex, il peut automatiser les actions des Etapes 1 a 5, a condition de consigner les commandes/outils, chemins, resultats structures, hashes, limites et corrections effectuees. Pour l'Etape 5, cette exception doit inclure une demande explicite de conversion prefab/collider avant tout commit.
 - **Demander d'abord** avant de : convertir reellement `scene_test.glb` (ou tout autre mesh) en prefab Unity commite dans le projet ; definir un standard de nommage ou une convention de collider au-dela de ce que ce tutoriel et AD-13/AD-27 couvrent deja.
-- **Jamais :** importer un asset 3D genere ou telecharge dans Unity comme prefab gameplay sans etre passe par la checklist complete ci-dessous ; marquer `VAL-025` ou les lignes 0.6 du readiness checklist `Pass` sans preuve utilisateur reproductible ; traiter un mesh Blender comme final tant que la checklist n'a pas ete suivie de bout en bout.
+- **Jamais :** importer un asset 3D genere ou telecharge dans Unity comme prefab gameplay sans etre passe par la checklist complete ci-dessous ; marquer `VAL-025` ou les lignes 0.6 du readiness checklist `Pass` sans preuve reproductible (preuve utilisateur ou execution MCP explicitement demandee et tracee) ; traiter un mesh Blender comme final tant que la checklist n'a pas ete suivie de bout en bout.
 
 ## Dossiers exacts
 
@@ -137,7 +137,7 @@ Reutilise la regle de caviardage `[REDACTED_TOKEN]` des Stories 0.3/0.5 pour tou
 
 Apres chaque vraie action manuelle ou chaque bloqueur, mets a jour dans la meme passe coherente :
 
-- `docs/setup/tooling-validation-log.md` -- `VAL-025` (ligne principale et note datee dans "Notes de validation"), statut `Not Started`, `In Progress` ou `Blocked` selon la preuve reellement fournie, jamais `Pass` sans preuve utilisateur reproductible pour les 5 parties ci-dessus.
+- `docs/setup/tooling-validation-log.md` -- `VAL-025` (ligne principale et note datee dans "Notes de validation"), statut `Not Started`, `In Progress`, `Pass` ou `Blocked` selon la preuve reellement fournie, jamais `Pass` sans preuve reproductible (preuve utilisateur ou execution MCP explicitement demandee et tracee) pour les 5 parties ci-dessus.
 - `docs/setup/epic-0-readiness-checklist.md` -- lignes Story 0.6 (action manuelle et validation agent), synchronisees avec le statut reel de `VAL-025` et de ce tutoriel, sans jamais employer un temps accompli ("preuve fournie") sur une ligne non `Pass`.
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` -- avancer Story 0.6 uniquement quand le tutoriel et la synchro ci-dessus sont prets.
 
@@ -145,4 +145,4 @@ Une ligne `VAL-025` passe en `Pass` seulement si, pour chacune des 5 parties, da
 
 ## Arret obligatoire avant Story 0.7
 
-Arrete-toi ici apres preparation du tutoriel et synchro des documents de suivi. Ne convertis pas reellement `scene_test.glb` (ou tout autre mesh) en prefab Unity commite depuis cette story. Ne commence pas Story 0.7 (registre d'adoption add-on), Story 0.8 (smoke tests finaux), ni le gameplay Epic 1 depuis cette story.
+Arrete-toi ici apres preparation du tutoriel et synchro des documents de suivi. Ne convertis pas reellement `scene_test.glb` (ou tout autre mesh) en prefab Unity commite sans demande explicite separee. Ne commence pas Story 0.7 (registre d'adoption add-on), Story 0.8 (smoke tests finaux), ni le gameplay Epic 1 depuis cette story.

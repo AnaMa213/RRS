@@ -8,7 +8,7 @@ Fichier source Blender : `Assets/RoadRage/ArtSource/Blender/Prop_Barrel.blend`
 
 Export controle retenu : `Assets/RoadRage/ArtExports/Prop_Barrel.fbx`
 
-Statut : parties 2, 3 et 4 completees pour `Prop_Barrel`. `VAL-025` reste `In Progress` tant que la partie 5 (import controle en scene Unity, test d'echelle, prefab/collider) n'est pas terminee.
+Statut historique : parties 2, 3 et 4 completees pour `Prop_Barrel`. Au moment de cette preuve, `VAL-025` restait `In Progress` tant que la partie 5 (import controle en scene Unity, test d'echelle, prefab/collider) n'etait pas terminee ; la partie 5 est documentee ensuite dans `docs/setup/val-025-prop-barrel-step-5-evidence.md`.
 
 ## Partie 2 -- Echelle reelle
 
@@ -65,11 +65,11 @@ Export :
 - Objets selectionnes a l'export : `Prop_Barrel`.
 - Resultat operateur Blender : `FINISHED`.
 - Fichier exporte : `Assets/RoadRage/ArtExports/Prop_Barrel.fbx`.
-- Taille FBX : `15 308` octets.
-- SHA-256 FBX : `73A2EBC8D31B609AEABC742949B7D99B2E40C6499F99F51B8F6668C274E984D8`.
+- Taille FBX a la fin de la partie 4, avant correction d'axe Unity en partie 5 : `15 308` octets.
+- SHA-256 FBX a la fin de la partie 4, avant correction d'axe Unity en partie 5 : `73A2EBC8D31B609AEABC742949B7D99B2E40C6499F99F51B8F6668C274E984D8`.
 - Meta Unity FBX : `Assets/RoadRage/ArtExports/Prop_Barrel.fbx.meta`.
 - GUID Unity FBX : `3acd84950af58ce4b96e861d6773f0a2`.
-- SHA-256 `.fbx.meta` : `CE4F6455A6C7BCBA95D08931D4020F356E1F4A621529DB61FF56FBEB06144EFC`.
+- SHA-256 `.fbx.meta` a la fin de la partie 4, avant correction d'axe Unity en partie 5 : `CE4F6455A6C7BCBA95D08931D4020F356E1F4A621529DB61FF56FBEB06144EFC`.
 - Type Unity apres import metadata : `UnityEngine.GameObject`.
 - Reglages importeur statique verrouilles : `importAnimation=0`, `animationType=0`, `importBlendShapes=0`, `importCameras=0`, `importLights=0`, `importPhysicalCameras=0`, `addColliders=0`.
 - Console Unity apres import metadata : `0` erreur ; warnings existants limites a la collecte de signature MCP avec chemins caviardes `[REDACTED_TOKEN]`.
@@ -94,7 +94,7 @@ Controle contenu export :
 - Le FBX ne contient pas `Prop_Sphere` ni `Light`.
 - La seule occurrence `Camera` detectee est la metadata FBX `DefaultCamera` / `Producer Perspective`, pas un objet de scene exporte.
 
-Note : un export GLB temporaire a ete genere puis retire de ce lot, car Unity l'a importe comme `DefaultAsset` dans cette configuration. Le livrable controle de la partie 4 est donc le FBX.
+Note : un export GLB temporaire a ete genere puis retire de ce lot, car Unity l'a importe comme `DefaultAsset` dans cette configuration. Le livrable controle de la partie 4 est donc le FBX. La partie 5 a ensuite remplace ce FBX par un export final corrige pour l'axe Unity ; les hashes finaux sont documentes dans `docs/setup/val-025-prop-barrel-step-5-evidence.md`.
 
 Preuve de nettoyage GLB : `Assets/RoadRage/ArtExports/Prop_Barrel.glb` et `Assets/RoadRage/ArtExports/Prop_Barrel.glb.meta` sont absents apres nettoyage.
 
@@ -110,4 +110,4 @@ Preuve chemin local FBX : le FBX ne contient plus le chemin absolu local du proj
 
 ## Limites
 
-Aucune action de partie 5 n'a ete effectuee ici : pas de placement en scene Unity, pas de comparaison visuelle avec reference Unity, pas de conversion prefab, pas de collider ajoute. La validation visuelle post-import (shading Unity, orientation en scene, UV si texture ajoutee plus tard) reste donc a faire pendant la partie 5.
+Aucune action de partie 5 n'avait ete effectuee dans ce lot. La partie 5 a ete executee ensuite et documentee dans `docs/setup/val-025-prop-barrel-step-5-evidence.md`.

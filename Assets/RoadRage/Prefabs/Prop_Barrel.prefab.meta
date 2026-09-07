@@ -1,0 +1,7 @@
+fileFormatVersion: 2
+guid: 84909c8a8e6f05141b85fcd27f8452cc
+PrefabImporter:
+  externalObjects: {}
+  userData: 'VAL-025: BoxCollider simple on root, center=(0,0.45,0), size=(0.6,0.9,0.6), conservative editable fit for static barrel placeholder, separate from render mesh; no MeshCollider; no NetworkObject for this static placeholder.'
+  assetBundleName:
+  assetBundleVariant:

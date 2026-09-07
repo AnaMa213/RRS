@@ -2,11 +2,11 @@
 
 Date : 2026-09-07
 
-Acteur : Agent via Blender MCP, a la demande utilisateur. Cette preuve est une execution assistee MCP de la partie 1 seulement ; elle devra etre relue par l'utilisateur avant tout passage global de `VAL-025` a `Pass`.
+Acteur : Agent via Blender MCP, a la demande utilisateur. Cette preuve est une execution assistee MCP de la partie 1 seulement ; elle ne suffisait pas, seule, au passage global de `VAL-025` a `Pass`.
 
 Fichier source Blender : `Assets/RoadRage/ArtSource/Blender/Prop_Barrel.blend`
 
-Statut : partie 1 completee pour `Prop_Barrel`. `VAL-025` reste `In Progress` tant que les parties 2 a 5 ne sont pas terminees.
+Statut historique : partie 1 completee pour `Prop_Barrel`. Au moment de cette preuve, `VAL-025` restait `In Progress` tant que les parties 2 a 5 n'etaient pas terminees ; les preuves suivantes documentent ensuite les parties 2 a 5.
 
 Provenance : placeholder derive du cube de smoke test Blender MCP Story 0.5. Le nom `Prop_Barrel` sert a exercer la checklist ; ce n'est pas encore un asset barrel final.
 
