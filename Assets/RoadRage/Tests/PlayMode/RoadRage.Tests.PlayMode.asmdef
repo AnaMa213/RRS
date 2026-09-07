@@ -4,6 +4,7 @@
     "references": [
         "RoadRage.App",
         "RoadRage.Shared",
+        "RoadRage.Features.Lobby",
         "RoadRage.Features.UI",
         "Unity.Netcode.Runtime",
         "UnityEngine.TestRunner",
