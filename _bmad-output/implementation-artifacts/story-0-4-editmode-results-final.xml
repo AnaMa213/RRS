@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="7" result="Passed" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0,0377455">
+  <test-suite type="TestSuite" id="1000" name="RRS" fullname="RRS" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.037746" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1009" name="RoadRage.Tests.EditMode.dll" fullname="D:/Projets/RRS/Library/ScriptAssemblies/RoadRage.Tests.EditMode.dll" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.032921" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="18968" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1010" name="RoadRage" fullname="RoadRage" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.032667" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1011" name="Tests" fullname="RoadRage.Tests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.032544" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1012" name="EditMode" fullname="RoadRage.Tests.EditMode" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.032410" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1001" name="RoadRageScaffoldTests" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.031684" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1004" name="AsmdefsAndNamespacesStayInsideApprovedBoundaries" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.AsmdefsAndNamespacesStayInsideApprovedBoundaries" methodname="AsmdefsAndNamespacesStayInsideApprovedBoundaries" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="1258046138" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.011397" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1007" name="ExistingSteamworksSmokeTestHelperIsPreserved" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.ExistingSteamworksSmokeTestHelperIsPreserved" methodname="ExistingSteamworksSmokeTestHelperIsPreserved" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="1197769492" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.000344" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1003" name="RoadRageFolderScaffoldExists" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.RoadRageFolderScaffoldExists" methodname="RoadRageFolderScaffoldExists" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="1563695181" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.000396" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1006" name="RunCompositionRootDoesNotStartGameplay" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.RunCompositionRootDoesNotStartGameplay" methodname="RunCompositionRootDoesNotStartGameplay" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="997380768" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.001296" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1005" name="RuntimeStateShellsAreNetworkBehavioursAndServerWrite" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.RuntimeStateShellsAreNetworkBehavioursAndServerWrite" methodname="RuntimeStateShellsAreNetworkBehavioursAndServerWrite" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="699207723" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.005922" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1002" name="SceneSeedsExistAndPrimaryBuildScenesAreOrdered" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.SceneSeedsExistAndPrimaryBuildScenesAreOrdered" methodname="SceneSeedsExistAndPrimaryBuildScenesAreOrdered" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="232907718" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.001102" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1008" name="Story04ValidationRowsRecordOnlyScaffoldEvidence" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.Story04ValidationRowsRecordOnlyScaffoldEvidence" methodname="Story04ValidationRowsRecordOnlyScaffoldEvidence" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="1818444588" result="Passed" start-time="2026-09-03 19:32:09Z" end-time="2026-09-03 19:32:09Z" duration="0.001292" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: [REDACTED_TOKEN]\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
