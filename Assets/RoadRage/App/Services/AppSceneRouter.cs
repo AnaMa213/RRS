@@ -20,5 +20,11 @@ namespace RoadRage.App.Services
             Debug.Log("[App] Routage vers la scene " + MainMenuLobbySceneName);
             SceneManager.LoadScene(MainMenuLobbySceneName);
         }
+
+        public void LoadMvpRun()
+        {
+            Debug.Log("[App] Routage vers la scene " + MvpRunSceneName);
+            SceneManager.LoadScene(MvpRunSceneName);
+        }
     }
 }

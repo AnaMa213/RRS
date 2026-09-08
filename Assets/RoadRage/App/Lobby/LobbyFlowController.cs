@@ -14,6 +14,8 @@ namespace RoadRage.App.Lobby
     [DisallowMultipleComponent]
     public sealed class LobbyFlowController : MonoBehaviour
     {
+        public const string MissingProfileStartGameMessage = "Start Game refuse : cree un profil joueur avant d'entrer dans le monde.";
+
         [SerializeField]
         private LobbyShellScreen screen;
 
@@ -67,8 +69,15 @@ namespace RoadRage.App.Lobby
 
         private void HandleStartGameRequested()
         {
-            Debug.Log("[Lobby] Start Game demande : aucune scene de gameplay jouable en Epic 1.");
-            PublishUnavailable("Start Game indisponible : aucune scene de gameplay n'existe encore a ce stade.");
+            if (bootstrap == null || bootstrap.Profiles == null || !bootstrap.Profiles.HasProfile)
+            {
+                Debug.LogWarning("[Lobby] Start Game refuse : aucun profil joueur confirme.");
+                PublishUnavailable(MissingProfileStartGameMessage);
+                return;
+            }
+
+            Debug.Log("[Lobby] Start Game demande : entree locale dans MVP_Run.");
+            bootstrap.Router.LoadMvpRun();
         }
 
         private void HandleDifficultyChanged(Difficulty difficulty)
