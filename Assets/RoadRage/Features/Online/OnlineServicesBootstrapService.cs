@@ -5,7 +5,7 @@ namespace RoadRage.Features.Online
     /// <summary>
     /// Service unique d'initialisation des services en ligne Steam (Story 2.1). Objet C# pur, sans
     /// dependance Unity ni etat de gameplay : il ne connait que ISteamPlatform et ne mute jamais
-    /// NetworkedPlayerState, NetworkedRunState ou tout autre etat de gameplay partage.
+    /// le moindre etat de gameplay reseau partage (owned par les features de gameplay elles-memes).
     /// </summary>
     public sealed class OnlineServicesBootstrapService
     {
