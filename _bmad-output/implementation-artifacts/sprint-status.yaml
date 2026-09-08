@@ -59,7 +59,7 @@ development_status:
   2-1-online-services-bootstrap-and-status-feedback: review
   2-2-host-created-private-room-with-join-code: review
   2-3-join-by-code-and-invite-link-wrapper: review
-  2-4-lobby-roster-ready-state-and-settings-sync: backlog
+  2-4-lobby-roster-ready-state-and-settings-sync: review
   2-5-networked-player-spawn-in-empty-world: backlog
   2-6-in-game-hud-foundation: backlog
   2-7-player-lifecycle-disconnect-and-host-quit-handling: backlog

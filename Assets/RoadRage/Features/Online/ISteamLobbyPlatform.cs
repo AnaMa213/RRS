@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using RoadRage.Shared.Domain;
 
 namespace RoadRage.Features.Online
 {
@@ -15,6 +16,15 @@ namespace RoadRage.Features.Online
         Task<LobbyJoinOutcome> JoinLobbyAsync(ulong lobbyId);
 
         void LeaveCurrentLobby();
+
+        /// <summary>Instantane du roster du lobby courant (Story 2.4) : membres, etats prets et difficulte partagee. Vide si aucun lobby actif.</summary>
+        LobbyRosterSnapshot GetRosterSnapshot();
+
+        /// <summary>Publie l'etat pret du membre local dans les donnees de membre du lobby courant (Story 2.4). Sans effet hors lobby actif.</summary>
+        void SetLocalMemberReady(bool ready);
+
+        /// <summary>Publie la difficulte choisie dans les donnees du lobby courant (Story 2.4). Sans effet hors lobby actif ; reserve a l'hote par l'appelant.</summary>
+        void SetLobbyDifficulty(Difficulty difficulty);
     }
 
     /// <summary>Resultat d'une tentative de creation de lobby, sans exposer de type Steamworks.</summary>
@@ -56,5 +66,44 @@ namespace RoadRage.Features.Online
         public bool Success { get; }
 
         public LobbyJoinFailureReason Reason { get; }
+    }
+
+    /// <summary>Membre du lobby courant avec son etat pret, sans exposer de type Steamworks (Story 2.4).</summary>
+    public readonly struct LobbyMemberSnapshot
+    {
+        public LobbyMemberSnapshot(ulong steamId, string displayName, bool ready)
+        {
+            SteamId = steamId;
+            DisplayName = displayName;
+            Ready = ready;
+        }
+
+        public ulong SteamId { get; }
+
+        public string DisplayName { get; }
+
+        public bool Ready { get; }
+    }
+
+    /// <summary>Instantane complet du roster et des reglages partages du lobby courant (Story 2.4).</summary>
+    public readonly struct LobbyRosterSnapshot
+    {
+        public static readonly LobbyRosterSnapshot Empty = new LobbyRosterSnapshot(false, 0, Difficulty.Normal, System.Array.Empty<LobbyMemberSnapshot>());
+
+        public LobbyRosterSnapshot(bool hasLobby, ulong ownerId, Difficulty difficulty, LobbyMemberSnapshot[] members)
+        {
+            HasLobby = hasLobby;
+            OwnerId = ownerId;
+            Difficulty = difficulty;
+            Members = members;
+        }
+
+        public bool HasLobby { get; }
+
+        public ulong OwnerId { get; }
+
+        public Difficulty Difficulty { get; }
+
+        public LobbyMemberSnapshot[] Members { get; }
     }
 }

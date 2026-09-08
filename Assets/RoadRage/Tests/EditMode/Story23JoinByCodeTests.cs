@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using RoadRage.Features.Online;
+using RoadRage.Shared.Domain;
 
 namespace RoadRage.Tests.EditMode
 {
@@ -231,6 +232,19 @@ namespace RoadRage.Tests.EditMode
             }
 
             public void LeaveCurrentLobby()
+            {
+            }
+
+            public LobbyRosterSnapshot GetRosterSnapshot()
+            {
+                return LobbyRosterSnapshot.Empty;
+            }
+
+            public void SetLocalMemberReady(bool ready)
+            {
+            }
+
+            public void SetLobbyDifficulty(Difficulty difficulty)
             {
             }
         }

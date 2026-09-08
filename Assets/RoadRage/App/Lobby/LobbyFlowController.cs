@@ -51,6 +51,12 @@ namespace RoadRage.App.Lobby
 
         public const string CreateRefusedAlreadyJoinedMessage = "Creation impossible : tu as deja rejoint une room, quitte-la avant d'en creer une nouvelle.";
 
+        public const string StartRefusedServicesMessage = "Start Game refuse : les services en ligne Steam ne sont pas prets.";
+
+        public const string StartRefusedRosterNotSyncedMessage = "Start Game refuse : le roster de la room n'est pas encore synchronise.";
+
+        public const string StartRefusedNotAllReadyMessage = "Start Game refuse : tous les joueurs connectes doivent etre prets (ou active le test solo).";
+
         [SerializeField]
         private LobbyShellScreen screen;
 
@@ -61,6 +67,10 @@ namespace RoadRage.App.Lobby
         private LobbyRoomService lobbyRoom;
 
         private LobbyJoinService lobbyJoin;
+
+        private LobbyRosterService lobbyRoster;
+
+        private bool soloTestExceptionEnabled;
 
         public MatchSettings Settings { get; private set; }
 
@@ -100,6 +110,16 @@ namespace RoadRage.App.Lobby
                 Debug.LogWarning("[App] LobbyFlowController sans service de join disponible.");
             }
 
+            if (bootstrap != null && bootstrap.LobbyRoster != null)
+            {
+                lobbyRoster = bootstrap.LobbyRoster;
+                lobbyRoster.RosterChanged += HandleRosterChanged;
+            }
+            else
+            {
+                Debug.LogWarning("[App] LobbyFlowController sans service de roster disponible.");
+            }
+
             if (screen == null)
             {
                 Debug.LogWarning("[App] LobbyFlowController sans reference vers LobbyShellScreen.");
@@ -110,8 +130,13 @@ namespace RoadRage.App.Lobby
             screen.JoinByCodeRequested += HandleJoinByCodeRequested;
             screen.StartGameRequested += HandleStartGameRequested;
             screen.DifficultyChanged += HandleDifficultyChanged;
+            screen.ReadyToggleRequested += HandleReadyToggleRequested;
+            screen.SoloTestExceptionToggleRequested += HandleSoloTestExceptionToggleRequested;
 
             screen.ShowSettingsSummary(Settings.Difficulty);
+            screen.ShowReadyState(false);
+            screen.ShowSoloTestException(false);
+            screen.ShowRoster(BuildRosterText(LobbyRosterSnapshot.Empty));
 
             if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open)
             {
@@ -140,6 +165,11 @@ namespace RoadRage.App.Lobby
                 lobbyJoin.StatusChanged -= HandleJoinStatusChanged;
             }
 
+            if (lobbyRoster != null)
+            {
+                lobbyRoster.RosterChanged -= HandleRosterChanged;
+            }
+
             if (screen == null)
             {
                 return;
@@ -149,6 +179,8 @@ namespace RoadRage.App.Lobby
             screen.JoinByCodeRequested -= HandleJoinByCodeRequested;
             screen.StartGameRequested -= HandleStartGameRequested;
             screen.DifficultyChanged -= HandleDifficultyChanged;
+            screen.ReadyToggleRequested -= HandleReadyToggleRequested;
+            screen.SoloTestExceptionToggleRequested -= HandleSoloTestExceptionToggleRequested;
         }
 
         /// <summary>
@@ -209,6 +241,11 @@ namespace RoadRage.App.Lobby
             await lobbyJoin.JoinByCodeAsync(rawCode);
         }
 
+        /// <summary>
+        /// Le gate roster/pret/settings (Story 2.4) ne s'applique que quand une room hote est ouverte :
+        /// hors lobby (jeu solo local, comportement inchange depuis la Story 1.2/1.5) ou en tant que
+        /// joueur ayant rejoint par code, Start Game reste local au seul profil joueur.
+        /// </summary>
         private void HandleStartGameRequested()
         {
             if (bootstrap == null || bootstrap.Profiles == null || !bootstrap.Profiles.HasProfile)
@@ -216,6 +253,30 @@ namespace RoadRage.App.Lobby
                 Debug.LogWarning("[Lobby] Start Game refuse : aucun profil joueur confirme.");
                 PublishUnavailable(MissingProfileStartGameMessage);
                 return;
+            }
+
+            if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open)
+            {
+                if (onlineServices == null || onlineServices.Status != OnlineServicesStatus.Online)
+                {
+                    Debug.LogWarning("[Lobby] Start Game refuse : services en ligne indisponibles.");
+                    PublishUnavailable(StartRefusedServicesMessage);
+                    return;
+                }
+
+                if (lobbyRoster == null || !lobbyRoster.IsSynchronized)
+                {
+                    Debug.LogWarning("[Lobby] Start Game refuse : roster non synchronise.");
+                    PublishUnavailable(StartRefusedRosterNotSyncedMessage);
+                    return;
+                }
+
+                if (!lobbyRoster.AllMembersReady && !soloTestExceptionEnabled)
+                {
+                    Debug.LogWarning("[Lobby] Start Game refuse : tous les joueurs ne sont pas prets.");
+                    PublishUnavailable(StartRefusedNotAllReadyMessage);
+                    return;
+                }
             }
 
             Debug.Log("[Lobby] Start Game demande : entree locale dans MVP_Run.");
@@ -226,6 +287,70 @@ namespace RoadRage.App.Lobby
         {
             Settings.Difficulty = difficulty;
             screen.ShowSettingsSummary(Settings.Difficulty);
+
+            if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open && lobbyRoster != null)
+            {
+                lobbyRoster.PublishDifficulty(difficulty);
+            }
+        }
+
+        private void HandleReadyToggleRequested()
+        {
+            if (lobbyRoster == null)
+            {
+                return;
+            }
+
+            var next = !lobbyRoster.LocalReady;
+            lobbyRoster.SetLocalReady(next);
+            screen.ShowReadyState(next);
+        }
+
+        private void HandleSoloTestExceptionToggleRequested()
+        {
+            soloTestExceptionEnabled = !soloTestExceptionEnabled;
+            screen.ShowSoloTestException(soloTestExceptionEnabled);
+        }
+
+        /// <summary>
+        /// Republie le roster forme en texte pour l'ecran, et applique la difficulte recue de l'hote au
+        /// joueur ayant rejoint par code (Story 2.4) : jamais applique cote hote, source de verite de sa
+        /// propre difficulte, pour eviter qu'une lecture perimee de ses propres donnees ne l'ecrase.
+        /// </summary>
+        private void HandleRosterChanged(LobbyRosterSnapshot snapshot)
+        {
+            if (screen != null)
+            {
+                screen.ShowRoster(BuildRosterText(snapshot));
+            }
+
+            var isJoinedClient = lobbyJoin != null && lobbyJoin.Status == LobbyJoinStatus.Joined;
+            if (isJoinedClient && snapshot.HasLobby && snapshot.Difficulty != Settings.Difficulty)
+            {
+                Settings.Difficulty = snapshot.Difficulty;
+                if (screen != null)
+                {
+                    screen.ShowSettingsSummary(Settings.Difficulty);
+                }
+            }
+        }
+
+        private static string BuildRosterText(LobbyRosterSnapshot snapshot)
+        {
+            if (!snapshot.HasLobby || snapshot.Members.Length == 0)
+            {
+                return "Joueurs : solo";
+            }
+
+            var builder = new System.Text.StringBuilder();
+            builder.Append("Joueurs (").Append(snapshot.Members.Length).Append("/4)");
+
+            foreach (var member in snapshot.Members)
+            {
+                builder.Append('\n').Append(member.DisplayName).Append(" - ").Append(member.Ready ? "Pret" : "En attente");
+            }
+
+            return builder.ToString();
         }
 
         /// <summary>
@@ -266,6 +391,13 @@ namespace RoadRage.App.Lobby
                     if (screen != null)
                     {
                         screen.ShowRoomCreated(lobbyRoom.JoinCode.ToString());
+                        screen.SetDifficultyEditable(true);
+                        screen.ShowReadyState(false);
+                    }
+
+                    if (lobbyRoster != null)
+                    {
+                        lobbyRoster.PublishDifficulty(Settings.Difficulty);
                     }
 
                     Publish(UserNoticeSeverity.Info, RoomOpenMessage);
@@ -274,6 +406,7 @@ namespace RoadRage.App.Lobby
                     if (screen != null)
                     {
                         screen.ShowRoomClosed();
+                        screen.SetDifficultyEditable(true);
                     }
 
                     Publish(UserNoticeSeverity.Info, RoomClosedMessage);
@@ -310,6 +443,8 @@ namespace RoadRage.App.Lobby
                     if (screen != null)
                     {
                         screen.ShowJoinedRoom(lobbyJoin.JoinedLobbyId.ToString());
+                        screen.SetDifficultyEditable(false);
+                        screen.ShowReadyState(false);
                     }
 
                     Publish(UserNoticeSeverity.Info, JoinSucceededMessage);

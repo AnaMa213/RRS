@@ -54,6 +54,13 @@ namespace RoadRage.App
         public LobbyJoinService LobbyJoin { get; private set; }
 
         /// <summary>
+        /// Service unique de synchronisation du roster de lobby (Story 2.4) : membres connectes, etats
+        /// prets et difficulte partagee. Partage la meme instance de plateforme Steam que LobbyRoom et
+        /// LobbyJoin. Tick() est pompe ici a chaque frame, comme OnlineServices.
+        /// </summary>
+        public LobbyRosterService LobbyRoster { get; private set; }
+
+        /// <summary>
         /// Garantit l'existence de l'instance persistante. Depuis Bootstrap rien n'est cree ;
         /// en entree directe (ex. MainMenuLobby jouee seule dans l'Editor) l'instance nait a la volee.
         /// </summary>
@@ -87,6 +94,7 @@ namespace RoadRage.App
             var lobbyPlatform = new FacepunchSteamLobbyPlatform();
             LobbyRoom = new LobbyRoomService(lobbyPlatform, OnlineServices);
             LobbyJoin = new LobbyJoinService(lobbyPlatform, OnlineServices);
+            LobbyRoster = new LobbyRosterService(lobbyPlatform, LobbyRoom, LobbyJoin);
         }
 
         private void Start()
@@ -102,6 +110,11 @@ namespace RoadRage.App
             if (OnlineServices != null)
             {
                 OnlineServices.Tick();
+            }
+
+            if (LobbyRoster != null)
+            {
+                LobbyRoster.Tick();
             }
         }
 
