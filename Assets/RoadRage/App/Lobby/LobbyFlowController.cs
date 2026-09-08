@@ -1,6 +1,8 @@
 using RoadRage.Features.Lobby;
 using RoadRage.Features.Online;
+using RoadRage.Features.Players;
 using RoadRage.Features.UI;
+using RoadRage.Shared.Definitions;
 using RoadRage.Shared.Domain;
 using RoadRage.Shared.Presentation;
 using UnityEngine;
@@ -8,11 +10,14 @@ using UnityEngine;
 namespace RoadRage.App.Lobby
 {
     /// <summary>
-    /// Seule couture entre l'ecran UI de la coquille de lobby et la couche App : relie les intentions
-    /// de LobbyShellScreen a MatchSettings (feature Lobby), publie les retours "indisponible" via
-    /// le canal de notices existant, declenche l'initialisation des services en ligne Steam a
-    /// l'ouverture du flux de lobby (Story 2.1), pilote la creation/fermeture de la room hote
-    /// (Story 2.2), et le join par code d'un lobby existant (Story 2.3).
+    /// Seule couture entre les ecrans UI du flux de lobby et la couche App : relie les intentions de
+    /// LobbyShellScreen (pre-room : creation/join/personnage/jeu solo) et LobbyRosterScreen (post-room :
+    /// roster, pret, difficulte, Start Game, fermeture) a MatchSettings (feature Lobby), publie les
+    /// retours "indisponible" via le canal de notices existant, declenche l'initialisation des services
+    /// en ligne Steam a l'ouverture du flux de lobby (Story 2.1), pilote la creation/fermeture de la room
+    /// hote (Story 2.2), le join par code d'un lobby existant (Story 2.3), et la synchronisation du
+    /// roster/pret/personnage/difficulte (Story 2.4). Bascule LobbyShellScreen/LobbyRosterScreen des
+    /// qu'une room devient active ou se ferme.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class LobbyFlowController : MonoBehaviour
@@ -59,6 +64,12 @@ namespace RoadRage.App.Lobby
 
         [SerializeField]
         private LobbyShellScreen screen;
+
+        [SerializeField]
+        private LobbyRosterScreen lobbyRosterScreen;
+
+        [SerializeField]
+        private CharacterCatalog catalog;
 
         private RoadRageBootstrap bootstrap;
 
@@ -120,6 +131,39 @@ namespace RoadRage.App.Lobby
                 Debug.LogWarning("[App] LobbyFlowController sans service de roster disponible.");
             }
 
+            if (bootstrap != null && bootstrap.Profiles != null)
+            {
+                bootstrap.Profiles.ProfileChanged += HandleProfileChanged;
+            }
+            else
+            {
+                Debug.LogWarning("[App] LobbyFlowController sans depot de profil disponible.");
+            }
+
+            if (catalog == null)
+            {
+                Debug.LogWarning("[App] LobbyFlowController sans reference vers CharacterCatalog : le roster affichera des silhouettes neutres.");
+            }
+
+            if (lobbyRosterScreen != null)
+            {
+                lobbyRosterScreen.ReadyToggleRequested += HandleReadyToggleRequested;
+                lobbyRosterScreen.DifficultyChanged += HandleDifficultyChanged;
+                lobbyRosterScreen.SoloTestExceptionToggleRequested += HandleSoloTestExceptionToggleRequested;
+                lobbyRosterScreen.StartGameRequested += HandleStartGameRequested;
+                lobbyRosterScreen.CloseRoomRequested += HandleCloseRoomRequested;
+
+                lobbyRosterScreen.ShowSettingsSummary(Settings.Difficulty);
+                lobbyRosterScreen.ShowReadyState(false);
+                lobbyRosterScreen.ShowSoloTestException(false);
+                lobbyRosterScreen.ShowRoster(null);
+                lobbyRosterScreen.Hide();
+            }
+            else
+            {
+                Debug.LogWarning("[App] LobbyFlowController sans reference vers LobbyRosterScreen.");
+            }
+
             if (screen == null)
             {
                 Debug.LogWarning("[App] LobbyFlowController sans reference vers LobbyShellScreen.");
@@ -130,21 +174,24 @@ namespace RoadRage.App.Lobby
             screen.JoinByCodeRequested += HandleJoinByCodeRequested;
             screen.StartGameRequested += HandleStartGameRequested;
             screen.DifficultyChanged += HandleDifficultyChanged;
-            screen.ReadyToggleRequested += HandleReadyToggleRequested;
-            screen.SoloTestExceptionToggleRequested += HandleSoloTestExceptionToggleRequested;
 
             screen.ShowSettingsSummary(Settings.Difficulty);
-            screen.ShowReadyState(false);
-            screen.ShowSoloTestException(false);
-            screen.ShowRoster(BuildRosterText(LobbyRosterSnapshot.Empty));
 
             if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open)
             {
                 screen.ShowRoomCreated(lobbyRoom.JoinCode.ToString());
+                screen.Hide();
+
+                if (lobbyRosterScreen != null)
+                {
+                    lobbyRosterScreen.ShowRoomCode(lobbyRoom.JoinCode.ToString());
+                    lobbyRosterScreen.Show();
+                }
             }
             else
             {
                 screen.ShowRoomClosed();
+                screen.Show();
             }
         }
 
@@ -170,6 +217,20 @@ namespace RoadRage.App.Lobby
                 lobbyRoster.RosterChanged -= HandleRosterChanged;
             }
 
+            if (bootstrap != null && bootstrap.Profiles != null)
+            {
+                bootstrap.Profiles.ProfileChanged -= HandleProfileChanged;
+            }
+
+            if (lobbyRosterScreen != null)
+            {
+                lobbyRosterScreen.ReadyToggleRequested -= HandleReadyToggleRequested;
+                lobbyRosterScreen.DifficultyChanged -= HandleDifficultyChanged;
+                lobbyRosterScreen.SoloTestExceptionToggleRequested -= HandleSoloTestExceptionToggleRequested;
+                lobbyRosterScreen.StartGameRequested -= HandleStartGameRequested;
+                lobbyRosterScreen.CloseRoomRequested -= HandleCloseRoomRequested;
+            }
+
             if (screen == null)
             {
                 return;
@@ -179,15 +240,15 @@ namespace RoadRage.App.Lobby
             screen.JoinByCodeRequested -= HandleJoinByCodeRequested;
             screen.StartGameRequested -= HandleStartGameRequested;
             screen.DifficultyChanged -= HandleDifficultyChanged;
-            screen.ReadyToggleRequested -= HandleReadyToggleRequested;
-            screen.SoloTestExceptionToggleRequested -= HandleSoloTestExceptionToggleRequested;
         }
 
         /// <summary>
         /// Meme bouton pour creer et fermer la room (Story 2.2) : le libelle affiche par LobbyShellScreen
         /// distingue les deux etats, jamais un second bouton. Cliquer sur une room deja ouverte la ferme ;
         /// sinon tente une creation, refusee silencieusement par LobbyRoomService si une creation est
-        /// deja en cours.
+        /// deja en cours. En pratique ce bouton devient inatteignable des que la room est ouverte (le
+        /// panneau qui le porte est masque au profit de LobbyRosterScreen) : la fermeture se fait alors
+        /// via HandleCloseRoomRequested, qui appelle le meme LobbyRoomService.CloseRoom().
         /// </summary>
         private async void HandleCreateLobbyRequested()
         {
@@ -244,7 +305,8 @@ namespace RoadRage.App.Lobby
         /// <summary>
         /// Le gate roster/pret/settings (Story 2.4) ne s'applique que quand une room hote est ouverte :
         /// hors lobby (jeu solo local, comportement inchange depuis la Story 1.2/1.5) ou en tant que
-        /// joueur ayant rejoint par code, Start Game reste local au seul profil joueur.
+        /// joueur ayant rejoint par code, Start Game reste local au seul profil joueur. Le meme handler
+        /// sert le bouton solo de LobbyShellScreen et le bouton in-room de LobbyRosterScreen.
         /// </summary>
         private void HandleStartGameRequested()
         {
@@ -286,7 +348,16 @@ namespace RoadRage.App.Lobby
         private void HandleDifficultyChanged(Difficulty difficulty)
         {
             Settings.Difficulty = difficulty;
-            screen.ShowSettingsSummary(Settings.Difficulty);
+
+            if (screen != null)
+            {
+                screen.ShowSettingsSummary(Settings.Difficulty);
+            }
+
+            if (lobbyRosterScreen != null)
+            {
+                lobbyRosterScreen.ShowSettingsSummary(Settings.Difficulty);
+            }
 
             if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open && lobbyRoster != null)
             {
@@ -303,54 +374,116 @@ namespace RoadRage.App.Lobby
 
             var next = !lobbyRoster.LocalReady;
             lobbyRoster.SetLocalReady(next);
-            screen.ShowReadyState(next);
+
+            if (lobbyRosterScreen != null)
+            {
+                lobbyRosterScreen.ShowReadyState(next);
+            }
         }
 
         private void HandleSoloTestExceptionToggleRequested()
         {
             soloTestExceptionEnabled = !soloTestExceptionEnabled;
-            screen.ShowSoloTestException(soloTestExceptionEnabled);
+
+            if (lobbyRosterScreen != null)
+            {
+                lobbyRosterScreen.ShowSoloTestException(soloTestExceptionEnabled);
+            }
+        }
+
+        /// <summary>Fermeture de room depuis l'ecran de lobby. Sans effet cote invite : aucune room a fermer.</summary>
+        private void HandleCloseRoomRequested()
+        {
+            if (lobbyRoom == null || lobbyRoom.Status != LobbyRoomStatus.Open)
+            {
+                return;
+            }
+
+            Debug.Log("[Lobby] Close Room demande depuis l'ecran de lobby.");
+            lobbyRoom.CloseRoom();
+        }
+
+        /// <summary>Republie le profil local (nom + personnage) des qu'il change, y compris deja en lobby.</summary>
+        private void HandleProfileChanged(PlayerProfile profile)
+        {
+            PublishLocalProfile();
+        }
+
+        /// <summary>Sans effet hors lobby actif (voir LobbyRosterService.PublishLocalProfile) : ne fait rien en solo.</summary>
+        private void PublishLocalProfile()
+        {
+            if (lobbyRoster == null)
+            {
+                return;
+            }
+
+            var profile = bootstrap != null && bootstrap.Profiles != null ? bootstrap.Profiles.Current : null;
+            var displayName = profile != null ? profile.DisplayName : string.Empty;
+            var characterId = profile != null ? profile.CharacterId.Value : string.Empty;
+            lobbyRoster.PublishLocalProfile(displayName, characterId);
         }
 
         /// <summary>
-        /// Republie le roster forme en texte pour l'ecran, et applique la difficulte recue de l'hote au
-        /// joueur ayant rejoint par code (Story 2.4) : jamais applique cote hote, source de verite de sa
-        /// propre difficulte, pour eviter qu'une lecture perimee de ses propres donnees ne l'ecrase.
+        /// Republie le roster resolu (personnage + nom + pret) pour l'ecran, et applique la difficulte
+        /// recue de l'hote au joueur ayant rejoint par code (Story 2.4) : jamais applique cote hote,
+        /// source de verite de sa propre difficulte, pour eviter qu'une lecture perimee de ses propres
+        /// donnees ne l'ecrase.
         /// </summary>
         private void HandleRosterChanged(LobbyRosterSnapshot snapshot)
         {
-            if (screen != null)
+            if (lobbyRosterScreen != null)
             {
-                screen.ShowRoster(BuildRosterText(snapshot));
+                lobbyRosterScreen.ShowRoster(BuildRosterEntries(snapshot));
             }
 
             var isJoinedClient = lobbyJoin != null && lobbyJoin.Status == LobbyJoinStatus.Joined;
             if (isJoinedClient && snapshot.HasLobby && snapshot.Difficulty != Settings.Difficulty)
             {
                 Settings.Difficulty = snapshot.Difficulty;
+
                 if (screen != null)
                 {
                     screen.ShowSettingsSummary(Settings.Difficulty);
                 }
+
+                if (lobbyRosterScreen != null)
+                {
+                    lobbyRosterScreen.ShowSettingsSummary(Settings.Difficulty);
+                }
             }
         }
 
-        private static string BuildRosterText(LobbyRosterSnapshot snapshot)
+        /// <summary>
+        /// Resout chaque membre du roster en entree d'affichage : teinte du personnage choisi via le
+        /// catalogue (silhouette neutre si le personnage est inconnu ou pas encore publie), nom deja
+        /// resolu par la plateforme (nom RoadRage publie ou repli sur le nom Steam).
+        /// </summary>
+        private LobbyRosterEntry[] BuildRosterEntries(LobbyRosterSnapshot snapshot)
         {
             if (!snapshot.HasLobby || snapshot.Members.Length == 0)
             {
-                return "Joueurs : solo";
+                return System.Array.Empty<LobbyRosterEntry>();
             }
 
-            var builder = new System.Text.StringBuilder();
-            builder.Append("Joueurs (").Append(snapshot.Members.Length).Append("/4)");
-
-            foreach (var member in snapshot.Members)
+            var entries = new LobbyRosterEntry[snapshot.Members.Length];
+            for (var i = 0; i < snapshot.Members.Length; i++)
             {
-                builder.Append('\n').Append(member.DisplayName).Append(" - ").Append(member.Ready ? "Pret" : "En attente");
+                var member = snapshot.Members[i];
+                var tint = Color.gray;
+
+                if (catalog != null && !string.IsNullOrEmpty(member.CharacterId))
+                {
+                    CharacterDef character;
+                    if (catalog.TryGetById(new DefinitionId(member.CharacterId), out character))
+                    {
+                        tint = character.PreviewTint;
+                    }
+                }
+
+                entries[i] = new LobbyRosterEntry(member.DisplayName, tint, member.Ready);
             }
 
-            return builder.ToString();
+            return entries;
         }
 
         /// <summary>
@@ -378,8 +511,8 @@ namespace RoadRage.App.Lobby
         }
 
         /// <summary>
-        /// Traduit chaque changement d'etat de la room hote en retour visible : le libelle du bouton et
-        /// le code de join affiches par LobbyShellScreen, plus une notice pour les etats notables.
+        /// Traduit chaque changement d'etat de la room hote en retour visible, et bascule l'ecran actif
+        /// entre LobbyShellScreen (pre-room) et LobbyRosterScreen (post-room) sur Open/Closed.
         /// Creating ne produit aucun retour dedie : la room n'est ni ouverte ni fermee, l'ecran garde
         /// son etat courant jusqu'a la resolution.
         /// </summary>
@@ -391,8 +524,16 @@ namespace RoadRage.App.Lobby
                     if (screen != null)
                     {
                         screen.ShowRoomCreated(lobbyRoom.JoinCode.ToString());
-                        screen.SetDifficultyEditable(true);
-                        screen.ShowReadyState(false);
+                        screen.Hide();
+                    }
+
+                    if (lobbyRosterScreen != null)
+                    {
+                        lobbyRosterScreen.ShowRoomCode(lobbyRoom.JoinCode.ToString());
+                        lobbyRosterScreen.SetDifficultyEditable(true);
+                        lobbyRosterScreen.SetCloseRoomVisible(true);
+                        lobbyRosterScreen.ShowReadyState(false);
+                        lobbyRosterScreen.Show();
                     }
 
                     if (lobbyRoster != null)
@@ -400,13 +541,20 @@ namespace RoadRage.App.Lobby
                         lobbyRoster.PublishDifficulty(Settings.Difficulty);
                     }
 
+                    PublishLocalProfile();
+
                     Publish(UserNoticeSeverity.Info, RoomOpenMessage);
                     break;
                 case LobbyRoomStatus.Closed:
                     if (screen != null)
                     {
                         screen.ShowRoomClosed();
-                        screen.SetDifficultyEditable(true);
+                        screen.Show();
+                    }
+
+                    if (lobbyRosterScreen != null)
+                    {
+                        lobbyRosterScreen.Hide();
                     }
 
                     Publish(UserNoticeSeverity.Info, RoomClosedMessage);
@@ -431,9 +579,10 @@ namespace RoadRage.App.Lobby
         }
 
         /// <summary>
-        /// Traduit chaque changement d'etat du join par code en retour visible. Idle et Joining ne
-        /// produisent aucun retour dedie : Idle est l'etat de repos, Joining n'est ni un succes ni un
-        /// echec definitif tant que la tentative Steam n'est pas resolue.
+        /// Traduit chaque changement d'etat du join par code en retour visible, et bascule vers
+        /// LobbyRosterScreen sur Joined (Story 2.4). Idle et Joining ne produisent aucun retour dedie :
+        /// Idle est l'etat de repos, Joining n'est ni un succes ni un echec definitif tant que la
+        /// tentative Steam n'est pas resolue.
         /// </summary>
         private void HandleJoinStatusChanged(LobbyJoinStatus status)
         {
@@ -443,9 +592,19 @@ namespace RoadRage.App.Lobby
                     if (screen != null)
                     {
                         screen.ShowJoinedRoom(lobbyJoin.JoinedLobbyId.ToString());
-                        screen.SetDifficultyEditable(false);
-                        screen.ShowReadyState(false);
+                        screen.Hide();
                     }
+
+                    if (lobbyRosterScreen != null)
+                    {
+                        lobbyRosterScreen.ShowRoomCode(lobbyJoin.JoinedLobbyId.ToString());
+                        lobbyRosterScreen.SetDifficultyEditable(false);
+                        lobbyRosterScreen.SetCloseRoomVisible(false);
+                        lobbyRosterScreen.ShowReadyState(false);
+                        lobbyRosterScreen.Show();
+                    }
+
+                    PublishLocalProfile();
 
                     Publish(UserNoticeSeverity.Info, JoinSucceededMessage);
                     break;

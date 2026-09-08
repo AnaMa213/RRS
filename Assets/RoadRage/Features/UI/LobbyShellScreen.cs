@@ -7,9 +7,12 @@ using UnityEngine.UI;
 namespace RoadRage.Features.UI
 {
     /// <summary>
-    /// Ecran UGUI de la coquille de lobby locale (Story 1.2). N'appelle jamais de chargement de scene
-    /// direct et ne mute jamais l'objet de reglages de partie du feature Lobby : il n'emet que des
-    /// intentions, la couche App traduit vers ce feature.
+    /// Ecran UGUI de la coquille de lobby locale (Story 1.2) : creation/join de room, personnage, et
+    /// jeu solo local (difficulte + Start Game). Depuis la Story 2.4, cet ecran ne represente plus le
+    /// "lobby" une fois une room active : LobbyFlowController le masque au profit de LobbyRosterScreen
+    /// des qu'une room est ouverte ou rejointe, et le restaure a la fermeture. N'appelle jamais de
+    /// chargement de scene direct et ne mute jamais l'objet de reglages de partie du feature Lobby : il
+    /// n'emet que des intentions, la couche App traduit vers ce feature.
     /// Le bouton Back n'appartient pas a cet ecran : il reste possede par MainMenuScreen, qui gere deja
     /// l'alternance menu/setup. Ne pas y ajouter de reference ni d'evenement Back en double.
     /// </summary>
@@ -45,21 +48,6 @@ namespace RoadRage.Features.UI
         [SerializeField]
         private TMP_Text settingsSummaryLabel;
 
-        [SerializeField]
-        private Button readyButton;
-
-        [SerializeField]
-        private TMP_Text readyButtonLabel;
-
-        [SerializeField]
-        private Button soloTestExceptionButton;
-
-        [SerializeField]
-        private TMP_Text soloTestExceptionButtonLabel;
-
-        [SerializeField]
-        private TMP_Text rosterLabel;
-
         private Difficulty displayedDifficulty = Difficulty.Normal;
 
         public event Action CreateLobbyRequested;
@@ -69,12 +57,6 @@ namespace RoadRage.Features.UI
         public event Action StartGameRequested;
 
         public event Action<Difficulty> DifficultyChanged;
-
-        /// <summary>Demande de bascule de l'etat pret local (Story 2.4).</summary>
-        public event Action ReadyToggleRequested;
-
-        /// <summary>Demande de bascule de l'exception de test solo qui contourne le gate "tous prets" (Story 2.4).</summary>
-        public event Action SoloTestExceptionToggleRequested;
 
         /// <summary>Point d'entree du flux de setup de personnage (Story 1.3).</summary>
         public event Action CharacterSetupRequested;
@@ -124,39 +106,6 @@ namespace RoadRage.Features.UI
             else
             {
                 Debug.LogWarning("[UI] LobbyShellScreen sans reference vers characterSetupButton.");
-            }
-
-            if (readyButton != null)
-            {
-                readyButton.onClick.AddListener(RaiseReadyToggleRequested);
-            }
-            else
-            {
-                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers readyButton.");
-            }
-
-            if (soloTestExceptionButton != null)
-            {
-                soloTestExceptionButton.onClick.AddListener(RaiseSoloTestExceptionToggleRequested);
-            }
-            else
-            {
-                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers soloTestExceptionButton.");
-            }
-
-            if (rosterLabel == null)
-            {
-                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers rosterLabel.");
-            }
-
-            if (readyButtonLabel == null)
-            {
-                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers readyButtonLabel.");
-            }
-
-            if (soloTestExceptionButtonLabel == null)
-            {
-                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers soloTestExceptionButtonLabel.");
             }
 
             if (settingsSummaryLabel == null)
@@ -246,52 +195,16 @@ namespace RoadRage.Features.UI
             }
         }
 
-        /// <summary>
-        /// Synchronise le libelle du bouton pret sur l'etat pret local courant (Story 2.4). Appele par la
-        /// couche App apres bascule : l'ecran ne mute jamais LobbyRosterService lui-meme.
-        /// </summary>
-        public void ShowReadyState(bool ready)
+        /// <summary>Masque ce panneau au profit de LobbyRosterScreen des qu'une room devient active (Story 2.4).</summary>
+        public void Hide()
         {
-            if (readyButtonLabel != null)
-            {
-                readyButtonLabel.text = ready ? "Pret !" : "Marquer pret";
-            }
+            gameObject.SetActive(false);
         }
 
-        /// <summary>
-        /// Synchronise le libelle du bouton d'exception de test solo (Story 2.4). Cette exception locale
-        /// contourne uniquement le gate "tous prets" de Start Game, jamais les autres conditions.
-        /// </summary>
-        public void ShowSoloTestException(bool enabled)
+        /// <summary>Restaure ce panneau (jeu solo, ou room hote fermee) (Story 2.4).</summary>
+        public void Show()
         {
-            if (soloTestExceptionButtonLabel != null)
-            {
-                soloTestExceptionButtonLabel.text = "Test solo : " + (enabled ? "ON" : "OFF");
-            }
-        }
-
-        /// <summary>
-        /// Affiche le texte de roster deja mis en forme par la couche App (Story 2.4) : cet ecran ne
-        /// connait ni Steamworks ni LobbyRosterSnapshot, il se contente d'afficher une chaine.
-        /// </summary>
-        public void ShowRoster(string rosterText)
-        {
-            if (rosterLabel != null)
-            {
-                rosterLabel.text = rosterText;
-            }
-        }
-
-        /// <summary>
-        /// Active ou desactive l'edition de la difficulte (Story 2.4) : seul l'hote d'une room ouverte
-        /// peut l'editer, un joueur ayant rejoint par code la recoit en lecture seule.
-        /// </summary>
-        public void SetDifficultyEditable(bool editable)
-        {
-            if (difficultyButton != null)
-            {
-                difficultyButton.interactable = editable;
-            }
+            gameObject.SetActive(true);
         }
 
         private string GetRawJoinCode()
@@ -326,16 +239,6 @@ namespace RoadRage.Features.UI
         private void RaiseCharacterSetupRequested()
         {
             CharacterSetupRequested?.Invoke();
-        }
-
-        private void RaiseReadyToggleRequested()
-        {
-            ReadyToggleRequested?.Invoke();
-        }
-
-        private void RaiseSoloTestExceptionToggleRequested()
-        {
-            SoloTestExceptionToggleRequested?.Invoke();
         }
     }
 }

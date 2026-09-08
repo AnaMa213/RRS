@@ -40,8 +40,8 @@ namespace RoadRage.Tests.EditMode
 
             lobbyPlatform.NextRoster = new LobbyRosterSnapshot(true, 1UL, Difficulty.Hard, new[]
             {
-                new LobbyMemberSnapshot(1UL, "Hote", true),
-                new LobbyMemberSnapshot(2UL, "Invite", false)
+                new LobbyMemberSnapshot(1UL, "Hote", "char_rookie", true),
+                new LobbyMemberSnapshot(2UL, "Invite", "char_rookie", false)
             });
 
             roster.Tick();
@@ -61,7 +61,7 @@ namespace RoadRage.Tests.EditMode
 
             lobbyPlatform.NextRoster = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new[]
             {
-                new LobbyMemberSnapshot(1UL, "Hote", true)
+                new LobbyMemberSnapshot(1UL, "Hote", "char_rookie", true)
             });
             roster.Tick();
 
@@ -82,8 +82,8 @@ namespace RoadRage.Tests.EditMode
 
             lobbyPlatform.NextRoster = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new[]
             {
-                new LobbyMemberSnapshot(1UL, "Hote", true),
-                new LobbyMemberSnapshot(2UL, "Invite", true)
+                new LobbyMemberSnapshot(1UL, "Hote", "char_rookie", true),
+                new LobbyMemberSnapshot(2UL, "Invite", "char_rookie", true)
             });
             roster.Tick();
 
@@ -137,7 +137,7 @@ namespace RoadRage.Tests.EditMode
 
             lobbyPlatform.NextRoster = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new[]
             {
-                new LobbyMemberSnapshot(1UL, "Hote", true)
+                new LobbyMemberSnapshot(1UL, "Hote", "char_rookie", true)
             });
             roster.Tick();
             Assert.That(roster.Current.HasLobby, Is.True);
@@ -165,6 +165,23 @@ namespace RoadRage.Tests.EditMode
             roster.PublishDifficulty(Difficulty.Hard);
             Assert.That(lobbyPlatform.SetDifficultyCallCount, Is.EqualTo(1));
             Assert.That(lobbyPlatform.LastDifficulty, Is.EqualTo(Difficulty.Hard));
+        }
+
+        [Test]
+        public void PublishLocalProfileCallsPlatformWhenRoomOpenOrJoinedButNotOtherwise()
+        {
+            var roster = BuildService(out var lobbyPlatform, out var lobbyRoom, out _);
+
+            roster.PublishLocalProfile("Alice", "char_rookie");
+            Assert.That(lobbyPlatform.SetProfileCallCount, Is.EqualTo(0), "sans lobby actif, aucune publication de profil");
+
+            lobbyPlatform.NextCreateOutcome = new LobbyCreateOutcome(true, 1UL);
+            lobbyRoom.CreateRoomAsync().GetAwaiter().GetResult();
+
+            roster.PublishLocalProfile("Alice", "char_rookie");
+            Assert.That(lobbyPlatform.SetProfileCallCount, Is.EqualTo(1));
+            Assert.That(lobbyPlatform.LastProfileDisplayName, Is.EqualTo("Alice"));
+            Assert.That(lobbyPlatform.LastProfileCharacterId, Is.EqualTo("char_rookie"));
         }
 
         [Test]
@@ -253,6 +270,19 @@ namespace RoadRage.Tests.EditMode
             {
                 SetReadyCallCount++;
                 LastReadyValue = ready;
+            }
+
+            public int SetProfileCallCount { get; private set; }
+
+            public string LastProfileDisplayName { get; private set; }
+
+            public string LastProfileCharacterId { get; private set; }
+
+            public void SetLocalMemberProfile(string displayName, string characterId)
+            {
+                SetProfileCallCount++;
+                LastProfileDisplayName = displayName;
+                LastProfileCharacterId = characterId;
             }
 
             public void SetLobbyDifficulty(Difficulty difficulty)

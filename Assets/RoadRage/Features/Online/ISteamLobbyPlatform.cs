@@ -23,6 +23,9 @@ namespace RoadRage.Features.Online
         /// <summary>Publie l'etat pret du membre local dans les donnees de membre du lobby courant (Story 2.4). Sans effet hors lobby actif.</summary>
         void SetLocalMemberReady(bool ready);
 
+        /// <summary>Publie le nom affiche et l'id de personnage choisi du membre local (Story 2.4). Sans effet hors lobby actif.</summary>
+        void SetLocalMemberProfile(string displayName, string characterId);
+
         /// <summary>Publie la difficulte choisie dans les donnees du lobby courant (Story 2.4). Sans effet hors lobby actif ; reserve a l'hote par l'appelant.</summary>
         void SetLobbyDifficulty(Difficulty difficulty);
     }
@@ -71,16 +74,21 @@ namespace RoadRage.Features.Online
     /// <summary>Membre du lobby courant avec son etat pret, sans exposer de type Steamworks (Story 2.4).</summary>
     public readonly struct LobbyMemberSnapshot
     {
-        public LobbyMemberSnapshot(ulong steamId, string displayName, bool ready)
+        public LobbyMemberSnapshot(ulong steamId, string displayName, string characterId, bool ready)
         {
             SteamId = steamId;
             DisplayName = displayName;
+            CharacterId = characterId;
             Ready = ready;
         }
 
         public ulong SteamId { get; }
 
+        /// <summary>Nom affiche RoadRage si publie par ce membre, sinon son nom Steam en repli.</summary>
         public string DisplayName { get; }
+
+        /// <summary>Id brut du CharacterDef choisi par ce membre, vide si non publie.</summary>
+        public string CharacterId { get; }
 
         public bool Ready { get; }
     }

@@ -207,6 +207,10 @@ namespace RoadRage.Tests.EditMode
             {
             }
 
+            public void SetLocalMemberProfile(string displayName, string characterId)
+            {
+            }
+
             public void SetLobbyDifficulty(Difficulty difficulty)
             {
             }

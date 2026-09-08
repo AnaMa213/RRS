@@ -126,6 +126,17 @@ namespace RoadRage.Features.Online
             platform.SetLobbyDifficulty(difficulty);
         }
 
+        /// <summary>Publie le nom affiche et le personnage choisi du joueur local, pour hote et invite. Sans effet hors lobby actif.</summary>
+        public void PublishLocalProfile(string displayName, string characterId)
+        {
+            if (lobbyRoom.Status != LobbyRoomStatus.Open && lobbyJoin.Status != LobbyJoinStatus.Joined)
+            {
+                return;
+            }
+
+            platform.SetLocalMemberProfile(displayName, characterId);
+        }
+
         /// <summary>
         /// Une room hote qui s'ouvre republie systematiquement l'etat pret local a "non pret" : un hote
         /// qui recree une room ne doit jamais heriter d'un etat pret perime d'une session precedente.

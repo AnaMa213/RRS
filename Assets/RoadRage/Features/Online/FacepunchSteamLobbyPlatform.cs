@@ -30,6 +30,10 @@ namespace RoadRage.Features.Online
 
         private const string DifficultyDataKey = "difficulty";
 
+        private const string DisplayNameDataKey = "displayName";
+
+        private const string CharacterIdDataKey = "characterId";
+
         private Lobby? currentLobby;
 
         public async Task<LobbyCreateOutcome> CreateLobbyAsync(int maxMembers)
@@ -83,7 +87,10 @@ namespace RoadRage.Features.Online
             foreach (var member in lobby.Members)
             {
                 var ready = lobby.GetMemberData(member, ReadyDataKey) == ReadyValue;
-                members.Add(new LobbyMemberSnapshot(member.Id, member.Name, ready));
+                var publishedName = lobby.GetMemberData(member, DisplayNameDataKey);
+                var displayName = string.IsNullOrEmpty(publishedName) ? member.Name : publishedName;
+                var characterId = lobby.GetMemberData(member, CharacterIdDataKey);
+                members.Add(new LobbyMemberSnapshot(member.Id, displayName, characterId, ready));
             }
 
             return new LobbyRosterSnapshot(true, lobby.Owner.Id, difficulty, members.ToArray());
@@ -97,6 +104,17 @@ namespace RoadRage.Features.Online
             }
 
             currentLobby.Value.SetMemberData(ReadyDataKey, ready ? ReadyValue : NotReadyValue);
+        }
+
+        public void SetLocalMemberProfile(string displayName, string characterId)
+        {
+            if (!currentLobby.HasValue)
+            {
+                return;
+            }
+
+            currentLobby.Value.SetMemberData(DisplayNameDataKey, displayName ?? string.Empty);
+            currentLobby.Value.SetMemberData(CharacterIdDataKey, characterId ?? string.Empty);
         }
 
         public void SetLobbyDifficulty(Difficulty difficulty)
