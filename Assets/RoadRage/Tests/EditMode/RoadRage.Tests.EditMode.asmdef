@@ -8,6 +8,7 @@
         "RoadRage.Features.Economy",
         "RoadRage.Features.Lobby",
         "RoadRage.Features.OnFoot",
+        "RoadRage.Features.Online",
         "RoadRage.Features.Players",
         "RoadRage.Features.Rage",
         "RoadRage.Features.Run",

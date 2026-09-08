@@ -6,6 +6,7 @@
         "RoadRage.Shared",
         "RoadRage.Features.Lobby",
         "RoadRage.Features.OnFoot",
+        "RoadRage.Features.Online",
         "RoadRage.Features.Players",
         "RoadRage.Features.Run",
         "RoadRage.Features.UI",

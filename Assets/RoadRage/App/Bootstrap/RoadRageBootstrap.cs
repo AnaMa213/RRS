@@ -1,4 +1,5 @@
 using RoadRage.App.Services;
+using RoadRage.Features.Online;
 using RoadRage.Features.Players;
 using RoadRage.Shared.Presentation;
 using UnityEngine;
@@ -13,6 +14,9 @@ namespace RoadRage.App
     [DisallowMultipleComponent]
     public sealed class RoadRageBootstrap : MonoBehaviour
     {
+        /// <summary>AppID de test Steamworks (480, Spacewar) : meme AppID que le smoke test de l'Epic 0, en attendant l'AppID reel du jeu.</summary>
+        private const uint SteamTestAppId = 480;
+
         private static RoadRageBootstrap instance;
 
         public static RoadRageBootstrap Instance
@@ -29,6 +33,12 @@ namespace RoadRage.App
         /// seul point de passage vers l'entree monde de la Story 1.5, qui le lit apres changement de scene.
         /// </summary>
         public PlayerProfileStore Profiles { get; private set; }
+
+        /// <summary>
+        /// Service unique d'initialisation des services en ligne Steam (Story 2.1). Construit ici,
+        /// declenche par LobbyFlowController a l'ouverture du flux de lobby.
+        /// </summary>
+        public OnlineServicesBootstrapService OnlineServices { get; private set; }
 
         /// <summary>
         /// Garantit l'existence de l'instance persistante. Depuis Bootstrap rien n'est cree ;
@@ -60,6 +70,7 @@ namespace RoadRage.App
             Router = new AppSceneRouter();
             Notices = new UserNoticeChannel();
             Profiles = new PlayerProfileStore();
+            OnlineServices = new OnlineServicesBootstrapService(new FacepunchSteamPlatform(), SteamTestAppId);
         }
 
         private void Start()
@@ -72,6 +83,11 @@ namespace RoadRage.App
 
         private void OnDestroy()
         {
+            if (OnlineServices != null)
+            {
+                OnlineServices.Shutdown();
+            }
+
             if (instance == this)
             {
                 instance = null;

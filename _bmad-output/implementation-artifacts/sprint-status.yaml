@@ -55,8 +55,8 @@ development_status:
   1-6-epic-1-playable-checkpoint: review
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-online-services-bootstrap-and-status-feedback: backlog
+  epic-2: in-progress
+  2-1-online-services-bootstrap-and-status-feedback: review
   2-2-host-created-private-room-with-join-code: backlog
   2-3-join-by-code-and-invite-link-wrapper: backlog
   2-4-lobby-roster-ready-state-and-settings-sync: backlog
