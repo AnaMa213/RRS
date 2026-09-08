@@ -8,10 +8,10 @@ using RoadRage.App.Players;
 using RoadRage.App.Run;
 using RoadRage.App.Services;
 using RoadRage.Features.OnFoot;
+using RoadRage.Features.Online;
 using RoadRage.Features.Players;
 using RoadRage.Features.UI;
 using RoadRage.Shared.Domain;
-using RoadRage.Shared.Presentation;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -61,15 +61,27 @@ namespace RoadRage.Tests.PlayMode
                 Assert.That(lobbyFlow, Is.Not.Null, "LobbyFlowController attendu apres Play");
                 Assert.That(lobbyFlow.Settings.Difficulty, Is.EqualTo(Difficulty.Normal));
 
-                UserNotice? unavailableNotice = null;
-                RoadRageBootstrap.Instance.Notices.NoticePublished += notice => unavailableNotice = notice;
-
+                // Create Lobby n'est plus un stub depuis la Story 2.2 : le checkpoint verifie desormais
+                // seulement que le clic fait evoluer LobbyRoomService vers un etat terminal, jamais
+                // bloque sur Creating. Couverture complete (code affiche, notice, fermeture) dans
+                // Story22HostCreatedPrivateRoomPlayModeTests.
+                var bootstrap = RoadRageBootstrap.Instance;
                 ClickSerializedButton(lobbyScreen, "createLobbyButton");
-                yield return null;
 
-                Assert.That(unavailableNotice, Is.Not.Null, "Create Lobby doit rester un stub visible");
-                Assert.That(unavailableNotice.Value.Severity, Is.EqualTo(UserNoticeSeverity.Warning));
-                Assert.That(unavailableNotice.Value.Message, Does.Contain("Epic 2"));
+                var roomSettleFrames = 0;
+                while (bootstrap.LobbyRoom.Status == LobbyRoomStatus.Creating && roomSettleFrames < 300)
+                {
+                    yield return null;
+                    roomSettleFrames++;
+                }
+
+                Assert.That(bootstrap.LobbyRoom.Status, Is.Not.EqualTo(LobbyRoomStatus.Creating),
+                    "Create Lobby ne doit jamais rester bloque sur Creating");
+
+                if (bootstrap.LobbyRoom.Status == LobbyRoomStatus.Open)
+                {
+                    bootstrap.LobbyRoom.CloseRoom();
+                }
 
                 ClickSerializedButton(lobbyScreen, "difficultyButton");
                 yield return null;

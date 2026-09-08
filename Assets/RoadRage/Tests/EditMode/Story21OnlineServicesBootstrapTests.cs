@@ -107,6 +107,35 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void TickPumpsPlatformCallbacksOnlyWhenOnline()
+        {
+            var platform = new FakeSteamPlatform { IsValid = true, IsLoggedOn = true };
+            var service = new OnlineServicesBootstrapService(platform, TestAppId);
+
+            service.Tick();
+            Assert.That(platform.RunCallbacksCallCount, Is.EqualTo(0), "avant resolution du statut, aucun pompage ne doit avoir lieu");
+
+            service.TryInitialize();
+            Assert.That(service.Status, Is.EqualTo(OnlineServicesStatus.Online));
+
+            service.Tick();
+            Assert.That(platform.RunCallbacksCallCount, Is.EqualTo(1), "une fois Online, Tick doit pomper les callbacks Steamworks a chaque appel");
+        }
+
+        [Test]
+        public void TickNeverPumpsPlatformCallbacksWhenNotOnline()
+        {
+            var platform = new FakeSteamPlatform { IsValid = true, IsLoggedOn = false };
+            var service = new OnlineServicesBootstrapService(platform, TestAppId);
+
+            service.TryInitialize();
+            Assert.That(service.Status, Is.EqualTo(OnlineServicesStatus.SignInFailed));
+
+            service.Tick();
+            Assert.That(platform.RunCallbacksCallCount, Is.EqualTo(0), "un statut non-Online ne doit jamais pomper les callbacks Steamworks");
+        }
+
+        [Test]
         public void ConstructorRejectsNullPlatform()
         {
             Assert.Throws<ArgumentNullException>(() => new OnlineServicesBootstrapService(null, TestAppId));
@@ -165,6 +194,8 @@ namespace RoadRage.Tests.EditMode
 
             public int ShutdownCallCount { get; private set; }
 
+            public int RunCallbacksCallCount { get; private set; }
+
             public void Init(uint appId)
             {
                 InitCallCount++;
@@ -179,6 +210,11 @@ namespace RoadRage.Tests.EditMode
             public void Shutdown()
             {
                 ShutdownCallCount++;
+            }
+
+            public void RunCallbacks()
+            {
+                RunCallbacksCallCount++;
             }
         }
     }

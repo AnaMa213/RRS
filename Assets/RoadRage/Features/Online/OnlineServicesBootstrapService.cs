@@ -69,6 +69,19 @@ namespace RoadRage.Features.Online
             }
         }
 
+        /// <summary>
+        /// Pompe les callbacks Steamworks une fois la session en ligne active. A appeler depuis une
+        /// boucle Update Unity par le proprietaire persistant : sans ce pompage regulier, toute
+        /// operation Steamworks asynchrone (creation de room, etc.) reste bloquee indefiniment.
+        /// </summary>
+        public void Tick()
+        {
+            if (Status == OnlineServicesStatus.Online)
+            {
+                platform.RunCallbacks();
+            }
+        }
+
         private OnlineServicesStatus ResolvePostInitStatus()
         {
             if (!platform.IsValid)

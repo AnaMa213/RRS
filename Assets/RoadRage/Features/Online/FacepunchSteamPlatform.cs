@@ -28,5 +28,13 @@ namespace RoadRage.Features.Online
         {
             SteamClient.Shutdown();
         }
+
+        public void RunCallbacks()
+        {
+            if (SteamClient.IsValid)
+            {
+                SteamClient.RunCallbacks();
+            }
+        }
     }
 }

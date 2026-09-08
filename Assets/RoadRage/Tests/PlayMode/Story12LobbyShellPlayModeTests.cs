@@ -17,10 +17,12 @@ namespace RoadRage.Tests.PlayMode
 {
     /// <summary>
     /// Couvre les comportements de la Story 1.2 qui dependent du cycle de vie Unity (Awake, clics reels,
-    /// evenements) : Create Lobby / Join By Code / Start Game publient une notice "indisponible" via
-    /// UserNoticeChannel, et le changement de difficulte met a jour les reglages de partie ainsi que le
-    /// libelle affiche. LobbyShellScreen vit sur SetupPanel, inactif tant que Play n'a pas ete presse :
-    /// chaque test entre donc reellement dans la coquille de lobby via MainMenuScreen avant d'agir.
+    /// evenements) : Join By Code / Start Game publient une notice "indisponible" via UserNoticeChannel,
+    /// et le changement de difficulte met a jour les reglages de partie ainsi que le libelle affiche.
+    /// Create Lobby n'est plus un placeholder depuis la Story 2.2 (creation reelle de room hote) : sa
+    /// couverture vit desormais dans Story22HostCreatedPrivateRoomPlayModeTests. LobbyShellScreen vit sur
+    /// SetupPanel, inactif tant que Play n'a pas ete presse : chaque test entre donc reellement dans la
+    /// coquille de lobby via MainMenuScreen avant d'agir.
     /// </summary>
     public sealed class Story12LobbyShellPlayModeTests
     {
@@ -34,28 +36,6 @@ namespace RoadRage.Tests.PlayMode
             }
 
             yield return null;
-        }
-
-        [UnityTest]
-        public IEnumerator CreateLobbyRequestedPublishesUnavailableNoticeAndLeavesSettingsUnchanged()
-        {
-            yield return PressPlayAndEnterLobbyShell();
-
-            var screen = Object.FindAnyObjectByType<LobbyShellScreen>();
-            var flowController = Object.FindAnyObjectByType<LobbyFlowController>();
-            Assert.That(screen, Is.Not.Null);
-            Assert.That(flowController, Is.Not.Null);
-
-            var difficultyBefore = flowController.Settings.Difficulty;
-
-            UserNotice? published = null;
-            RoadRageBootstrap.Instance.Notices.NoticePublished += notice => published = notice;
-
-            ClickSerializedButton(screen, "createLobbyButton");
-
-            Assert.That(published, Is.Not.Null, "Create Lobby doit publier une notice via UserNoticeChannel");
-            Assert.That(published.Value.Severity, Is.EqualTo(UserNoticeSeverity.Warning));
-            Assert.That(flowController.Settings.Difficulty, Is.EqualTo(difficultyBefore), "les reglages de partie ne doivent pas changer sur Create Lobby");
         }
 
         [UnityTest]

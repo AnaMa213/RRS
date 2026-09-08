@@ -41,6 +41,12 @@ namespace RoadRage.App
         public OnlineServicesBootstrapService OnlineServices { get; private set; }
 
         /// <summary>
+        /// Service unique de creation/fermeture de la room hote (Story 2.2). Construit ici pour
+        /// survivre au changement de scene ; declenche par LobbyFlowController sur demande du joueur.
+        /// </summary>
+        public LobbyRoomService LobbyRoom { get; private set; }
+
+        /// <summary>
         /// Garantit l'existence de l'instance persistante. Depuis Bootstrap rien n'est cree ;
         /// en entree directe (ex. MainMenuLobby jouee seule dans l'Editor) l'instance nait a la volee.
         /// </summary>
@@ -71,6 +77,7 @@ namespace RoadRage.App
             Notices = new UserNoticeChannel();
             Profiles = new PlayerProfileStore();
             OnlineServices = new OnlineServicesBootstrapService(new FacepunchSteamPlatform(), SteamTestAppId);
+            LobbyRoom = new LobbyRoomService(new FacepunchSteamLobbyPlatform(), OnlineServices);
         }
 
         private void Start()
@@ -81,8 +88,21 @@ namespace RoadRage.App
             }
         }
 
+        private void Update()
+        {
+            if (OnlineServices != null)
+            {
+                OnlineServices.Tick();
+            }
+        }
+
         private void OnDestroy()
         {
+            if (LobbyRoom != null)
+            {
+                LobbyRoom.CloseRoom();
+            }
+
             if (OnlineServices != null)
             {
                 OnlineServices.Shutdown();

@@ -22,6 +22,12 @@ namespace RoadRage.Features.UI
         private Button createLobbyButton;
 
         [SerializeField]
+        private TMP_Text createLobbyButtonLabel;
+
+        [SerializeField]
+        private TMP_Text roomCodeLabel;
+
+        [SerializeField]
         private Button joinByCodeButton;
 
         [SerializeField]
@@ -101,6 +107,16 @@ namespace RoadRage.Features.UI
                 Debug.LogWarning("[UI] LobbyShellScreen sans reference vers settingsSummaryLabel.");
             }
 
+            if (createLobbyButtonLabel == null)
+            {
+                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers createLobbyButtonLabel.");
+            }
+
+            if (roomCodeLabel == null)
+            {
+                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers roomCodeLabel.");
+            }
+
             // Volontairement aucun appel a ShowSettingsSummary ici : la couche App (LobbyFlowController)
             // est le seul ecrivain du libelle, a partir de l'etat reel des reglages de partie. Cet ecran
             // vit sur un panneau inactif au chargement, donc son Awake s'execute apres celui du controller :
@@ -118,6 +134,40 @@ namespace RoadRage.Features.UI
             if (settingsSummaryLabel != null)
             {
                 settingsSummaryLabel.text = "Difficulte : " + difficulty;
+            }
+        }
+
+        /// <summary>
+        /// Affiche la room hote comme ouverte avec son code de join. Appele par la couche App
+        /// (LobbyFlowController) une fois la creation reussie : l'ecran ne mute jamais LobbyRoomService.
+        /// </summary>
+        public void ShowRoomCreated(string joinCode)
+        {
+            if (createLobbyButtonLabel != null)
+            {
+                createLobbyButtonLabel.text = "Close Room";
+            }
+
+            if (roomCodeLabel != null)
+            {
+                roomCodeLabel.text = "Code : " + joinCode;
+            }
+        }
+
+        /// <summary>
+        /// Affiche la room hote comme fermee (etat initial, fermeture explicite, ou echec de creation).
+        /// Appele par la couche App : l'ecran ne mute jamais LobbyRoomService.
+        /// </summary>
+        public void ShowRoomClosed()
+        {
+            if (createLobbyButtonLabel != null)
+            {
+                createLobbyButtonLabel.text = "Create Lobby";
+            }
+
+            if (roomCodeLabel != null)
+            {
+                roomCodeLabel.text = string.Empty;
             }
         }
 

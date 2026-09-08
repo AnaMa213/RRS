@@ -10,8 +10,9 @@ namespace RoadRage.App.Lobby
     /// <summary>
     /// Seule couture entre l'ecran UI de la coquille de lobby et la couche App : relie les intentions
     /// de LobbyShellScreen a MatchSettings (feature Lobby), publie les retours "indisponible" via
-    /// le canal de notices existant, et declenche l'initialisation des services en ligne Steam a
-    /// l'ouverture du flux de lobby (Story 2.1). Aucune vraie creation de lobby, aucun join reseau (Epic 2.2+).
+    /// le canal de notices existant, declenche l'initialisation des services en ligne Steam a
+    /// l'ouverture du flux de lobby (Story 2.1), et pilote la creation/fermeture de la room hote
+    /// (Story 2.2). Join par code reseau toujours hors scope (Story 2.3+).
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class LobbyFlowController : MonoBehaviour
@@ -26,12 +27,22 @@ namespace RoadRage.App.Lobby
 
         public const string OnlineServicesOfflineMessage = "Services en ligne indisponibles sur cette machine : aucune fonctionnalite reseau.";
 
+        public const string RoomOpenMessage = "Room privee creee : partage le code pour inviter jusqu'a 3 joueurs.";
+
+        public const string RoomClosedMessage = "Room fermee.";
+
+        public const string RoomServicesUnavailableMessage = "Creation de room impossible : les services en ligne Steam ne sont pas prets.";
+
+        public const string RoomCreationFailedMessage = "Creation de room impossible : echec du service Steam ou de Networking Sockets.";
+
         [SerializeField]
         private LobbyShellScreen screen;
 
         private RoadRageBootstrap bootstrap;
 
         private OnlineServicesBootstrapService onlineServices;
+
+        private LobbyRoomService lobbyRoom;
 
         public MatchSettings Settings { get; private set; }
 
@@ -51,6 +62,16 @@ namespace RoadRage.App.Lobby
                 Debug.LogWarning("[App] LobbyFlowController sans service de services en ligne disponible.");
             }
 
+            if (bootstrap != null && bootstrap.LobbyRoom != null)
+            {
+                lobbyRoom = bootstrap.LobbyRoom;
+                lobbyRoom.StatusChanged += HandleRoomStatusChanged;
+            }
+            else
+            {
+                Debug.LogWarning("[App] LobbyFlowController sans service de room disponible.");
+            }
+
             if (screen == null)
             {
                 Debug.LogWarning("[App] LobbyFlowController sans reference vers LobbyShellScreen.");
@@ -63,6 +84,15 @@ namespace RoadRage.App.Lobby
             screen.DifficultyChanged += HandleDifficultyChanged;
 
             screen.ShowSettingsSummary(Settings.Difficulty);
+
+            if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open)
+            {
+                screen.ShowRoomCreated(lobbyRoom.JoinCode.ToString());
+            }
+            else
+            {
+                screen.ShowRoomClosed();
+            }
         }
 
         private void OnDestroy()
@@ -70,6 +100,11 @@ namespace RoadRage.App.Lobby
             if (onlineServices != null)
             {
                 onlineServices.StatusChanged -= HandleOnlineServicesStatusChanged;
+            }
+
+            if (lobbyRoom != null)
+            {
+                lobbyRoom.StatusChanged -= HandleRoomStatusChanged;
             }
 
             if (screen == null)
@@ -83,10 +118,28 @@ namespace RoadRage.App.Lobby
             screen.DifficultyChanged -= HandleDifficultyChanged;
         }
 
-        private void HandleCreateLobbyRequested()
+        /// <summary>
+        /// Meme bouton pour creer et fermer la room (Story 2.2) : le libelle affiche par LobbyShellScreen
+        /// distingue les deux etats, jamais un second bouton. Cliquer sur une room deja ouverte la ferme ;
+        /// sinon tente une creation, refusee silencieusement par LobbyRoomService si une creation est
+        /// deja en cours.
+        /// </summary>
+        private async void HandleCreateLobbyRequested()
         {
-            Debug.Log("[Lobby] Create Lobby demande : aucune vraie session Steam en Epic 1.");
-            PublishUnavailable("Create Lobby indisponible : la creation de room Steam arrive en Epic 2.");
+            if (bootstrap == null || lobbyRoom == null)
+            {
+                Debug.LogWarning("[Lobby] Create Lobby demande sans service de room disponible.");
+                PublishUnavailable(RoomCreationFailedMessage);
+                return;
+            }
+
+            if (lobbyRoom.Status == LobbyRoomStatus.Open)
+            {
+                lobbyRoom.CloseRoom();
+                return;
+            }
+
+            await lobbyRoom.CreateRoomAsync();
         }
 
         private void HandleJoinByCodeRequested()
@@ -134,6 +187,51 @@ namespace RoadRage.App.Lobby
                     break;
                 case OnlineServicesStatus.InitializationFailed:
                     Publish(UserNoticeSeverity.Error, OnlineServicesInitializationFailedMessage);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Traduit chaque changement d'etat de la room hote en retour visible : le libelle du bouton et
+        /// le code de join affiches par LobbyShellScreen, plus une notice pour les etats notables.
+        /// Creating ne produit aucun retour dedie : la room n'est ni ouverte ni fermee, l'ecran garde
+        /// son etat courant jusqu'a la resolution.
+        /// </summary>
+        private void HandleRoomStatusChanged(LobbyRoomStatus status)
+        {
+            switch (status)
+            {
+                case LobbyRoomStatus.Open:
+                    if (screen != null)
+                    {
+                        screen.ShowRoomCreated(lobbyRoom.JoinCode.ToString());
+                    }
+
+                    Publish(UserNoticeSeverity.Info, RoomOpenMessage);
+                    break;
+                case LobbyRoomStatus.Closed:
+                    if (screen != null)
+                    {
+                        screen.ShowRoomClosed();
+                    }
+
+                    Publish(UserNoticeSeverity.Info, RoomClosedMessage);
+                    break;
+                case LobbyRoomStatus.ServicesUnavailable:
+                    if (screen != null)
+                    {
+                        screen.ShowRoomClosed();
+                    }
+
+                    Publish(UserNoticeSeverity.Warning, RoomServicesUnavailableMessage);
+                    break;
+                case LobbyRoomStatus.CreationFailed:
+                    if (screen != null)
+                    {
+                        screen.ShowRoomClosed();
+                    }
+
+                    Publish(UserNoticeSeverity.Error, RoomCreationFailedMessage);
                     break;
             }
         }

@@ -14,5 +14,12 @@ namespace RoadRage.Features.Online
         void Init(uint appId);
 
         void Shutdown();
+
+        /// <summary>
+        /// Pompe les callbacks Steamworks. SteamClient.Init est appele sans thread de callbacks
+        /// automatique : sans cet appel periodique, toute operation asynchrone du SDK (creation de
+        /// lobby, etc.) reste bloquee indefiniment. Sans effet si aucune session Steam n'est valide.
+        /// </summary>
+        void RunCallbacks();
     }
 }
