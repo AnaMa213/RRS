@@ -116,10 +116,7 @@ namespace RoadRage.App.Players
             if (profile != null && catalog != null)
             {
                 var confirmedIndex = catalog.IndexOf(profile.CharacterId);
-                if (confirmedIndex >= 0)
-                {
-                    currentIndex = confirmedIndex;
-                }
+                currentIndex = confirmedIndex >= 0 ? confirmedIndex : 0;
             }
 
             CharacterDef character;

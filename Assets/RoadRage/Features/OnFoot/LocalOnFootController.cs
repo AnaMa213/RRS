@@ -63,15 +63,16 @@ namespace RoadRage.Features.OnFoot
 
         public void AttachCamera(Camera camera)
         {
-            playerCamera = camera;
-
-            if (playerCamera != null)
+            if (camera == null)
             {
-                playerCamera.transform.SetParent(transform, false);
-                playerCamera.transform.localPosition = new Vector3(0f, 1.62f, -3.2f);
-                playerCamera.transform.localRotation = Quaternion.Euler(14f, 0f, 0f);
-                pitch = 14f;
+                return;
             }
+
+            playerCamera = camera;
+            playerCamera.transform.SetParent(transform, false);
+            playerCamera.transform.localPosition = new Vector3(0f, 1.62f, -3.2f);
+            playerCamera.transform.localRotation = Quaternion.Euler(14f, 0f, 0f);
+            pitch = 14f;
         }
 
         public void Step(OnFootMovementIntent intent, float deltaTime)

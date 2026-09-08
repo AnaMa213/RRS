@@ -14,6 +14,8 @@ namespace RoadRage.App.Run
 
         public const string MissingCharacterMessage = "Entree monde refusee : le personnage selectionne est absent du catalogue.";
 
+        public const string MissingCharacterPreviewMessage = "Entree monde refusee : le personnage selectionne n'a pas de prefab d'apercu assigne.";
+
         [SerializeField]
         private RunCompositionRoot compositionRoot;
 
@@ -79,7 +81,7 @@ namespace RoadRage.App.Run
 
             if (character.PreviewPrefab == null)
             {
-                error = MissingCharacterMessage;
+                error = MissingCharacterPreviewMessage;
                 return false;
             }
 
@@ -133,8 +135,8 @@ namespace RoadRage.App.Run
 
         private void PublishWarning(string message)
         {
-            var bootstrap = RoadRageBootstrap.Instance;
-            if (bootstrap != null && bootstrap.Notices != null)
+            var bootstrap = RoadRageBootstrap.EnsureInstance();
+            if (bootstrap.Notices != null)
             {
                 bootstrap.Notices.Publish(new UserNotice(UserNoticeSeverity.Warning, message));
             }

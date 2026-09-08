@@ -88,19 +88,20 @@ namespace RoadRage.Features.UI
             }
 
             ShowMenu();
-            ClearNotice();
         }
 
         public void ShowMenu()
         {
             SetPanelActive(menuPanel, true);
             SetPanelActive(setupPanel, false);
+            ClearNotice();
         }
 
         public void ShowSetupPlaceholder()
         {
             SetPanelActive(menuPanel, false);
             SetPanelActive(setupPanel, true);
+            ClearNotice();
         }
 
         public void ShowNotice(UserNotice notice)

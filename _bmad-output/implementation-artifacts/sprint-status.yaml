@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 2026-09-08 12:20
+last_updated: 2026-09-08 15:15
 project: RoadRage_Simulator
 project_key: NOKEY
 tracking_system: file-system
@@ -46,13 +46,13 @@ development_status:
   0-8-epic-0-smoke-tests-and-go-no-go-gate: done
   epic-0-retrospective: optional
 
-  epic-1: in-progress
-  1-1-bootstrap-and-main-menu-launch: review
-  1-2-local-lobby-shell-and-match-settings-draft: review
-  1-3-rough-character-creation-and-player-profile-selection: review
-  1-4-first-rough-character-car-and-building-asset-seeds: review
-  1-5-empty-map-entry-and-local-on-foot-movement: review
-  1-6-epic-1-playable-checkpoint: review
+  epic-1: done
+  1-1-bootstrap-and-main-menu-launch: done
+  1-2-local-lobby-shell-and-match-settings-draft: done
+  1-3-rough-character-creation-and-player-profile-selection: done
+  1-4-first-rough-character-car-and-building-asset-seeds: done
+  1-5-empty-map-entry-and-local-on-foot-movement: done
+  1-6-epic-1-playable-checkpoint: done
   epic-1-retrospective: optional
 
   epic-2: in-progress
