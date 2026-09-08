@@ -1,3 +1,5 @@
+using Netcode.Transports.Facepunch;
+using RoadRage.App.Services;
 using RoadRage.Features.Lobby;
 using RoadRage.Features.Online;
 using RoadRage.Features.Players;
@@ -5,7 +7,9 @@ using RoadRage.Features.UI;
 using RoadRage.Shared.Definitions;
 using RoadRage.Shared.Domain;
 using RoadRage.Shared.Presentation;
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RoadRage.App.Lobby
 {
@@ -61,6 +65,8 @@ namespace RoadRage.App.Lobby
         public const string StartRefusedRosterNotSyncedMessage = "Start Game refuse : le roster de la room n'est pas encore synchronise.";
 
         public const string StartRefusedNotAllReadyMessage = "Start Game refuse : tous les joueurs connectes doivent etre prets (ou active le test solo).";
+
+        public const string NetworkStartFailedMessage = "Start Game refuse : impossible de demarrer la session reseau (Steamworks Networking Sockets).";
 
         [SerializeField]
         private LobbyShellScreen screen;
@@ -339,10 +345,104 @@ namespace RoadRage.App.Lobby
                     PublishUnavailable(StartRefusedNotAllReadyMessage);
                     return;
                 }
+
+                StartNetworkedRun(true);
+                return;
+            }
+
+            if (lobbyJoin != null && lobbyJoin.Status == LobbyJoinStatus.Joined)
+            {
+                StartNetworkedRun(false);
+                return;
             }
 
             Debug.Log("[Lobby] Start Game demande : entree locale dans MVP_Run.");
             bootstrap.Router.LoadMvpRun();
+        }
+
+        /// <summary>
+        /// Demarre reellement la session reseau (Story 2.5) avant d'entrer dans MVP_Run : publie le
+        /// profil local (nom + personnage) comme donnees de connexion NGO (lues par
+        /// HandleConnectionApproval, hote inclus), cible l'hote du lobby cote invite via son SteamId
+        /// deja connu du roster (Story 2.4), puis demarre StartHost()/StartClient(). Le chargement de
+        /// MVP_Run passe par NetworkManager.SceneManager cote hote pour rester synchronise avec les
+        /// clients deja connectes ; un client ne charge jamais la scene lui-meme, il la recoit de
+        /// l'hote une fois connecte.
+        /// </summary>
+        private void StartNetworkedRun(bool asHost)
+        {
+            RoadRageBootstrap.EnsureNetworkManager();
+
+            var manager = NetworkManager.Singleton;
+            if (manager == null)
+            {
+                Debug.LogError("[Lobby] Start Game refuse : NetworkManager indisponible.");
+                PublishUnavailable(NetworkStartFailedMessage);
+                return;
+            }
+
+            if (manager.IsListening)
+            {
+                Debug.LogWarning("[Lobby] Start Game ignore : session reseau deja demarree.");
+                return;
+            }
+
+            manager.ConnectionApprovalCallback = HandleConnectionApproval;
+
+            var profile = bootstrap.Profiles.Current;
+            manager.NetworkConfig.ConnectionData = NetworkPlayerConnectionPayload.Encode(profile.DisplayName, profile.CharacterId.Value);
+
+            if (asHost)
+            {
+                Debug.Log("[Lobby] Start Game demande : demarrage hote reseau vers MVP_Run.");
+                if (!manager.StartHost())
+                {
+                    Debug.LogError("[Lobby] Echec StartHost().");
+                    PublishUnavailable(NetworkStartFailedMessage);
+                    return;
+                }
+
+                manager.SceneManager.LoadScene(AppSceneRouter.MvpRunSceneName, LoadSceneMode.Single);
+                return;
+            }
+
+            var transport = manager.NetworkConfig.NetworkTransport as FacepunchTransport;
+            if (transport == null || lobbyRoster == null || lobbyRoster.Current.OwnerId == 0)
+            {
+                Debug.LogError("[Lobby] Start Game refuse : impossible de determiner l'hote reseau a rejoindre.");
+                PublishUnavailable(NetworkStartFailedMessage);
+                return;
+            }
+
+            transport.targetSteamId = lobbyRoster.Current.OwnerId;
+
+            Debug.Log("[Lobby] Start Game demande : connexion reseau client vers MVP_Run.");
+            if (!manager.StartClient())
+            {
+                Debug.LogError("[Lobby] Echec StartClient().");
+                PublishUnavailable(NetworkStartFailedMessage);
+            }
+        }
+
+        /// <summary>
+        /// Decode le profil (nom + personnage) transporte par NetworkConfig.ConnectionData (Story 2.5)
+        /// et l'enregistre pour ce ClientId, hote inclus : NetworkedPlayerSpawnService (MVP_Run) le lit
+        /// au spawn reseau. Approuve toujours : le plafond de quatre joueurs et la validite de la room
+        /// sont deja appliques en amont par le lobby Steam (Story 2.2/2.3).
+        /// </summary>
+        private void HandleConnectionApproval(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
+        {
+            string displayName;
+            string characterId;
+            NetworkPlayerConnectionPayload.TryDecode(request.Payload, out displayName, out characterId);
+
+            if (bootstrap != null && bootstrap.NetworkPlayers != null)
+            {
+                bootstrap.NetworkPlayers.Register(request.ClientNetworkId, new NetworkPlayerProfile(displayName, characterId));
+            }
+
+            response.Approved = true;
+            response.CreatePlayerObject = false;
         }
 
         private void HandleDifficultyChanged(Difficulty difficulty)

@@ -1,7 +1,10 @@
+using Netcode.Transports.Facepunch;
+using RoadRage.App.Run;
 using RoadRage.App.Services;
 using RoadRage.Features.Online;
 using RoadRage.Features.Players;
 using RoadRage.Shared.Presentation;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -61,6 +64,12 @@ namespace RoadRage.App
         public LobbyRosterService LobbyRoster { get; private set; }
 
         /// <summary>
+        /// Depot host-only ClientId -> profil declare, alimente par l'approbation de connexion
+        /// reseau et lu par le spawner de MVP_Run (Story 2.5).
+        /// </summary>
+        public NetworkPlayerRegistry NetworkPlayers { get; private set; }
+
+        /// <summary>
         /// Garantit l'existence de l'instance persistante. Depuis Bootstrap rien n'est cree ;
         /// en entree directe (ex. MainMenuLobby jouee seule dans l'Editor) l'instance nait a la volee.
         /// </summary>
@@ -95,6 +104,44 @@ namespace RoadRage.App
             LobbyRoom = new LobbyRoomService(lobbyPlatform, OnlineServices);
             LobbyJoin = new LobbyJoinService(lobbyPlatform, OnlineServices);
             LobbyRoster = new LobbyRosterService(lobbyPlatform, LobbyRoom, LobbyJoin);
+            NetworkPlayers = new NetworkPlayerRegistry();
+        }
+
+        /// <summary>
+        /// Garantit l'existence du NetworkManager avec le transport Steamworks Networking Sockets
+        /// (Story 2.5), construit en code comme le reste des services de ce bootstrap : aucune scene ni
+        /// prefab a authorer, meme AppID de test que OnlineServices. Volontairement paresseux (appele
+        /// par LobbyFlowController juste avant StartHost/StartClient, jamais depuis Awake) : le
+        /// transport Facepunch pompe Steamworks a chaque frame des qu'il existe (OnEarlyUpdate), y
+        /// compris hors session reseau, ce qui casserait le solo et toute scene/test sans client Steam
+        /// si le NetworkManager existait en permanence. NetworkManager gere sa propre survie au
+        /// changement de scene une fois cree (DontDestroyOnLoad interne a son Awake).
+        /// </summary>
+        public static void EnsureNetworkManager()
+        {
+            if (NetworkManager.Singleton != null)
+            {
+                return;
+            }
+
+            var networkManagerObject = new GameObject("RoadRageNetworkManager");
+            var transport = networkManagerObject.AddComponent<FacepunchTransport>();
+            var manager = networkManagerObject.AddComponent<NetworkManager>();
+
+            manager.NetworkConfig.NetworkTransport = transport;
+            manager.NetworkConfig.ConnectionApproval = true;
+            manager.NetworkConfig.EnableSceneManagement = true;
+            manager.NetworkConfig.PlayerPrefab = null;
+
+            var playerRootPrefab = Resources.Load<GameObject>(NetworkedPlayerSpawnService.PlayerRootResourceName);
+            if (playerRootPrefab != null)
+            {
+                manager.AddNetworkPrefab(playerRootPrefab);
+            }
+            else
+            {
+                Debug.LogError("[App] Prefab NetworkedPlayerRoot introuvable sous Resources : le spawn reseau (Story 2.5) echouera.");
+            }
         }
 
         private void Start()

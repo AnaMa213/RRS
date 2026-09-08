@@ -1,12 +1,15 @@
 using RoadRage.Shared.Domain;
 using RoadRage.Shared.Networking;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
 namespace RoadRage.Features.Players
 {
     /// <summary>
-    /// Squelette host-owned du mode, du siege et de la vie joueur.
+    /// Squelette host-owned du mode, du siege et de la vie joueur. CharacterId (Story 2.5) porte
+    /// l'id de personnage resolu par le host au spawn reseau, pour les besoins de presentation
+    /// des epics suivants ; jamais mute par un client.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class NetworkedPlayerState : HostOwnedNetworkStateBehaviour
@@ -23,6 +26,11 @@ namespace RoadRage.Features.Players
 
         public NetworkVariable<int> SeatIndex = new NetworkVariable<int>(
             -1,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<FixedString32Bytes> CharacterId = new NetworkVariable<FixedString32Bytes>(
+            default,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
     }

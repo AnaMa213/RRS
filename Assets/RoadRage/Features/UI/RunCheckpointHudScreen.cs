@@ -51,6 +51,12 @@ namespace RoadRage.Features.UI
             SetText(futureHudLabel, FutureHudState);
         }
 
+        /// <summary>Retour visible host-only pour un spawn reseau tardif, en echec ou en doublon (Story 2.5).</summary>
+        public void ShowSpawnIssue(string message)
+        {
+            SetText(lobbyStateLabel, "Reseau : " + SafeText(message));
+        }
+
         private static void SetText(TMP_Text label, string value)
         {
             if (label != null)

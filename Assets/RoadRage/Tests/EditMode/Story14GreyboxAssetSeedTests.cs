@@ -220,8 +220,11 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void GreyboxSeedsAreNotRegisteredAsDefaultNetworkPrefabsYet()
         {
+            // Depuis la Story 2.5, DefaultNetworkPrefabs.asset contient legitimement le prefab
+            // NetworkedPlayerRoot (auto-enregistre par Netcode a l'ajout du NetworkObject) : la
+            // liste n'est plus vide par construction. Cette garde reste utile pour verifier que les
+            // seeds greybox (assets visuels, Story 1.4) ne s'y retrouvent jamais par accident.
             var networkPrefabText = File.ReadAllText(DefaultNetworkPrefabsPath);
-            Assert.That(networkPrefabText, Does.Contain("List: []"));
 
             foreach (var seed in Seeds)
             {

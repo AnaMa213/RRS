@@ -14,7 +14,10 @@
         "RoadRage.Features.Run",
         "RoadRage.Features.SandboxStops",
         "RoadRage.Features.UI",
-        "RoadRage.Features.Vehicles"
+        "RoadRage.Features.Vehicles",
+        "Unity.Netcode.Runtime",
+        "Facepunch Transport for Netcode for GameObjects",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

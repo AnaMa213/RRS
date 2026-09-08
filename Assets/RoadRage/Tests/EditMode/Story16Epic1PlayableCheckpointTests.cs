@@ -146,10 +146,12 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void Epic1RuntimeDoesNotStartOrSpawnNetworkSessions()
         {
+            // LobbyFlowController.cs demarre desormais reellement le reseau (Story 2.5, Epic 2) :
+            // exclu volontairement de cette garde, qui reste pertinente pour le reste du runtime
+            // Epic 1, toujours local-only.
             foreach (var file in new[]
                      {
                          "Assets/RoadRage/App/MainMenu/MainMenuFlowController.cs",
-                         "Assets/RoadRage/App/Lobby/LobbyFlowController.cs",
                          "Assets/RoadRage/App/Players/PlayerProfileFlowController.cs",
                          "Assets/RoadRage/App/Run/RunFlowController.cs",
                          "Assets/RoadRage/Features/UI/MainMenuScreen.cs",

@@ -3,7 +3,8 @@
     "rootNamespace": "RoadRage.Features.Players",
     "references": [
         "RoadRage.Shared",
-        "Unity.Netcode.Runtime"
+        "Unity.Netcode.Runtime",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
