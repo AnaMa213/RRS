@@ -6,6 +6,7 @@ using RoadRage.App.Lobby;
 using RoadRage.Features.Lobby;
 using RoadRage.Features.UI;
 using RoadRage.Shared.Domain;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -16,6 +17,8 @@ namespace RoadRage.Tests.EditMode
     public sealed class Story12LobbyShellTests
     {
         private const string MainMenuLobbyScenePath = "Assets/RoadRage/App/Scenes/MainMenuLobby.unity";
+
+        private const float MinimumReadableContrast = 4.5f;
 
         [Test]
         public void MatchSettingsDefaultsToNormalDifficulty()
@@ -57,6 +60,33 @@ namespace RoadRage.Tests.EditMode
                 var flowController = FindComponentInScene<LobbyFlowController>(scene);
                 Assert.That(flowController, Is.Not.Null, "LobbyFlowController expected in MainMenuLobby scene");
                 AssertSerializedObjectFieldsNonNull(flowController);
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
+        public void MainMenuLobbyStatusLabelsContrastWithPanelBackgrounds()
+        {
+            var scene = EditorSceneManager.OpenScene(MainMenuLobbyScenePath, OpenSceneMode.Additive);
+            try
+            {
+                var menuScreen = FindComponentInScene<MainMenuScreen>(scene);
+                Assert.That(menuScreen, Is.Not.Null, "MainMenuScreen attendu dans MainMenuLobby");
+
+                var lobbyScreen = FindComponentInScene<LobbyShellScreen>(scene);
+                Assert.That(lobbyScreen, Is.Not.Null, "LobbyShellScreen attendu dans MainMenuLobby");
+
+                var menuPanel = (GameObject)GetPrivateField(menuScreen, "menuPanel");
+                var setupPanel = (GameObject)GetPrivateField(menuScreen, "setupPanel");
+                var noticePanel = (GameObject)GetPrivateField(menuScreen, "noticePanel");
+
+                AssertReadableContrast((TMP_Text)GetPrivateField(menuScreen, "titleLabel"), PanelImage(menuPanel), "titleLabel");
+                AssertReadableContrast((TMP_Text)GetPrivateField(menuScreen, "noticeText"), PanelImage(noticePanel), "noticeText");
+                AssertReadableContrast((TMP_Text)GetPrivateField(lobbyScreen, "settingsSummaryLabel"), PanelImage(setupPanel), "settingsSummaryLabel");
+                AssertReadableContrast((TMP_Text)GetPrivateField(lobbyScreen, "roomCodeLabel"), PanelImage(setupPanel), "roomCodeLabel");
             }
             finally
             {
@@ -120,6 +150,57 @@ namespace RoadRage.Tests.EditMode
             }
 
             return null;
+        }
+
+        private static object GetPrivateField(object target, string fieldName)
+        {
+            var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, "champ introuvable : " + fieldName);
+            return field.GetValue(target);
+        }
+
+        private static UnityEngine.UI.Image PanelImage(GameObject panel)
+        {
+            Assert.That(panel != null, Is.True, "panel doit etre cable");
+
+            var image = panel.GetComponent<UnityEngine.UI.Image>();
+            Assert.That(image != null, Is.True, panel.name + " doit porter une Image de fond");
+            return image;
+        }
+
+        private static void AssertReadableContrast(TMP_Text text, UnityEngine.UI.Image background, string labelName)
+        {
+            Assert.That(text != null, Is.True, labelName + " doit etre cable");
+            Assert.That(text.transform.IsChildOf(background.transform), Is.True, labelName + " doit rester sous " + background.name);
+            Assert.That(text.color.a, Is.GreaterThanOrEqualTo(0.95f), labelName + " doit etre opaque");
+            Assert.That(background.color.a, Is.GreaterThanOrEqualTo(0.95f), background.name + " doit avoir un fond opaque");
+
+            var contrast = ContrastRatio(text.color, background.color);
+            Assert.That(contrast, Is.GreaterThanOrEqualTo(MinimumReadableContrast), labelName + " manque de contraste avec " + background.name);
+        }
+
+        private static float ContrastRatio(Color foreground, Color background)
+        {
+            var foregroundLuminance = RelativeLuminance(foreground);
+            var backgroundLuminance = RelativeLuminance(background);
+            var lighter = Mathf.Max(foregroundLuminance, backgroundLuminance);
+            var darker = Mathf.Min(foregroundLuminance, backgroundLuminance);
+
+            return (lighter + 0.05f) / (darker + 0.05f);
+        }
+
+        private static float RelativeLuminance(Color color)
+        {
+            return 0.2126f * LinearRgb(color.r)
+                + 0.7152f * LinearRgb(color.g)
+                + 0.0722f * LinearRgb(color.b);
+        }
+
+        private static float LinearRgb(float channel)
+        {
+            return channel <= 0.03928f
+                ? channel / 12.92f
+                : Mathf.Pow((channel + 0.055f) / 1.055f, 2.4f);
         }
 
         private static void AssertSerializedObjectFieldsNonNull(Component component)
