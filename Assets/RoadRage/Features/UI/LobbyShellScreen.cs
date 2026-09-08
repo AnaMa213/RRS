@@ -31,6 +31,9 @@ namespace RoadRage.Features.UI
         private Button joinByCodeButton;
 
         [SerializeField]
+        private TMP_InputField joinCodeInputField;
+
+        [SerializeField]
         private Button startGameButton;
 
         [SerializeField]
@@ -46,7 +49,7 @@ namespace RoadRage.Features.UI
 
         public event Action CreateLobbyRequested;
 
-        public event Action JoinByCodeRequested;
+        public event Action<string> JoinByCodeRequested;
 
         public event Action StartGameRequested;
 
@@ -117,6 +120,11 @@ namespace RoadRage.Features.UI
                 Debug.LogWarning("[UI] LobbyShellScreen sans reference vers roomCodeLabel.");
             }
 
+            if (joinCodeInputField == null)
+            {
+                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers joinCodeInputField.");
+            }
+
             // Volontairement aucun appel a ShowSettingsSummary ici : la couche App (LobbyFlowController)
             // est le seul ecrivain du libelle, a partir de l'etat reel des reglages de partie. Cet ecran
             // vit sur un panneau inactif au chargement, donc son Awake s'execute apres celui du controller :
@@ -171,6 +179,24 @@ namespace RoadRage.Features.UI
             }
         }
 
+        /// <summary>
+        /// Affiche le lobby rejoint avec succes (Story 2.3). Distinct de ShowRoomCreated : le joueur
+        /// invite n'est jamais proprietaire du bouton Create/Close Room, seul son libelle de code change.
+        /// Appele par la couche App (LobbyFlowController) une fois le join reussi.
+        /// </summary>
+        public void ShowJoinedRoom(string joinCode)
+        {
+            if (roomCodeLabel != null)
+            {
+                roomCodeLabel.text = "Rejoint : " + joinCode;
+            }
+        }
+
+        private string GetRawJoinCode()
+        {
+            return joinCodeInputField == null ? string.Empty : joinCodeInputField.text;
+        }
+
         private void CycleDifficulty()
         {
             var currentIndex = Array.IndexOf(CycleOrder, displayedDifficulty);
@@ -187,7 +213,7 @@ namespace RoadRage.Features.UI
 
         private void RaiseJoinByCodeRequested()
         {
-            JoinByCodeRequested?.Invoke();
+            JoinByCodeRequested?.Invoke(GetRawJoinCode());
         }
 
         private void RaiseStartGameRequested()

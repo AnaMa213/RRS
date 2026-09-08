@@ -11,6 +11,9 @@ namespace RoadRage.Features.Online
     {
         Task<LobbyCreateOutcome> CreateLobbyAsync(int maxMembers);
 
+        /// <summary>Tente de rejoindre un lobby Steam existant par son identifiant (Story 2.3).</summary>
+        Task<LobbyJoinOutcome> JoinLobbyAsync(ulong lobbyId);
+
         void LeaveCurrentLobby();
     }
 
@@ -28,5 +31,30 @@ namespace RoadRage.Features.Online
         public bool Success { get; }
 
         public ulong LobbyId { get; }
+    }
+
+    /// <summary>Raison d'echec d'une tentative de join, sans exposer de type Steamworks (Story 2.3).</summary>
+    public enum LobbyJoinFailureReason
+    {
+        None,
+        Full,
+        Expired,
+        Failed
+    }
+
+    /// <summary>Resultat d'une tentative de join de lobby, sans exposer de type Steamworks (Story 2.3).</summary>
+    public readonly struct LobbyJoinOutcome
+    {
+        public static readonly LobbyJoinOutcome Failed = new LobbyJoinOutcome(false, LobbyJoinFailureReason.Failed);
+
+        public LobbyJoinOutcome(bool success, LobbyJoinFailureReason reason)
+        {
+            Success = success;
+            Reason = reason;
+        }
+
+        public bool Success { get; }
+
+        public LobbyJoinFailureReason Reason { get; }
     }
 }

@@ -191,6 +191,11 @@ namespace RoadRage.Tests.EditMode
             {
                 LeaveCallCount++;
             }
+
+            public Task<LobbyJoinOutcome> JoinLobbyAsync(ulong lobbyId)
+            {
+                return Task.FromResult(LobbyJoinOutcome.Failed);
+            }
         }
     }
 }

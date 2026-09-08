@@ -47,6 +47,13 @@ namespace RoadRage.App
         public LobbyRoomService LobbyRoom { get; private set; }
 
         /// <summary>
+        /// Service unique de join par code (Story 2.3). Partage la meme instance de plateforme Steam que
+        /// LobbyRoom : un joueur est soit hote, soit invite, jamais les deux, et LeaveCurrentLobby doit
+        /// pouvoir quitter le lobby quel que soit le chemin (creation ou join) par lequel il y est entre.
+        /// </summary>
+        public LobbyJoinService LobbyJoin { get; private set; }
+
+        /// <summary>
         /// Garantit l'existence de l'instance persistante. Depuis Bootstrap rien n'est cree ;
         /// en entree directe (ex. MainMenuLobby jouee seule dans l'Editor) l'instance nait a la volee.
         /// </summary>
@@ -77,7 +84,9 @@ namespace RoadRage.App
             Notices = new UserNoticeChannel();
             Profiles = new PlayerProfileStore();
             OnlineServices = new OnlineServicesBootstrapService(new FacepunchSteamPlatform(), SteamTestAppId);
-            LobbyRoom = new LobbyRoomService(new FacepunchSteamLobbyPlatform(), OnlineServices);
+            var lobbyPlatform = new FacepunchSteamLobbyPlatform();
+            LobbyRoom = new LobbyRoomService(lobbyPlatform, OnlineServices);
+            LobbyJoin = new LobbyJoinService(lobbyPlatform, OnlineServices);
         }
 
         private void Start()

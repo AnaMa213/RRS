@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 2026-09-08 16:20
+last_updated: 2026-09-08
 project: RoadRage_Simulator
 project_key: NOKEY
 tracking_system: file-system
@@ -58,7 +58,7 @@ development_status:
   epic-2: in-progress
   2-1-online-services-bootstrap-and-status-feedback: review
   2-2-host-created-private-room-with-join-code: review
-  2-3-join-by-code-and-invite-link-wrapper: backlog
+  2-3-join-by-code-and-invite-link-wrapper: review
   2-4-lobby-roster-ready-state-and-settings-sync: backlog
   2-5-networked-player-spawn-in-empty-world: backlog
   2-6-in-game-hud-foundation: backlog

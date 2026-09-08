@@ -11,8 +11,8 @@ namespace RoadRage.App.Lobby
     /// Seule couture entre l'ecran UI de la coquille de lobby et la couche App : relie les intentions
     /// de LobbyShellScreen a MatchSettings (feature Lobby), publie les retours "indisponible" via
     /// le canal de notices existant, declenche l'initialisation des services en ligne Steam a
-    /// l'ouverture du flux de lobby (Story 2.1), et pilote la creation/fermeture de la room hote
-    /// (Story 2.2). Join par code reseau toujours hors scope (Story 2.3+).
+    /// l'ouverture du flux de lobby (Story 2.1), pilote la creation/fermeture de la room hote
+    /// (Story 2.2), et le join par code d'un lobby existant (Story 2.3).
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class LobbyFlowController : MonoBehaviour
@@ -35,6 +35,22 @@ namespace RoadRage.App.Lobby
 
         public const string RoomCreationFailedMessage = "Creation de room impossible : echec du service Steam ou de Networking Sockets.";
 
+        public const string JoinSucceededMessage = "Room rejointe : tu es maintenant dans le lobby.";
+
+        public const string JoinInvalidCodeMessage = "Code de join invalide : verifie le code et reessaie.";
+
+        public const string JoinServicesUnavailableMessage = "Join impossible : les services en ligne Steam ne sont pas prets.";
+
+        public const string JoinRoomFullMessage = "Join impossible : cette room a deja atteint son plafond de quatre joueurs.";
+
+        public const string JoinSessionExpiredMessage = "Join impossible : cette room n'existe plus (fermee ou expiree).";
+
+        public const string JoinFailedMessage = "Join impossible : echec du service Steam ou de Networking Sockets.";
+
+        public const string JoinRefusedHostingMessage = "Join impossible : ferme d'abord ta room hote avant de rejoindre une autre partie.";
+
+        public const string CreateRefusedAlreadyJoinedMessage = "Creation impossible : tu as deja rejoint une room, quitte-la avant d'en creer une nouvelle.";
+
         [SerializeField]
         private LobbyShellScreen screen;
 
@@ -43,6 +59,8 @@ namespace RoadRage.App.Lobby
         private OnlineServicesBootstrapService onlineServices;
 
         private LobbyRoomService lobbyRoom;
+
+        private LobbyJoinService lobbyJoin;
 
         public MatchSettings Settings { get; private set; }
 
@@ -70,6 +88,16 @@ namespace RoadRage.App.Lobby
             else
             {
                 Debug.LogWarning("[App] LobbyFlowController sans service de room disponible.");
+            }
+
+            if (bootstrap != null && bootstrap.LobbyJoin != null)
+            {
+                lobbyJoin = bootstrap.LobbyJoin;
+                lobbyJoin.StatusChanged += HandleJoinStatusChanged;
+            }
+            else
+            {
+                Debug.LogWarning("[App] LobbyFlowController sans service de join disponible.");
             }
 
             if (screen == null)
@@ -107,6 +135,11 @@ namespace RoadRage.App.Lobby
                 lobbyRoom.StatusChanged -= HandleRoomStatusChanged;
             }
 
+            if (lobbyJoin != null)
+            {
+                lobbyJoin.StatusChanged -= HandleJoinStatusChanged;
+            }
+
             if (screen == null)
             {
                 return;
@@ -133,6 +166,13 @@ namespace RoadRage.App.Lobby
                 return;
             }
 
+            if (lobbyJoin != null && lobbyJoin.Status == LobbyJoinStatus.Joined)
+            {
+                Debug.LogWarning("[Lobby] Create Lobby refuse : un lobby rejoint par code est deja actif.");
+                PublishUnavailable(CreateRefusedAlreadyJoinedMessage);
+                return;
+            }
+
             if (lobbyRoom.Status == LobbyRoomStatus.Open)
             {
                 Debug.Log("[Lobby] Close Room demande.");
@@ -144,10 +184,29 @@ namespace RoadRage.App.Lobby
             await lobbyRoom.CreateRoomAsync();
         }
 
-        private void HandleJoinByCodeRequested()
+        /// <summary>
+        /// Rejoint le lobby designe par le code saisi (Story 2.3). LobbyJoinService normalise, valide et
+        /// refuse silencieusement un double-clic pendant qu'une tentative est deja en cours ; ce
+        /// controller ne fait que relayer la demande et traduire le resultat en retour visible.
+        /// </summary>
+        private async void HandleJoinByCodeRequested(string rawCode)
         {
-            Debug.Log("[Lobby] Join By Code demande : placeholder, aucun join reseau en Epic 1.");
-            PublishUnavailable("Join By Code indisponible : le join par code de session arrive en Epic 2.");
+            if (bootstrap == null || lobbyJoin == null)
+            {
+                Debug.LogWarning("[Lobby] Join By Code demande sans service de join disponible.");
+                PublishUnavailable(JoinFailedMessage);
+                return;
+            }
+
+            if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open)
+            {
+                Debug.LogWarning("[Lobby] Join By Code refuse : une room hote est deja ouverte.");
+                PublishUnavailable(JoinRefusedHostingMessage);
+                return;
+            }
+
+            Debug.Log("[Lobby] Join By Code demande.");
+            await lobbyJoin.JoinByCodeAsync(rawCode);
         }
 
         private void HandleStartGameRequested()
@@ -234,6 +293,41 @@ namespace RoadRage.App.Lobby
                     }
 
                     Publish(UserNoticeSeverity.Error, RoomCreationFailedMessage);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Traduit chaque changement d'etat du join par code en retour visible. Idle et Joining ne
+        /// produisent aucun retour dedie : Idle est l'etat de repos, Joining n'est ni un succes ni un
+        /// echec definitif tant que la tentative Steam n'est pas resolue.
+        /// </summary>
+        private void HandleJoinStatusChanged(LobbyJoinStatus status)
+        {
+            switch (status)
+            {
+                case LobbyJoinStatus.Joined:
+                    if (screen != null)
+                    {
+                        screen.ShowJoinedRoom(lobbyJoin.JoinedLobbyId.ToString());
+                    }
+
+                    Publish(UserNoticeSeverity.Info, JoinSucceededMessage);
+                    break;
+                case LobbyJoinStatus.InvalidCode:
+                    Publish(UserNoticeSeverity.Warning, JoinInvalidCodeMessage);
+                    break;
+                case LobbyJoinStatus.ServicesUnavailable:
+                    Publish(UserNoticeSeverity.Warning, JoinServicesUnavailableMessage);
+                    break;
+                case LobbyJoinStatus.RoomFull:
+                    Publish(UserNoticeSeverity.Warning, JoinRoomFullMessage);
+                    break;
+                case LobbyJoinStatus.SessionExpired:
+                    Publish(UserNoticeSeverity.Warning, JoinSessionExpiredMessage);
+                    break;
+                case LobbyJoinStatus.JoinFailed:
+                    Publish(UserNoticeSeverity.Error, JoinFailedMessage);
                     break;
             }
         }
