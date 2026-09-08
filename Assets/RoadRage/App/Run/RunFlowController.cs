@@ -1,6 +1,7 @@
 using RoadRage.Features.OnFoot;
 using RoadRage.Features.Players;
 using RoadRage.Features.Run;
+using RoadRage.Features.UI;
 using RoadRage.Shared.Presentation;
 using UnityEngine;
 
@@ -25,6 +26,9 @@ namespace RoadRage.App.Run
         [SerializeField]
         private Transform playerSpawnPoint;
 
+        [SerializeField]
+        private RunCheckpointHudScreen checkpointHud;
+
         private GameObject activeLocalPlayer;
 
         public GameObject ActiveLocalPlayer
@@ -34,10 +38,20 @@ namespace RoadRage.App.Run
 
         private void Start()
         {
+            if (checkpointHud != null)
+            {
+                checkpointHud.ShowAwaitingProfile();
+            }
+
             string error;
             if (!TrySpawnSelectedProfile(out error))
             {
                 Debug.LogWarning("[Run] " + error);
+                if (checkpointHud != null)
+                {
+                    checkpointHud.ShowBlockedState(error);
+                }
+
                 PublishWarning(error);
             }
         }
@@ -97,6 +111,11 @@ namespace RoadRage.App.Run
 
             var onFootController = activeLocalPlayer.AddComponent<LocalOnFootController>();
             onFootController.AttachCamera(playerCamera);
+
+            if (checkpointHud != null)
+            {
+                checkpointHud.ShowLocalRunState(bootstrap.Profiles.Current.DisplayName, character.DisplayName);
+            }
 
             Debug.Log("[Run] Joueur local spawn : " + bootstrap.Profiles.Current.DisplayName + " / " + character.Id);
             error = string.Empty;

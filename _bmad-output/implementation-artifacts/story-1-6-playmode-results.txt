@@ -1,0 +1,37 @@
+RUNQUEUED PlayMode assembly=RoadRage.Tests.PlayMode
+RUNREQUEST PlayMode GUID=f8dbbfe4-2806-4274-86d1-f4d695176c1a
+RUNSTART PlayMode CASES=33
+[ok] RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests.DuplicateBootstrapSelfDestroysAndPreservesFirst :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests.MainMenuFlowControllerWiringRelaysScreenIntentAndNotices :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests.RoutingFromBootstrapEntersMainMenuLobby :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.BackReturnsToMenuAndKeepsMatchSettingsState :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.CreateLobbyRequestedPublishesUnavailableNoticeAndLeavesSettingsUnchanged :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.DifficultyChangeUpdatesMatchSettingsAndDisplayedLabel :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.JoinByCodeRequestedPublishesUnavailableNotice :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.LobbyShellOpensWithDefaultDifficultyVisible :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.StartGameRequestedPublishesUnavailableNoticeAndLoadsNoScene :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.CatalogWithEmptyCharacterIdRefusesConfirmationWithVisibleValidation :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.CatalogWithNullEntryLeavesCycleAndConfirmInertWithVisibleValidation :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ClosingWithoutConfirmingHidesScreenAndLeavesProfileUnchanged :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmedProfileSurvivesSceneChange :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingAgainOverwritesBothProfileFields :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingEmptyNameShowsValidationAndLeavesProfileUnwritten :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingForbiddenCharactersShowsValidationAndLeavesProfileUnwritten :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingNameWithBorderWhitespaceNormalizesBeforeWriting :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingTooLongNameShowsValidationAndLeavesProfileUnwritten :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingValidNameWritesProfilePublishesNoticeAndClosesScreen :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingWhitespaceOnlyNameShowsValidationAndLeavesProfileUnwritten :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.CyclingCharacterShowsNextCatalogEntryWithoutWritingProfile :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.CyclingWrapsAroundToFirstCatalogEntry :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.EmptyCatalogLeavesCycleAndConfirmInertWithVisibleValidation :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.MissingCatalogLeavesCycleAndConfirmInertWithVisibleValidation :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.OpeningCharacterSetupShowsNameFieldAndFirstCatalogCharacter :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.RejectedNameLeavesAnAlreadyConfirmedProfileStrictlyUnchanged :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ReopeningAfterAbandonedRejectionClearsTheNameField :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ReopeningAfterConfirmationRestoresConfirmedNameAndCharacter :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.Story13ControlsStayInsideTheCanvasSoAPlayerCanReachThem :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests.LocalOnFootControllerWalksSprintsAndStopsFromIntent :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests.StartGameWithoutProfilePublishesVisibleWarningAndStaysInLobby :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests.StartGameWithProfileLoadsMvpRunAndSpawnsLocalOnFootPlayer :: Passed / Passed
+[ok] RoadRage.Tests.PlayMode.Story16Epic1PlayableCheckpointPlayModeTests.BootstrapToWorldCompletesEpic1PlayableCheckpoint :: Passed / Passed
+RUNFINISHED PlayMode CASES=33 PASSED=33 FAILED=0 SKIPPED=0 INCONCLUSIVE=0 STATUS=Passed STATE=Passed

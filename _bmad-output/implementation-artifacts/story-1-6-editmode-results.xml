@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="86" result="Passed" total="86" passed="86" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0,0772172">
+  <test-suite type="TestSuite" id="1320" name="RRS" fullname="RRS" runstate="Runnable" testcasecount="86" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.077217" total="86" passed="86" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1306" name="RoadRage.Tests.EditMode.dll" fullname="D:/Projets/RRS/Library/ScriptAssemblies/RoadRage.Tests.EditMode.dll" runstate="Runnable" testcasecount="86" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.076755" total="86" passed="86" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="64116" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1307" name="RoadRage" fullname="RoadRage" runstate="Runnable" testcasecount="86" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.076324" total="86" passed="86" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1308" name="Tests" fullname="RoadRage.Tests" runstate="Runnable" testcasecount="86" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.075897" total="86" passed="86" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1309" name="EditMode" fullname="RoadRage.Tests.EditMode" runstate="Runnable" testcasecount="86" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.075427" total="86" passed="86" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1208" name="RoadRageScaffoldTests" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.005989" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1211" name="AsmdefsAndNamespacesStayInsideApprovedBoundaries" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.AsmdefsAndNamespacesStayInsideApprovedBoundaries" methodname="AsmdefsAndNamespacesStayInsideApprovedBoundaries" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="1594172462" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.001585" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1214" name="ExistingSteamworksSmokeTestHelperIsPreserved" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.ExistingSteamworksSmokeTestHelperIsPreserved" methodname="ExistingSteamworksSmokeTestHelperIsPreserved" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="1810824622" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000216" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1210" name="RoadRageFolderScaffoldExists" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.RoadRageFolderScaffoldExists" methodname="RoadRageFolderScaffoldExists" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="432578814" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000307" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1213" name="RunCompositionRootDoesNotStartGameplay" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.RunCompositionRootDoesNotStartGameplay" methodname="RunCompositionRootDoesNotStartGameplay" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="2046686830" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000195" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1212" name="RuntimeStateShellsAreNetworkBehavioursAndServerWrite" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.RuntimeStateShellsAreNetworkBehavioursAndServerWrite" methodname="RuntimeStateShellsAreNetworkBehavioursAndServerWrite" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="1672354537" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000577" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1209" name="SceneSeedsExistAndPrimaryBuildScenesAreOrdered" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.SceneSeedsExistAndPrimaryBuildScenesAreOrdered" methodname="SceneSeedsExistAndPrimaryBuildScenesAreOrdered" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="1039469069" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000144" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1215" name="Story04ValidationRowsRecordOnlyScaffoldEvidence" fullname="RoadRage.Tests.EditMode.RoadRageScaffoldTests.Story04ValidationRowsRecordOnlyScaffoldEvidence" methodname="Story04ValidationRowsRecordOnlyScaffoldEvidence" classname="RoadRage.Tests.EditMode.RoadRageScaffoldTests" runstate="Runnable" seed="2034616338" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000506" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1216" name="Story11MainMenuLaunchTests" fullname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" classname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.009686" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1220" name="AppSceneRouterSceneNamesMatchEditorBuildSettingsOrder" fullname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.AppSceneRouterSceneNamesMatchEditorBuildSettingsOrder" methodname="AppSceneRouterSceneNamesMatchEditorBuildSettingsOrder" classname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" runstate="Runnable" seed="1616825776" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000053" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1221" name="BootstrapSceneContainsRoadRageBootstrapComponent" fullname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.BootstrapSceneContainsRoadRageBootstrapComponent" methodname="BootstrapSceneContainsRoadRageBootstrapComponent" classname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" runstate="Runnable" seed="2028030410" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.001739" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1222" name="MainMenuLobbySceneContainsWiredComponents" fullname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.MainMenuLobbySceneContainsWiredComponents" methodname="MainMenuLobbySceneContainsWiredComponents" classname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" runstate="Runnable" seed="1296973582" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.004998" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1224" name="QuitApplicationIsGuardedAndOnlyCallsApplicationQuitOutsideTheEditor" fullname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.QuitApplicationIsGuardedAndOnlyCallsApplicationQuitOutsideTheEditor" methodname="QuitApplicationIsGuardedAndOnlyCallsApplicationQuitOutsideTheEditor" classname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" runstate="Runnable" seed="402158353" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000173" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1223" name="UiFeatureSourceNeverCallsSceneManagementOrApplicationQuit" fullname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.UiFeatureSourceNeverCallsSceneManagementOrApplicationQuit" methodname="UiFeatureSourceNeverCallsSceneManagementOrApplicationQuit" classname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" runstate="Runnable" seed="35844300" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000505" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1219" name="UserNoticeChannelClearResetsLastNotice" fullname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.UserNoticeChannelClearResetsLastNotice" methodname="UserNoticeChannelClearResetsLastNotice" classname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" runstate="Runnable" seed="726055225" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000030" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1218" name="UserNoticeChannelPublishesAndTracksLastNotice" fullname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.UserNoticeChannelPublishesAndTracksLastNotice" methodname="UserNoticeChannelPublishesAndTracksLastNotice" classname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" runstate="Runnable" seed="2116779653" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000046" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1217" name="UserNoticeSeverityHasExpectedLevels" fullname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.UserNoticeSeverityHasExpectedLevels" methodname="UserNoticeSeverityHasExpectedLevels" classname="RoadRage.Tests.EditMode.Story11MainMenuLaunchTests" runstate="Runnable" seed="1634109681" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000031" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1225" name="Story12LobbyShellTests" fullname="RoadRage.Tests.EditMode.Story12LobbyShellTests" classname="RoadRage.Tests.EditMode.Story12LobbyShellTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.007099" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1229" name="MainMenuLobbySceneContainsWiredLobbyComponents" fullname="RoadRage.Tests.EditMode.Story12LobbyShellTests.MainMenuLobbySceneContainsWiredLobbyComponents" methodname="MainMenuLobbySceneContainsWiredLobbyComponents" classname="RoadRage.Tests.EditMode.Story12LobbyShellTests" runstate="Runnable" seed="1103898161" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.004529" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1226" name="MatchSettingsDefaultsToNormalDifficulty" fullname="RoadRage.Tests.EditMode.Story12LobbyShellTests.MatchSettingsDefaultsToNormalDifficulty" methodname="MatchSettingsDefaultsToNormalDifficulty" classname="RoadRage.Tests.EditMode.Story12LobbyShellTests" runstate="Runnable" seed="1005224480" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000048" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1227" name="MatchSettingsDifficultyIsMutable" fullname="RoadRage.Tests.EditMode.Story12LobbyShellTests.MatchSettingsDifficultyIsMutable" methodname="MatchSettingsDifficultyIsMutable" classname="RoadRage.Tests.EditMode.Story12LobbyShellTests" runstate="Runnable" seed="37353420" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000040" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1228" name="MatchSettingsIsPlainClassWithoutUnityBaseTypes" fullname="RoadRage.Tests.EditMode.Story12LobbyShellTests.MatchSettingsIsPlainClassWithoutUnityBaseTypes" methodname="MatchSettingsIsPlainClassWithoutUnityBaseTypes" classname="RoadRage.Tests.EditMode.Story12LobbyShellTests" runstate="Runnable" seed="143164685" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000032" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1231" name="UiAssemblyDoesNotReferenceLobbyAssembly" fullname="RoadRage.Tests.EditMode.Story12LobbyShellTests.UiAssemblyDoesNotReferenceLobbyAssembly" methodname="UiAssemblyDoesNotReferenceLobbyAssembly" classname="RoadRage.Tests.EditMode.Story12LobbyShellTests" runstate="Runnable" seed="1918314448" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000173" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1230" name="UiFeatureSourceNeverCallsSceneManagementOrMutatesMatchSettingsDirectly" fullname="RoadRage.Tests.EditMode.Story12LobbyShellTests.UiFeatureSourceNeverCallsSceneManagementOrMutatesMatchSettingsDirectly" methodname="UiFeatureSourceNeverCallsSceneManagementOrMutatesMatchSettingsDirectly" classname="RoadRage.Tests.EditMode.Story12LobbyShellTests" runstate="Runnable" seed="1009122885" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000532" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1232" name="Story13CharacterSetupTests" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" testcasecount="44" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.030233" total="44" passed="44" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1275" name="BootstrapExposesProfileStoreProperty" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.BootstrapExposesProfileStoreProperty" methodname="BootstrapExposesProfileStoreProperty" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1560291930" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000051" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1251" name="CharacterCatalogAssetExistsAndHoldsAtLeastTwoCharacters" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogAssetExistsAndHoldsAtLeastTwoCharacters" methodname="CharacterCatalogAssetExistsAndHoldsAtLeastTwoCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="639517311" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000073" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1252" name="CharacterCatalogAssetPassesItsOwnValidationGuard" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogAssetPassesItsOwnValidationGuard" methodname="CharacterCatalogAssetPassesItsOwnValidationGuard" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="784653523" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000067" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1253" name="CharacterCatalogIdsAreLowercaseUniqueAndNonEmpty" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogIdsAreLowercaseUniqueAndNonEmpty" methodname="CharacterCatalogIdsAreLowercaseUniqueAndNonEmpty" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1136233607" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000076" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1255" name="CharacterCatalogIsInertOnOutOfRangeIndexAndUnknownId" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogIsInertOnOutOfRangeIndexAndUnknownId" methodname="CharacterCatalogIsInertOnOutOfRangeIndexAndUnknownId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1846782887" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000059" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1254" name="CharacterCatalogResolvesCharactersByStableId" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogResolvesCharactersByStableId" methodname="CharacterCatalogResolvesCharactersByStableId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="316114791" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000053" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1270" name="CharacterCatalogValidationAcceptsAWellFormedInMemoryCatalog" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationAcceptsAWellFormedInMemoryCatalog" methodname="CharacterCatalogValidationAcceptsAWellFormedInMemoryCatalog" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="2001011324" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000125" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1269" name="CharacterCatalogValidationRejectsDuplicateIds" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsDuplicateIds" methodname="CharacterCatalogValidationRejectsDuplicateIds" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1898607292" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000117" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1261" name="CharacterCatalogValidationRejectsEmptyId" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsEmptyId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000833" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1259" name="CharacterCatalogValidationRejectsEmptyId(&quot;&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsEmptyId(&quot;&quot;)" methodname="CharacterCatalogValidationRejectsEmptyId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="671600133" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000081" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1260" name="CharacterCatalogValidationRejectsEmptyId(&quot;   &quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsEmptyId(&quot;   &quot;)" methodname="CharacterCatalogValidationRejectsEmptyId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1906218509" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000085" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1257" name="CharacterCatalogValidationRejectsEmptyList" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsEmptyList" methodname="CharacterCatalogValidationRejectsEmptyList" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="860529459" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000069" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1268" name="CharacterCatalogValidationRejectsNonLowercaseId" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsNonLowercaseId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000853" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1266" name="CharacterCatalogValidationRejectsNonLowercaseId(&quot;Char_Rookie&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsNonLowercaseId(&quot;Char_Rookie&quot;)" methodname="CharacterCatalogValidationRejectsNonLowercaseId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1721245179" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000076" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1267" name="CharacterCatalogValidationRejectsNonLowercaseId(&quot;CHAR_ROOKIE&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsNonLowercaseId(&quot;CHAR_ROOKIE&quot;)" methodname="CharacterCatalogValidationRejectsNonLowercaseId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1688513344" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000086" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1258" name="CharacterCatalogValidationRejectsNullEntry" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsNullEntry" methodname="CharacterCatalogValidationRejectsNullEntry" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="238724672" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000082" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1265" name="CharacterCatalogValidationRejectsPaddedId" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsPaddedId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.001131" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1262" name="CharacterCatalogValidationRejectsPaddedId(&quot; char_rookie&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsPaddedId(&quot; char_rookie&quot;)" methodname="CharacterCatalogValidationRejectsPaddedId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="2106422707" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000073" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1263" name="CharacterCatalogValidationRejectsPaddedId(&quot;char_rookie &quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsPaddedId(&quot;char_rookie &quot;)" methodname="CharacterCatalogValidationRejectsPaddedId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="370892162" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000080" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1264" name="CharacterCatalogValidationRejectsPaddedId(&quot; char_rookie &quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsPaddedId(&quot; char_rookie &quot;)" methodname="CharacterCatalogValidationRejectsPaddedId" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1015637014" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000080" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1256" name="CharacterDefsHavePreviewPrefabSlotReadyForStory14" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterDefsHavePreviewPrefabSlotReadyForStory14" methodname="CharacterDefsHavePreviewPrefabSlotReadyForStory14" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="734378123" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000069" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1278" name="CharacterPanelHasOpaqueFullScreenRaycastBlockingBackground" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterPanelHasOpaqueFullScreenRaycastBlockingBackground" methodname="CharacterPanelHasOpaqueFullScreenRaycastBlockingBackground" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1372106825" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.004928" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1277" name="CharacterPanelIsInactiveAtLoadAndDrawsOverSetupPanel" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterPanelIsInactiveAtLoadAndDrawsOverSetupPanel" methodname="CharacterPanelIsInactiveAtLoadAndDrawsOverSetupPanel" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="2062444850" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.004622" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1279" name="CharacterSetupScreenSourceNeverLoadsScenesNorTouchesTheProfileStore" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterSetupScreenSourceNeverLoadsScenesNorTouchesTheProfileStore" methodname="CharacterSetupScreenSourceNeverLoadsScenesNorTouchesTheProfileStore" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1341628676" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000281" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1276" name="MainMenuLobbySceneContainsWiredCharacterSetupComponents" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.MainMenuLobbySceneContainsWiredCharacterSetupComponents" methodname="MainMenuLobbySceneContainsWiredCharacterSetupComponents" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1225358237" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.004074" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1250" name="PlayerNameValidatorAcceptsAllowedCharacters" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsAllowedCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000999" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1247" name="PlayerNameValidatorAcceptsAllowedCharacters(&quot;Kenan&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsAllowedCharacters(&quot;Kenan&quot;)" methodname="PlayerNameValidatorAcceptsAllowedCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1231921085" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000038" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1248" name="PlayerNameValidatorAcceptsAllowedCharacters(&quot;Kenan 2&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsAllowedCharacters(&quot;Kenan 2&quot;)" methodname="PlayerNameValidatorAcceptsAllowedCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="461974846" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000044" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1249" name="PlayerNameValidatorAcceptsAllowedCharacters(&quot;Ken-an_3&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsAllowedCharacters(&quot;Ken-an_3&quot;)" methodname="PlayerNameValidatorAcceptsAllowedCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="164542676" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000039" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1237" name="PlayerNameValidatorAcceptsNameAtExactMaxLength" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsNameAtExactMaxLength" methodname="PlayerNameValidatorAcceptsNameAtExactMaxLength" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1717421701" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000043" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1236" name="PlayerNameValidatorAcceptsNameAtExactMinLength" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsNameAtExactMinLength" methodname="PlayerNameValidatorAcceptsNameAtExactMinLength" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1578392160" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000041" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1240" name="PlayerNameValidatorBoundMessagesQuoteTheActualBounds" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorBoundMessagesQuoteTheActualBounds" methodname="PlayerNameValidatorBoundMessagesQuoteTheActualBounds" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1695348351" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000041" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1233" name="PlayerNameValidatorRejectsEmptyName" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsEmptyName" methodname="PlayerNameValidatorRejectsEmptyName" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="431991153" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000043" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1245" name="PlayerNameValidatorRejectsForbiddenCharacters" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsForbiddenCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.001397" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1241" name="PlayerNameValidatorRejectsForbiddenCharacters(&quot;a&lt;b&gt;&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsForbiddenCharacters(&quot;a&lt;b&gt;&quot;)" methodname="PlayerNameValidatorRejectsForbiddenCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1475245353" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000034" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1242" name="PlayerNameValidatorRejectsForbiddenCharacters(&quot;Kenan!&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsForbiddenCharacters(&quot;Kenan!&quot;)" methodname="PlayerNameValidatorRejectsForbiddenCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="541750367" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000038" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1243" name="PlayerNameValidatorRejectsForbiddenCharacters(&quot;Ken/an&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsForbiddenCharacters(&quot;Ken/an&quot;)" methodname="PlayerNameValidatorRejectsForbiddenCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="712227535" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000049" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1244" name="PlayerNameValidatorRejectsForbiddenCharacters(&quot;Ken\tan&quot;)" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsForbiddenCharacters(&quot;Ken\tan&quot;)" methodname="PlayerNameValidatorRejectsForbiddenCharacters" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1060217085" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000042" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1238" name="PlayerNameValidatorRejectsNameJustAboveMaxLength" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsNameJustAboveMaxLength" methodname="PlayerNameValidatorRejectsNameJustAboveMaxLength" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1187753082" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000038" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1235" name="PlayerNameValidatorRejectsNameJustBelowMinLength" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsNameJustBelowMinLength" methodname="PlayerNameValidatorRejectsNameJustBelowMinLength" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1125102489" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000039" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1239" name="PlayerNameValidatorRejectsTooLongName" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsTooLongName" methodname="PlayerNameValidatorRejectsTooLongName" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="2059375586" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000035" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1234" name="PlayerNameValidatorRejectsWhitespaceOnlyName" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsWhitespaceOnlyName" methodname="PlayerNameValidatorRejectsWhitespaceOnlyName" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="231167233" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000037" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1246" name="PlayerNameValidatorTrimsBorderWhitespace" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorTrimsBorderWhitespace" methodname="PlayerNameValidatorTrimsBorderWhitespace" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1683446776" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000036" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1271" name="PlayerProfileAndStoreArePlainClassesWithoutUnityBaseTypes" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerProfileAndStoreArePlainClassesWithoutUnityBaseTypes" methodname="PlayerProfileAndStoreArePlainClassesWithoutUnityBaseTypes" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1344466508" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000047" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1274" name="PlayerProfileStoreExposesNoSilentMutator" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerProfileStoreExposesNoSilentMutator" methodname="PlayerProfileStoreExposesNoSilentMutator" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1652995026" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000066" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1273" name="PlayerProfileStoreRefusesNullProfile" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerProfileStoreRefusesNullProfile" methodname="PlayerProfileStoreRefusesNullProfile" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="1477402753" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000060" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1272" name="PlayerProfileStoreStartsEmptyThenHoldsWhatWasSet" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerProfileStoreStartsEmptyThenHoldsWhatWasSet" methodname="PlayerProfileStoreStartsEmptyThenHoldsWhatWasSet" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="524190003" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000043" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1281" name="PlayersAssemblyDoesNotReferenceUiAssembly" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayersAssemblyDoesNotReferenceUiAssembly" methodname="PlayersAssemblyDoesNotReferenceUiAssembly" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="465495294" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000249" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1280" name="UiAssemblyDoesNotReferencePlayersAssembly" fullname="RoadRage.Tests.EditMode.Story13CharacterSetupTests.UiAssemblyDoesNotReferencePlayersAssembly" methodname="UiAssemblyDoesNotReferencePlayersAssembly" classname="RoadRage.Tests.EditMode.Story13CharacterSetupTests" runstate="Runnable" seed="318399630" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000188" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1282" name="Story14GreyboxAssetSeedTests" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.005400" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1288" name="CharacterDefsReferenceTheMatchingGreyboxPreviewPrefabs" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.CharacterDefsReferenceTheMatchingGreyboxPreviewPrefabs" methodname="CharacterDefsReferenceTheMatchingGreyboxPreviewPrefabs" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" seed="155912737" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000056" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1291" name="GreyboxMetadataRejectsIncompleteAuthoringData" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxMetadataRejectsIncompleteAuthoringData" methodname="GreyboxMetadataRejectsIncompleteAuthoringData" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" seed="705023511" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000116" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1287" name="GreyboxPrefabBoundsMatchDocumentedRoughScale" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxPrefabBoundsMatchDocumentedRoughScale" methodname="GreyboxPrefabBoundsMatchDocumentedRoughScale" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" seed="1086643555" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.001635" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1284" name="GreyboxPrefabsHaveMetadataRendererColliderAndCleanRootScale" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxPrefabsHaveMetadataRendererColliderAndCleanRootScale" methodname="GreyboxPrefabsHaveMetadataRendererColliderAndCleanRootScale" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" seed="498590147" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000178" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1286" name="GreyboxPrefabsHaveRecognizableObjectParts" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxPrefabsHaveRecognizableObjectParts" methodname="GreyboxPrefabsHaveRecognizableObjectParts" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" seed="121366692" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000114" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1285" name="GreyboxPrefabsStayMeshColliderAndNetworkObjectFreeUntilRuntimeStoriesNeedThem" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxPrefabsStayMeshColliderAndNetworkObjectFreeUntilRuntimeStoriesNeedThem" methodname="GreyboxPrefabsStayMeshColliderAndNetworkObjectFreeUntilRuntimeStoriesNeedThem" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" seed="1871085643" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000071" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1290" name="GreyboxSeedsAreNotRegisteredAsDefaultNetworkPrefabsYet" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxSeedsAreNotRegisteredAsDefaultNetworkPrefabsYet" methodname="GreyboxSeedsAreNotRegisteredAsDefaultNetworkPrefabsYet" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" seed="734946969" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000198" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1283" name="GreyboxSeedSourceAndExportsExistUnderTheIntakeFolders" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxSeedSourceAndExportsExistUnderTheIntakeFolders" methodname="GreyboxSeedSourceAndExportsExistUnderTheIntakeFolders" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" seed="688108949" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000092" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1289" name="Story14EvidenceAndAdoptionRegisterDocumentThePack" fullname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.Story14EvidenceAndAdoptionRegisterDocumentThePack" methodname="Story14EvidenceAndAdoptionRegisterDocumentThePack" classname="RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests" runstate="Runnable" seed="1806005214" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000364" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1292" name="Story15EmptyMapEntryTests" fullname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests" classname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.005392" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1293" name="AppSceneRouterExposesMvpRunAsPrimaryBuildScene" fullname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.AppSceneRouterExposesMvpRunAsPrimaryBuildScene" methodname="AppSceneRouterExposesMvpRunAsPrimaryBuildScene" classname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests" runstate="Runnable" seed="1610591111" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000058" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1294" name="LobbyStartGameRequiresAConfirmedProfileBeforeLoadingRun" fullname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.LobbyStartGameRequiresAConfirmedProfileBeforeLoadingRun" methodname="LobbyStartGameRequiresAConfirmedProfileBeforeLoadingRun" classname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests" runstate="Runnable" seed="85384707" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000166" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1295" name="MvpRunSceneContainsWiredRunEntryAndGreyboxMap" fullname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.MvpRunSceneContainsWiredRunEntryAndGreyboxMap" methodname="MvpRunSceneContainsWiredRunEntryAndGreyboxMap" classname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests" runstate="Runnable" seed="370325512" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.003094" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1298" name="OnFootFeatureKeepsItsAsmdefBoundary" fullname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.OnFootFeatureKeepsItsAsmdefBoundary" methodname="OnFootFeatureKeepsItsAsmdefBoundary" classname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests" runstate="Runnable" seed="1333144137" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000171" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1297" name="OnFootIntentClampsMoveAndKeepsSprintFlag" fullname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.OnFootIntentClampsMoveAndKeepsSprintFlag" methodname="OnFootIntentClampsMoveAndKeepsSprintFlag" classname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests" runstate="Runnable" seed="1457804089" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000055" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1296" name="RunEntryUsesCharacterCatalogWithoutRegisteringNetworkPrefabs" fullname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.RunEntryUsesCharacterCatalogWithoutRegisteringNetworkPrefabs" methodname="RunEntryUsesCharacterCatalogWithoutRegisteringNetworkPrefabs" classname="RoadRage.Tests.EditMode.Story15EmptyMapEntryTests" runstate="Runnable" seed="933122087" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000251" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1299" name="Story16Epic1PlayableCheckpointTests" fullname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests" classname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.010335" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1300" name="EnabledBuildScenesKeepTheEpic1PlayableRoute" fullname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.EnabledBuildScenesKeepTheEpic1PlayableRoute" methodname="EnabledBuildScenesKeepTheEpic1PlayableRoute" classname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests" runstate="Runnable" seed="478136137" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000053" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1304" name="Epic1RuntimeDoesNotStartOrSpawnNetworkSessions" fullname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.Epic1RuntimeDoesNotStartOrSpawnNetworkSessions" methodname="Epic1RuntimeDoesNotStartOrSpawnNetworkSessions" classname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests" runstate="Runnable" seed="1851755075" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.001003" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1303" name="GreyboxCharactersAndWorldPropsRemainTraceableAndLocalOnly" fullname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.GreyboxCharactersAndWorldPropsRemainTraceableAndLocalOnly" methodname="GreyboxCharactersAndWorldPropsRemainTraceableAndLocalOnly" classname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests" runstate="Runnable" seed="179035046" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000087" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1305" name="HandoffNotesNamePlayableStubAndEpic2ReplacementBoundaries" fullname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.HandoffNotesNamePlayableStubAndEpic2ReplacementBoundaries" methodname="HandoffNotesNamePlayableStubAndEpic2ReplacementBoundaries" classname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests" runstate="Runnable" seed="797994137" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.000176" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1301" name="MainMenuLobbySceneStillWiresMenuLobbyProfileAndNoticeSurfaces" fullname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.MainMenuLobbySceneStillWiresMenuLobbyProfileAndNoticeSurfaces" methodname="MainMenuLobbySceneStillWiresMenuLobbyProfileAndNoticeSurfaces" classname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests" runstate="Runnable" seed="1329058851" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.004469" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1302" name="MvpRunSceneContainsGreyboxWorldSpawnAndCheckpointHud" fullname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.MvpRunSceneContainsGreyboxWorldSpawnAndCheckpointHud" methodname="MvpRunSceneContainsGreyboxWorldSpawnAndCheckpointHud" classname="RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests" runstate="Runnable" seed="608581756" result="Passed" start-time="2026-09-08 11:07:15Z" end-time="2026-09-08 11:07:15Z" duration="0.002820" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: _bmad-output/implementation-artifacts/story-1-6-editmode-results.xml
+Saving results to: _bmad-output/implementation-artifacts/story-1-6-editmode-results.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

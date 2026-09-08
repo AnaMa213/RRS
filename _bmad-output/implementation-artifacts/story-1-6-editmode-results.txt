@@ -1,0 +1,90 @@
+RUNQUEUED EditMode assembly=RoadRage.Tests.EditMode
+RUNSTART EditMode CASES=86
+[ok] RoadRage.Tests.EditMode.RoadRageScaffoldTests.AsmdefsAndNamespacesStayInsideApprovedBoundaries :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.RoadRageScaffoldTests.ExistingSteamworksSmokeTestHelperIsPreserved :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.RoadRageScaffoldTests.RoadRageFolderScaffoldExists :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.RoadRageScaffoldTests.RunCompositionRootDoesNotStartGameplay :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.RoadRageScaffoldTests.RuntimeStateShellsAreNetworkBehavioursAndServerWrite :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.RoadRageScaffoldTests.SceneSeedsExistAndPrimaryBuildScenesAreOrdered :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.RoadRageScaffoldTests.Story04ValidationRowsRecordOnlyScaffoldEvidence :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.AppSceneRouterSceneNamesMatchEditorBuildSettingsOrder :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.BootstrapSceneContainsRoadRageBootstrapComponent :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.MainMenuLobbySceneContainsWiredComponents :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.QuitApplicationIsGuardedAndOnlyCallsApplicationQuitOutsideTheEditor :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.UiFeatureSourceNeverCallsSceneManagementOrApplicationQuit :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.UserNoticeChannelClearResetsLastNotice :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.UserNoticeChannelPublishesAndTracksLastNotice :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story11MainMenuLaunchTests.UserNoticeSeverityHasExpectedLevels :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story12LobbyShellTests.MainMenuLobbySceneContainsWiredLobbyComponents :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story12LobbyShellTests.MatchSettingsDefaultsToNormalDifficulty :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story12LobbyShellTests.MatchSettingsDifficultyIsMutable :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story12LobbyShellTests.MatchSettingsIsPlainClassWithoutUnityBaseTypes :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story12LobbyShellTests.UiAssemblyDoesNotReferenceLobbyAssembly :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story12LobbyShellTests.UiFeatureSourceNeverCallsSceneManagementOrMutatesMatchSettingsDirectly :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.BootstrapExposesProfileStoreProperty :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogAssetExistsAndHoldsAtLeastTwoCharacters :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogAssetPassesItsOwnValidationGuard :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogIdsAreLowercaseUniqueAndNonEmpty :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogIsInertOnOutOfRangeIndexAndUnknownId :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogResolvesCharactersByStableId :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationAcceptsAWellFormedInMemoryCatalog :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsDuplicateIds :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsEmptyId("") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsEmptyId("   ") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsEmptyList :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsNonLowercaseId("Char_Rookie") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsNonLowercaseId("CHAR_ROOKIE") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsNullEntry :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsPaddedId(" char_rookie") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsPaddedId("char_rookie ") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterCatalogValidationRejectsPaddedId(" char_rookie ") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterDefsHavePreviewPrefabSlotReadyForStory14 :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterPanelHasOpaqueFullScreenRaycastBlockingBackground :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterPanelIsInactiveAtLoadAndDrawsOverSetupPanel :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.CharacterSetupScreenSourceNeverLoadsScenesNorTouchesTheProfileStore :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.MainMenuLobbySceneContainsWiredCharacterSetupComponents :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsAllowedCharacters("Kenan") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsAllowedCharacters("Kenan 2") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsAllowedCharacters("Ken-an_3") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsNameAtExactMaxLength :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorAcceptsNameAtExactMinLength :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorBoundMessagesQuoteTheActualBounds :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsEmptyName :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsForbiddenCharacters("a<b>") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsForbiddenCharacters("Kenan!") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsForbiddenCharacters("Ken/an") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsForbiddenCharacters("Ken\tan") :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsNameJustAboveMaxLength :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsNameJustBelowMinLength :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsTooLongName :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorRejectsWhitespaceOnlyName :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerNameValidatorTrimsBorderWhitespace :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerProfileAndStoreArePlainClassesWithoutUnityBaseTypes :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerProfileStoreExposesNoSilentMutator :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerProfileStoreRefusesNullProfile :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayerProfileStoreStartsEmptyThenHoldsWhatWasSet :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.PlayersAssemblyDoesNotReferenceUiAssembly :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story13CharacterSetupTests.UiAssemblyDoesNotReferencePlayersAssembly :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.CharacterDefsReferenceTheMatchingGreyboxPreviewPrefabs :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxMetadataRejectsIncompleteAuthoringData :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxPrefabBoundsMatchDocumentedRoughScale :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxPrefabsHaveMetadataRendererColliderAndCleanRootScale :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxPrefabsHaveRecognizableObjectParts :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxPrefabsStayMeshColliderAndNetworkObjectFreeUntilRuntimeStoriesNeedThem :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxSeedsAreNotRegisteredAsDefaultNetworkPrefabsYet :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.GreyboxSeedSourceAndExportsExistUnderTheIntakeFolders :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story14GreyboxAssetSeedTests.Story14EvidenceAndAdoptionRegisterDocumentThePack :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.AppSceneRouterExposesMvpRunAsPrimaryBuildScene :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.LobbyStartGameRequiresAConfirmedProfileBeforeLoadingRun :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.MvpRunSceneContainsWiredRunEntryAndGreyboxMap :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.OnFootFeatureKeepsItsAsmdefBoundary :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.OnFootIntentClampsMoveAndKeepsSprintFlag :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story15EmptyMapEntryTests.RunEntryUsesCharacterCatalogWithoutRegisteringNetworkPrefabs :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.EnabledBuildScenesKeepTheEpic1PlayableRoute :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.Epic1RuntimeDoesNotStartOrSpawnNetworkSessions :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.GreyboxCharactersAndWorldPropsRemainTraceableAndLocalOnly :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.HandoffNotesNamePlayableStubAndEpic2ReplacementBoundaries :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.MainMenuLobbySceneStillWiresMenuLobbyProfileAndNoticeSurfaces :: Passed / Passed
+[ok] RoadRage.Tests.EditMode.Story16Epic1PlayableCheckpointTests.MvpRunSceneContainsGreyboxWorldSpawnAndCheckpointHud :: Passed / Passed
+RUNFINISHED EditMode CASES=86 PASSED=86 FAILED=0 SKIPPED=0 INCONCLUSIVE=0 STATUS=Passed STATE=Passed
+RUNREQUEST EditMode GUID=f81f2141-562c-4d4b-b9e7-0bb97a75e560

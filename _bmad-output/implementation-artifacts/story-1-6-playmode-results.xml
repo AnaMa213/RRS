@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="33" result="Passed" total="33" passed="33" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:39Z" duration="4,5955849">
+  <test-suite type="TestSuite" id="1161" name="RRS" fullname="RRS" runstate="Runnable" testcasecount="33" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:39Z" duration="4.595585" total="33" passed="33" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1200" name="RoadRage.Tests.PlayMode.dll" fullname="D:/Projets/RRS/Library/ScriptAssemblies/RoadRage.Tests.PlayMode.dll" runstate="Runnable" testcasecount="33" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:39Z" duration="4.593932" total="33" passed="33" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="64116" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1201" name="RoadRage" fullname="RoadRage" runstate="Runnable" testcasecount="33" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:39Z" duration="4.592623" total="33" passed="33" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1202" name="Tests" fullname="RoadRage.Tests" runstate="Runnable" testcasecount="33" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:39Z" duration="4.591583" total="33" passed="33" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1203" name="PlayMode" fullname="RoadRage.Tests.PlayMode" runstate="Runnable" testcasecount="33" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:39Z" duration="4.589582" total="33" passed="33" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1162" name="Story11MainMenuLaunchPlayModeTests" fullname="RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests" classname="RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:34Z" duration="0.414507" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1164" name="DuplicateBootstrapSelfDestroysAndPreservesFirst" fullname="RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests.DuplicateBootstrapSelfDestroysAndPreservesFirst" methodname="DuplicateBootstrapSelfDestroysAndPreservesFirst" classname="RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests" runstate="Runnable" seed="196038027" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:34Z" duration="0.014961" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Seconde instance de RoadRageBootstrap detectee, destruction de la seconde ; la premiere reste la reference.
+]]></output>
+              </test-case>
+              <test-case id="1165" name="MainMenuFlowControllerWiringRelaysScreenIntentAndNotices" fullname="RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests.MainMenuFlowControllerWiringRelaysScreenIntentAndNotices" methodname="MainMenuFlowControllerWiringRelaysScreenIntentAndNotices" classname="RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests" runstate="Runnable" seed="1124542871" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:34Z" duration="0.185021" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Quit demande en Play Mode Editor : aucune fermeture d'Editor declenchee.
+]]></output>
+              </test-case>
+              <test-case id="1163" name="RoutingFromBootstrapEntersMainMenuLobby" fullname="RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests.RoutingFromBootstrapEntersMainMenuLobby" methodname="RoutingFromBootstrapEntersMainMenuLobby" classname="RoadRage.Tests.PlayMode.Story11MainMenuLaunchPlayModeTests" runstate="Runnable" seed="285184606" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:34Z" duration="0.211909" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Routage vers la scene MainMenuLobby
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1166" name="Story12LobbyShellPlayModeTests" fullname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests" classname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:35Z" duration="0.706642" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1172" name="BackReturnsToMenuAndKeepsMatchSettingsState" fullname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.BackReturnsToMenuAndKeepsMatchSettingsState" methodname="BackReturnsToMenuAndKeepsMatchSettingsState" classname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests" runstate="Runnable" seed="578567799" result="Passed" start-time="2026-09-08 11:00:34Z" end-time="2026-09-08 11:00:35Z" duration="0.118550" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1167" name="CreateLobbyRequestedPublishesUnavailableNoticeAndLeavesSettingsUnchanged" fullname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.CreateLobbyRequestedPublishesUnavailableNoticeAndLeavesSettingsUnchanged" methodname="CreateLobbyRequestedPublishesUnavailableNoticeAndLeavesSettingsUnchanged" classname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests" runstate="Runnable" seed="1207899525" result="Passed" start-time="2026-09-08 11:00:35Z" end-time="2026-09-08 11:00:35Z" duration="0.114770" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Lobby] Create Lobby demande : aucune vraie session Steam en Epic 1.
+]]></output>
+              </test-case>
+              <test-case id="1170" name="DifficultyChangeUpdatesMatchSettingsAndDisplayedLabel" fullname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.DifficultyChangeUpdatesMatchSettingsAndDisplayedLabel" methodname="DifficultyChangeUpdatesMatchSettingsAndDisplayedLabel" classname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests" runstate="Runnable" seed="66678909" result="Passed" start-time="2026-09-08 11:00:35Z" end-time="2026-09-08 11:00:35Z" duration="0.113892" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1168" name="JoinByCodeRequestedPublishesUnavailableNotice" fullname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.JoinByCodeRequestedPublishesUnavailableNotice" methodname="JoinByCodeRequestedPublishesUnavailableNotice" classname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests" runstate="Runnable" seed="589533638" result="Passed" start-time="2026-09-08 11:00:35Z" end-time="2026-09-08 11:00:35Z" duration="0.118210" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Lobby] Join By Code demande : placeholder, aucun join reseau en Epic 1.
+]]></output>
+              </test-case>
+              <test-case id="1171" name="LobbyShellOpensWithDefaultDifficultyVisible" fullname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.LobbyShellOpensWithDefaultDifficultyVisible" methodname="LobbyShellOpensWithDefaultDifficultyVisible" classname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests" runstate="Runnable" seed="1375844790" result="Passed" start-time="2026-09-08 11:00:35Z" end-time="2026-09-08 11:00:35Z" duration="0.115054" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1169" name="StartGameRequestedPublishesUnavailableNoticeAndLoadsNoScene" fullname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests.StartGameRequestedPublishesUnavailableNoticeAndLoadsNoScene" methodname="StartGameRequestedPublishesUnavailableNoticeAndLoadsNoScene" classname="RoadRage.Tests.PlayMode.Story12LobbyShellPlayModeTests" runstate="Runnable" seed="1515624197" result="Passed" start-time="2026-09-08 11:00:35Z" end-time="2026-09-08 11:00:35Z" duration="0.119043" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Lobby] Start Game refuse : aucun profil joueur confirme.
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1173" name="Story13CharacterSetupPlayModeTests" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" testcasecount="20" result="Passed" start-time="2026-09-08 11:00:35Z" end-time="2026-09-08 11:00:38Z" duration="2.582966" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1186" name="CatalogWithEmptyCharacterIdRefusesConfirmationWithVisibleValidation" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.CatalogWithEmptyCharacterIdRefusesConfirmationWithVisibleValidation" methodname="CatalogWithEmptyCharacterIdRefusesConfirmationWithVisibleValidation" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1835263722" result="Passed" start-time="2026-09-08 11:00:35Z" end-time="2026-09-08 11:00:35Z" duration="0.137231" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Personnage invalide : id de personnage vide dans le catalogue.
+[Players] Confirmation refusee : Personnage invalide : id de personnage vide dans le catalogue.
+]]></output>
+              </test-case>
+              <test-case id="1185" name="CatalogWithNullEntryLeavesCycleAndConfirmInertWithVisibleValidation" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.CatalogWithNullEntryLeavesCycleAndConfirmInertWithVisibleValidation" methodname="CatalogWithNullEntryLeavesCycleAndConfirmInertWithVisibleValidation" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="60225821" result="Passed" start-time="2026-09-08 11:00:35Z" end-time="2026-09-08 11:00:35Z" duration="0.126570" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Personnage indisponible : entree de catalogue manquante.
+[Players] Personnage indisponible : entree de catalogue manquante.
+[Players] Confirmation refusee : Personnage indisponible : entree de catalogue manquante.
+]]></output>
+              </test-case>
+              <test-case id="1193" name="ClosingWithoutConfirmingHidesScreenAndLeavesProfileUnchanged" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ClosingWithoutConfirmingHidesScreenAndLeavesProfileUnchanged" methodname="ClosingWithoutConfirmingHidesScreenAndLeavesProfileUnchanged" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="92961356" result="Passed" start-time="2026-09-08 11:00:35Z" end-time="2026-09-08 11:00:36Z" duration="0.120924" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[App] Fermeture du setup de personnage sans confirmation.
+]]></output>
+              </test-case>
+              <test-case id="1176" name="ConfirmedProfileSurvivesSceneChange" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmedProfileSurvivesSceneChange" methodname="ConfirmedProfileSurvivesSceneChange" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1390373739" result="Passed" start-time="2026-09-08 11:00:36Z" end-time="2026-09-08 11:00:36Z" duration="0.226590" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Profil confirme : Kenan / char_rookie
+]]></output>
+              </test-case>
+              <test-case id="1191" name="ConfirmingAgainOverwritesBothProfileFields" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingAgainOverwritesBothProfileFields" methodname="ConfirmingAgainOverwritesBothProfileFields" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1507466313" result="Passed" start-time="2026-09-08 11:00:36Z" end-time="2026-09-08 11:00:36Z" duration="0.128036" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Profil confirme : Kenan / char_rookie
+[App] Ouverture du setup de personnage.
+[Players] Profil confirme : Rider / char_veteran
+]]></output>
+              </test-case>
+              <test-case id="1177" name="ConfirmingEmptyNameShowsValidationAndLeavesProfileUnwritten" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingEmptyNameShowsValidationAndLeavesProfileUnwritten" methodname="ConfirmingEmptyNameShowsValidationAndLeavesProfileUnwritten" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="124703370" result="Passed" start-time="2026-09-08 11:00:36Z" end-time="2026-09-08 11:00:36Z" duration="0.122553" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Nom de joueur refuse : Nom requis : saisis un nom de joueur.
+]]></output>
+              </test-case>
+              <test-case id="1180" name="ConfirmingForbiddenCharactersShowsValidationAndLeavesProfileUnwritten" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingForbiddenCharactersShowsValidationAndLeavesProfileUnwritten" methodname="ConfirmingForbiddenCharactersShowsValidationAndLeavesProfileUnwritten" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="604896577" result="Passed" start-time="2026-09-08 11:00:36Z" end-time="2026-09-08 11:00:36Z" duration="0.127059" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Nom de joueur refuse : Caracteres interdits : lettres, chiffres, espace, - et _ uniquement.
+]]></output>
+              </test-case>
+              <test-case id="1181" name="ConfirmingNameWithBorderWhitespaceNormalizesBeforeWriting" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingNameWithBorderWhitespaceNormalizesBeforeWriting" methodname="ConfirmingNameWithBorderWhitespaceNormalizesBeforeWriting" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="575040539" result="Passed" start-time="2026-09-08 11:00:36Z" end-time="2026-09-08 11:00:36Z" duration="0.119632" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Profil confirme : Kenan / char_rookie
+]]></output>
+              </test-case>
+              <test-case id="1179" name="ConfirmingTooLongNameShowsValidationAndLeavesProfileUnwritten" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingTooLongNameShowsValidationAndLeavesProfileUnwritten" methodname="ConfirmingTooLongNameShowsValidationAndLeavesProfileUnwritten" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1229370932" result="Passed" start-time="2026-09-08 11:00:36Z" end-time="2026-09-08 11:00:36Z" duration="0.122049" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Nom de joueur refuse : Nom trop long : 20 caracteres maximum.
+]]></output>
+              </test-case>
+              <test-case id="1175" name="ConfirmingValidNameWritesProfilePublishesNoticeAndClosesScreen" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingValidNameWritesProfilePublishesNoticeAndClosesScreen" methodname="ConfirmingValidNameWritesProfilePublishesNoticeAndClosesScreen" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1908475103" result="Passed" start-time="2026-09-08 11:00:36Z" end-time="2026-09-08 11:00:36Z" duration="0.123456" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Profil confirme : Kenan / char_rookie
+]]></output>
+              </test-case>
+              <test-case id="1178" name="ConfirmingWhitespaceOnlyNameShowsValidationAndLeavesProfileUnwritten" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ConfirmingWhitespaceOnlyNameShowsValidationAndLeavesProfileUnwritten" methodname="ConfirmingWhitespaceOnlyNameShowsValidationAndLeavesProfileUnwritten" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1213469020" result="Passed" start-time="2026-09-08 11:00:36Z" end-time="2026-09-08 11:00:37Z" duration="0.120302" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Nom de joueur refuse : Nom requis : saisis un nom de joueur.
+]]></output>
+              </test-case>
+              <test-case id="1182" name="CyclingCharacterShowsNextCatalogEntryWithoutWritingProfile" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.CyclingCharacterShowsNextCatalogEntryWithoutWritingProfile" methodname="CyclingCharacterShowsNextCatalogEntryWithoutWritingProfile" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1990594476" result="Passed" start-time="2026-09-08 11:00:37Z" end-time="2026-09-08 11:00:37Z" duration="0.119422" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+]]></output>
+              </test-case>
+              <test-case id="1183" name="CyclingWrapsAroundToFirstCatalogEntry" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.CyclingWrapsAroundToFirstCatalogEntry" methodname="CyclingWrapsAroundToFirstCatalogEntry" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1508278205" result="Passed" start-time="2026-09-08 11:00:37Z" end-time="2026-09-08 11:00:37Z" duration="0.118950" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+]]></output>
+              </test-case>
+              <test-case id="1187" name="EmptyCatalogLeavesCycleAndConfirmInertWithVisibleValidation" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.EmptyCatalogLeavesCycleAndConfirmInertWithVisibleValidation" methodname="EmptyCatalogLeavesCycleAndConfirmInertWithVisibleValidation" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="2139583486" result="Passed" start-time="2026-09-08 11:00:37Z" end-time="2026-09-08 11:00:37Z" duration="0.118321" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Aucun personnage disponible : catalogue non assigne ou vide.
+[Players] Confirmation refusee : Aucun personnage disponible : catalogue non assigne ou vide.
+]]></output>
+              </test-case>
+              <test-case id="1184" name="MissingCatalogLeavesCycleAndConfirmInertWithVisibleValidation" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.MissingCatalogLeavesCycleAndConfirmInertWithVisibleValidation" methodname="MissingCatalogLeavesCycleAndConfirmInertWithVisibleValidation" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="475403437" result="Passed" start-time="2026-09-08 11:00:37Z" end-time="2026-09-08 11:00:37Z" duration="0.122114" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Aucun personnage disponible : catalogue non assigne ou vide.
+[Players] Confirmation refusee : Aucun personnage disponible : catalogue non assigne ou vide.
+]]></output>
+              </test-case>
+              <test-case id="1174" name="OpeningCharacterSetupShowsNameFieldAndFirstCatalogCharacter" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.OpeningCharacterSetupShowsNameFieldAndFirstCatalogCharacter" methodname="OpeningCharacterSetupShowsNameFieldAndFirstCatalogCharacter" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1243318960" result="Passed" start-time="2026-09-08 11:00:37Z" end-time="2026-09-08 11:00:37Z" duration="0.119058" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+]]></output>
+              </test-case>
+              <test-case id="1190" name="RejectedNameLeavesAnAlreadyConfirmedProfileStrictlyUnchanged" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.RejectedNameLeavesAnAlreadyConfirmedProfileStrictlyUnchanged" methodname="RejectedNameLeavesAnAlreadyConfirmedProfileStrictlyUnchanged" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="456972891" result="Passed" start-time="2026-09-08 11:00:37Z" end-time="2026-09-08 11:00:37Z" duration="0.129497" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Profil confirme : Kenan / char_rookie
+[App] Ouverture du setup de personnage.
+[Players] Nom de joueur refuse : Caracteres interdits : lettres, chiffres, espace, - et _ uniquement.
+]]></output>
+              </test-case>
+              <test-case id="1189" name="ReopeningAfterAbandonedRejectionClearsTheNameField" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ReopeningAfterAbandonedRejectionClearsTheNameField" methodname="ReopeningAfterAbandonedRejectionClearsTheNameField" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1207619062" result="Passed" start-time="2026-09-08 11:00:37Z" end-time="2026-09-08 11:00:37Z" duration="0.125121" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Nom de joueur refuse : Caracteres interdits : lettres, chiffres, espace, - et _ uniquement.
+[App] Fermeture du setup de personnage sans confirmation.
+[App] Ouverture du setup de personnage.
+]]></output>
+              </test-case>
+              <test-case id="1188" name="ReopeningAfterConfirmationRestoresConfirmedNameAndCharacter" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.ReopeningAfterConfirmationRestoresConfirmedNameAndCharacter" methodname="ReopeningAfterConfirmationRestoresConfirmedNameAndCharacter" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="413444425" result="Passed" start-time="2026-09-08 11:00:37Z" end-time="2026-09-08 11:00:38Z" duration="0.124306" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+[Players] Profil confirme : Kenan / char_veteran
+[App] Ouverture du setup de personnage.
+]]></output>
+              </test-case>
+              <test-case id="1192" name="Story13ControlsStayInsideTheCanvasSoAPlayerCanReachThem" fullname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests.Story13ControlsStayInsideTheCanvasSoAPlayerCanReachThem" methodname="Story13ControlsStayInsideTheCanvasSoAPlayerCanReachThem" classname="RoadRage.Tests.PlayMode.Story13CharacterSetupPlayModeTests" runstate="Runnable" seed="1606824408" result="Passed" start-time="2026-09-08 11:00:38Z" end-time="2026-09-08 11:00:38Z" duration="0.121128" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Ouverture du setup de personnage.
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1194" name="Story15EmptyMapEntryPlayModeTests" fullname="RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests" classname="RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-08 11:00:38Z" end-time="2026-09-08 11:00:38Z" duration="0.550292" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1197" name="LocalOnFootControllerWalksSprintsAndStopsFromIntent" fullname="RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests.LocalOnFootControllerWalksSprintsAndStopsFromIntent" methodname="LocalOnFootControllerWalksSprintsAndStopsFromIntent" classname="RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests" runstate="Runnable" seed="714268210" result="Passed" start-time="2026-09-08 11:00:38Z" end-time="2026-09-08 11:00:38Z" duration="0.189482" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Run] Entree monde refusee : aucun profil joueur confirme.
+]]></output>
+              </test-case>
+              <test-case id="1195" name="StartGameWithoutProfilePublishesVisibleWarningAndStaysInLobby" fullname="RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests.StartGameWithoutProfilePublishesVisibleWarningAndStaysInLobby" methodname="StartGameWithoutProfilePublishesVisibleWarningAndStaysInLobby" classname="RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests" runstate="Runnable" seed="1689963309" result="Passed" start-time="2026-09-08 11:00:38Z" end-time="2026-09-08 11:00:38Z" duration="0.130930" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Lobby] Start Game refuse : aucun profil joueur confirme.
+]]></output>
+              </test-case>
+              <test-case id="1196" name="StartGameWithProfileLoadsMvpRunAndSpawnsLocalOnFootPlayer" fullname="RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests.StartGameWithProfileLoadsMvpRunAndSpawnsLocalOnFootPlayer" methodname="StartGameWithProfileLoadsMvpRunAndSpawnsLocalOnFootPlayer" classname="RoadRage.Tests.PlayMode.Story15EmptyMapEntryPlayModeTests" runstate="Runnable" seed="1114021560" result="Passed" start-time="2026-09-08 11:00:38Z" end-time="2026-09-08 11:00:38Z" duration="0.225839" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Lobby] Start Game demande : entree locale dans MVP_Run.
+[App] Routage vers la scene MVP_Run
+[Run] Joueur local spawn : Kenan / char_rookie
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1198" name="Story16Epic1PlayableCheckpointPlayModeTests" fullname="RoadRage.Tests.PlayMode.Story16Epic1PlayableCheckpointPlayModeTests" classname="RoadRage.Tests.PlayMode.Story16Epic1PlayableCheckpointPlayModeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-08 11:00:38Z" end-time="2026-09-08 11:00:39Z" duration="0.333661" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1199" name="BootstrapToWorldCompletesEpic1PlayableCheckpoint" fullname="RoadRage.Tests.PlayMode.Story16Epic1PlayableCheckpointPlayModeTests.BootstrapToWorldCompletesEpic1PlayableCheckpoint" methodname="BootstrapToWorldCompletesEpic1PlayableCheckpoint" classname="RoadRage.Tests.PlayMode.Story16Epic1PlayableCheckpointPlayModeTests" runstate="Runnable" seed="2125439639" result="Passed" start-time="2026-09-08 11:00:38Z" end-time="2026-09-08 11:00:39Z" duration="0.329802" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[App] Routage vers la scene MainMenuLobby
+[Lobby] Create Lobby demande : aucune vraie session Steam en Epic 1.
+[App] Ouverture du setup de personnage.
+[Players] Profil confirme : Checkpoint / char_veteran
+[Lobby] Start Game demande : entree locale dans MVP_Run.
+[App] Routage vers la scene MVP_Run
+[Run] Joueur local spawn : Checkpoint / char_veteran
+Saving results to: _bmad-output/implementation-artifacts/story-1-6-playmode-results.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
