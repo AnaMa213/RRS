@@ -135,10 +135,12 @@ namespace RoadRage.App.Lobby
 
             if (lobbyRoom.Status == LobbyRoomStatus.Open)
             {
+                Debug.Log("[Lobby] Close Room demande.");
                 lobbyRoom.CloseRoom();
                 return;
             }
 
+            Debug.Log("[Lobby] Create Lobby demande : creation d'une room Steam privee.");
             await lobbyRoom.CreateRoomAsync();
         }
 
