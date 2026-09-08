@@ -31,6 +31,9 @@ namespace RoadRage.Features.UI
         private Button difficultyButton;
 
         [SerializeField]
+        private Button characterSetupButton;
+
+        [SerializeField]
         private TMP_Text settingsSummaryLabel;
 
         private Difficulty displayedDifficulty = Difficulty.Normal;
@@ -42,6 +45,9 @@ namespace RoadRage.Features.UI
         public event Action StartGameRequested;
 
         public event Action<Difficulty> DifficultyChanged;
+
+        /// <summary>Point d'entree du flux de setup de personnage (Story 1.3).</summary>
+        public event Action CharacterSetupRequested;
 
         private void Awake()
         {
@@ -79,6 +85,15 @@ namespace RoadRage.Features.UI
             else
             {
                 Debug.LogWarning("[UI] LobbyShellScreen sans reference vers difficultyButton.");
+            }
+
+            if (characterSetupButton != null)
+            {
+                characterSetupButton.onClick.AddListener(RaiseCharacterSetupRequested);
+            }
+            else
+            {
+                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers characterSetupButton.");
             }
 
             if (settingsSummaryLabel == null)
@@ -128,6 +143,11 @@ namespace RoadRage.Features.UI
         private void RaiseStartGameRequested()
         {
             StartGameRequested?.Invoke();
+        }
+
+        private void RaiseCharacterSetupRequested()
+        {
+            CharacterSetupRequested?.Invoke();
         }
     }
 }

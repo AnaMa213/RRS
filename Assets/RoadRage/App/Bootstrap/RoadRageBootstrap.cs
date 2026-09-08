@@ -1,4 +1,5 @@
 using RoadRage.App.Services;
+using RoadRage.Features.Players;
 using RoadRage.Shared.Presentation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -22,6 +23,12 @@ namespace RoadRage.App
         public AppSceneRouter Router { get; private set; }
 
         public UserNoticeChannel Notices { get; private set; }
+
+        /// <summary>
+        /// Depot de session du profil joueur (Story 1.3). Porte par cet objet persistant : c'est le
+        /// seul point de passage vers l'entree monde de la Story 1.5, qui le lit apres changement de scene.
+        /// </summary>
+        public PlayerProfileStore Profiles { get; private set; }
 
         /// <summary>
         /// Garantit l'existence de l'instance persistante. Depuis Bootstrap rien n'est cree ;
@@ -52,6 +59,7 @@ namespace RoadRage.App
 
             Router = new AppSceneRouter();
             Notices = new UserNoticeChannel();
+            Profiles = new PlayerProfileStore();
         }
 
         private void Start()

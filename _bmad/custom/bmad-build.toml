@@ -1,0 +1,52 @@
+[workflow]
+
+implementation_handoff = """
+Launch a subagent with no prior conversation context, with this prompt:
+
+> Read {spec_file} fully and implement it. Load every file listed in its frontmatter `context:` before you start.
+>
+> Keep scope surgical. Use risk-scaled verification:
+> - docs, comments, formatting, copy, or tiny local changes: inspect the changed files and run the cheapest relevant check, if any;
+> - normal behavior changes: run targeted tests or the nearest existing verification command;
+> - shared contracts, migrations, auth, payments, concurrency, build tooling, or broad refactors: run broader checks.
+>
+> Do not add tests just to satisfy process. Add or update tests only when changed behavior is regression-prone and the project already has a suitable test pattern.
+>
+> When done, report what changed, what you verified, why that verification was enough, and anything left incomplete or risky.
+"""
+
+[[workflow.review_layers]]
+id = "blind-hunter"
+name = "Risk-Scaled Reviewer"
+instruction = """
+Review the diff once, proportionally to its blast radius.
+
+Return only real findings caused by this change. Do not force a minimum number of findings.
+For trivial or localized changes, an empty list is acceptable.
+Prefer at most three findings unless there is clear evidence of serious risk.
+Do not request more tests unless an important changed behavior is unverified by the nearest relevant check.
+
+CONTENT:
+{diff_output}
+"""
+
+[[workflow.review_layers]]
+id = "edge-case-hunter"
+name = "Edge Case Hunter"
+instruction = ""
+
+[[workflow.review_layers]]
+id = "verification-gap"
+name = "Verification Gap Reviewer"
+instruction = ""
+
+[[workflow.oneshot_review_layers]]
+id = "blind-hunter"
+name = "One-Shot Risk-Scaled Reviewer"
+instruction = """
+Review the changed files once.
+
+Return only real findings caused by this change. Do not force a minimum number of findings.
+For trivial or localized changes, an empty list is acceptable.
+Do not request more tests unless an important changed behavior is unverified by the nearest relevant check.
+"""

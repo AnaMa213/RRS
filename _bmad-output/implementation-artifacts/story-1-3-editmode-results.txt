@@ -1,0 +1,2 @@
+CASES=0 PASSED=0 FAILED=0 OTHER=0
+REPORTED PassCount=0 FailCount=0 SkipCount=0 Inconclusive=0 STATE=Passed
