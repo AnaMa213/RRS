@@ -1,0 +1,107 @@
+{
+  "source_path": "D:/Projets/RRS\\Assets/RoadRage/ArtSource/Blender/Epic1_GreyboxAssetSeeds.blend",
+  "source_exists": true,
+  "unit_system": "METRIC",
+  "unit_scale": 1.0,
+  "exports": {
+    "Greybox_Character_Rookie": {
+      "blend_bounds_min": [
+        -0.533,
+        -0.14,
+        0.0
+      ],
+      "blend_bounds_max": [
+        0.533,
+        0.23,
+        1.82
+      ],
+      "blend_size": [
+        1.065,
+        0.37,
+        1.82
+      ],
+      "mesh_count": 8,
+      "materials": [
+        "Greybox_Dark_Mat",
+        "Greybox_Rookie_Blue_Mat",
+        "Greybox_Skin_Mat"
+      ],
+      "export_path": "D:/Projets/RRS\\Assets/RoadRage/ArtExports\\Greybox_Character_Rookie.fbx"
+    },
+    "Greybox_Character_Veteran": {
+      "blend_bounds_min": [
+        -0.533,
+        -0.147,
+        0.0
+      ],
+      "blend_bounds_max": [
+        0.533,
+        0.23,
+        1.82
+      ],
+      "blend_size": [
+        1.065,
+        0.377,
+        1.82
+      ],
+      "mesh_count": 9,
+      "materials": [
+        "Greybox_Dark_Mat",
+        "Greybox_Glass_Mat",
+        "Greybox_Skin_Mat",
+        "Greybox_Veteran_Orange_Mat"
+      ],
+      "export_path": "D:/Projets/RRS\\Assets/RoadRage/ArtExports\\Greybox_Character_Veteran.fbx"
+    },
+    "Greybox_PlayerCar": {
+      "blend_bounds_min": [
+        -2.22,
+        -1.03,
+        0.02
+      ],
+      "blend_bounds_max": [
+        2.22,
+        1.03,
+        1.44
+      ],
+      "blend_size": [
+        4.44,
+        2.06,
+        1.42
+      ],
+      "mesh_count": 10,
+      "materials": [
+        "Greybox_Car_Red_Mat",
+        "Greybox_Dark_Mat",
+        "Greybox_Glass_Mat"
+      ],
+      "export_path": "D:/Projets/RRS\\Assets/RoadRage/ArtExports\\Greybox_PlayerCar.fbx"
+    },
+    "Greybox_CityBlock_A": {
+      "blend_bounds_min": [
+        -3.75,
+        -2.125,
+        0.0
+      ],
+      "blend_bounds_max": [
+        3.125,
+        2.125,
+        8.36
+      ],
+      "blend_size": [
+        6.875,
+        4.25,
+        8.36
+      ],
+      "mesh_count": 16,
+      "materials": [
+        "Greybox_Building_Concrete_Mat",
+        "Greybox_Building_Trim_Mat",
+        "Greybox_Dark_Mat",
+        "Greybox_Glass_Mat"
+      ],
+      "export_path": "D:/Projets/RRS\\Assets/RoadRage/ArtExports\\Greybox_CityBlock_A.fbx"
+    }
+  },
+  "is_dirty_after_save": false
+}

@@ -265,15 +265,16 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void CharacterDefsHavePreviewPrefabSlotLeftEmptyUntilStory14()
+        public void CharacterDefsHavePreviewPrefabSlotReadyForStory14()
         {
             var catalog = LoadCatalog();
 
             for (var i = 0; i < catalog.Count; i++)
             {
                 var character = catalog.GetAt(i);
-                Assert.That(character.PreviewPrefab == null, Is.True,
-                    "le greybox de personnage arrive en Story 1.4, apres le gate d'intake Blender : " + character.RawId);
+                Assert.That(character.PreviewPrefab != null, Is.True,
+                    "le greybox de personnage doit etre assigne depuis la Story 1.4 : " + character.RawId);
+                Assert.That(character.PreviewPrefab.name, Does.StartWith("Greybox_Character_"));
             }
         }
 

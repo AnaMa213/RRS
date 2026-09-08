@@ -15,4 +15,4 @@ MonoBehaviour:
   id: char_rookie
   displayName: Rookie
   previewTint: {r: 0.3, g: 0.62, b: 0.95, a: 1}
-  previewPrefab: {fileID: 0}
+  previewPrefab: {fileID: 4609834984618069850, guid: e1d2e4ff143d4384095800b5f9596a27, type: 3}
