@@ -17,7 +17,8 @@
         "RoadRage.Features.Vehicles",
         "Unity.Netcode.Runtime",
         "Facepunch Transport for Netcode for GameObjects",
-        "Unity.Collections"
+        "Unity.Collections",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

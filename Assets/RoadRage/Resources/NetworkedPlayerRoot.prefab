@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5232403199061316862}
   - component: {fileID: 8742736613579375140}
   - component: {fileID: 814257317465103092}
+  - component: {fileID: 2128479698466815540}
   m_Layer: 0
   m_Name: NetworkedPlayerRoot
   m_TagString: Untagged
@@ -44,7 +45,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
   GlobalObjectIdHash: 2127590648
   InScenePlacedSourceGlobalObjectIdHash: 0
@@ -142,6 +143,26 @@ MonoBehaviour:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
+  MaxHearts:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 3
+  Hearts:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 3
+  StaminaNormalized:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 1
+  Money:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
 --- !u!114 &814257317465103092
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -156,3 +177,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: RoadRage.Features.Players::RoadRage.Features.Players.NetworkedPlayerPresentation
   ShowTopMostFoldoutHeaderGroup: 1
   characterCatalog: {fileID: 11400000, guid: 090dcb6cd5516654e99a45174314c148, type: 2}
+--- !u!114 &2128479698466815540
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433135406427400504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01147b4c758d0a146968410b9bc392a5, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: RoadRage.App::RoadRage.App.Run.NetworkedPlayerLifecycleIntent
+  ShowTopMostFoldoutHeaderGroup: 1

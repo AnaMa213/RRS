@@ -31,6 +31,14 @@ namespace RoadRage.Features.OnFoot
         private float pitch;
         private float verticalVelocity;
 
+        /// <summary>
+        /// Gel complet du mouvement (Story 2.7, bug fix post-implementation) : quand faux, Update()
+        /// ne lit plus l'input et n'applique plus la gravite -- contrairement a la seule desactivation
+        /// du CharacterController, ceci empeche verticalVelocity de continuer a accumuler de la vitesse
+        /// de chute pendant que le joueur est "mort" (cause racine du respawn qui remourrait aussitot).
+        /// </summary>
+        public bool MovementEnabled { get; set; } = true;
+
         public Camera PlayerCamera
         {
             get { return playerCamera; }
@@ -58,6 +66,11 @@ namespace RoadRage.Features.OnFoot
 
         private void Update()
         {
+            if (!MovementEnabled)
+            {
+                return;
+            }
+
             Step(ReadInputIntent(), Time.deltaTime);
         }
 
@@ -84,6 +97,34 @@ namespace RoadRage.Features.OnFoot
 
             ApplyLook(intent.Look);
             ApplyMovement(intent, deltaTime);
+        }
+
+        /// <summary>
+        /// Repositionne le rig et remet la vitesse de chute accumulee a l'etat "au sol" (Story 2.7,
+        /// bug fix post-implementation) : c'est cette remise a zero de verticalVelocity -- pas
+        /// seulement le repositionnement -- qui empeche le joueur de retraverser aussitot le seuil de
+        /// chute au respawn avec l'ancienne vitesse enorme accumulee pendant qu'il etait "mort".
+        /// </summary>
+        public void Teleport(Vector3 position, Quaternion rotation)
+        {
+            if (characterController == null)
+            {
+                characterController = GetComponent<CharacterController>();
+            }
+
+            var wasControllerEnabled = characterController != null && characterController.enabled;
+            if (wasControllerEnabled)
+            {
+                characterController.enabled = false;
+            }
+
+            transform.SetPositionAndRotation(position, rotation);
+            verticalVelocity = GroundedVerticalVelocity;
+
+            if (wasControllerEnabled)
+            {
+                characterController.enabled = true;
+            }
         }
 
         private OnFootMovementIntent ReadInputIntent()

@@ -22,6 +22,8 @@ namespace RoadRage.Features.UI
 
         public const string FutureHudState = "HUD futur : rage, argent, actions passager";
 
+        public const string DeathOverlayText = "TU ES MORT";
+
         private const string PlaceholderValue = "-";
 
         private const char FilledHeartGlyph = '♥';
@@ -48,6 +50,12 @@ namespace RoadRage.Features.UI
 
         [SerializeField]
         private TMP_Text moneyLabel;
+
+        [SerializeField]
+        private GameObject deathOverlayPanel;
+
+        [SerializeField]
+        private TMP_Text deathOverlayLabel;
 
         private void Awake()
         {
@@ -138,6 +146,29 @@ namespace RoadRage.Features.UI
         public void SetMoney(int money)
         {
             SetText(moneyLabel, "Argent : " + money + " $");
+        }
+
+        /// <summary>
+        /// Affiche l'overlay plein ecran de mort (Story 2.7), pilote depuis RunFlowController (reseau)
+        /// ou LocalVoidRespawnController (solo) -- jamais depuis le HUD lui-meme (lecture seule).
+        /// </summary>
+        public void ShowDeathOverlay()
+        {
+            SetText(deathOverlayLabel, DeathOverlayText);
+
+            if (deathOverlayPanel != null)
+            {
+                deathOverlayPanel.SetActive(true);
+            }
+        }
+
+        /// <summary>Masque l'overlay plein ecran de mort (Story 2.7) au retour a Alive (reseau ou solo).</summary>
+        public void HideDeathOverlay()
+        {
+            if (deathOverlayPanel != null)
+            {
+                deathOverlayPanel.SetActive(false);
+            }
         }
 
         /// <summary>Convertit une vie/maximum en glyphes de coeurs pleins/vides (pas de sprite, texte only).</summary>

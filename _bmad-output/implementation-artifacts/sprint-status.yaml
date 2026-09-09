@@ -62,7 +62,7 @@ development_status:
   2-4-lobby-roster-ready-state-and-settings-sync: review
   2-5-networked-player-spawn-in-empty-world: review
   2-6-in-game-hud-foundation: review
-  2-7-player-lifecycle-disconnect-and-host-quit-handling: backlog
+  2-7-player-lifecycle-disconnect-and-host-quit-handling: review
   2-8-epic-2-online-playable-checkpoint: backlog
   epic-2-retrospective: optional
 

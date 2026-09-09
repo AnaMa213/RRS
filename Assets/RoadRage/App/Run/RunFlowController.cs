@@ -2,6 +2,7 @@ using RoadRage.Features.OnFoot;
 using RoadRage.Features.Players;
 using RoadRage.Features.Run;
 using RoadRage.Features.UI;
+using RoadRage.Shared.Domain;
 using RoadRage.Shared.Presentation;
 using Unity.Netcode;
 using UnityEngine;
@@ -134,9 +135,7 @@ namespace RoadRage.App.Run
             var parent = compositionRoot == null || compositionRoot.RuntimeRoot == null
                 ? transform
                 : compositionRoot.RuntimeRoot;
-            var spawn = playerSpawnPoint == null
-                ? (compositionRoot == null ? null : compositionRoot.SpawnRoot)
-                : playerSpawnPoint;
+            var spawn = ResolveSpawnPoint();
 
             activeLocalPlayer = new GameObject("LocalPlayer_" + character.RawId);
             activeLocalPlayer.transform.SetParent(parent, false);
@@ -160,6 +159,7 @@ namespace RoadRage.App.Run
             var onFootController = activeLocalPlayer.AddComponent<LocalOnFootController>();
             onFootController.AttachCamera(playerCamera);
             AttachNetworkPoseReporter(activeLocalPlayer);
+            AttachLocalVoidRespawnController(activeLocalPlayer, checkpointHud);
 
             if (checkpointHud != null)
             {
@@ -250,6 +250,7 @@ namespace RoadRage.App.Run
             state.MaxHearts.OnValueChanged += HandleHeartsChanged;
             state.StaminaNormalized.OnValueChanged += HandleStaminaChanged;
             state.Money.OnValueChanged += HandleMoneyChanged;
+            state.Lifecycle.OnValueChanged += HandleLifecycleChanged;
         }
 
         private void UnsubscribeFromLocalNetworkedPlayerState()
@@ -263,6 +264,7 @@ namespace RoadRage.App.Run
             localNetworkedPlayerState.MaxHearts.OnValueChanged -= HandleHeartsChanged;
             localNetworkedPlayerState.StaminaNormalized.OnValueChanged -= HandleStaminaChanged;
             localNetworkedPlayerState.Money.OnValueChanged -= HandleMoneyChanged;
+            localNetworkedPlayerState.Lifecycle.OnValueChanged -= HandleLifecycleChanged;
             localNetworkedPlayerState = null;
         }
 
@@ -304,6 +306,62 @@ namespace RoadRage.App.Run
             }
         }
 
+        /// <summary>
+        /// Pilote l'overlay plein ecran de mort (Story 2.7) depuis la transition reseau du joueur
+        /// local -- jamais depuis le HUD lui-meme, meme invariant lecture-seule que Hearts/Stamina/
+        /// Money. Dead n'ayant qu'une seule sortie possible (vers Alive, via TryRespawn), masquer des
+        /// que l'etat precedent etait Dead suffit a couvrir tout retour au jeu. Gele/teleporte aussi
+        /// le rig local reel (bug fix post-implementation) : NetworkedPlayerLifecycleService.TryRespawn
+        /// ne repositionne que le proxy NetworkedPlayerState.WorldPosition, jamais ce GameObject --
+        /// sans ce geste, il continuerait de tomber et NetworkedLocalPlayerPoseReporter re-ecraserait
+        /// aussitot la position que le host vient de remettre.
+        /// </summary>
+        private void HandleLifecycleChanged(PlayerLifecycle previousValue, PlayerLifecycle newValue)
+        {
+            var localOnFootController = activeLocalPlayer == null ? null : activeLocalPlayer.GetComponent<LocalOnFootController>();
+
+            if (newValue == PlayerLifecycle.Dead)
+            {
+                if (localOnFootController != null)
+                {
+                    localOnFootController.MovementEnabled = false;
+                }
+
+                if (checkpointHud != null)
+                {
+                    checkpointHud.ShowDeathOverlay();
+                }
+            }
+            else if (previousValue == PlayerLifecycle.Dead)
+            {
+                if (localOnFootController != null)
+                {
+                    var spawn = ResolveSpawnPoint();
+                    var spawnPosition = spawn == null ? Vector3.zero : spawn.position;
+                    var spawnRotation = spawn == null ? Quaternion.identity : spawn.rotation;
+                    localOnFootController.Teleport(spawnPosition, spawnRotation);
+                    localOnFootController.MovementEnabled = true;
+                }
+
+                if (checkpointHud != null)
+                {
+                    checkpointHud.HideDeathOverlay();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Meme resolution de point de spawn que TrySpawnSelectedProfile (playerSpawnPoint si
+        /// renseigne, sinon compositionRoot.SpawnRoot) -- factorisee pour que HandleLifecycleChanged
+        /// (bug fix post-implementation) teleporte le rig local reel vers exactement le meme point.
+        /// </summary>
+        private Transform ResolveSpawnPoint()
+        {
+            return playerSpawnPoint == null
+                ? (compositionRoot == null ? null : compositionRoot.SpawnRoot)
+                : playerSpawnPoint;
+        }
+
         private void EnsureNetworkSessionMonitor()
         {
             var manager = NetworkManager.Singleton;
@@ -330,6 +388,30 @@ namespace RoadRage.App.Run
             {
                 localPlayer.AddComponent<NetworkedLocalPlayerPoseReporter>();
             }
+        }
+
+        /// <summary>
+        /// Gating inverse de AttachNetworkPoseReporter (Story 2.7) : n'attache le chemin de chute/
+        /// respawn 100% local que lorsque le chemin reseau host-owned est inactif, pour que la partie
+        /// solo hors-ligne dispose aussi d'une boucle de test chute/respawn -- jamais les deux a la
+        /// fois sur le meme joueur.
+        /// </summary>
+        private static void AttachLocalVoidRespawnController(GameObject localPlayer, RunCheckpointHudScreen checkpointHud)
+        {
+            var manager = NetworkManager.Singleton;
+            var isNetworked = manager != null && manager.IsListening;
+            if (localPlayer == null || isNetworked)
+            {
+                return;
+            }
+
+            var controller = localPlayer.GetComponent<LocalVoidRespawnController>();
+            if (controller == null)
+            {
+                controller = localPlayer.AddComponent<LocalVoidRespawnController>();
+            }
+
+            controller.CheckpointHud = checkpointHud;
         }
 
         private static void DisableVisualColliders(GameObject visual)

@@ -35,6 +35,8 @@ namespace RoadRage.App.Run
 
         private readonly HashSet<ulong> spawnedClients = new HashSet<ulong>();
 
+        private readonly Dictionary<ulong, NetworkedPlayerState> spawnedStates = new Dictionary<ulong, NetworkedPlayerState>();
+
         private GameObject playerRootPrefab;
 
         private bool isActiveHost;
@@ -160,9 +162,20 @@ namespace RoadRage.App.Run
             state.YawDegrees.Value = spawnRotation.eulerAngles.y;
 
             spawnedClients.Add(clientId);
+            spawnedStates[clientId] = state;
 
             var label = isLateJoin ? "[Run] Spawn reseau tardif" : "[Run] Spawn reseau";
             Debug.Log(label + " : client " + clientId + " -> " + character.RawId);
+        }
+
+        /// <summary>
+        /// Resout l'etat reseau spawn pour un client, sans dupliquer le tracking de spawn existant.
+        /// Utilise par NetworkedPlayerLifecycleService (Story 2.7) pour appliquer les transitions de
+        /// cycle de vie sans que ce service reconstruise sa propre table de resolution clientId -> etat.
+        /// </summary>
+        public bool TryGetState(ulong clientId, out NetworkedPlayerState state)
+        {
+            return spawnedStates.TryGetValue(clientId, out state);
         }
 
         private Vector3 ResolveSpawnPosition(Transform spawnPoint)

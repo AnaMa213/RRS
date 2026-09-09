@@ -29,6 +29,7 @@ namespace RoadRage.App.Run
 
             wasClientOnlySession = manager.IsClient && !manager.IsServer;
             manager.OnClientDisconnectCallback += HandleClientDisconnected;
+            manager.OnTransportFailure += HandleTransportFailure;
         }
 
         private void OnDestroy()
@@ -37,6 +38,7 @@ namespace RoadRage.App.Run
             if (manager != null)
             {
                 manager.OnClientDisconnectCallback -= HandleClientDisconnected;
+                manager.OnTransportFailure -= HandleTransportFailure;
             }
         }
 
@@ -51,10 +53,32 @@ namespace RoadRage.App.Run
             StartCoroutine(ReturnClientToLobby(manager));
         }
 
+        private void HandleTransportFailure()
+        {
+            var manager = NetworkManager.Singleton;
+            if (manager == null || !ShouldReturnClientToLobbyOnTransportFailure(isReturningToLobby))
+            {
+                return;
+            }
+
+            StartCoroutine(ReturnClientToLobby(manager));
+        }
+
         public static bool ShouldReturnClientToLobby(bool wasClientOnlySession, ulong disconnectedClientId, ulong localClientId)
         {
             return wasClientOnlySession
                 && (disconnectedClientId == NetworkManager.ServerClientId || disconnectedClientId == localClientId);
+        }
+
+        /// <summary>
+        /// Voie de declenchement transport-failure (Story 2.7) : contrairement a
+        /// ShouldReturnClientToLobby, elle ne depend pas de wasClientOnlySession -- une panne de
+        /// transport ramene au lobby que la session locale soit hote ou client, seul un retour deja
+        /// en cours l'empeche de se redeclencher.
+        /// </summary>
+        public static bool ShouldReturnClientToLobbyOnTransportFailure(bool isReturningToLobby)
+        {
+            return !isReturningToLobby;
         }
 
         private IEnumerator ReturnClientToLobby(NetworkManager manager)

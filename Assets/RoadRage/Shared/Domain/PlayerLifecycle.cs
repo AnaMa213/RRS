@@ -4,6 +4,7 @@ namespace RoadRage.Shared.Domain
     {
         Alive = 0,
         Downed = 1,
-        Dead = 2
+        Dead = 2,
+        Disconnected = 3
     }
 }
