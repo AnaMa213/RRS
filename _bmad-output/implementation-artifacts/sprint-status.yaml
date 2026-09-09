@@ -70,7 +70,7 @@ development_status:
   3-1-shared-player-car-prefab-and-vehicle-module-boundary: review
   3-2-driver-control-and-local-vehicle-camera: review
   3-3-seat-entry-exit-and-passenger-presence: review
-  3-4-simple-route-collision-and-vehicle-recovery: backlog
+  3-4-simple-route-collision-and-vehicle-recovery: review
   3-5-vehicle-damage-hook-and-team-wipe-contract-stub: backlog
   3-6-epic-3-driving-playable-checkpoint: backlog
   epic-3-retrospective: optional

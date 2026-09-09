@@ -24,6 +24,10 @@ namespace RoadRage.Features.UI
 
         public const string DeathOverlayText = "TU ES MORT";
 
+        public const string VehicleCollisionMessage = "Collision !";
+
+        public const string VehicleRecoveredMessage = "Vehicule recupere.";
+
         private const string PlaceholderValue = "-";
 
         private const char FilledHeartGlyph = '♥';
@@ -114,6 +118,21 @@ namespace RoadRage.Features.UI
         public void ShowVehicleSeatMessage(string message)
         {
             SetText(futureHudLabel, "Vehicule : " + SafeText(message));
+        }
+
+        /// <summary>
+        /// Retour visuel minimal (Story 3.4) sur collision route/decor -- reutilise le meme label que
+        /// le siege (pas de nouvelle UI durable), la session reseau/solo n'est jamais interrompue.
+        /// </summary>
+        public void ShowVehicleCollisionMessage()
+        {
+            ShowVehicleSeatMessage(VehicleCollisionMessage);
+        }
+
+        /// <summary>Retour visuel minimal (Story 3.4) apres une recuperation (auto ou manuelle), host ou solo.</summary>
+        public void ShowVehicleRecoveredMessage()
+        {
+            ShowVehicleSeatMessage(VehicleRecoveredMessage);
         }
 
         /// <summary>

@@ -1,4 +1,6 @@
+using System;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -16,6 +18,11 @@ namespace RoadRage.Features.Vehicles
     /// NetworkedPlayerPresentation.SubmitLocalPose/SubmitPoseRpc (Story 2.5) et
     /// NetworkedPlayerLifecycleIntent.RequestRespawn/RequestRespawnRpc (Story 2.7), necessaire ici
     /// aussi car le NetworkObject de la voiture reste host-owned.
+    /// Story 3.4 ajoute la detection retournement/hors-zone et la recuperation vehicule : toujours
+    /// calculees et appliquees cote host (ou cote solo via <see cref="localSoloDriverActive"/>, meme
+    /// garde d'autorite que le reste du fichier), jamais cote client reseau. Les collisions et
+    /// recuperations sont exposees en evenements C# purs (aucune reference UI ici) pour rester
+    /// consommables uniquement depuis App/Run, conformement a la frontiere du module Vehicules.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
@@ -66,17 +73,44 @@ namespace RoadRage.Features.Vehicles
         [SerializeField]
         private Vector3 centerOfMassOffset = new Vector3(0f, -0.35f, 0f);
 
+        [SerializeField]
+        [Range(-1f, 1f)]
+        private float rolloverUprightDotThreshold = 0.35f;
+
+        [SerializeField]
+        [Min(0f)]
+        private float rolloverSustainedSeconds = 2f;
+
+        [SerializeField]
+        private float voidHeightThreshold = -10f;
+
+        [SerializeField]
+        [Tooltip("Repere de scene fixe (par scene) vers lequel la voiture est repositionnee lors d'une recuperation. Si absent, la position initiale du vehicule au demarrage sert de repli (ex. Dev_VehicleSandbox).")]
+        private Transform recoveryPoint;
+
         private NetworkedVehicleState state;
         private Rigidbody body;
+        private NetworkTransform networkTransform;
         private VehicleDriveIntent latestIntent = VehicleDriveIntent.Idle;
         private bool localSoloDriverActive;
+        private float rolloverElapsedSeconds;
+        private Vector3 fallbackRecoveryPosition;
+        private Quaternion fallbackRecoveryRotation;
+        private bool fallbackRecoveryCaptured;
 
         private const float InputEpsilon = 0.0001f;
         private const float DirectionEpsilon = 0.05f;
 
+        /// <summary>Collision route/decor (Story 3.4) -- retour visuel minimal cote App/Run, session jamais interrompue.</summary>
+        public event Action VehicleCollided;
+
+        /// <summary>Recuperation appliquee (auto retournement/vide ou manuelle) -- meme evenement pour host et solo.</summary>
+        public event Action VehicleRecovered;
+
         private void Awake()
         {
             CacheComponents();
+            CaptureFallbackRecoveryPose();
         }
 
         public override void OnNetworkSpawn()
@@ -126,12 +160,163 @@ namespace RoadRage.Features.Vehicles
                 return;
             }
 
+            UpdateRecoveryDetection(Time.fixedDeltaTime);
+
             if (!localSoloDriverActive && state.DriverClientId.Value == NetworkedVehicleState.UnclaimedDriverClientId)
             {
                 return;
             }
 
             ApplyPhysics(latestIntent);
+        }
+
+        /// <summary>
+        /// Detection host/solo-only (Story 3.4) : retournement soutenu N secondes (meme esprit anti-
+        /// faux-positif que ApplyStabilityAssist) et sortie de zone via le meme motif de seuil de vide
+        /// que LocalVoidRespawnController/NetworkedPlayerLifecycleService, applique ici a la position
+        /// du vehicule plutot qu'au joueur.
+        /// </summary>
+        private void UpdateRecoveryDetection(float fixedDeltaTime)
+        {
+            if (IsBelowVoidHeightThreshold(transform.position.y, voidHeightThreshold))
+            {
+                RecoverAtRecoveryPoint();
+                return;
+            }
+
+            if (IsRolledOver(transform.up, rolloverUprightDotThreshold))
+            {
+                rolloverElapsedSeconds += fixedDeltaTime;
+                if (rolloverElapsedSeconds >= rolloverSustainedSeconds)
+                {
+                    RecoverAtRecoveryPoint();
+                }
+            }
+            else
+            {
+                rolloverElapsedSeconds = 0f;
+            }
+        }
+
+        /// <summary>
+        /// Meme predicat pur que LocalVoidRespawnController.IsBelowVoidHeightThreshold /
+        /// NetworkedPlayerLifecycleService.IsBelowVoidHeightThreshold, applique ici a la position du
+        /// vehicule (sortie de zone jouable).
+        /// </summary>
+        public static bool IsBelowVoidHeightThreshold(float positionY, float voidHeightThreshold)
+        {
+            return positionY < voidHeightThreshold;
+        }
+
+        /// <summary>Predicat pur de retournement : vrai quand l'axe haut du vehicule s'ecarte trop de la verticale.</summary>
+        public static bool IsRolledOver(Vector3 up, float uprightDotThreshold)
+        {
+            return Vector3.Dot(up, Vector3.up) < uprightDotThreshold;
+        }
+
+        /// <summary>
+        /// Point d'entree unique de la recuperation manuelle (RPC reseau validee ou touche solo) et
+        /// automatique (retournement/vide) : resout le repere de scene assigne, sinon retombe sur la
+        /// position/rotation initiale du vehicule capturee au demarrage (scenes sans repere explicite,
+        /// ex. Dev_VehicleSandbox), puis delegue a <see cref="RecoverVehicle"/>.
+        /// </summary>
+        public void RecoverAtRecoveryPoint()
+        {
+            if (recoveryPoint != null)
+            {
+                RecoverVehicle(recoveryPoint.position, recoveryPoint.rotation);
+                return;
+            }
+
+            CaptureFallbackRecoveryPose();
+            RecoverVehicle(fallbackRecoveryPosition, fallbackRecoveryRotation);
+        }
+
+        /// <summary>
+        /// Capture (une seule fois) la pose de depart du vehicule pour servir de repli de
+        /// recuperation quand aucun <see cref="recoveryPoint"/> de scene n'est assigne.
+        /// </summary>
+        private void CaptureFallbackRecoveryPose()
+        {
+            if (fallbackRecoveryCaptured)
+            {
+                return;
+            }
+
+            fallbackRecoveryPosition = transform.position;
+            fallbackRecoveryRotation = transform.rotation;
+            fallbackRecoveryCaptured = true;
+        }
+
+        /// <summary>
+        /// Reinitialise position/rotation/vitesse/vitesse angulaire du Rigidbody host-authoritative
+        /// (ou solo). Toujours calcule et applique cote host/solo uniquement, jamais depuis un client
+        /// reseau -- meme garde d'autorite que le reste du fichier.
+        /// </summary>
+        public void RecoverVehicle(Vector3 position, Quaternion rotation)
+        {
+            if ((!IsServer && !localSoloDriverActive) || body == null)
+            {
+                return;
+            }
+
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+            body.position = position;
+            body.rotation = rotation;
+            transform.SetPositionAndRotation(position, rotation);
+            rolloverElapsedSeconds = 0f;
+
+            if (networkTransform != null)
+            {
+                // Snap immediately on every observer instead of letting NetworkTransform's
+                // interpolation glide the car across the map back to the recovery point.
+                networkTransform.Teleport(position, rotation, transform.localScale);
+            }
+
+            VehicleRecovered?.Invoke();
+            NotifyClientsIfNetworked(NotifyVehicleRecoveredRpc);
+        }
+
+        /// <summary>
+        /// Retour visuel minimal (Story 3.4) : ne jamais interrompre la session (pas d'exception, pas
+        /// de freeze physique), juste exposer un evenement C# consomme cote App/Run pour le HUD.
+        /// </summary>
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (!IsServer && !localSoloDriverActive)
+            {
+                return;
+            }
+
+            VehicleCollided?.Invoke();
+            NotifyClientsIfNetworked(NotifyVehicleCollidedRpc);
+        }
+
+        /// <summary>
+        /// VehicleCollided/VehicleRecovered ne sont leves que localement (host ou solo) : sans relais,
+        /// seul l'ecran du host afficherait le retour HUD. En session reseau, on notifie aussi chaque
+        /// client pour qu'il releve le meme evenement C# local -- jamais l'inverse (aucune reference
+        /// UI ici, la frontiere du module Vehicules reste intacte).
+        /// </summary>
+        private void NotifyClientsIfNetworked(Action rpcInvoker)
+        {
+            if (IsServer && IsSpawned)
+            {
+                rpcInvoker();
+            }
+        }
+
+        [Rpc(SendTo.NotServer)]
+        private void NotifyVehicleCollidedRpc()
+        {
+            VehicleCollided?.Invoke();
+        }
+
+        [Rpc(SendTo.NotServer)]
+        private void NotifyVehicleRecoveredRpc()
+        {
+            VehicleRecovered?.Invoke();
         }
 
         private void SubmitDriveIntent(VehicleDriveIntent intent, ulong localClientId)
@@ -351,6 +536,11 @@ namespace RoadRage.Features.Vehicles
             if (body == null)
             {
                 body = GetComponent<Rigidbody>();
+            }
+
+            if (networkTransform == null)
+            {
+                networkTransform = GetComponent<NetworkTransform>();
             }
         }
     }

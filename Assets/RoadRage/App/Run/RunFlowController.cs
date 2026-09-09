@@ -57,6 +57,8 @@ namespace RoadRage.App.Run
 
         private bool networkHudBridgeActive;
 
+        private NetworkedVehicleDriverController subscribedVehicleDriverController;
+
         public GameObject ActiveLocalPlayer
         {
             get { return activeLocalPlayer; }
@@ -88,9 +90,11 @@ namespace RoadRage.App.Run
         private void Update()
         {
             HandleLocalSoloVehicleInteraction();
+            HandleLocalSoloVehicleRecoveryInteraction();
             RefreshLocalSoloDeathRecovery();
             ResolveLocalNetworkedPlayerStateIfNeeded();
             SynchronizeLocalSeatedPose();
+            EnsureVehicleEventBridge();
         }
 
         private void ResolveLocalNetworkedPlayerStateIfNeeded()
@@ -128,6 +132,7 @@ namespace RoadRage.App.Run
             }
 
             UnsubscribeFromLocalNetworkedPlayerState();
+            UnsubscribeFromVehicleEvents();
         }
 
         public bool TrySpawnSelectedProfile(out string error)
@@ -242,6 +247,59 @@ namespace RoadRage.App.Run
             }
 
             checkpointHud.SetPlayerCount(ResolveConnectedPlayerCount());
+        }
+
+        /// <summary>
+        /// Relais evenement C# -> HUD (Story 3.4) : la voiture partagee est un objet unique de scene
+        /// (host ou solo), retrouve paresseusement comme TryResolveNearestLocalSoloVehicle, puis
+        /// abonne une seule fois. Fonctionne identiquement en reseau (evenements leves cote host) et
+        /// en solo (evenements leves cote controleur local) -- RunFlowController ne fait ici que
+        /// consommer l'evenement C# expose par le module Vehicules, jamais l'inverse.
+        /// </summary>
+        private void EnsureVehicleEventBridge()
+        {
+            if (subscribedVehicleDriverController != null)
+            {
+                return;
+            }
+
+            var driverController = FindAnyObjectByType<NetworkedVehicleDriverController>();
+            if (driverController == null)
+            {
+                return;
+            }
+
+            driverController.VehicleCollided += HandleVehicleCollided;
+            driverController.VehicleRecovered += HandleVehicleRecovered;
+            subscribedVehicleDriverController = driverController;
+        }
+
+        private void UnsubscribeFromVehicleEvents()
+        {
+            if (subscribedVehicleDriverController == null)
+            {
+                return;
+            }
+
+            subscribedVehicleDriverController.VehicleCollided -= HandleVehicleCollided;
+            subscribedVehicleDriverController.VehicleRecovered -= HandleVehicleRecovered;
+            subscribedVehicleDriverController = null;
+        }
+
+        private void HandleVehicleCollided()
+        {
+            if (checkpointHud != null)
+            {
+                checkpointHud.ShowVehicleCollisionMessage();
+            }
+        }
+
+        private void HandleVehicleRecovered()
+        {
+            if (checkpointHud != null)
+            {
+                checkpointHud.ShowVehicleRecoveredMessage();
+            }
         }
 
         private static int ResolveConnectedPlayerCount()
@@ -412,6 +470,30 @@ namespace RoadRage.App.Run
 
             var preferPassenger = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
             TryEnterLocalSoloVehicle(preferPassenger);
+        }
+
+        /// <summary>
+        /// Recuperation manuelle "coince" (Story 3.4) en solo hors-ligne : meme controleur local que
+        /// le chemin reseau, applique directement sans passer par une Rpc (matrice I/O "Solo hors-
+        /// ligne"). Reserve au conducteur du siege 0, comme la recuperation manuelle en reseau.
+        /// </summary>
+        private void HandleLocalSoloVehicleRecoveryInteraction()
+        {
+            if (IsNetworkSessionActive() || !localSoloVehicleSeated || !IsDriverSeat(localSoloSeatIndex))
+            {
+                return;
+            }
+
+            var keyboard = Keyboard.current;
+            if (keyboard == null || !keyboard.rKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            if (TryResolveCurrentLocalSoloVehicle(out _, out var driverController, out _) && driverController != null)
+            {
+                driverController.RecoverAtRecoveryPoint();
+            }
         }
 
         private void TryEnterLocalSoloVehicle(bool preferPassenger)
