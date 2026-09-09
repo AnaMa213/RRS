@@ -159,6 +159,15 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void FacepunchSteamPlatformInitDoesNotReinitializeExistingClient()
+        {
+            var source = File.ReadAllText("Assets/RoadRage/Features/Online/FacepunchSteamPlatform.cs");
+
+            Assert.That(source, Does.Contain("if (SteamClient.IsValid)"));
+            Assert.That(source.IndexOf("SteamClient.IsValid", StringComparison.Ordinal), Is.LessThan(source.IndexOf("SteamClient.Init", StringComparison.Ordinal)));
+        }
+
+        [Test]
         public void RoadRageSourceNeverHardcodesServiceCredentials()
         {
             var suspiciousMarkers = new[] { "SteamAPIKey", "WebApiKey", "PublisherKey", "ClientSecret", "client_secret", "SetAPIKey" };

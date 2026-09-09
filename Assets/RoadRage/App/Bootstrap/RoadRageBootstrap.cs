@@ -119,24 +119,54 @@ namespace RoadRage.App
         /// </summary>
         public static void EnsureNetworkManager()
         {
-            if (NetworkManager.Singleton != null)
+            var manager = NetworkManager.Singleton;
+            if (manager == null)
             {
-                return;
+                var networkManagerObject = new GameObject("RoadRageNetworkManager");
+                networkManagerObject.AddComponent<FacepunchTransport>();
+                manager = networkManagerObject.AddComponent<NetworkManager>();
+                if (NetworkManager.Singleton == null)
+                {
+                    manager.SetSingleton();
+                }
             }
 
-            var networkManagerObject = new GameObject("RoadRageNetworkManager");
-            var transport = networkManagerObject.AddComponent<FacepunchTransport>();
-            var manager = networkManagerObject.AddComponent<NetworkManager>();
+            ConfigureNetworkManager(manager);
+        }
+
+        private static void ConfigureNetworkManager(NetworkManager manager)
+        {
+            if (manager.NetworkConfig == null)
+            {
+                manager.NetworkConfig = new NetworkConfig();
+            }
+
+            var transport = manager.NetworkConfig.NetworkTransport as FacepunchTransport;
+            if (transport == null)
+            {
+                transport = manager.GetComponent<FacepunchTransport>();
+                if (transport == null)
+                {
+                    transport = manager.gameObject.AddComponent<FacepunchTransport>();
+                }
+            }
 
             manager.NetworkConfig.NetworkTransport = transport;
             manager.NetworkConfig.ConnectionApproval = true;
             manager.NetworkConfig.EnableSceneManagement = true;
             manager.NetworkConfig.PlayerPrefab = null;
+            if (manager.NetworkConfig.Prefabs == null)
+            {
+                manager.NetworkConfig.Prefabs = new NetworkPrefabs();
+            }
 
             var playerRootPrefab = Resources.Load<GameObject>(NetworkedPlayerSpawnService.PlayerRootResourceName);
             if (playerRootPrefab != null)
             {
-                manager.AddNetworkPrefab(playerRootPrefab);
+                if (!manager.NetworkConfig.Prefabs.Contains(playerRootPrefab))
+                {
+                    manager.AddNetworkPrefab(playerRootPrefab);
+                }
             }
             else
             {

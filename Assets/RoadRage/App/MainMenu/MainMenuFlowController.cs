@@ -32,6 +32,11 @@ namespace RoadRage.App.MainMenu
             if (bootstrap != null && bootstrap.Notices != null)
             {
                 bootstrap.Notices.NoticePublished += screen.ShowNotice;
+
+                if (bootstrap.Notices.LastNotice.HasValue)
+                {
+                    screen.ShowNotice(bootstrap.Notices.LastNotice.Value);
+                }
             }
         }
 

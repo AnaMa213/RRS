@@ -19,7 +19,8 @@
         "UnityEditor.TestRunner",
         "UnityEngine.UI",
         "Unity.TextMeshPro",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Collections"
     ],
     "includePlatforms": [
         "Editor"

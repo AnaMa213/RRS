@@ -12,6 +12,10 @@ namespace RoadRage.Features.UI
     {
         public const string LocalLobbyState = "Lobby : local hors ligne";
 
+        public const string NetworkHostLobbyState = "Lobby : en ligne (hote)";
+
+        public const string NetworkClientLobbyState = "Lobby : en ligne (client)";
+
         public const string AwaitingPlayerState = "Joueur : aucun profil confirme";
 
         public const string FutureHudState = "HUD futur : rage, argent, actions passager";
@@ -39,7 +43,12 @@ namespace RoadRage.Features.UI
 
         public void ShowLocalRunState(string playerName, string characterName)
         {
-            SetText(lobbyStateLabel, LocalLobbyState);
+            ShowRunState(LocalLobbyState, playerName, characterName);
+        }
+
+        public void ShowRunState(string lobbyState, string playerName, string characterName)
+        {
+            SetText(lobbyStateLabel, SafeText(lobbyState));
             SetText(playerStateLabel, "Joueur : " + SafeText(playerName) + " / " + SafeText(characterName));
             SetText(futureHudLabel, FutureHudState);
         }

@@ -21,6 +21,11 @@ namespace RoadRage.Features.Online
 
         public void Init(uint appId)
         {
+            if (SteamClient.IsValid)
+            {
+                return;
+            }
+
             SteamClient.Init(appId, false);
         }
 

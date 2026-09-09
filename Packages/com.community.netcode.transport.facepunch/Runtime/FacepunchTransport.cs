@@ -17,6 +17,7 @@ namespace Netcode.Transports.Facepunch
         private SocketManager socketManager;
         private Dictionary<ulong, Client> connectedClients;
         private bool m_SteamInitialized;
+        private bool m_OwnsSteamClient;
 
         [Space]
         [Tooltip("The Steam App ID of your game. Technically you're not allowed to use 480, but Valve doesn't do anything about it so it's fine for testing purposes.")]
@@ -42,9 +43,14 @@ namespace Netcode.Transports.Facepunch
 
         protected override void OnEarlyUpdate()
         {
+            if (!SteamClient.IsValid)
+            {
+                return;
+            }
+
             SteamClient.RunCallbacks();
 
-            if (!m_SteamInitialized && SteamClient.IsValid)
+            if (!m_SteamInitialized)
             {
                 m_SteamInitialized = true;
                 SteamNetworkingUtils.InitRelayNetworkAccess();
@@ -93,15 +99,27 @@ namespace Netcode.Transports.Facepunch
         public override void Initialize(NetworkManager networkManager = null)
         {
             connectedClients = new Dictionary<ulong, Client>();
+            m_OwnsSteamClient = false;
+
+            if (SteamClient.IsValid)
+            {
+                return;
+            }
 
             try
             {
                 SteamClient.Init(steamAppId, false);
+                m_OwnsSteamClient = true;
             }
             catch (Exception e)
             {
+                if (SteamClient.IsValid)
+                {
+                    return;
+                }
+
                 if (LogLevel <= LogLevel.Error)
-                    Debug.LogError($"[{nameof(FacepunchTransport)}] - Caught an exeption during initialization of Steam client: {e}");
+                    Debug.LogError($"[{nameof(FacepunchTransport)}] - Caught an exception during initialization of Steam client: {e}");
             }
         }
 
@@ -127,7 +145,18 @@ namespace Netcode.Transports.Facepunch
 
                 connectionManager?.Close();
                 socketManager?.Close();
-                SteamClient.Shutdown();
+                connectionManager = null;
+                socketManager = null;
+                connectedClients?.Clear();
+
+                if (m_OwnsSteamClient && SteamClient.IsValid)
+                {
+                    SteamClient.Shutdown();
+                }
+
+                m_OwnsSteamClient = false;
+                m_SteamInitialized = false;
+                userSteamId = 0;
             }
             catch (Exception e)
             {

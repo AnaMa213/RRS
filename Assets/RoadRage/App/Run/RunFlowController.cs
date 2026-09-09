@@ -3,6 +3,7 @@ using RoadRage.Features.Players;
 using RoadRage.Features.Run;
 using RoadRage.Features.UI;
 using RoadRage.Shared.Presentation;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace RoadRage.App.Run
@@ -40,6 +41,8 @@ namespace RoadRage.App.Run
 
         private void Start()
         {
+            EnsureNetworkSessionMonitor();
+
             if (checkpointHud != null)
             {
                 checkpointHud.ShowAwaitingProfile();
@@ -113,15 +116,44 @@ namespace RoadRage.App.Run
 
             var onFootController = activeLocalPlayer.AddComponent<LocalOnFootController>();
             onFootController.AttachCamera(playerCamera);
+            AttachNetworkPoseReporter(activeLocalPlayer);
 
             if (checkpointHud != null)
             {
-                checkpointHud.ShowLocalRunState(bootstrap.Profiles.Current.DisplayName, character.DisplayName);
+                checkpointHud.ShowRunState(ResolveLobbyState(), bootstrap.Profiles.Current.DisplayName, character.DisplayName);
             }
 
             Debug.Log("[Run] Joueur local spawn : " + bootstrap.Profiles.Current.DisplayName + " / " + character.Id);
             error = string.Empty;
             return true;
+        }
+
+        private void EnsureNetworkSessionMonitor()
+        {
+            var manager = NetworkManager.Singleton;
+            if (manager == null || !manager.IsListening)
+            {
+                return;
+            }
+
+            if (GetComponent<NetworkedRunSessionMonitor>() == null)
+            {
+                gameObject.AddComponent<NetworkedRunSessionMonitor>();
+            }
+        }
+
+        private static void AttachNetworkPoseReporter(GameObject localPlayer)
+        {
+            var manager = NetworkManager.Singleton;
+            if (localPlayer == null || manager == null || !manager.IsListening || !manager.IsClient)
+            {
+                return;
+            }
+
+            if (localPlayer.GetComponent<NetworkedLocalPlayerPoseReporter>() == null)
+            {
+                localPlayer.AddComponent<NetworkedLocalPlayerPoseReporter>();
+            }
         }
 
         private static void DisableVisualColliders(GameObject visual)
@@ -140,6 +172,22 @@ namespace RoadRage.App.Run
             {
                 bootstrap.Notices.Publish(new UserNotice(UserNoticeSeverity.Warning, message));
             }
+        }
+
+        private static string ResolveLobbyState()
+        {
+            var manager = NetworkManager.Singleton;
+            if (manager == null || !manager.IsListening)
+            {
+                return RunCheckpointHudScreen.LocalLobbyState;
+            }
+
+            if (manager.IsHost || manager.IsServer)
+            {
+                return RunCheckpointHudScreen.NetworkHostLobbyState;
+            }
+
+            return RunCheckpointHudScreen.NetworkClientLobbyState;
         }
     }
 }

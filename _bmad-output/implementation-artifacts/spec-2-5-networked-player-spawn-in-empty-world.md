@@ -4,17 +4,34 @@ type: 'feature'
 created: '2026-09-08'
 status: 'done'
 route: 'one-shot'
+baseline_commit: '35632df1c02b0e14d6cd9293e58d6e1bdcf9060b'
 ---
 
 # Story 2.5 - Spawn reseau des joueurs dans le monde vide
 
 ## Intent
 
-**Problem:** Depuis la Story 2.4, Start Game se contentait de charger localement `MVP_Run` (`SceneManager.LoadScene`), sans jamais demarrer Netcode : aucun joueur connecte ne recevait d'objet reseau, et la session en ligne restait une coquille sans etat partage.
+**Problem:** Depuis la Story 2.4, Start Game chargeait `MVP_Run` sans demarrer Netcode ; apres le premier correctif 2.5, les joueurs avaient un etat reseau mais pas encore de presence visible fiable, et un client pouvait rester bloque en run si l'hote quittait.
 
-**Approach:** `LobbyFlowController.HandleStartGameRequested` demarre desormais reellement la session Steamworks Networking Sockets quand une room hote est ouverte ou rejointe (StartHost + `NetworkManager.SceneManager.LoadScene` pour un chargement synchronise cote hote, StartClient avec le SteamId de l'hote cote invite), en publiant le profil local (nom + personnage) comme donnees de connexion NGO decodees par un callback d'approbation. Le `NetworkManager` + transport Facepunch sont construits en code, de facon paresseuse (jamais au bootstrap, uniquement juste avant StartHost/StartClient) pour ne jamais faire tourner Steamworks en arriere-plan hors session reseau. Dans `MVP_Run`, un nouveau `NetworkedPlayerSpawnService` host-only spawn un `NetworkedPlayerRoot` (host-owned, `NetworkedPlayerState` server-write) par client connecte -- balayage initial des clients deja connectes puis `OnClientConnectedCallback` pour les arrivees tardives -- avec repli sur le premier personnage du catalogue et retour logge + visible (HUD) en cas de profil manquant, personnage introuvable ou doublon de spawn. Le jeu solo local (Story 1.5, sans room) reste inchange, sans Netcode.
+**Approach:** Story 2.5 couvre maintenant le minimum jouable de session en ligne vide : StartHost/StartClient reels, spawn host-owned d'un `NetworkedPlayerRoot` par client, avatar greybox visible pour les autres joueurs, pose locale relayee au host puis repliquee en lecture client, et retour automatique au `MainMenuLobby` avec erreur visible quand le client perd l'hote. Le jeu solo local reste inchange, sans Netcode.
 
-**Limite connue, non couverte par cette story :** aucune replication visuelle/position des avatars entre joueurs (pas de `NetworkTransform`) -- chaque client ne voit que son propre avatar local (`RunFlowController`, inchange) ; seul le `NetworkedPlayerState` host-owned est reellement reseau. Base suffisante pour les Stories 2.6 (HUD) et 2.7 (cycle de vie), qui ne lisent que cet etat. La verification multijoueur reelle (deux clients Steam distants) reste manuelle, prevue au checkpoint Story 2.8.
+## Boundaries & Constraints
+
+**Always:** garder les NetworkObjects gameplay host-owned et les NetworkVariables server-write ; les clients ne soumettent que leur pose locale via RPC valide par le host ; la camera et l'input restent locaux ; les prefabs visuels reutilisent les `CharacterDef.PreviewPrefab` existants.
+
+**Ask First:** remplacer les prefabs greybox, ajouter host migration, adopter un autre transport, ou transformer le mouvement on-foot local en controle reseau complet.
+
+**Never:** ne pas synchroniser la camera ; ne pas donner l'autorite gameplay aux clients ; ne pas ajouter de conduite, de siege, d'action passager, de mort/revive complet ou de restart de run dans cette story.
+
+## I/O & Edge-Case Matrix
+
+| Scenario | Input / State | Expected Output / Behavior | Error Handling |
+|----------|---------------|----------------------------|----------------|
+| Host starts online run | Room hote ouverte, roster pret, profil valide | `StartHost` demarre, `MVP_Run` charge via scene Netcode, le host spawne un `NetworkedPlayerRoot` pour chaque client connecte | Echec StartHost/SceneManager publie `NetworkStartFailedMessage` |
+| Client starts joined run | Room rejointe, owner SteamId connu, profil valide | `StartClient` cible l'hote, recoit `MVP_Run`, et obtient son `NetworkedPlayerRoot` | Transport/owner manquant publie `NetworkStartFailedMessage` |
+| Remote player visible | `NetworkedPlayerState` contient client id, personnage et pose | Chaque client cache son propre proxy reseau local et voit les autres joueurs avec le greybox du personnage, colliders visuels desactives | Personnage absent replie sur le premier catalogue et logge un avertissement |
+| Local pose changes | Le joueur local bouge dans `MVP_Run` en session reseau | Un reporter local envoie position/yaw au proxy correspondant ; le host valide le client emetteur et replique la pose aux autres | Pose ignoree si aucun proxy ne correspond au `LocalClientId` |
+| Host lost | Client pur dans `MVP_Run`, hote quitte ou session perdue | Le client shutdown Netcode, retourne a `MainMenuLobby`, et voit une notice d'erreur host perdu | Host migration explicitement differee |
 
 ## Suggested Review Order
 
@@ -45,6 +62,25 @@ route: 'one-shot'
 - Spawn host-owned explicite (`Spawn()` sans clientId) : jamais `SpawnAsPlayerObject`.
   [`NetworkedPlayerSpawnService.cs:134`](../../Assets/RoadRage/App/Run/NetworkedPlayerSpawnService.cs#L134)
 
+**Presence visible et pose minimale**
+
+- `NetworkedPlayerState` doit porter `ClientId`, `CharacterId`, `WorldPosition` et `YawDegrees`, tous ecrits par le serveur.
+  [`NetworkedPlayerState.cs`](../../Assets/RoadRage/Features/Players/NetworkedPlayerState.cs)
+
+- Un composant de presentation sur `NetworkedPlayerRoot` instancie le prefab greybox du personnage pour les joueurs distants et applique la pose repliquee.
+  [`NetworkedPlayerPresentation.cs`](../../Assets/RoadRage/Features/Players/NetworkedPlayerPresentation.cs)
+
+- Le joueur local conserve son controller/camera local-only, mais ajoute un reporter de pose uniquement en session reseau.
+  [`RunFlowController.cs`](../../Assets/RoadRage/App/Run/RunFlowController.cs)
+
+**Perte hote**
+
+- Un moniteur de session dans `MVP_Run` ecoute les deconnexions Netcode et renvoie les clients purs vers `MainMenuLobby` si le serveur disparait.
+  [`NetworkedRunSessionMonitor.cs`](../../Assets/RoadRage/App/Run/NetworkedRunSessionMonitor.cs)
+
+- `MainMenuFlowController` rejoue la derniere notice persistante a l'ouverture pour que l'erreur de perte hote reste visible apres chargement de scene.
+  [`MainMenuFlowController.cs`](../../Assets/RoadRage/App/MainMenu/MainMenuFlowController.cs)
+
 **Etat reseau et payload**
 
 - `CharacterId` server-write ajoute a l'etat host-owned existant.
@@ -57,3 +93,29 @@ route: 'one-shot'
 
 - Roundtrip payload et depot ClientId -> profil, sans client Steam ni Netcode.
   [`Story25NetworkedPlayerSpawnTests.cs:1`](../../Assets/RoadRage/Tests/EditMode/Story25NetworkedPlayerSpawnTests.cs#L1)
+
+## Tasks & Acceptance
+
+**Execution:**
+- [x] `Assets/RoadRage/Features/Players/NetworkedPlayerState.cs` -- ajouter l'identite client et la pose minimale server-write -- permettre presentation et validation RPC.
+- [x] `Assets/RoadRage/Features/Players/NetworkedPlayerPresentation.cs` -- creer la presentation reseau distante et l'endpoint RPC de pose -- rendre les joueurs visibles sans donner l'autorite gameplay au client.
+- [x] `Assets/RoadRage/App/Run/NetworkedLocalPlayerPoseReporter.cs` et `RunFlowController.cs` -- brancher la pose du joueur local vers son proxy reseau -- synchroniser position/yaw avec les autres clients.
+- [x] `Assets/RoadRage/App/Run/NetworkedRunSessionMonitor.cs` et `MainMenuFlowController.cs` -- detecter la perte hote et rejouer l'erreur visible au retour lobby -- respecter NFR12 dans la Story 2.5.
+- [x] `Assets/RoadRage/Resources/NetworkedPlayerRoot.prefab` -- ajouter la presentation reseau avec le `CharacterCatalog` assigne -- garantir le rendu runtime sur host et clients.
+- [x] `Assets/RoadRage/Tests/EditMode/Story25NetworkedPlayerSpawnTests.cs` -- couvrir prefab visible, pose, RPC non-owner et host quit -- verrouiller les regressions constatees.
+
+**Acceptance Criteria:**
+- Given une session reseau dans `MVP_Run`, when deux joueurs sont connectes, then chaque machine voit le greybox de l'autre joueur et ne voit pas un doublon de son propre proxy reseau.
+- Given le joueur local bouge, when son reporter trouve le proxy `ClientId == LocalClientId`, then seule cette pose est acceptee par le host et repliquee aux autres.
+- Given un client pur perd le serveur, when Netcode notifie la deconnexion de `ServerClientId` ou du client local, then le client shutdown le reseau, revient a `MainMenuLobby`, et affiche une erreur visible.
+- Given une partie solo locale, when `MVP_Run` charge sans `NetworkManager` en ecoute, then le spawn local Story 1.5 reste inchange et aucun reporter/monitor reseau actif ne casse le run.
+
+## Spec Change Log
+
+- 2026-09-09 -- Recalibrage demande par Kenan : la limite "pas de visuel/position et pas de host quit" sort des limitations connues et entre dans la Story 2.5, tout en gardant host authority, input/camera local-only et host migration hors scope.
+
+## Verification
+
+**Commands:**
+- Tests EditMode Story 2.5 via Unity MCP -- attendu : compilation OK, tests cibles verts, console sans erreurs Netcode/Facepunch.
+- `git diff --check` -- attendu : aucune erreur whitespace.

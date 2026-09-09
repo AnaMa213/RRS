@@ -29,8 +29,23 @@ namespace RoadRage.Features.Players
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
 
+        public NetworkVariable<ulong> ClientId = new NetworkVariable<ulong>(
+            0UL,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
         public NetworkVariable<FixedString32Bytes> CharacterId = new NetworkVariable<FixedString32Bytes>(
             default,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<Vector3> WorldPosition = new NetworkVariable<Vector3>(
+            Vector3.zero,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<float> YawDegrees = new NetworkVariable<float>(
+            0f,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
     }

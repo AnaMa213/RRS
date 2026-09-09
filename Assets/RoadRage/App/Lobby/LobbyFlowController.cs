@@ -387,10 +387,24 @@ namespace RoadRage.App.Lobby
                 return;
             }
 
-            manager.ConnectionApprovalCallback = HandleConnectionApproval;
+            var networkConfig = manager.NetworkConfig;
+            if (networkConfig == null)
+            {
+                Debug.LogError("[Lobby] Start Game refuse : NetworkManager sans NetworkConfig.");
+                PublishUnavailable(NetworkStartFailedMessage);
+                return;
+            }
 
             var profile = bootstrap.Profiles.Current;
-            manager.NetworkConfig.ConnectionData = NetworkPlayerConnectionPayload.Encode(profile.DisplayName, profile.CharacterId.Value);
+            if (profile == null || profile.CharacterId.IsEmpty)
+            {
+                Debug.LogWarning("[Lobby] Start Game refuse : profil joueur incomplet.");
+                PublishUnavailable(MissingProfileStartGameMessage);
+                return;
+            }
+
+            manager.ConnectionApprovalCallback = HandleConnectionApproval;
+            networkConfig.ConnectionData = NetworkPlayerConnectionPayload.Encode(profile.DisplayName, profile.CharacterId.Value);
 
             if (asHost)
             {
@@ -402,11 +416,19 @@ namespace RoadRage.App.Lobby
                     return;
                 }
 
+                if (manager.SceneManager == null)
+                {
+                    Debug.LogError("[Lobby] Start Game refuse : SceneManager reseau indisponible apres StartHost().");
+                    manager.Shutdown();
+                    PublishUnavailable(NetworkStartFailedMessage);
+                    return;
+                }
+
                 manager.SceneManager.LoadScene(AppSceneRouter.MvpRunSceneName, LoadSceneMode.Single);
                 return;
             }
 
-            var transport = manager.NetworkConfig.NetworkTransport as FacepunchTransport;
+            var transport = networkConfig.NetworkTransport as FacepunchTransport;
             if (transport == null || lobbyRoster == null || lobbyRoster.Current.OwnerId == 0)
             {
                 Debug.LogError("[Lobby] Start Game refuse : impossible de determiner l'hote reseau a rejoindre.");

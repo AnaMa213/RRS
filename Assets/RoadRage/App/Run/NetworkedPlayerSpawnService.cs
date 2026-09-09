@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using RoadRage.Features.Players;
 using RoadRage.Features.Run;
@@ -57,6 +58,17 @@ namespace RoadRage.App.Run
             }
 
             manager.OnClientConnectedCallback += HandleClientConnected;
+            StartCoroutine(SpawnConnectedClientsAfterSceneProcessing(manager));
+        }
+
+        private IEnumerator SpawnConnectedClientsAfterSceneProcessing(NetworkManager manager)
+        {
+            yield return null;
+
+            if (!isActiveHost || manager == null || !manager.IsListening || !manager.IsServer)
+            {
+                yield break;
+            }
 
             foreach (var clientId in manager.ConnectedClientsIds)
             {
@@ -121,16 +133,18 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            var spawnPoint = compositionRoot == null ? null : compositionRoot.SpawnRoot;
-            instance.transform.SetPositionAndRotation(
-                spawnPoint == null ? Vector3.zero : spawnPoint.position,
-                spawnPoint == null ? Quaternion.identity : spawnPoint.rotation);
-
-            var runtimeRoot = compositionRoot == null ? null : compositionRoot.RuntimeRoot;
-            if (runtimeRoot != null)
+            var state = instance.GetComponent<NetworkedPlayerState>();
+            if (state == null)
             {
-                instance.transform.SetParent(runtimeRoot, true);
+                Destroy(instance);
+                LogAndShow("Spawn reseau echoue pour le client " + clientId + " : NetworkedPlayerRoot sans NetworkedPlayerState.", true);
+                return;
             }
+
+            var spawnPoint = compositionRoot == null ? null : compositionRoot.SpawnRoot;
+            var spawnPosition = ResolveSpawnPosition(spawnPoint);
+            var spawnRotation = spawnPoint == null ? Quaternion.identity : spawnPoint.rotation;
+            instance.transform.SetPositionAndRotation(spawnPosition, spawnRotation);
 
             instance.name = "NetworkedPlayer_" + clientId;
 
@@ -138,18 +152,31 @@ namespace RoadRage.App.Run
             // client-owned, conformement au contrat d'autorite reseau (NFR4/NFR6).
             networkObject.Spawn();
 
-            var state = instance.GetComponent<NetworkedPlayerState>();
-            if (state != null)
-            {
-                state.Mode.Value = PlayerMode.OnFoot;
-                state.Lifecycle.Value = PlayerLifecycle.Alive;
-                state.CharacterId.Value = character.RawId;
-            }
+            state.Mode.Value = PlayerMode.OnFoot;
+            state.Lifecycle.Value = PlayerLifecycle.Alive;
+            state.ClientId.Value = clientId;
+            state.CharacterId.Value = character.RawId;
+            state.WorldPosition.Value = spawnPosition;
+            state.YawDegrees.Value = spawnRotation.eulerAngles.y;
 
             spawnedClients.Add(clientId);
 
             var label = isLateJoin ? "[Run] Spawn reseau tardif" : "[Run] Spawn reseau";
             Debug.Log(label + " : client " + clientId + " -> " + character.RawId);
+        }
+
+        private Vector3 ResolveSpawnPosition(Transform spawnPoint)
+        {
+            if (spawnPoint == null)
+            {
+                return Vector3.zero;
+            }
+
+            var index = spawnedClients.Count;
+            var lateralSlot = index % 4;
+            var row = index / 4;
+            var offset = new Vector3((lateralSlot - 1.5f) * 1.2f, 0f, row * 1.2f);
+            return spawnPoint.TransformPoint(offset);
         }
 
         private void LogAndShow(string message, bool isWarning)
