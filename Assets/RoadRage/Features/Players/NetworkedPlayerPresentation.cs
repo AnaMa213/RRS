@@ -1,4 +1,5 @@
 using RoadRage.Shared.Definitions;
+using RoadRage.Shared.Domain;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -75,7 +76,7 @@ namespace RoadRage.Features.Players
                 return;
             }
 
-            if (IsRepresentingLocalClient())
+            if (IsRepresentingLocalClient() || IsVehicleSeatMode())
             {
                 ClearVisual();
                 return;
@@ -165,7 +166,7 @@ namespace RoadRage.Features.Players
                 return;
             }
 
-            if (IsRepresentingLocalClient())
+            if (IsRepresentingLocalClient() || IsVehicleSeatMode())
             {
                 ClearVisual();
                 return;
@@ -222,6 +223,11 @@ namespace RoadRage.Features.Players
         {
             var manager = NetworkManager.Singleton;
             return manager != null && manager.IsClient && state != null && state.ClientId.Value == manager.LocalClientId;
+        }
+
+        private bool IsVehicleSeatMode()
+        {
+            return state != null && (state.Mode.Value == PlayerMode.Driver || state.Mode.Value == PlayerMode.Passenger);
         }
 
         private void ClearVisual()

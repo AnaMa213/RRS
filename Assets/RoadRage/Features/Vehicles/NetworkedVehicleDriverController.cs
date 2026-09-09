@@ -5,11 +5,12 @@ using UnityEngine.InputSystem;
 namespace RoadRage.Features.Vehicles
 {
     /// <summary>
-    /// Story 3.2 : revendication de conducteur host-arbitree et controle de conduite arcade pour
-    /// la voiture partagee. Le Rigidbody n'est simule que sur le host (isKinematic = !IsServer,
+    /// Controle de conduite arcade pour la voiture partagee. Depuis Story 3.3, DriverClientId est
+    /// assigne par le service de sieges ; ce composant ne fait que consommer l'etat conducteur pour
+    /// envoyer/appliquer l'intention de conduite. Le Rigidbody n'est simule que sur le host (isKinematic = !IsServer,
     /// pose dans OnNetworkSpawn) ; sur les clients la position/rotation arrive via NetworkTransform
-    /// (autorite serveur, comportement par defaut NGO -- pas de sync maison ici). Le claim/release
-    /// et l'intention de conduite du client distant sont soumis au host via
+    /// (autorite serveur, comportement par defaut NGO -- pas de sync maison ici). L'intention de
+    /// conduite du client distant est soumise au host via
     /// Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone), valides contre
     /// rpcParams.Receive.SenderClientId -- meme patron que
     /// NetworkedPlayerPresentation.SubmitLocalPose/SubmitPoseRpc (Story 2.5) et
@@ -22,9 +23,6 @@ namespace RoadRage.Features.Vehicles
     [RequireComponent(typeof(Rigidbody))]
     public sealed class NetworkedVehicleDriverController : NetworkBehaviour
     {
-        [SerializeField]
-        private Key claimReleaseKey = Key.F;
-
         [SerializeField]
         [Min(0f)]
         private float maxForwardSpeed = 18f;
@@ -71,6 +69,7 @@ namespace RoadRage.Features.Vehicles
         private NetworkedVehicleState state;
         private Rigidbody body;
         private VehicleDriveIntent latestIntent = VehicleDriveIntent.Idle;
+        private bool localSoloDriverActive;
 
         private const float InputEpsilon = 0.0001f;
         private const float DirectionEpsilon = 0.05f;
@@ -93,6 +92,12 @@ namespace RoadRage.Features.Vehicles
 
         private void Update()
         {
+            if (localSoloDriverActive)
+            {
+                latestIntent = ReadLocalDriveIntent();
+                return;
+            }
+
             if (!IsSpawned || state == null)
             {
                 return;
@@ -106,8 +111,6 @@ namespace RoadRage.Features.Vehicles
 
             var localClientId = manager.LocalClientId;
 
-            HandleClaimReleaseInput(localClientId);
-
             if (state.DriverClientId.Value != localClientId)
             {
                 return;
@@ -118,104 +121,17 @@ namespace RoadRage.Features.Vehicles
 
         private void FixedUpdate()
         {
-            if (!IsServer || body == null || state == null)
+            if ((!IsServer && !localSoloDriverActive) || body == null || state == null)
             {
                 return;
             }
 
-            if (state.DriverClientId.Value == NetworkedVehicleState.UnclaimedDriverClientId)
+            if (!localSoloDriverActive && state.DriverClientId.Value == NetworkedVehicleState.UnclaimedDriverClientId)
             {
                 return;
             }
 
             ApplyPhysics(latestIntent);
-        }
-
-        private void HandleClaimReleaseInput(ulong localClientId)
-        {
-            var keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard[claimReleaseKey].wasPressedThisFrame)
-            {
-                return;
-            }
-
-            if (state.DriverClientId.Value == localClientId)
-            {
-                RequestRelease(localClientId);
-            }
-            else
-            {
-                RequestClaim(localClientId);
-            }
-        }
-
-        private void RequestClaim(ulong localClientId)
-        {
-            if (IsServer)
-            {
-                ApplyServerClaim(localClientId);
-                return;
-            }
-
-            RequestClaimDriverRpc();
-        }
-
-        private void RequestRelease(ulong localClientId)
-        {
-            if (IsServer)
-            {
-                ApplyServerRelease(localClientId);
-                return;
-            }
-
-            RequestReleaseDriverRpc();
-        }
-
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void RequestClaimDriverRpc(RpcParams rpcParams = default)
-        {
-            ApplyServerClaim(rpcParams.Receive.SenderClientId);
-        }
-
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void RequestReleaseDriverRpc(RpcParams rpcParams = default)
-        {
-            ApplyServerRelease(rpcParams.Receive.SenderClientId);
-        }
-
-        private void ApplyServerClaim(ulong clientId)
-        {
-            if (!IsServer || state == null)
-            {
-                return;
-            }
-
-            var current = state.DriverClientId.Value;
-            if (current == clientId)
-            {
-                // Reclaim idempotent : deja conducteur, aucun changement d'etat.
-                return;
-            }
-
-            if (current != NetworkedVehicleState.UnclaimedDriverClientId)
-            {
-                Debug.LogWarning("[Vehicles] Revendication de conducteur refusee pour le client "
-                    + clientId + " : siege deja tenu par le client " + current + ".");
-                return;
-            }
-
-            state.DriverClientId.Value = clientId;
-        }
-
-        private void ApplyServerRelease(ulong clientId)
-        {
-            if (!IsServer || state == null || state.DriverClientId.Value != clientId)
-            {
-                return;
-            }
-
-            state.DriverClientId.Value = NetworkedVehicleState.UnclaimedDriverClientId;
-            latestIntent = VehicleDriveIntent.Idle;
         }
 
         private void SubmitDriveIntent(VehicleDriveIntent intent, ulong localClientId)
@@ -294,6 +210,30 @@ namespace RoadRage.Features.Vehicles
             }
 
             return 1f;
+        }
+
+        public void ClearServerDriverIfClient(ulong clientId)
+        {
+            if (!IsServer || state == null || state.DriverClientId.Value != clientId)
+            {
+                return;
+            }
+
+            state.DriverClientId.Value = NetworkedVehicleState.UnclaimedDriverClientId;
+            latestIntent = VehicleDriveIntent.Idle;
+        }
+
+        public void SetLocalSoloDriverActive(bool active)
+        {
+            localSoloDriverActive = active;
+            latestIntent = VehicleDriveIntent.Idle;
+
+            CacheComponents();
+            if (body != null)
+            {
+                ConfigureArcadeBody();
+                body.isKinematic = false;
+            }
         }
 
         private float ResolveTargetSpeed(VehicleDriveIntent intent, float longitudinalSpeed)

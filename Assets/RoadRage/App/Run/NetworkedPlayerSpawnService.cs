@@ -41,6 +41,8 @@ namespace RoadRage.App.Run
 
         private bool isActiveHost;
 
+        private NetworkedVehicleSeatService vehicleSeatService;
+
         private void Awake()
         {
             var manager = NetworkManager.Singleton;
@@ -60,6 +62,7 @@ namespace RoadRage.App.Run
             }
 
             manager.OnClientConnectedCallback += HandleClientConnected;
+            EnsureVehicleSeatService();
             StartCoroutine(SpawnConnectedClientsAfterSceneProcessing(manager));
         }
 
@@ -143,6 +146,11 @@ namespace RoadRage.App.Run
                 return;
             }
 
+            if (instance.GetComponent<NetworkedVehicleSeatIntent>() == null)
+            {
+                LogAndShow("NetworkedPlayerRoot sans NetworkedVehicleSeatIntent : entree vehicule indisponible.", true);
+            }
+
             var spawnPoint = compositionRoot == null ? null : compositionRoot.SpawnRoot;
             var spawnPosition = ResolveSpawnPosition(spawnPoint);
             var spawnRotation = spawnPoint == null ? Quaternion.identity : spawnPoint.rotation;
@@ -176,6 +184,27 @@ namespace RoadRage.App.Run
         public bool TryGetState(ulong clientId, out NetworkedPlayerState state)
         {
             return spawnedStates.TryGetValue(clientId, out state);
+        }
+
+        private void EnsureVehicleSeatService()
+        {
+            if (!isActiveHost)
+            {
+                return;
+            }
+
+            vehicleSeatService = NetworkedVehicleSeatService.Instance;
+            if (vehicleSeatService == null)
+            {
+                vehicleSeatService = FindAnyObjectByType<NetworkedVehicleSeatService>();
+            }
+
+            if (vehicleSeatService == null)
+            {
+                vehicleSeatService = gameObject.AddComponent<NetworkedVehicleSeatService>();
+            }
+
+            vehicleSeatService.Configure(this, checkpointHud);
         }
 
         private Vector3 ResolveSpawnPosition(Transform spawnPoint)

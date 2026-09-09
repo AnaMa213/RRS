@@ -110,6 +110,12 @@ namespace RoadRage.Features.UI
             SetText(lobbyStateLabel, "Reseau : " + SafeText(message));
         }
 
+        /// <summary>Retour visible minimal pour l'entree/sortie vehicule (Story 3.3), lecture seule.</summary>
+        public void ShowVehicleSeatMessage(string message)
+        {
+            SetText(futureHudLabel, "Vehicule : " + SafeText(message));
+        }
+
         /// <summary>
         /// Bind initial (Story 2.6) des valeurs placeholder de checkpoint : vie/coeurs, stamina,
         /// nombre de joueurs et argent. Chaque valeur peut ensuite etre rafraichie individuellement

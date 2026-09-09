@@ -287,7 +287,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: RoadRage.Features.Vehicles::RoadRage.Features.Vehicles.NetworkedVehicleDriverController
   ShowTopMostFoldoutHeaderGroup: 1
-  claimReleaseKey: 20
   maxForwardSpeed: 18
   maxReverseSpeed: 7
   acceleration: 28

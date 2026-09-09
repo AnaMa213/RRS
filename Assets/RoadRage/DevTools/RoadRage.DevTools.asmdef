@@ -2,6 +2,11 @@
     "name": "RoadRage.DevTools",
     "rootNamespace": "RoadRage.DevTools",
     "references": [
+        "RoadRage.App",
+        "RoadRage.Features.Players",
+        "RoadRage.Features.UI",
+        "RoadRage.Features.Vehicles",
+        "RoadRage.Shared",
         "Unity.Netcode.Runtime"
     ],
     "includePlatforms": [],

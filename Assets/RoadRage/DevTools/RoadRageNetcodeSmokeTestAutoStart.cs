@@ -1,8 +1,13 @@
 using System;
 using System.Collections;
 using System.Linq;
+using RoadRage.App.Run;
+using RoadRage.Features.Players;
+using RoadRage.Features.Vehicles;
+using RoadRage.Shared.Domain;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RoadRage.DevTools
 {
@@ -19,6 +24,7 @@ namespace RoadRage.DevTools
     public sealed class RoadRageNetcodeSmokeTestAutoStart : MonoBehaviour
     {
         private const string ClientTag = "Client";
+        private const string VehicleSandboxSceneName = "Dev_VehicleSandbox";
 
 #if UNITY_EDITOR
         private IEnumerator Start()
@@ -55,7 +61,100 @@ namespace RoadRage.DevTools
             {
                 var started = manager.StartHost();
                 Debug.Log($"[RoadRageNetcodeSmokeTestAutoStart] Tags='{tagList}' VirtualProject={isVirtualProject} -> StartHost() returned {started}.");
+
+                if (started)
+                {
+                    yield return null;
+                    EnsureVehicleSandboxSeatHarness(manager);
+                }
             }
+        }
+
+        private static void EnsureVehicleSandboxSeatHarness(NetworkManager manager)
+        {
+            if (manager == null || !manager.IsListening || !manager.IsServer)
+            {
+                return;
+            }
+
+            if (!string.Equals(SceneManager.GetActiveScene().name, VehicleSandboxSceneName, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (FindLocalPlayerState(manager.LocalClientId) != null)
+            {
+                return;
+            }
+
+            var playerRootPrefab = Resources.Load<GameObject>(NetworkedPlayerSpawnService.PlayerRootResourceName);
+            if (playerRootPrefab == null)
+            {
+                Debug.LogError("[RoadRageNetcodeSmokeTestAutoStart] NetworkedPlayerRoot introuvable : test de siege impossible.");
+                return;
+            }
+
+            var vehicleState = FindAnyObjectByType<NetworkedVehicleState>();
+            var spawnPosition = vehicleState == null ? Vector3.zero : vehicleState.transform.TransformPoint(new Vector3(0f, 0f, -3.2f));
+            var spawnRotation = vehicleState == null ? Quaternion.identity : vehicleState.transform.rotation;
+
+            var instance = Instantiate(playerRootPrefab);
+            instance.name = "NetworkedPlayer_DevVehicleSandbox_" + manager.LocalClientId;
+            instance.transform.SetPositionAndRotation(spawnPosition, spawnRotation);
+
+            var networkObject = instance.GetComponent<NetworkObject>();
+            var playerState = instance.GetComponent<NetworkedPlayerState>();
+            if (networkObject == null || playerState == null)
+            {
+                Destroy(instance);
+                Debug.LogError("[RoadRageNetcodeSmokeTestAutoStart] NetworkedPlayerRoot incomplet : NetworkObject/NetworkedPlayerState requis.");
+                return;
+            }
+
+            networkObject.Spawn();
+
+            playerState.Mode.Value = PlayerMode.OnFoot;
+            playerState.Lifecycle.Value = PlayerLifecycle.Alive;
+            playerState.SeatIndex.Value = NetworkedVehicleState.NoSeatIndex;
+            playerState.ClientId.Value = manager.LocalClientId;
+            playerState.WorldPosition.Value = spawnPosition;
+            playerState.YawDegrees.Value = NormalizeYaw(spawnRotation.eulerAngles.y);
+
+            var seatService = NetworkedVehicleSeatService.Instance;
+            if (seatService == null)
+            {
+                seatService = FindAnyObjectByType<NetworkedVehicleSeatService>();
+            }
+
+            if (seatService == null)
+            {
+                var serviceObject = new GameObject("NetworkedVehicleSeatService");
+                seatService = serviceObject.AddComponent<NetworkedVehicleSeatService>();
+            }
+
+            seatService.Configure(null, null);
+            Debug.Log("[RoadRageNetcodeSmokeTestAutoStart] Harness siege vehicule pret : E entree/sortie, Shift+E passager.");
+        }
+
+        private static NetworkedPlayerState FindLocalPlayerState(ulong localClientId)
+        {
+            var candidates = FindObjectsByType<NetworkedPlayerState>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            for (var i = 0; i < candidates.Length; i++)
+            {
+                var candidate = candidates[i];
+                if (candidate != null && candidate.IsSpawned && candidate.ClientId.Value == localClientId)
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        private static float NormalizeYaw(float yawDegrees)
+        {
+            var normalized = yawDegrees % 360f;
+            return normalized < 0f ? normalized + 360f : normalized;
         }
 #else
         private void Start()

@@ -1,4 +1,5 @@
 using RoadRage.Features.Players;
+using RoadRage.Shared.Domain;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ namespace RoadRage.App.Run
         private float reportInterval = 0.08f;
 
         private NetworkedPlayerPresentation target;
+        private NetworkedPlayerState targetState;
         private float nextReportTime;
 
         private void Update()
@@ -31,9 +33,10 @@ namespace RoadRage.App.Run
             if (!Represents(target, manager.LocalClientId))
             {
                 target = ResolveTarget(manager.LocalClientId);
+                targetState = target == null ? null : target.GetComponent<NetworkedPlayerState>();
             }
 
-            if (target == null || Time.unscaledTime < nextReportTime)
+            if (target == null || IsVehicleSeatMode(targetState) || Time.unscaledTime < nextReportTime)
             {
                 return;
             }
@@ -59,6 +62,11 @@ namespace RoadRage.App.Run
         private static bool Represents(NetworkedPlayerPresentation candidate, ulong localClientId)
         {
             return candidate != null && candidate.IsSpawned && candidate.RepresentsClient(localClientId);
+        }
+
+        private static bool IsVehicleSeatMode(NetworkedPlayerState state)
+        {
+            return state != null && (state.Mode.Value == PlayerMode.Driver || state.Mode.Value == PlayerMode.Passenger);
         }
     }
 }
