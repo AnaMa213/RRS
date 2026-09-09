@@ -28,6 +28,9 @@ namespace RoadRage.Features.Online
 
         /// <summary>Publie la difficulte choisie dans les donnees du lobby courant (Story 2.4). Sans effet hors lobby actif ; reserve a l'hote par l'appelant.</summary>
         void SetLobbyDifficulty(Difficulty difficulty);
+
+        /// <summary>Publie le signal de lancement reseau dans les donnees du lobby courant. Sans effet hors lobby actif ; reserve a l'hote par l'appelant.</summary>
+        void SetLobbyRunLaunchRequested(bool launchRequested);
     }
 
     /// <summary>Resultat d'une tentative de creation de lobby, sans exposer de type Steamworks.</summary>
@@ -98,12 +101,13 @@ namespace RoadRage.Features.Online
     {
         public static readonly LobbyRosterSnapshot Empty = new LobbyRosterSnapshot(false, 0, Difficulty.Normal, System.Array.Empty<LobbyMemberSnapshot>());
 
-        public LobbyRosterSnapshot(bool hasLobby, ulong ownerId, Difficulty difficulty, LobbyMemberSnapshot[] members)
+        public LobbyRosterSnapshot(bool hasLobby, ulong ownerId, Difficulty difficulty, LobbyMemberSnapshot[] members, bool runLaunchRequested = false)
         {
             HasLobby = hasLobby;
             OwnerId = ownerId;
             Difficulty = difficulty;
             Members = members;
+            RunLaunchRequested = runLaunchRequested;
         }
 
         public bool HasLobby { get; }
@@ -113,5 +117,7 @@ namespace RoadRage.Features.Online
         public Difficulty Difficulty { get; }
 
         public LobbyMemberSnapshot[] Members { get; }
+
+        public bool RunLaunchRequested { get; }
     }
 }

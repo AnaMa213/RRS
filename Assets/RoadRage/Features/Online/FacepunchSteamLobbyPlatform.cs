@@ -34,6 +34,8 @@ namespace RoadRage.Features.Online
 
         private const string CharacterIdDataKey = "characterId";
 
+        private const string RunLaunchRequestedDataKey = "runLaunchRequested";
+
         private Lobby? currentLobby;
 
         public async Task<LobbyCreateOutcome> CreateLobbyAsync(int maxMembers)
@@ -82,6 +84,7 @@ namespace RoadRage.Features.Online
 
             var lobby = currentLobby.Value;
             var difficulty = ParseDifficulty(lobby.GetData(DifficultyDataKey));
+            var runLaunchRequested = lobby.GetData(RunLaunchRequestedDataKey) == ReadyValue;
 
             var members = new List<LobbyMemberSnapshot>();
             foreach (var member in lobby.Members)
@@ -93,7 +96,7 @@ namespace RoadRage.Features.Online
                 members.Add(new LobbyMemberSnapshot(member.Id, displayName, characterId, ready));
             }
 
-            return new LobbyRosterSnapshot(true, lobby.Owner.Id, difficulty, members.ToArray());
+            return new LobbyRosterSnapshot(true, lobby.Owner.Id, difficulty, members.ToArray(), runLaunchRequested);
         }
 
         public void SetLocalMemberReady(bool ready)
@@ -125,6 +128,16 @@ namespace RoadRage.Features.Online
             }
 
             currentLobby.Value.SetData(DifficultyDataKey, ((int)difficulty).ToString(CultureInfo.InvariantCulture));
+        }
+
+        public void SetLobbyRunLaunchRequested(bool launchRequested)
+        {
+            if (!currentLobby.HasValue)
+            {
+                return;
+            }
+
+            currentLobby.Value.SetData(RunLaunchRequestedDataKey, launchRequested ? ReadyValue : NotReadyValue);
         }
 
         private static Difficulty ParseDifficulty(string raw)

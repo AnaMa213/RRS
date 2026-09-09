@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Netcode.Transports.Facepunch;
 using RoadRage.App.Services;
 using RoadRage.Features.Lobby;
@@ -26,6 +27,10 @@ namespace RoadRage.App.Lobby
     [DisallowMultipleComponent]
     public sealed class LobbyFlowController : MonoBehaviour
     {
+        private const int MaxNetworkPlayers = 4;
+
+        private static readonly HashSet<ulong> ApprovedNetworkClientIds = new HashSet<ulong>();
+
         public const string MissingProfileStartGameMessage = "Start Game refuse : cree un profil joueur avant d'entrer dans le monde.";
 
         public const string OnlineServicesOnlineMessage = "Services en ligne Steam initialises : connexion active.";
@@ -66,7 +71,15 @@ namespace RoadRage.App.Lobby
 
         public const string StartRefusedNotAllReadyMessage = "Start Game refuse : tous les joueurs connectes doivent etre prets (ou active le test solo).";
 
+        public const string StartRefusedWaitingForHostMessage = "Start Game en attente : seul l'hote peut lancer la session reseau.";
+
         public const string NetworkStartFailedMessage = "Start Game refuse : impossible de demarrer la session reseau (Steamworks Networking Sockets).";
+
+        public const string ApprovalRejectedInvalidPayloadReason = "Connexion refusee : payload de profil invalide.";
+
+        public const string ApprovalRejectedMissingProfileReason = "Connexion refusee : profil joueur incomplet.";
+
+        public const string ApprovalRejectedRoomFullReason = "Connexion refusee : la session a deja quatre joueurs.";
 
         [SerializeField]
         private LobbyShellScreen screen;
@@ -309,10 +322,10 @@ namespace RoadRage.App.Lobby
         }
 
         /// <summary>
-        /// Le gate roster/pret/settings (Story 2.4) ne s'applique que quand une room hote est ouverte :
-        /// hors lobby (jeu solo local, comportement inchange depuis la Story 1.2/1.5) ou en tant que
-        /// joueur ayant rejoint par code, Start Game reste local au seul profil joueur. Le meme handler
-        /// sert le bouton solo de LobbyShellScreen et le bouton in-room de LobbyRosterScreen.
+        /// Le gate roster/pret/settings (Story 2.4) ne s'applique que quand une room hote est ouverte.
+        /// Hors lobby, Start Game reste local au seul profil joueur (Story 1.2/1.5). En tant qu'invite
+        /// ayant rejoint par code, le bouton attend le lancement hote et ne demarre jamais StartClient()
+        /// localement.
         /// </summary>
         private void HandleStartGameRequested()
         {
@@ -352,7 +365,8 @@ namespace RoadRage.App.Lobby
 
             if (lobbyJoin != null && lobbyJoin.Status == LobbyJoinStatus.Joined)
             {
-                StartNetworkedRun(false);
+                Debug.LogWarning("[Lobby] Start Game en attente : client rejoint, lancement reserve a l'hote.");
+                PublishUnavailable(StartRefusedWaitingForHostMessage);
                 return;
             }
 
@@ -408,6 +422,10 @@ namespace RoadRage.App.Lobby
 
             if (asHost)
             {
+                ApprovedNetworkClientIds.Clear();
+                manager.OnClientDisconnectCallback -= HandleApprovedNetworkClientDisconnected;
+                manager.OnClientDisconnectCallback += HandleApprovedNetworkClientDisconnected;
+
                 Debug.Log("[Lobby] Start Game demande : demarrage hote reseau vers MVP_Run.");
                 if (!manager.StartHost())
                 {
@@ -447,24 +465,89 @@ namespace RoadRage.App.Lobby
         }
 
         /// <summary>
-        /// Decode le profil (nom + personnage) transporte par NetworkConfig.ConnectionData (Story 2.5)
-        /// et l'enregistre pour ce ClientId, hote inclus : NetworkedPlayerSpawnService (MVP_Run) le lit
-        /// au spawn reseau. Approuve toujours : le plafond de quatre joueurs et la validite de la room
-        /// sont deja appliques en amont par le lobby Steam (Story 2.2/2.3).
+        /// Decode et valide le profil (nom + personnage) transporte par NetworkConfig.ConnectionData
+        /// (Story 2.5), puis l'enregistre pour ce ClientId, hote inclus : NetworkedPlayerSpawnService
+        /// (MVP_Run) le lit au spawn reseau. Le host applique aussi son propre cap de quatre connexions
+        /// et refuse tout profil incomplet pour eviter un spawn silencieux sur personnage par defaut.
         /// </summary>
         private void HandleConnectionApproval(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
         {
-            string displayName;
-            string characterId;
-            NetworkPlayerConnectionPayload.TryDecode(request.Payload, out displayName, out characterId);
+            NetworkPlayerProfile profile;
+            string reason;
+            if (!TryResolveApprovedNetworkProfile(request.Payload, CountReservedNetworkSlots(request.ClientNetworkId), out profile, out reason))
+            {
+                Debug.LogWarning("[Lobby] Connexion reseau refusee pour le client " + request.ClientNetworkId + " : " + reason);
+                response.Approved = false;
+                response.CreatePlayerObject = false;
+                response.Reason = reason;
+                return;
+            }
 
             if (bootstrap != null && bootstrap.NetworkPlayers != null)
             {
-                bootstrap.NetworkPlayers.Register(request.ClientNetworkId, new NetworkPlayerProfile(displayName, characterId));
+                bootstrap.NetworkPlayers.Register(request.ClientNetworkId, profile);
             }
 
+            ApprovedNetworkClientIds.Add(request.ClientNetworkId);
             response.Approved = true;
             response.CreatePlayerObject = false;
+            response.Reason = string.Empty;
+        }
+
+        private static bool TryResolveApprovedNetworkProfile(byte[] payload, int reservedNetworkSlots, out NetworkPlayerProfile profile, out string reason)
+        {
+            profile = default(NetworkPlayerProfile);
+            reason = string.Empty;
+
+            string displayName;
+            string characterId;
+            if (!NetworkPlayerConnectionPayload.TryDecode(payload, out displayName, out characterId))
+            {
+                reason = ApprovalRejectedInvalidPayloadReason;
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(characterId))
+            {
+                reason = ApprovalRejectedMissingProfileReason;
+                return false;
+            }
+
+            if (reservedNetworkSlots >= MaxNetworkPlayers)
+            {
+                reason = ApprovalRejectedRoomFullReason;
+                return false;
+            }
+
+            profile = new NetworkPlayerProfile(displayName, characterId);
+            return true;
+        }
+
+        private static int CountReservedNetworkSlots(ulong requestedClientId)
+        {
+            var reservedClientIds = new HashSet<ulong>(ApprovedNetworkClientIds);
+            var manager = NetworkManager.Singleton;
+            if (manager != null)
+            {
+                foreach (var clientId in manager.ConnectedClientsIds)
+                {
+                    reservedClientIds.Add(clientId);
+                }
+            }
+
+            reservedClientIds.Remove(requestedClientId);
+            return reservedClientIds.Count;
+        }
+
+        private static void HandleApprovedNetworkClientDisconnected(ulong clientId)
+        {
+            ApprovedNetworkClientIds.Remove(clientId);
+
+            var bootstrapInstance = RoadRageBootstrap.Instance;
+            if (bootstrapInstance != null && bootstrapInstance.NetworkPlayers != null)
+            {
+                bootstrapInstance.NetworkPlayers.Unregister(clientId);
+            }
         }
 
         private void HandleDifficultyChanged(Difficulty difficulty)

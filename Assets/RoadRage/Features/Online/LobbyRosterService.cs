@@ -198,7 +198,7 @@ namespace RoadRage.Features.Online
             {
                 var left = a.Members[i];
                 var right = b.Members[i];
-                if (left.SteamId != right.SteamId || left.Ready != right.Ready || left.DisplayName != right.DisplayName)
+                if (left.SteamId != right.SteamId || left.Ready != right.Ready || left.DisplayName != right.DisplayName || left.CharacterId != right.CharacterId)
                 {
                     return false;
                 }

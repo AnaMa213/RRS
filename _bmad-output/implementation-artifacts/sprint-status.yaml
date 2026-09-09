@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 2026-09-09
+last_updated: 2026-09-09 (epic-2 closed on user-confirmed manual remote test)
 project: RoadRage_Simulator
 project_key: NOKEY
 tracking_system: file-system
@@ -55,15 +55,15 @@ development_status:
   1-6-epic-1-playable-checkpoint: done
   epic-1-retrospective: optional
 
-  epic-2: in-progress
-  2-1-online-services-bootstrap-and-status-feedback: review
-  2-2-host-created-private-room-with-join-code: review
-  2-3-join-by-code-and-invite-link-wrapper: review
-  2-4-lobby-roster-ready-state-and-settings-sync: review
-  2-5-networked-player-spawn-in-empty-world: review
-  2-6-in-game-hud-foundation: review
-  2-7-player-lifecycle-disconnect-and-host-quit-handling: review
-  2-8-epic-2-online-playable-checkpoint: backlog
+  epic-2: done
+  2-1-online-services-bootstrap-and-status-feedback: done
+  2-2-host-created-private-room-with-join-code: done
+  2-3-join-by-code-and-invite-link-wrapper: done
+  2-4-lobby-roster-ready-state-and-settings-sync: done
+  2-5-networked-player-spawn-in-empty-world: done
+  2-6-in-game-hud-foundation: done
+  2-7-player-lifecycle-disconnect-and-host-quit-handling: done
+  2-8-epic-2-online-playable-checkpoint: done
   epic-2-retrospective: optional
 
   epic-3: backlog

@@ -197,6 +197,7 @@ namespace RoadRage.Tests.EditMode
 
                 var onFootController = root.AddComponent<LocalOnFootController>();
                 var controller = root.AddComponent<LocalVoidRespawnController>();
+                InvokePrivateMethod(controller, "Awake");
 
                 Assert.That(onFootController, Is.Not.Null,
                     "LocalVoidRespawnController exige LocalOnFootController (RequireComponent) -- meme rig que le gel/teleport doit piloter.");
@@ -406,7 +407,7 @@ namespace RoadRage.Tests.EditMode
                 controller.Teleport(targetPosition, targetRotation);
 
                 Assert.That(root.transform.position, Is.EqualTo(targetPosition), "Teleport doit repositionner le rig.");
-                Assert.That(root.transform.rotation, Is.EqualTo(targetRotation), "Teleport doit reorienter le rig.");
+                Assert.That(Quaternion.Angle(root.transform.rotation, targetRotation), Is.LessThan(0.001f), "Teleport doit reorienter le rig.");
 
                 var groundedVelocityField = typeof(LocalOnFootController).GetField("GroundedVerticalVelocity", BindingFlags.Static | BindingFlags.NonPublic);
                 Assert.That(groundedVelocityField, Is.Not.Null, "GroundedVerticalVelocity");
