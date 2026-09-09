@@ -22,6 +22,7 @@ namespace RoadRage.Tests.EditMode
         private const string AddonRegisterPath = "docs/setup/addon-adoption-register.md";
         private const string DefaultNetworkPrefabsPath = "Assets/DefaultNetworkPrefabs.asset";
         private const string CharacterCatalogAssetPath = "Assets/RoadRage/ScriptableObjects/Players/CharacterCatalog.asset";
+        private const string VehicleStableId = "vehicle_player_shared";
 
         private static readonly SeedExpectation[] Seeds =
         {
@@ -130,8 +131,19 @@ namespace RoadRage.Tests.EditMode
                 var prefab = LoadPrefab(seed.PrefabPath);
 
                 Assert.That(prefab.GetComponentsInChildren<MeshCollider>(true), Is.Empty, seed.PrefabPath);
-                Assert.That(prefab.GetComponentsInChildren<NetworkObject>(true), Is.Empty,
-                    "Story 1.4 livre des seeds locaux ; la registration reseau attend un spawn reel : " + seed.PrefabPath);
+
+                if (seed.StableId == VehicleStableId)
+                {
+                    // Story 3.1 : Greybox_PlayerCar porte desormais un NetworkObject (frontiere du
+                    // module Vehicules) ; les 3 autres seeds restent NetworkObject-free.
+                    Assert.That(prefab.GetComponentsInChildren<NetworkObject>(true), Is.Not.Empty,
+                        "Story 3.1 dote Greybox_PlayerCar d'un NetworkObject : " + seed.PrefabPath);
+                }
+                else
+                {
+                    Assert.That(prefab.GetComponentsInChildren<NetworkObject>(true), Is.Empty,
+                        "Story 1.4 livre des seeds locaux ; la registration reseau attend un spawn reel : " + seed.PrefabPath);
+                }
             }
         }
 
@@ -222,16 +234,27 @@ namespace RoadRage.Tests.EditMode
         {
             // Depuis la Story 2.5, DefaultNetworkPrefabs.asset contient legitimement le prefab
             // NetworkedPlayerRoot (auto-enregistre par Netcode a l'ajout du NetworkObject) : la
-            // liste n'est plus vide par construction. Cette garde reste utile pour verifier que les
-            // seeds greybox (assets visuels, Story 1.4) ne s'y retrouvent jamais par accident.
+            // liste n'est plus vide par construction. Depuis la Story 3.1, Greybox_PlayerCar y
+            // est lui aussi auto-enregistre (NetworkObject ajoute sur son GameObject racine).
+            // Cette garde reste utile pour verifier que les 3 autres seeds greybox (assets
+            // visuels, Story 1.4) ne s'y retrouvent jamais par accident.
             var networkPrefabText = File.ReadAllText(DefaultNetworkPrefabsPath);
 
             foreach (var seed in Seeds)
             {
                 var guid = AssetDatabase.AssetPathToGUID(seed.PrefabPath);
                 Assert.That(guid, Is.Not.Empty, seed.PrefabPath);
-                Assert.That(networkPrefabText, Does.Not.Contain(guid),
-                    "registration reseau prematuree dans DefaultNetworkPrefabs.asset : " + seed.PrefabPath);
+
+                if (seed.StableId == VehicleStableId)
+                {
+                    Assert.That(networkPrefabText, Does.Contain(guid),
+                        "Story 3.1 enregistre Greybox_PlayerCar dans DefaultNetworkPrefabs.asset : " + seed.PrefabPath);
+                }
+                else
+                {
+                    Assert.That(networkPrefabText, Does.Not.Contain(guid),
+                        "registration reseau prematuree dans DefaultNetworkPrefabs.asset : " + seed.PrefabPath);
+                }
             }
         }
 

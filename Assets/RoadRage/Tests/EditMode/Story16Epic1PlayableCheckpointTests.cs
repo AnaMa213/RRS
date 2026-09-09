@@ -139,8 +139,8 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(metadata.StableId, Is.EqualTo(character.RawId));
             }
 
-            AssertLocalGreyboxPrefab("Assets/RoadRage/Prefabs/Greybox_PlayerCar.prefab", "vehicle_player_shared");
-            AssertLocalGreyboxPrefab("Assets/RoadRage/Prefabs/Greybox_CityBlock_A.prefab", "building_city_block_a");
+            AssertLocalGreyboxPrefab("Assets/RoadRage/Prefabs/Greybox_PlayerCar.prefab", "vehicle_player_shared", expectNetworkObjectAbsent: false);
+            AssertLocalGreyboxPrefab("Assets/RoadRage/Prefabs/Greybox_CityBlock_A.prefab", "building_city_block_a", expectNetworkObjectAbsent: true);
         }
 
         [Test]
@@ -191,11 +191,22 @@ namespace RoadRage.Tests.EditMode
             }
         }
 
-        private static void AssertLocalGreyboxPrefab(string prefabPath, string stableId)
+        private static void AssertLocalGreyboxPrefab(string prefabPath, string stableId, bool expectNetworkObjectAbsent)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             Assert.That(prefab != null, Is.True, prefabPath);
-            Assert.That(prefab.GetComponent<NetworkObject>(), Is.Null, prefabPath + " ne doit pas etre networke en Epic 1");
+
+            if (expectNetworkObjectAbsent)
+            {
+                Assert.That(prefab.GetComponent<NetworkObject>(), Is.Null, prefabPath + " ne doit pas etre networke en Epic 1");
+            }
+            else
+            {
+                // Story 3.1 (Epic 3) dote Greybox_PlayerCar d'un NetworkObject (frontiere du
+                // module Vehicules) ; le checkpoint Epic 1 reste valide pour les autres seeds.
+                Assert.That(prefab.GetComponent<NetworkObject>(), Is.Not.Null,
+                    prefabPath + " doit porter un NetworkObject depuis la Story 3.1");
+            }
 
             var metadata = prefab.GetComponent<GreyboxAssetSeedMetadata>();
             Assert.That(metadata != null, Is.True, prefabPath + " doit porter sa metadata");

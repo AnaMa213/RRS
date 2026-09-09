@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 2026-09-09 (epic-2 closed on user-confirmed manual remote test)
+last_updated: 2026-09-09 (story 3.1 implemented, reviewed, tests green)
 project: RoadRage_Simulator
 project_key: NOKEY
 tracking_system: file-system
@@ -66,8 +66,8 @@ development_status:
   2-8-epic-2-online-playable-checkpoint: done
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-shared-player-car-prefab-and-vehicle-module-boundary: backlog
+  epic-3: in-progress
+  3-1-shared-player-car-prefab-and-vehicle-module-boundary: review
   3-2-driver-control-and-local-vehicle-camera: backlog
   3-3-seat-entry-exit-and-passenger-presence: backlog
   3-4-simple-route-collision-and-vehicle-recovery: backlog

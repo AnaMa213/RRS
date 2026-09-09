@@ -489,6 +489,71 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1887962622
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 920814123571126223, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6514829079454662262, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_Name
+      value: Greybox_PlayerCar_Sandbox
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614972091808156930, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: m_InScenePlaced
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614972091808156930, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1114979670
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -497,3 +562,4 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 258773016}
+  - {fileID: 1887962622}
