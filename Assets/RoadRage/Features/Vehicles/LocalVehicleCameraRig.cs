@@ -19,6 +19,7 @@ namespace RoadRage.Features.Vehicles
 
         private NetworkedVehicleState state;
         private bool localSoloCameraActive;
+        private bool suppressNetworkCameraUntilReleased;
 
         private void Awake()
         {
@@ -57,6 +58,17 @@ namespace RoadRage.Features.Vehicles
             var isLocalDriver = manager != null && manager.IsClient
                 && state.DriverClientId.Value == manager.LocalClientId;
 
+            if (suppressNetworkCameraUntilReleased)
+            {
+                if (!isLocalDriver)
+                {
+                    suppressNetworkCameraUntilReleased = false;
+                }
+
+                SetCameraActive(false);
+                return;
+            }
+
             SetCameraActive(isLocalDriver);
         }
 
@@ -64,6 +76,12 @@ namespace RoadRage.Features.Vehicles
         {
             localSoloCameraActive = active;
             SetCameraActive(active);
+        }
+
+        public void SuppressNetworkCameraUntilReleased()
+        {
+            suppressNetworkCameraUntilReleased = true;
+            SetCameraActive(false);
         }
 
         private void SetCameraActive(bool active)

@@ -47,7 +47,11 @@ namespace RoadRage.App.Run
 
         private LocalVehicleCameraRig localSoloVehicleCameraRig;
 
+        private int localSoloSeatIndex = NetworkedVehicleState.NoSeatIndex;
+
         private bool localSoloVehicleSeated;
+
+        private bool localSoloPlayerWasDead;
 
         private bool hudRuntimeBound;
 
@@ -84,6 +88,7 @@ namespace RoadRage.App.Run
         private void Update()
         {
             HandleLocalSoloVehicleInteraction();
+            RefreshLocalSoloDeathRecovery();
             ResolveLocalNetworkedPlayerStateIfNeeded();
             SynchronizeLocalSeatedPose();
         }
@@ -365,6 +370,7 @@ namespace RoadRage.App.Run
             var yaw = localNetworkedPlayerState == null ? 0f : localNetworkedPlayerState.YawDegrees.Value;
             var rotation = Quaternion.Euler(0f, yaw, 0f);
             var shouldReactivateBody = localNetworkedPlayerState == null || localNetworkedPlayerState.Lifecycle.Value != PlayerLifecycle.Dead;
+            SuppressVehicleCamerasForLocalSeatExit();
             SetLocalPlayerBodyActive(shouldReactivateBody);
 
             if (localOnFootController != null)
@@ -379,6 +385,7 @@ namespace RoadRage.App.Run
             }
         }
 
+        // Le ressenti gameplay doit rester le meme en solo et en reseau ; seule l'autorite change.
         private void HandleLocalSoloVehicleInteraction()
         {
             if (IsNetworkSessionActive() || activeLocalPlayer == null)
@@ -403,10 +410,11 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            TryEnterLocalSoloVehicle();
+            var preferPassenger = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
+            TryEnterLocalSoloVehicle(preferPassenger);
         }
 
-        private void TryEnterLocalSoloVehicle()
+        private void TryEnterLocalSoloVehicle(bool preferPassenger)
         {
             if (!TryResolveNearestLocalSoloVehicle(out var vehicleState, out var driverController, out var cameraRig, out var distance))
             {
@@ -423,6 +431,7 @@ namespace RoadRage.App.Run
             localSoloVehicleState = vehicleState;
             localSoloVehicleDriver = driverController;
             localSoloVehicleCameraRig = cameraRig;
+            localSoloSeatIndex = ResolveLocalSoloSeatIndex(preferPassenger);
             localSoloVehicleSeated = true;
 
             var localOnFootController = activeLocalPlayer.GetComponent<LocalOnFootController>();
@@ -432,14 +441,14 @@ namespace RoadRage.App.Run
             }
 
             SetLocalPlayerBodyActive(false);
-            localSoloVehicleDriver.SetLocalSoloDriverActive(true);
+            localSoloVehicleDriver.SetLocalSoloDriverActive(IsDriverSeat(localSoloSeatIndex));
             if (localSoloVehicleCameraRig != null)
             {
-                localSoloVehicleCameraRig.SetLocalSoloCameraActive(true);
+                localSoloVehicleCameraRig.SetLocalSoloCameraActive(IsDriverSeat(localSoloSeatIndex));
             }
 
             SynchronizeLocalSoloSeatedPose();
-            ShowVehicleSeatMessage("Siege conducteur occupe.");
+            ShowVehicleSeatMessage(ResolveSeatOccupiedMessage(localSoloSeatIndex));
         }
 
         private void ExitLocalSoloVehicle()
@@ -456,7 +465,10 @@ namespace RoadRage.App.Run
                 cameraRig.SetLocalSoloCameraActive(false);
             }
 
-            var exitPosition = vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveExitLocalOffset(NetworkedVehicleState.DriverSeatIndex));
+            var exitSeatIndex = NetworkedVehicleState.IsValidSeatIndex(localSoloSeatIndex)
+                ? localSoloSeatIndex
+                : NetworkedVehicleState.DriverSeatIndex;
+            var exitPosition = vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveExitLocalOffset(exitSeatIndex));
             var exitRotation = Quaternion.Euler(0f, vehicleState.transform.eulerAngles.y, 0f);
             var localOnFootController = activeLocalPlayer.GetComponent<LocalOnFootController>();
 
@@ -464,6 +476,7 @@ namespace RoadRage.App.Run
             localSoloVehicleState = null;
             localSoloVehicleDriver = null;
             localSoloVehicleCameraRig = null;
+            localSoloSeatIndex = NetworkedVehicleState.NoSeatIndex;
 
             SetLocalPlayerBodyActive(true);
             if (localOnFootController != null)
@@ -499,9 +512,13 @@ namespace RoadRage.App.Run
                 localOnFootController.MovementEnabled = false;
             }
 
+            var seatIndex = NetworkedVehicleState.IsValidSeatIndex(localSoloSeatIndex)
+                ? localSoloSeatIndex
+                : NetworkedVehicleState.DriverSeatIndex;
+
             SetLocalPlayerBodyActive(false);
             activeLocalPlayer.transform.SetPositionAndRotation(
-                vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveSeatLocalOffset(NetworkedVehicleState.DriverSeatIndex)),
+                vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveSeatLocalOffset(seatIndex)),
                 Quaternion.Euler(0f, vehicleState.transform.eulerAngles.y, 0f));
         }
 
@@ -575,7 +592,24 @@ namespace RoadRage.App.Run
             return vehicleState != null;
         }
 
+        private void SuppressVehicleCamerasForLocalSeatExit()
+        {
+            var cameraRigs = FindObjectsByType<LocalVehicleCameraRig>(FindObjectsInactive.Exclude);
+            for (var i = 0; i < cameraRigs.Length; i++)
+            {
+                if (cameraRigs[i] != null)
+                {
+                    cameraRigs[i].SuppressNetworkCameraUntilReleased();
+                }
+            }
+        }
+
         private void RestoreLocalSoloOnFootControl()
+        {
+            RestoreLocalSoloOnFootControl(true, true);
+        }
+
+        private void RestoreLocalSoloOnFootControl(bool reactivateBody, bool enableMovement)
         {
             if (localSoloVehicleDriver != null)
             {
@@ -591,13 +625,14 @@ namespace RoadRage.App.Run
             localSoloVehicleState = null;
             localSoloVehicleDriver = null;
             localSoloVehicleCameraRig = null;
+            localSoloSeatIndex = NetworkedVehicleState.NoSeatIndex;
 
-            SetLocalPlayerBodyActive(true);
+            SetLocalPlayerBodyActive(reactivateBody);
             var localOnFootController = activeLocalPlayer == null ? null : activeLocalPlayer.GetComponent<LocalOnFootController>();
             if (localOnFootController != null)
             {
                 RestoreOnFootCamera(localOnFootController);
-                localOnFootController.MovementEnabled = true;
+                localOnFootController.MovementEnabled = enableMovement;
             }
         }
 
@@ -664,6 +699,8 @@ namespace RoadRage.App.Run
                 {
                     checkpointHud.ShowDeathOverlay();
                 }
+
+                SuppressVehicleCamerasForLocalSeatExit();
             }
             else if (previousValue == PlayerLifecycle.Dead)
             {
@@ -672,14 +709,61 @@ namespace RoadRage.App.Run
                     var spawn = ResolveSpawnPoint();
                     var spawnPosition = spawn == null ? Vector3.zero : spawn.position;
                     var spawnRotation = spawn == null ? Quaternion.identity : spawn.rotation;
+                    var canReactivateBody = localNetworkedPlayerState == null || !IsVehicleSeatMode(localNetworkedPlayerState.Mode.Value);
+                    SetLocalPlayerBodyActive(canReactivateBody);
                     localOnFootController.Teleport(spawnPosition, spawnRotation);
-                    localOnFootController.MovementEnabled = true;
+                    if (canReactivateBody)
+                    {
+                        RestoreOnFootCamera(localOnFootController);
+                    }
+
+                    localOnFootController.MovementEnabled = canReactivateBody;
                 }
 
                 if (checkpointHud != null)
                 {
                     checkpointHud.HideDeathOverlay();
                 }
+            }
+        }
+
+        private void RefreshLocalSoloDeathRecovery()
+        {
+            if (IsNetworkSessionActive() || activeLocalPlayer == null)
+            {
+                return;
+            }
+
+            var localVoidRespawnController = activeLocalPlayer.GetComponent<LocalVoidRespawnController>();
+            if (localVoidRespawnController == null)
+            {
+                return;
+            }
+
+            if (localVoidRespawnController.IsDead)
+            {
+                if (localSoloVehicleSeated)
+                {
+                    RestoreLocalSoloOnFootControl(false, false);
+                }
+
+                localSoloPlayerWasDead = true;
+                return;
+            }
+
+            if (!localSoloPlayerWasDead)
+            {
+                return;
+            }
+
+            localSoloPlayerWasDead = false;
+            SetLocalPlayerBodyActive(true);
+
+            var localOnFootController = activeLocalPlayer.GetComponent<LocalOnFootController>();
+            if (localOnFootController != null)
+            {
+                RestoreOnFootCamera(localOnFootController);
+                localOnFootController.MovementEnabled = true;
             }
         }
 
@@ -785,6 +869,21 @@ namespace RoadRage.App.Run
         {
             var manager = NetworkManager.Singleton;
             return manager != null && manager.IsListening;
+        }
+
+        private static int ResolveLocalSoloSeatIndex(bool preferPassenger)
+        {
+            return preferPassenger ? NetworkedVehicleState.FirstPassengerSeatIndex : NetworkedVehicleState.DriverSeatIndex;
+        }
+
+        private static bool IsDriverSeat(int seatIndex)
+        {
+            return seatIndex == NetworkedVehicleState.DriverSeatIndex;
+        }
+
+        private static string ResolveSeatOccupiedMessage(int seatIndex)
+        {
+            return IsDriverSeat(seatIndex) ? "Siege conducteur occupe." : "Siege passager " + seatIndex + " occupe.";
         }
 
         private static bool IsVehicleSeatMode(PlayerMode mode)

@@ -21,6 +21,7 @@ namespace RoadRage.Tests.EditMode
         private const string VehicleAsmdefPath = "Assets/RoadRage/Features/Vehicles/RoadRage.Features.Vehicles.asmdef";
         private const string DriverControllerSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs";
         private const string CameraRigSourcePath = "Assets/RoadRage/Features/Vehicles/LocalVehicleCameraRig.cs";
+        private const string SeatIntentSourcePath = "Assets/RoadRage/App/Run/NetworkedVehicleSeatIntent.cs";
         private const string SeatServiceSourcePath = "Assets/RoadRage/App/Run/NetworkedVehicleSeatService.cs";
         private const string PoseReporterSourcePath = "Assets/RoadRage/App/Run/NetworkedLocalPlayerPoseReporter.cs";
         private const string RunFlowSourcePath = "Assets/RoadRage/App/Run/RunFlowController.cs";
@@ -141,25 +142,42 @@ namespace RoadRage.Tests.EditMode
             Assert.That(source, Does.Contain("state.SeatIndex.OnValueChanged += HandleSeatIndexChanged"));
             Assert.That(source, Does.Contain("localOnFootController.MovementEnabled = false"));
             Assert.That(source, Does.Contain("localOnFootController.Teleport(position, rotation)"));
+            Assert.That(source, Does.Contain("SuppressVehicleCamerasForLocalSeatExit()"),
+                "La sortie reseau doit forcer la camera voiture a se couper pendant la transition vers le mode a pied.");
             Assert.That(source, Does.Contain("SetLocalPlayerBodyActive(false)"));
             Assert.That(source, Does.Contain("activeLocalPlayerVisual.SetActive(active)"));
         }
 
         [Test]
-        public void SoloRunFlowUsesSameVehicleModuleAndRestoresOnFootCameraOnExit()
+        public void SoloAndNetworkRunFlowsShareGameplayAndRestoreOnFootCameraOnExit()
         {
             var runFlowSource = File.ReadAllText(RunFlowSourcePath);
+            var seatIntentSource = File.ReadAllText(SeatIntentSourcePath);
+
+            Assert.That(seatIntentSource, Does.Contain("IsPassengerModifierPressed(keyboard)"));
+            Assert.That(seatIntentSource, Does.Contain("RequestEnterOrExitRpc(preferPassenger)"));
+            Assert.That(seatIntentSource, Does.Contain("service.RequestEnterOrExit(clientId, preferPassenger)"));
+            Assert.That(seatIntentSource, Does.Contain("keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed"));
+
             Assert.That(runFlowSource, Does.Contain("HandleLocalSoloVehicleInteraction"));
-            Assert.That(runFlowSource, Does.Contain("TryEnterLocalSoloVehicle"));
+            Assert.That(runFlowSource, Does.Contain("TryEnterLocalSoloVehicle(preferPassenger)"));
             Assert.That(runFlowSource, Does.Contain("ExitLocalSoloVehicle"));
-            Assert.That(runFlowSource, Does.Contain("localSoloVehicleDriver.SetLocalSoloDriverActive(true)"));
-            Assert.That(runFlowSource, Does.Contain("localSoloVehicleCameraRig.SetLocalSoloCameraActive(true)"));
+            Assert.That(runFlowSource, Does.Contain("ResolveLocalSoloSeatIndex(preferPassenger)"));
+            Assert.That(runFlowSource, Does.Contain("NetworkedVehicleState.FirstPassengerSeatIndex"));
+            Assert.That(runFlowSource, Does.Contain("localSoloVehicleDriver.SetLocalSoloDriverActive(IsDriverSeat(localSoloSeatIndex))"));
+            Assert.That(runFlowSource, Does.Contain("localSoloVehicleCameraRig.SetLocalSoloCameraActive(IsDriverSeat(localSoloSeatIndex))"));
+            Assert.That(runFlowSource, Does.Contain("RefreshLocalSoloDeathRecovery"));
+            Assert.That(runFlowSource, Does.Contain("localVoidRespawnController.IsDead"));
+            Assert.That(runFlowSource, Does.Contain("RestoreLocalSoloOnFootControl(false, false)"));
             Assert.That(runFlowSource, Does.Contain("RestoreOnFootCamera(localOnFootController)"),
                 "La sortie vehicule doit rattacher explicitement la camera au rig a pied.");
+            Assert.That(runFlowSource, Does.Contain("Le ressenti gameplay doit rester le meme en solo et en reseau"));
 
             var cameraRigSource = File.ReadAllText(CameraRigSourcePath);
             Assert.That(cameraRigSource, Does.Contain("SetLocalSoloCameraActive"));
             Assert.That(cameraRigSource, Does.Contain("localSoloCameraActive"));
+            Assert.That(cameraRigSource, Does.Contain("SuppressNetworkCameraUntilReleased"));
+            Assert.That(cameraRigSource, Does.Contain("suppressNetworkCameraUntilReleased"));
         }
 
         [Test]

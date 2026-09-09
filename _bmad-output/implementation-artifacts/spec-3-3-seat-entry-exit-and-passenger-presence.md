@@ -25,7 +25,7 @@ baseline_commit: '68a7d82cb10b8df66a386e536818ad345cc3896c'
 - L'entree standard choisit le conducteur si libre, sinon le premier passager libre ; une preference passager explicite doit permettre a un second joueur de s'asseoir sans recevoir le controle conducteur.
 - En sortie, le joueur revient a une position sure proche de la voiture, repasse en mode `OnFoot`, et le mouvement local a pied est reactive sans laisser le pose reporter ecraser l'etat assis.
 - En mode `Driver` ou `Passenger`, le personnage local et sa presentation reseau disparaissent visuellement ; ils reapparaissent uniquement a la sortie a pied.
-- Le meme geste `E` fonctionne aussi dans `MVP_Run` solo hors-ligne : le joueur local entre dans la voiture, conduit, ressort a cote de la voiture, et la camera revient au rig a pied.
+- Les modes solo hors-ligne et multi reseau doivent presenter le meme comportement gameplay global cote joueur : entree/sortie par `E`, preference passager par `Shift+E`, disparition/reapparition du personnage, controle conducteur uniquement en siege conducteur, absence de conduite passager, sortie a cote de la voiture, retour camera au rig a pied, et liberation du controle vehicule quand l'occupant meurt/respawn. Les differences autorisees sont uniquement techniques : autorite host et replication en multi, overrides locaux en solo.
 
 **Ask First:** Si le flux impose de modifier la representation visuelle des personnages ou de creer une UI durable de selection de siege, HALT et demander avant d'elargir. Un retour HUD/log minimal est acceptable.
 
@@ -43,7 +43,9 @@ baseline_commit: '68a7d82cb10b8df66a386e536818ad345cc3896c'
 | Refus entree | Joueur mort, trop loin, deja assis, ou aucun siege disponible | Aucun etat partage ne change | Log/feedback visible minimal |
 | Sortie | Joueur assis demande sortie | Host libere le siege, remet `Mode = OnFoot`, `SeatIndex = -1`, teleporte vers une position de sortie sure et reactive le personnage visible | Si le siege ne correspond pas au joueur, ignorer sans mutation |
 | Mort/deconnexion | Occupant meurt ou quitte la session | Host libere le siege ; si c'etait le conducteur, `DriverClientId` revient au sentinel et le controle est desactive | Feedback visible minimal cote host/HUD |
-| Solo hors-ligne | Joueur local a pied dans `MVP_Run`, aucun `NetworkManager` actif, appuie sur `E` proche de la voiture | `RunFlowController` active le conducteur local sur le meme module voiture, masque le personnage, active la camera voiture, puis restaure camera et controle a pied a la sortie | Si aucune voiture proche existe, feedback HUD minimal |
+| Solo hors-ligne conducteur | Joueur local a pied dans `MVP_Run`, aucun `NetworkManager` actif, appuie sur `E` proche de la voiture | `RunFlowController` active le conducteur local sur le meme module voiture, masque le personnage, active la camera voiture, puis restaure camera et controle a pied a la sortie | Si aucune voiture proche existe, feedback HUD minimal |
+| Solo hors-ligne passager | Joueur local a pied dans `MVP_Run`, aucun `NetworkManager` actif, appuie sur `Shift+E` proche de la voiture | Le joueur occupe le siege passager local, disparait, suit la voiture, ne conduit pas, puis ressort par `E` comme en multi | Meme refus distance/absence voiture que conducteur |
+| Solo mort/respawn en voiture | Joueur local solo assis passe sous le seuil de vide | Le controle/camera vehicule sont relaches, le respawn local restaure le personnage visible et la camera a pied | N/A |
 
 </frozen-after-approval>
 
@@ -51,7 +53,7 @@ baseline_commit: '68a7d82cb10b8df66a386e536818ad345cc3896c'
 
 - `Assets/RoadRage/Features/Vehicles/NetworkedVehicleState.cs` -- ajouter constantes de siege, occupants passagers en `NetworkVariable<ulong>`, helpers purs/serveur pour lire, trouver, assigner et liberer un siege ; conserver la frontiere asmdef.
 - `Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs` -- exposer un helper serveur de release/parking et un override conducteur local hors-ligne, sans changer le modele de conduite reseau 3.2.
-- `Assets/RoadRage/Features/Vehicles/LocalVehicleCameraRig.cs` -- garder l'activation locale reseau par `DriverClientId`, plus un override explicite pour le conducteur solo hors-ligne.
+- `Assets/RoadRage/Features/Vehicles/LocalVehicleCameraRig.cs` -- garder l'activation locale reseau par `DriverClientId`, plus un override explicite pour le conducteur solo hors-ligne et une suppression de transition en sortie reseau.
 - `Assets/RoadRage/App/Run/NetworkedVehicleSeatService.cs` (nouveau) -- service host-only qui trouve la voiture partagee, valide les demandes, mute `NetworkedPlayerState`, synchronise la presence assise aux offsets de siege, et nettoie mort/deconnexion.
 - `Assets/RoadRage/App/Run/NetworkedVehicleSeatIntent.cs` (nouveau) -- composant sur `NetworkedPlayerRoot`, lit l'input local (`E`, preference passager via modificateur) et envoie une RPC serveur validee contre `SenderClientId`.
 - `Assets/RoadRage/App/Run/NetworkedPlayerSpawnService.cs` -- attacher l'intent siege aux players spawn et garantir le service siege cote host avec references spawner/HUD.
@@ -79,15 +81,18 @@ baseline_commit: '68a7d82cb10b8df66a386e536818ad345cc3896c'
 - Given un occupant sort, meurt ou se deconnecte, when le host traite l'evenement, then le siege est libere et le controle conducteur est desactive si besoin.
 - Given le module Vehicules inspecte apres implementation, when ses references asmdef sont lues, then il ne reference toujours aucune autre feature slice.
 - Given `MVP_Run` est lance en solo hors-ligne, when le joueur a pied s'approche de la voiture et appuie sur `E`, then son personnage disparait, la camera passe voiture, et les inputs voiture pilotent le vehicule.
+- Given `MVP_Run` est lance en solo hors-ligne, when le joueur a pied s'approche de la voiture et appuie sur `Shift+E`, then il occupe un siege passager, son personnage disparait, il ne controle pas la voiture, et il peut ressortir par `E`.
 - Given ce joueur solo appuie a nouveau sur `E` dans la voiture, when la sortie est traitee, then il reapparait a cote de la voiture, la voiture ne consomme plus l'input conducteur, et la camera revient au controle a pied.
+- Given une session multi, when le joueur conducteur sort et que `Mode` repasse `OnFoot`, then la camera voiture locale est desactivee pendant la transition meme si `DriverClientId` n'a pas encore replique sa liberation.
+- Given un occupant meurt ou respawn apres une presence en voiture, when le chemin solo ou multi traite la transition, then le controle vehicule est relache et le joueur revient a un etat a pied coherent.
 
 ## Verification
 
 **Commands:**
 - `git diff --check` -- OK ; seulement avertissements CRLF Windows, aucune erreur whitespace.
 - `unity command --project-path D:\Projets\RRS recompile --focus false` puis `recompile_status` -- OK, `completed`, `failed=false`, `errors=[]`.
-- `unity command --project-path D:\Projets\RRS run_tests --mode EditMode --filter RoadRage.Tests.EditMode.Story33SeatEntryExitAndPassengerPresenceTests --filter_type testName --async_tests true`, puis `test_status` -- OK final apres correctif solo/camera, 9/9 tests verts, 0 echec, 0 skip, duree 0.38 s.
-- `unity command --project-path D:\Projets\RRS run_tests --mode EditMode --filter RoadRage.Tests.EditMode.Story32DriverControlAndLocalCameraTests --filter_type testName --async_tests true`, puis `test_status` -- OK, 9/9 tests verts, 0 echec, 0 skip, duree 0.33 s.
+- `unity command --project-path D:\Projets\RRS run_tests --mode EditMode --filter RoadRage.Tests.EditMode.Story33SeatEntryExitAndPassengerPresenceTests --filter_type testName --async_tests true`, puis `test_status` -- OK final apres correctif de parite solo/multi, 9/9 tests verts, 0 echec, 0 skip, duree 0.40 s.
+- `unity command --project-path D:\Projets\RRS run_tests --mode EditMode --filter RoadRage.Tests.EditMode.Story32DriverControlAndLocalCameraTests --filter_type testName --async_tests true`, puis `test_status` -- OK, 9/9 tests verts, 0 echec, 0 skip, duree 0.34 s.
 - `git status --short --branch` / `git diff --stat` -- OK ; changements limites aux fichiers de Story 3.3/correctif avant commit final.
 
 ## Suggested Review Order
