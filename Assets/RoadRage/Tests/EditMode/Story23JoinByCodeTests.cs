@@ -251,6 +251,10 @@ namespace RoadRage.Tests.EditMode
             public void SetLobbyDifficulty(Difficulty difficulty)
             {
             }
+
+            public void SetLobbyRunLaunchRequested(bool launchRequested)
+            {
+            }
         }
     }
 }

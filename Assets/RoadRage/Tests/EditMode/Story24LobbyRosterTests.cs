@@ -246,6 +246,10 @@ namespace RoadRage.Tests.EditMode
 
             public Difficulty LastDifficulty { get; private set; }
 
+            public int SetLobbyRunLaunchRequestedCallCount { get; private set; }
+
+            public bool LastLaunchRequested { get; private set; }
+
             public Task<LobbyCreateOutcome> CreateLobbyAsync(int maxMembers)
             {
                 return Task.FromResult(NextCreateOutcome);
@@ -289,6 +293,12 @@ namespace RoadRage.Tests.EditMode
             {
                 SetDifficultyCallCount++;
                 LastDifficulty = difficulty;
+            }
+
+            public void SetLobbyRunLaunchRequested(bool launchRequested)
+            {
+                SetLobbyRunLaunchRequestedCallCount++;
+                LastLaunchRequested = launchRequested;
             }
         }
     }
