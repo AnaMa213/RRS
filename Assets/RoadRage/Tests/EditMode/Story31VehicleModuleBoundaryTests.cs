@@ -19,10 +19,10 @@ namespace RoadRage.Tests.EditMode
         private const string MvpRunScenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";
         private const string DevVehicleSandboxScenePath = "Assets/RoadRage/App/Scenes/Dev_VehicleSandbox.unity";
 
-        private static readonly Vector3 ExpectedColliderSize = new Vector3(4.4399996f, 1.4200001f, 2.0600002f);
+        private static readonly Vector3 ExpectedColliderSize = new Vector3(2.0600002f, 1.4200001f, 4.4399996f);
 
         [Test]
-        public void GreyboxPlayerCarHasNetworkIdentityAndUnchangedColliderAndArt()
+        public void GreyboxPlayerCarHasNetworkIdentityAndLongitudinalColliderAndArt()
         {
             var prefab = LoadPrefab(PrefabPath);
 
@@ -40,6 +40,8 @@ namespace RoadRage.Tests.EditMode
             Assert.That(boxCollider.size.x, Is.EqualTo(ExpectedColliderSize.x).Within(0.001f));
             Assert.That(boxCollider.size.y, Is.EqualTo(ExpectedColliderSize.y).Within(0.001f));
             Assert.That(boxCollider.size.z, Is.EqualTo(ExpectedColliderSize.z).Within(0.001f));
+            Assert.That(boxCollider.size.z, Is.GreaterThan(boxCollider.size.x),
+                "L'axe long du collider doit suivre le forward gameplay (+Z), pas la tranche du vehicule.");
 
             Assert.That(prefab.GetComponentsInChildren<Renderer>(true).Length, Is.GreaterThan(0),
                 "L'art placeholder (Visual_Greybox_PlayerCar) doit rester present");

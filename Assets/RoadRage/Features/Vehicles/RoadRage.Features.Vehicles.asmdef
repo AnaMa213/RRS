@@ -3,7 +3,9 @@
     "rootNamespace": "RoadRage.Features.Vehicles",
     "references": [
         "RoadRage.Shared",
-        "Unity.Netcode.Runtime"
+        "Unity.Netcode.Runtime",
+        "Unity.InputSystem",
+        "Unity.Cinemachine"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
