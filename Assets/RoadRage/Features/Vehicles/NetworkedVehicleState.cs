@@ -4,15 +4,35 @@ using UnityEngine;
 
 namespace RoadRage.Features.Vehicles
 {
+    /// <summary>Type de degat vehicule (Story 3.5) : roue/moteur/frein, un seul selectionne par seuil de 33 HP cumules.</summary>
+    public enum VehicleDamageType
+    {
+        Wheel = 0,
+        Engine = 1,
+        Brake = 2
+    }
+
     /// <summary>
     /// Identite reseau et frontiere du module Vehicules pour la voiture partagee. Story 3.2 y
     /// ajoute la revendication de conducteur (DriverClientId) ; Story 3.3 ajoute l'occupation
-    /// formelle des sieges conducteur/passagers.
+    /// formelle des sieges conducteur/passagers. Story 3.5 ajoute Hp et les flags de degat
+    /// roue/moteur/frein : un ordre aleatoire (DamageOrderSlot0/1/2) est tire une seule fois via
+    /// EnsureDamageStateInitialized (appele au spawn hote ou a l'activation solo, jamais depuis
+    /// Awake -- ecrire un NetworkVariable avant le spawn declenche un avertissement Netcode) pour
+    /// garantir qu'aucun type ne se repete sans avoir a synchroniser une liste separee de types
+    /// "deja vus" (cf. Design Notes de la story) -- chaque seuil de 33 HP cumules franchi consomme
+    /// le prochain type de l'ordre via DamageThresholdsCrossed.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
     public sealed class NetworkedVehicleState : HostOwnedNetworkStateBehaviour
     {
+        public const int DefaultMaxHp = 100;
+
+        public const int DamageThresholdStep = 33;
+
+        public const int MaxDamageTypeCount = 3;
+
         public const int NoSeatIndex = -1;
 
         public const int DriverSeatIndex = 0;
@@ -51,6 +71,182 @@ namespace RoadRage.Features.Vehicles
             UnoccupiedSeatClientId,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<int> Hp = new NetworkVariable<int>(
+            DefaultMaxHp,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<bool> WheelDamaged = new NetworkVariable<bool>(
+            false,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<bool> EngineDamaged = new NetworkVariable<bool>(
+            false,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<bool> BrakeDamaged = new NetworkVariable<bool>(
+            false,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        /// <summary>Ordre (aleatoire, tire via EnsureDamageStateInitialized) des VehicleDamageType consommes un par un aux seuils de 33 HP cumules.</summary>
+        public NetworkVariable<int> DamageOrderSlot0 = new NetworkVariable<int>(
+            (int)VehicleDamageType.Wheel,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<int> DamageOrderSlot1 = new NetworkVariable<int>(
+            (int)VehicleDamageType.Engine,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<int> DamageOrderSlot2 = new NetworkVariable<int>(
+            (int)VehicleDamageType.Brake,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        public NetworkVariable<int> DamageThresholdsCrossed = new NetworkVariable<int>(
+            0,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        private bool damageStateInitialized;
+
+        /// <summary>Voiture inconduisible (Story 3.5) : tous les occupants doivent etre ejectes (NetworkedVehicleSeatService).</summary>
+        public bool IsInoperable()
+        {
+            return Hp.Value <= 0;
+        }
+
+        /// <summary>
+        /// Tire l'ordre aleatoire de degat une seule fois (au premier appel), depuis
+        /// NetworkedVehicleDriverController.OnNetworkSpawn (IsServer) ou SetLocalSoloDriverActive --
+        /// jamais depuis Awake() : ecrire un NetworkVariable.Value avant que le NetworkObject ne soit
+        /// spawn declenche l'avertissement Netcode "doesn't know its NetworkBehaviour yet". Les
+        /// valeurs par defaut des NetworkVariable (Hp/flags/compteur) sont deja correctes sans appel ;
+        /// seul l'ordre aleatoire a besoin d'etre tire explicitement.
+        /// </summary>
+        public void EnsureDamageStateInitialized()
+        {
+            if (damageStateInitialized)
+            {
+                return;
+            }
+
+            damageStateInitialized = true;
+            ResetDamageState();
+        }
+
+        /// <summary>
+        /// Remet Hp/flags/compteur a l'etat initial et tire un nouvel ordre aleatoire de types de
+        /// degat (creation/reset greybox, cf. Design Notes de la Story 3.5). Public pour un futur
+        /// reset explicite (ex. restart de run, Epic 7) ; l'initialisation normale passe par
+        /// EnsureDamageStateInitialized.
+        /// </summary>
+        public void ResetDamageState()
+        {
+            Hp.Value = DefaultMaxHp;
+            WheelDamaged.Value = false;
+            EngineDamaged.Value = false;
+            BrakeDamaged.Value = false;
+            DamageThresholdsCrossed.Value = 0;
+
+            var order = ShuffleDamageTypeOrder(UnityEngine.Random.Range);
+            DamageOrderSlot0.Value = order[0];
+            DamageOrderSlot1.Value = order[1];
+            DamageOrderSlot2.Value = order[2];
+        }
+
+        /// <summary>
+        /// Applique des degats voiture, clampe Hp a 0, puis applique (sans repetition) un type de
+        /// degat par seuil de 33 HP cumules nouvellement franchi.
+        /// </summary>
+        public void ApplyDamage(int amount)
+        {
+            if (amount <= 0 || Hp.Value <= 0)
+            {
+                return;
+            }
+
+            var previousHp = Hp.Value;
+            var nextHp = Mathf.Max(0, previousHp - amount);
+            Hp.Value = nextHp;
+
+            var previousThresholds = ComputeThresholdsCrossed(previousHp, DefaultMaxHp);
+            var nextThresholds = ComputeThresholdsCrossed(nextHp, DefaultMaxHp);
+            for (var slot = previousThresholds; slot < nextThresholds; slot++)
+            {
+                ApplyDamageTypeAtSlot(slot);
+            }
+        }
+
+        /// <summary>
+        /// Predicat pur (Design Notes) : nombre de seuils de 33 HP cumules franchis depuis maxHp --
+        /// avec DefaultMaxHp (100), correspond exactement aux seuils 67/34/1 HP restants de la matrice
+        /// I/O (33 -> 1, 66 -> 2, 99/100 -> 3, plafonne a MaxDamageTypeCount).
+        /// </summary>
+        public static int ComputeThresholdsCrossed(int hp, int maxHp)
+        {
+            var damageTaken = Mathf.Max(0, maxHp - hp);
+            return Mathf.Clamp(damageTaken / DamageThresholdStep, 0, MaxDamageTypeCount);
+        }
+
+        /// <summary>
+        /// Fisher-Yates pur, parametre par une fonction de tirage (min inclus, max exclu) pour rester
+        /// testable sans UnityEngine.Random -- utilise en jeu avec UnityEngine.Random.Range.
+        /// </summary>
+        public static int[] ShuffleDamageTypeOrder(System.Func<int, int, int> randomRange)
+        {
+            var order = new[] { 0, 1, 2 };
+            for (var i = order.Length - 1; i > 0; i--)
+            {
+                var j = randomRange(0, i + 1);
+                var temp = order[i];
+                order[i] = order[j];
+                order[j] = temp;
+            }
+
+            return order;
+        }
+
+        private void ApplyDamageTypeAtSlot(int slot)
+        {
+            if (slot < 0 || slot >= MaxDamageTypeCount || DamageThresholdsCrossed.Value > slot)
+            {
+                return;
+            }
+
+            switch (ResolveDamageOrderSlot(slot))
+            {
+                case (int)VehicleDamageType.Wheel:
+                    WheelDamaged.Value = true;
+                    break;
+                case (int)VehicleDamageType.Engine:
+                    EngineDamaged.Value = true;
+                    break;
+                case (int)VehicleDamageType.Brake:
+                    BrakeDamaged.Value = true;
+                    break;
+            }
+
+            DamageThresholdsCrossed.Value = slot + 1;
+        }
+
+        private int ResolveDamageOrderSlot(int slot)
+        {
+            switch (slot)
+            {
+                case 0:
+                    return DamageOrderSlot0.Value;
+                case 1:
+                    return DamageOrderSlot1.Value;
+                default:
+                    return DamageOrderSlot2.Value;
+            }
+        }
 
         public bool IsDriver(ulong clientId)
         {

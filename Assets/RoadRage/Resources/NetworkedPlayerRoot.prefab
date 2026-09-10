@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 2128479698466815540}
   - component: {fileID: 6351651809446815331}
   - component: {fileID: 4816293745102938475}
+  - component: {fileID: 960985213786361856}
   m_Layer: 0
   m_Name: NetworkedPlayerRoot
   m_TagString: Untagged
@@ -165,6 +166,16 @@ MonoBehaviour:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
+  Hp:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 100
+  ReviveDeadlineTime:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: -1
 --- !u!114 &814257317465103092
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -220,3 +231,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: RoadRage.App::RoadRage.App.Run.NetworkedVehicleRecoveryIntent
   ShowTopMostFoldoutHeaderGroup: 1
   recoveryKey: 32
+--- !u!114 &960985213786361856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433135406427400504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 816b99ee6c544892aeddad189580c7fe, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: RoadRage.App::RoadRage.App.Run.NetworkedPlayerReviveIntent
+  ShowTopMostFoldoutHeaderGroup: 1
+  reviveKey: 20

@@ -27,6 +27,8 @@ namespace RoadRage.App.Run
 
         public const string NoSeatAvailableMessage = "Entree vehicule refusee : aucun siege libre.";
 
+        public const string VehicleInoperableMessage = "Entree vehicule refusee : voiture hors d'usage.";
+
         public const float DefaultEntryRadius = 5f;
 
         public static NetworkedVehicleSeatService Instance { get; private set; }
@@ -160,13 +162,23 @@ namespace RoadRage.App.Run
             return mode == PlayerMode.Driver || mode == PlayerMode.Passenger;
         }
 
+        /// <summary>
+        /// Story 3.5 : Downed rejoint Dead/Disconnected -- un joueur tombe a 0 HP en siege doit etre
+        /// ejecte a pied via ce meme flux existant, exactement comme Dead/Disconnected.
+        /// </summary>
         public static bool ShouldReleaseOccupant(PlayerLifecycle lifecycle)
         {
-            return lifecycle == PlayerLifecycle.Dead || lifecycle == PlayerLifecycle.Disconnected;
+            return lifecycle == PlayerLifecycle.Dead || lifecycle == PlayerLifecycle.Disconnected || lifecycle == PlayerLifecycle.Downed;
         }
 
         private void TryEnterSeat(ulong clientId, NetworkedPlayerState playerState, bool preferPassenger)
         {
+            if (vehicleState.IsInoperable())
+            {
+                Report(VehicleInoperableMessage, true);
+                return;
+            }
+
             var distanceToVehicle = Vector3.Distance(playerState.WorldPosition.Value, vehicleState.transform.position);
             if (!CanEnterSeat(playerState.Mode.Value, playerState.Lifecycle.Value, playerState.SeatIndex.Value, distanceToVehicle, entryRadius))
             {
@@ -206,8 +218,15 @@ namespace RoadRage.App.Run
             Report("Sortie vehicule.", false);
         }
 
+        /// <summary>
+        /// Story 3.5 : quand la voiture est inoperable (Hp <= 0), tous les occupants sont ejectes
+        /// quelle que soit leur Lifecycle -- au-dela du cas Dead/Disconnected/Downed individuel deja
+        /// couvert par ShouldReleaseOccupant.
+        /// </summary>
         private void ReleaseInvalidOccupants()
         {
+            var vehicleInoperable = vehicleState.IsInoperable();
+
             for (var seatIndex = NetworkedVehicleState.DriverSeatIndex; seatIndex < NetworkedVehicleState.SeatCount; seatIndex++)
             {
                 if (!vehicleState.TryGetSeatOccupant(seatIndex, out var clientId) || clientId == NetworkedVehicleState.UnoccupiedSeatClientId)
@@ -215,18 +234,26 @@ namespace RoadRage.App.Run
                     continue;
                 }
 
-                if (!TryResolvePlayer(clientId, out var playerState) || ShouldReleaseOccupant(playerState.Lifecycle.Value))
+                var resolvedPlayer = TryResolvePlayer(clientId, out var playerState);
+                var shouldRelease = vehicleInoperable || !resolvedPlayer || ShouldReleaseOccupant(playerState.Lifecycle.Value);
+                if (!shouldRelease)
                 {
-                    ReleaseVehicleSeat(seatIndex, clientId);
-
-                    if (playerState != null)
-                    {
-                        playerState.SeatIndex.Value = NetworkedVehicleState.NoSeatIndex;
-                        playerState.Mode.Value = PlayerMode.OnFoot;
-                    }
-
-                    Report("Siege libere pour le client " + clientId + ".", true);
+                    continue;
                 }
+
+                ReleaseVehicleSeat(seatIndex, clientId);
+
+                if (playerState != null)
+                {
+                    playerState.WorldPosition.Value = vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveExitLocalOffset(seatIndex));
+                    playerState.YawDegrees.Value = NormalizeYaw(vehicleState.transform.eulerAngles.y);
+                    playerState.SeatIndex.Value = NetworkedVehicleState.NoSeatIndex;
+                    playerState.Mode.Value = PlayerMode.OnFoot;
+                }
+
+                Report(vehicleInoperable
+                    ? "Siege libere : voiture hors d'usage (client " + clientId + ")."
+                    : "Siege libere pour le client " + clientId + ".", true);
             }
         }
 
@@ -270,6 +297,11 @@ namespace RoadRage.App.Run
 
         private string ResolveEntryRefusalMessage(NetworkedPlayerState playerState, float distanceToVehicle)
         {
+            if (vehicleState != null && vehicleState.IsInoperable())
+            {
+                return VehicleInoperableMessage;
+            }
+
             if (playerState.Lifecycle.Value != PlayerLifecycle.Alive)
             {
                 return PlayerNotAliveMessage;

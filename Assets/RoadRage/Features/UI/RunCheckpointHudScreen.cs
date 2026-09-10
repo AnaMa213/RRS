@@ -1,14 +1,10 @@
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace RoadRage.Features.UI
 {
-    /// <summary>
-    /// HUD de checkpoint. Il affiche l'etat local/reseau lu par la couche App (Story 1.5, 2.5, 2.6),
-    /// sans connaitre les types gameplay ni jamais ecrire l'etat de run ou de joueur reseau : chaque
-    /// methode publique se limite a mettre a jour l'affichage concerne.
-    /// </summary>
     [DisallowMultipleComponent]
     public sealed class RunCheckpointHudScreen : MonoBehaviour
     {
@@ -28,11 +24,13 @@ namespace RoadRage.Features.UI
 
         public const string VehicleRecoveredMessage = "Vehicule recupere.";
 
+        public const string PlayerDownedMessage = "Joueur a terre : resurrection en cours...";
+
+        public const string PlayerRevivedMessage = "Joueur reanime.";
+
+        public const string VehicleInoperableMessage = "Voiture hors d'usage.";
+
         private const string PlaceholderValue = "-";
-
-        private const char FilledHeartGlyph = '♥';
-
-        private const char EmptyHeartGlyph = '♡';
 
         [SerializeField]
         private TMP_Text lobbyStateLabel;
@@ -44,7 +42,8 @@ namespace RoadRage.Features.UI
         private TMP_Text futureHudLabel;
 
         [SerializeField]
-        private TMP_Text heartsLabel;
+        [FormerlySerializedAs("heartsLabel")]
+        private TMP_Text hpLabel;
 
         [SerializeField]
         private TMP_Text staminaLabel;
@@ -60,6 +59,10 @@ namespace RoadRage.Features.UI
 
         [SerializeField]
         private TMP_Text deathOverlayLabel;
+
+        private int currentHp = -1;
+
+        private int currentMaxHp = -1;
 
         private void Awake()
         {
@@ -95,88 +98,94 @@ namespace RoadRage.Features.UI
             ShowPlaceholderHudValues();
         }
 
-        /// <summary>
-        /// Valeurs neutres (Story 2.6) pour vie/stamina/joueurs/argent avant que
-        /// <see cref="RoadRage.App.Run.RunFlowController.TrySpawnSelectedProfile"/> ne lie l'etat reseau reel :
-        /// evite que ces 4 lignes restent vides ou perimees pendant l'attente/le blocage d'entree monde.
-        /// </summary>
         private void ShowPlaceholderHudValues()
         {
-            SetText(heartsLabel, "Vie : " + PlaceholderValue);
+            currentHp = -1;
+            currentMaxHp = -1;
+            SetText(hpLabel, "HP : " + PlaceholderValue);
             SetText(staminaLabel, "Stamina : " + PlaceholderValue);
             SetText(playerCountLabel, "Joueurs : " + PlaceholderValue);
             SetText(moneyLabel, "Argent : " + PlaceholderValue);
         }
 
-        /// <summary>Retour visible host-only pour un spawn reseau tardif, en echec ou en doublon (Story 2.5).</summary>
         public void ShowSpawnIssue(string message)
         {
             SetText(lobbyStateLabel, "Reseau : " + SafeText(message));
         }
 
-        /// <summary>Retour visible minimal pour l'entree/sortie vehicule (Story 3.3), lecture seule.</summary>
         public void ShowVehicleSeatMessage(string message)
         {
             SetText(futureHudLabel, "Vehicule : " + SafeText(message));
         }
 
-        /// <summary>
-        /// Retour visuel minimal (Story 3.4) sur collision route/decor -- reutilise le meme label que
-        /// le siege (pas de nouvelle UI durable), la session reseau/solo n'est jamais interrompue.
-        /// </summary>
         public void ShowVehicleCollisionMessage()
         {
             ShowVehicleSeatMessage(VehicleCollisionMessage);
         }
 
-        /// <summary>Retour visuel minimal (Story 3.4) apres une recuperation (auto ou manuelle), host ou solo.</summary>
         public void ShowVehicleRecoveredMessage()
         {
             ShowVehicleSeatMessage(VehicleRecoveredMessage);
         }
 
-        /// <summary>
-        /// Bind initial (Story 2.6) des valeurs placeholder de checkpoint : vie/coeurs, stamina,
-        /// nombre de joueurs et argent. Chaque valeur peut ensuite etre rafraichie individuellement
-        /// via les setters dedies sans reconstruire tout le HUD.
-        /// </summary>
-        public void ShowHudState(int hearts, int maxHearts, float staminaNormalized, int playerCount, int money)
+        public void ShowPlayerDownedMessage()
         {
-            SetHearts(hearts, maxHearts);
+            ShowVehicleSeatMessage(PlayerDownedMessage);
+        }
+
+        public void ShowPlayerRevivedMessage()
+        {
+            ShowVehicleSeatMessage(PlayerRevivedMessage);
+        }
+
+        public void ShowVehicleInoperableMessage()
+        {
+            ShowVehicleSeatMessage(VehicleInoperableMessage);
+        }
+
+        public void ShowPlayerDownedCountdown(float secondsRemaining)
+        {
+            ShowVehicleSeatMessage("Joueur a terre : " + Mathf.CeilToInt(Mathf.Max(0f, secondsRemaining)) + " s");
+        }
+
+        public void SetVehicleDamageStatus(int hp, int maxHp, bool wheelDamaged, bool engineDamaged, bool brakeDamaged)
+        {
+            var safeMaxHp = Mathf.Max(1, maxHp);
+            var safeHp = Mathf.Clamp(hp, 0, safeMaxHp);
+            SetText(futureHudLabel, "Vehicule : HP " + safeHp + "/" + safeMaxHp + " | Degats : " + FormatVehicleDamageTypes(wheelDamaged, engineDamaged, brakeDamaged));
+        }
+
+        public void ShowHudState(int hp, int maxHp, float staminaNormalized, int playerCount, int money)
+        {
+            SetHp(hp, maxHp);
             SetStamina(staminaNormalized);
             SetPlayerCount(playerCount);
             SetMoney(money);
         }
 
-        /// <summary>Met a jour uniquement l'affichage vie/coeurs (lecture seule, pas de mutation reseau).</summary>
-        public void SetHearts(int hearts, int maxHearts)
+        public void SetHp(int hp, int maxHp)
         {
-            SetText(heartsLabel, "Vie : " + FormatHearts(hearts, maxHearts));
+            currentHp = hp;
+            currentMaxHp = maxHp;
+            RenderHpLabel();
         }
 
-        /// <summary>Met a jour uniquement l'affichage stamina (lecture seule, pas de mutation reseau).</summary>
         public void SetStamina(float staminaNormalized)
         {
             var percent = Mathf.RoundToInt(Mathf.Clamp01(staminaNormalized) * 100f);
             SetText(staminaLabel, "Stamina : " + percent + "%");
         }
 
-        /// <summary>Met a jour uniquement le nombre de joueurs affiche, sans reconstruire le HUD.</summary>
         public void SetPlayerCount(int playerCount)
         {
             SetText(playerCountLabel, "Joueurs : " + Mathf.Max(0, playerCount));
         }
 
-        /// <summary>Met a jour uniquement l'affichage argent (lecture seule, pas de mutation reseau).</summary>
         public void SetMoney(int money)
         {
             SetText(moneyLabel, "Argent : " + money + " $");
         }
 
-        /// <summary>
-        /// Affiche l'overlay plein ecran de mort (Story 2.7), pilote depuis RunFlowController (reseau)
-        /// ou LocalVoidRespawnController (solo) -- jamais depuis le HUD lui-meme (lecture seule).
-        /// </summary>
         public void ShowDeathOverlay()
         {
             SetText(deathOverlayLabel, DeathOverlayText);
@@ -187,7 +196,6 @@ namespace RoadRage.Features.UI
             }
         }
 
-        /// <summary>Masque l'overlay plein ecran de mort (Story 2.7) au retour a Alive (reseau ou solo).</summary>
         public void HideDeathOverlay()
         {
             if (deathOverlayPanel != null)
@@ -196,24 +204,46 @@ namespace RoadRage.Features.UI
             }
         }
 
-        /// <summary>Convertit une vie/maximum en glyphes de coeurs pleins/vides (pas de sprite, texte only).</summary>
-        public static string FormatHearts(int hearts, int maxHearts)
+        public static string FormatHp(int hp, int maxHp)
         {
-            var clampedMax = Mathf.Max(0, maxHearts);
-            var clampedHearts = Mathf.Clamp(hearts, 0, clampedMax);
+            var clampedMax = Mathf.Max(0, maxHp);
+            var clampedHp = Mathf.Clamp(hp, 0, clampedMax);
+            return clampedHp + "/" + clampedMax;
+        }
 
-            var builder = new StringBuilder(clampedMax);
-            for (var i = 0; i < clampedHearts; i++)
+        public static string FormatVehicleDamageTypes(bool wheelDamaged, bool engineDamaged, bool brakeDamaged)
+        {
+            var builder = new StringBuilder();
+            AppendDamageType(builder, wheelDamaged, "roue");
+            AppendDamageType(builder, engineDamaged, "moteur");
+            AppendDamageType(builder, brakeDamaged, "frein");
+            return builder.Length == 0 ? "aucun" : builder.ToString();
+        }
+
+        private void RenderHpLabel()
+        {
+            if (currentHp >= 0 && currentMaxHp >= 0)
             {
-                builder.Append(FilledHeartGlyph);
+                SetText(hpLabel, "HP : " + FormatHp(currentHp, currentMaxHp));
+                return;
             }
 
-            for (var i = clampedHearts; i < clampedMax; i++)
+            SetText(hpLabel, "HP : " + PlaceholderValue);
+        }
+
+        private static void AppendDamageType(StringBuilder builder, bool active, string label)
+        {
+            if (!active)
             {
-                builder.Append(EmptyHeartGlyph);
+                return;
             }
 
-            return builder.ToString();
+            if (builder.Length > 0)
+            {
+                builder.Append(", ");
+            }
+
+            builder.Append(label);
         }
 
         private static void SetText(TMP_Text label, string value)

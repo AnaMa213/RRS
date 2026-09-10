@@ -767,15 +767,39 @@ So that driving can be tested as a repeatable gameplay slice.
 **Implements:** FR22, FR24, FR25, NFR4, NFR5, NFR21
 
 As a co-op player,
-I want vehicle danger to connect to player lifecycle in a minimal way,
-So that failure rules can be integrated later without rewriting the driving module.
+I want collisions to cost me and the car concrete health, and a damaged car to progressively handle worse,
+So that failure rules are real and testable now, without wiring the full run-restart or touching economy/boss/rage state.
 
-**Acceptance Criteria:**
+**Acceptance Criteria — Player life:**
 
-**Given** the shared car can collide and recover
-**When** test damage is applied through a debug trigger or collision threshold
-**Then** affected player lifecycle state can be updated by the host through `NetworkedPlayerState`
-**And** the all-dead condition can be detected from shared player state
+**Given** a connected player has 100 HP and 3 hearts (lives) for the run
+**When** the shared car registers a collision
+**Then** the host reduces that player's HP by 5 through `NetworkedPlayerState`
+**And When** a player's HP reaches 0
+**Then** the host sets that player's lifecycle to `Downed`, automatically removes them from any vehicle seat they occupy, and caps their movement speed to a small fraction of normal
+**And** a 30-second revive window starts and is trackable from shared state
+**And When** another player revives them before the window expires
+**Then** the host sets the lifecycle back to `Alive` with 30 HP, and no heart is spent
+**And When** the revive window expires with nobody reviving them
+**Then** the host spends 1 heart, and if hearts remain the player respawns `Alive` with 100 HP, otherwise the lifecycle is set to `Dead` for the rest of the run
+**And** this supersedes the always-refill-hearts-on-respawn placeholder from Story 2.7 — hearts are now a consumable run resource, not restored on every respawn
+
+**Acceptance Criteria — Vehicle damage and phases:**
+
+**Given** the shared car has 100 HP
+**When** the shared car registers a collision at or above a minimum impact speed
+**Then** the host reduces the car's HP by an amount between 5 and 15, scaled by impact speed (collisions below the minimum speed deal no car damage)
+**And When** the car's cumulative damage crosses a 33-HP threshold (roughly at 67, 34, and 1 HP remaining)
+**Then** the host applies one random damage type, without repeats, from wheel / engine / brake
+**And** a wheel-damaged car turns significantly harder
+**And** an engine-damaged car has its top speed capped
+**And** a brake-damaged car has drastically reduced braking force
+**And When** the car's HP reaches 0
+**Then** the car becomes undrivable and every occupant is forced out on foot through the existing seat-exit flow (3.3/3.4)
+
+**Acceptance Criteria — Contract boundaries:**
+
+**Then** the all-dead condition (every connected player `Dead`) can be detected from shared player state
 **And** the actual full-run restart remains stubbed until Epic 7
 **And** vehicle damage hooks do not mutate economy, boss, or rage state directly
 

@@ -101,8 +101,27 @@ namespace RoadRage.Features.Vehicles
         private const float InputEpsilon = 0.0001f;
         private const float DirectionEpsilon = 0.05f;
 
-        /// <summary>Collision route/decor (Story 3.4) -- retour visuel minimal cote App/Run, session jamais interrompue.</summary>
-        public event Action VehicleCollided;
+        /// <summary>Vitesse d'impact minimale (Story 3.5) en dessous de laquelle aucun degat voiture n'est applique.</summary>
+        public const float MinCollisionDamageSpeed = 3f;
+
+        /// <summary>Vitesse d'impact de reference (Story 3.5) au-dela de laquelle le degat voiture plafonne a MaxCollisionDamage.</summary>
+        public const float ReferenceCollisionDamageSpeed = 14f;
+
+        public const int MinCollisionDamage = 5;
+
+        public const int MaxCollisionDamage = 15;
+
+        /// <summary>Roue endommagee (Story 3.5) : handling degrade, applique au steering.</summary>
+        private const float WheelDamageSteerMultiplier = 0.5f;
+
+        /// <summary>Moteur endommage (Story 3.5) : puissance reduite, applique a la vitesse max.</summary>
+        private const float EngineDamageSpeedMultiplier = 0.55f;
+
+        /// <summary>Freins endommages (Story 3.5) : deceleration de freinage reduite.</summary>
+        private const float BrakeDamageDecelerationMultiplier = 0.45f;
+
+        /// <summary>Collision route/decor (Story 3.4) -- retour visuel minimal cote App/Run, session jamais interrompue. Story 3.5 : porte desormais la vitesse d'impact pour le pont de degats vehicule/joueur (RunFlowController).</summary>
+        public event Action<float> VehicleCollided;
 
         /// <summary>Recuperation appliquee (auto retournement/vide ou manuelle) -- meme evenement pour host et solo.</summary>
         public event Action VehicleRecovered;
@@ -121,6 +140,11 @@ namespace RoadRage.Features.Vehicles
             {
                 ConfigureArcadeBody();
                 body.isKinematic = !IsServer;
+            }
+
+            if (IsServer && state != null)
+            {
+                state.EnsureDamageStateInitialized();
             }
         }
 
@@ -150,6 +174,12 @@ namespace RoadRage.Features.Vehicles
                 return;
             }
 
+            if (state.IsInoperable())
+            {
+                latestIntent = VehicleDriveIntent.Idle;
+                return;
+            }
+
             SubmitDriveIntent(ReadLocalDriveIntent(), localClientId);
         }
 
@@ -161,6 +191,12 @@ namespace RoadRage.Features.Vehicles
             }
 
             UpdateRecoveryDetection(Time.fixedDeltaTime);
+
+            if (state.IsInoperable())
+            {
+                latestIntent = VehicleDriveIntent.Idle;
+                return;
+            }
 
             if (!localSoloDriverActive && state.DriverClientId.Value == NetworkedVehicleState.UnclaimedDriverClientId)
             {
@@ -289,8 +325,9 @@ namespace RoadRage.Features.Vehicles
                 return;
             }
 
-            VehicleCollided?.Invoke();
-            NotifyClientsIfNetworked(NotifyVehicleCollidedRpc);
+            var impactSpeed = collision.relativeVelocity.magnitude;
+            VehicleCollided?.Invoke(impactSpeed);
+            NotifyClientsIfNetworked(NotifyVehicleCollidedRpc, impactSpeed);
         }
 
         /// <summary>
@@ -307,16 +344,64 @@ namespace RoadRage.Features.Vehicles
             }
         }
 
-        [Rpc(SendTo.NotServer)]
-        private void NotifyVehicleCollidedRpc()
+        private void NotifyClientsIfNetworked(Action<float> rpcInvoker, float value)
         {
-            VehicleCollided?.Invoke();
+            if (IsServer && IsSpawned)
+            {
+                rpcInvoker(value);
+            }
+        }
+
+        [Rpc(SendTo.NotServer)]
+        private void NotifyVehicleCollidedRpc(float impactSpeed)
+        {
+            VehicleCollided?.Invoke(impactSpeed);
         }
 
         [Rpc(SendTo.NotServer)]
         private void NotifyVehicleRecoveredRpc()
         {
             VehicleRecovered?.Invoke();
+        }
+
+        /// <summary>
+        /// Degat voiture pur (Story 3.5, Design Notes) : sous MinCollisionDamageSpeed, aucun degat ;
+        /// interpolation lineaire vers ReferenceCollisionDamageSpeed pour mapper sur
+        /// [MinCollisionDamage, MaxCollisionDamage].
+        /// </summary>
+        public static int ComputeCollisionDamage(float impactSpeed)
+        {
+            return ComputeCollisionDamage(impactSpeed, MinCollisionDamageSpeed, ReferenceCollisionDamageSpeed, MinCollisionDamage, MaxCollisionDamage);
+        }
+
+        public static int ComputeCollisionDamage(float impactSpeed, float minDamageSpeed, float referenceSpeed, int minDamage, int maxDamage)
+        {
+            if (impactSpeed < minDamageSpeed)
+            {
+                return 0;
+            }
+
+            var range = Mathf.Max(0.0001f, referenceSpeed - minDamageSpeed);
+            var t = Mathf.Clamp01((impactSpeed - minDamageSpeed) / range);
+            return Mathf.RoundToInt(Mathf.Lerp(minDamage, maxDamage, t));
+        }
+
+        /// <summary>Moteur endommage (Story 3.5) : vitesse max reduite -- lu, jamais ecrit, depuis NetworkedVehicleState.</summary>
+        private float ResolveEffectiveMaxForwardSpeed()
+        {
+            return state != null && state.EngineDamaged.Value ? maxForwardSpeed * EngineDamageSpeedMultiplier : maxForwardSpeed;
+        }
+
+        /// <summary>Roue endommagee (Story 3.5) : maniabilite reduite.</summary>
+        private float ResolveEffectiveSteerDegreesPerSecond()
+        {
+            return state != null && state.WheelDamaged.Value ? steerDegreesPerSecond * WheelDamageSteerMultiplier : steerDegreesPerSecond;
+        }
+
+        /// <summary>Freins endommages (Story 3.5) : deceleration de freinage reduite.</summary>
+        private float ResolveEffectiveBrakeDeceleration()
+        {
+            return state != null && state.BrakeDamaged.Value ? brakeDeceleration * BrakeDamageDecelerationMultiplier : brakeDeceleration;
         }
 
         private void SubmitDriveIntent(VehicleDriveIntent intent, ulong localClientId)
@@ -338,7 +423,7 @@ namespace RoadRage.Features.Vehicles
 
         private void ApplyServerDriveIntent(float throttle, float steer, float brakeReverse, ulong senderClientId)
         {
-            if (!IsServer || state == null || state.DriverClientId.Value != senderClientId)
+            if (!IsServer || state == null || state.IsInoperable() || state.DriverClientId.Value != senderClientId)
             {
                 return;
             }
@@ -410,14 +495,19 @@ namespace RoadRage.Features.Vehicles
 
         public void SetLocalSoloDriverActive(bool active)
         {
-            localSoloDriverActive = active;
+            CacheComponents();
+            localSoloDriverActive = active && (state == null || !state.IsInoperable());
             latestIntent = VehicleDriveIntent.Idle;
 
-            CacheComponents();
             if (body != null)
             {
                 ConfigureArcadeBody();
                 body.isKinematic = false;
+            }
+
+            if (state != null)
+            {
+                state.EnsureDamageStateInitialized();
             }
         }
 
@@ -430,7 +520,7 @@ namespace RoadRage.Features.Vehicles
 
             if (intent.Throttle > InputEpsilon)
             {
-                return maxForwardSpeed * intent.Throttle;
+                return ResolveEffectiveMaxForwardSpeed() * intent.Throttle;
             }
 
             return 0f;
@@ -440,7 +530,7 @@ namespace RoadRage.Features.Vehicles
         {
             if (intent.BrakeReverse > InputEpsilon)
             {
-                return longitudinalSpeed > minimumSteerSpeed ? brakeDeceleration : reverseAcceleration;
+                return longitudinalSpeed > minimumSteerSpeed ? ResolveEffectiveBrakeDeceleration() : reverseAcceleration;
             }
 
             if (intent.Throttle > InputEpsilon)
@@ -464,10 +554,11 @@ namespace RoadRage.Features.Vehicles
                 return;
             }
 
-            var speedFactor = Mathf.Clamp01(speedMagnitude / Mathf.Max(maxForwardSpeed, 1f));
+            var effectiveMaxForwardSpeed = ResolveEffectiveMaxForwardSpeed();
+            var speedFactor = Mathf.Clamp01(speedMagnitude / Mathf.Max(effectiveMaxForwardSpeed, 1f));
             var lowSpeedAssist = Mathf.Lerp(0.45f, 1f, speedFactor);
             var reverseAwareDirection = ResolveSteerDirectionMultiplier(longitudinalSpeed, intent.BrakeReverse);
-            var yawDegrees = intent.Steer * reverseAwareDirection * steerDegreesPerSecond * lowSpeedAssist * fixedDeltaTime;
+            var yawDegrees = intent.Steer * reverseAwareDirection * ResolveEffectiveSteerDegreesPerSecond() * lowSpeedAssist * fixedDeltaTime;
 
             body.MoveRotation(Quaternion.AngleAxis(yawDegrees, Vector3.up) * body.rotation);
         }

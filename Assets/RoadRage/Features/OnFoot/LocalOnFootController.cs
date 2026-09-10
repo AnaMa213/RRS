@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -19,6 +20,32 @@ namespace RoadRage.Features.OnFoot
         private float sprintSpeed = 6.5f;
 
         [SerializeField]
+        [Range(0f, 1f)]
+        private float staminaNormalized = 1f;
+
+        [SerializeField]
+        [Min(0f)]
+        private float sprintStaminaDrainPerSecond = 0.28f;
+
+        [SerializeField]
+        [Min(0f)]
+        private float staminaRecoveryPerSecond = 0.22f;
+
+        [SerializeField]
+        [Min(0f)]
+        private float staminaRecoveryDelaySeconds = 1f;
+
+        /// <summary>
+        /// Multiplicateur de vitesse (Story 3.5) applique tant que IsDowned est vrai -- plafond de
+        /// deplacement distinct du gel complet existant (MovementEnabled) : un joueur Downed reste
+        /// mobile (pour se rapprocher d'un coequipier ou fuir) mais nettement ralenti en attendant la
+        /// resurrection ou l'expiration de fenetre.
+        /// </summary>
+        [SerializeField]
+        [Range(0.05f, 1f)]
+        private float downedSpeedMultiplier = 0.35f;
+
+        [SerializeField]
         private float lookSensitivity = 0.12f;
 
         [SerializeField]
@@ -30,6 +57,7 @@ namespace RoadRage.Features.OnFoot
         private CharacterController characterController;
         private float pitch;
         private float verticalVelocity;
+        private float secondsSinceSprintStopped = 1f;
 
         /// <summary>
         /// Gel complet du mouvement (Story 2.7, bug fix post-implementation) : quand faux, Update()
@@ -38,6 +66,13 @@ namespace RoadRage.Features.OnFoot
         /// de chute pendant que le joueur est "mort" (cause racine du respawn qui remourrait aussitot).
         /// </summary>
         public bool MovementEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Plafond de vitesse (Story 3.5) reflete localement depuis NetworkedPlayerState.Lifecycle ==
+        /// Downed (RunFlowController) ou l'equivalent solo (LocalVoidRespawnController) -- jamais mute
+        /// depuis ce composant lui-meme, meme invariant "lecture seule" que MovementEnabled.
+        /// </summary>
+        public bool IsDowned { get; set; }
 
         public Camera PlayerCamera
         {
@@ -54,9 +89,17 @@ namespace RoadRage.Features.OnFoot
             get { return sprintSpeed; }
         }
 
+        public float StaminaNormalized
+        {
+            get { return staminaNormalized; }
+        }
+
+        public event Action<float> StaminaChanged;
+
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
+            staminaNormalized = Mathf.Clamp01(staminaNormalized);
 
             if (playerCamera == null)
             {
@@ -66,12 +109,14 @@ namespace RoadRage.Features.OnFoot
 
         private void Update()
         {
+            var deltaTime = Time.deltaTime;
             if (!MovementEnabled)
             {
+                UpdateStamina(false, false, deltaTime);
                 return;
             }
 
-            Step(ReadInputIntent(), Time.deltaTime);
+            Step(ReadInputIntent(), deltaTime);
         }
 
         public void AttachCamera(Camera camera)
@@ -200,10 +245,95 @@ namespace RoadRage.Features.OnFoot
             }
 
             var horizontal = (transform.right * intent.Move.x) + (transform.forward * intent.Move.y);
-            var speed = intent.SprintRequested ? sprintSpeed : walkSpeed;
+            var isSprinting = ShouldSprint(intent.Move, intent.SprintRequested, IsDowned, staminaNormalized);
+            UpdateStamina(isSprinting, WantsSprint(intent.Move, intent.SprintRequested, IsDowned), deltaTime);
+
+            var speed = isSprinting ? sprintSpeed : walkSpeed;
+            if (IsDowned)
+            {
+                speed *= downedSpeedMultiplier;
+            }
+
             var velocity = (horizontal * speed) + (Vector3.up * verticalVelocity);
 
             characterController.Move(velocity * deltaTime);
+        }
+
+        public static bool ShouldSprint(Vector2 move, bool sprintRequested, bool isDowned, float currentStaminaNormalized)
+        {
+            return WantsSprint(move, sprintRequested, isDowned) && currentStaminaNormalized > 0f;
+        }
+
+        public static bool WantsSprint(Vector2 move, bool sprintRequested, bool isDowned)
+        {
+            return sprintRequested && !isDowned && move.sqrMagnitude > 0.0001f;
+        }
+
+        public static float ComputeNextStamina(
+            float currentStaminaNormalized,
+            bool isSprinting,
+            bool canRecover,
+            float deltaTime,
+            float drainPerSecond,
+            float recoveryPerSecond)
+        {
+            if (deltaTime <= 0f)
+            {
+                return Mathf.Clamp01(currentStaminaNormalized);
+            }
+
+            if (isSprinting)
+            {
+                return Mathf.Clamp01(currentStaminaNormalized - (Mathf.Max(0f, drainPerSecond) * deltaTime));
+            }
+
+            if (canRecover)
+            {
+                return Mathf.Clamp01(currentStaminaNormalized + (Mathf.Max(0f, recoveryPerSecond) * deltaTime));
+            }
+
+            return Mathf.Clamp01(currentStaminaNormalized);
+        }
+
+        private void UpdateStamina(bool isSprinting, bool wantsSprint, float deltaTime)
+        {
+            if (isSprinting)
+            {
+                secondsSinceSprintStopped = 0f;
+                SetStaminaNormalized(ComputeNextStamina(
+                    staminaNormalized,
+                    true,
+                    false,
+                    deltaTime,
+                    sprintStaminaDrainPerSecond,
+                    staminaRecoveryPerSecond));
+                return;
+            }
+
+            if (!wantsSprint)
+            {
+                secondsSinceSprintStopped += Mathf.Max(0f, deltaTime);
+            }
+
+            SetStaminaNormalized(ComputeNextStamina(
+                staminaNormalized,
+                false,
+                secondsSinceSprintStopped >= staminaRecoveryDelaySeconds,
+                deltaTime,
+                sprintStaminaDrainPerSecond,
+                staminaRecoveryPerSecond));
+        }
+
+        private void SetStaminaNormalized(float value)
+        {
+            var clamped = Mathf.Clamp01(value);
+            if (Mathf.Approximately(staminaNormalized, clamped))
+            {
+                return;
+            }
+
+            staminaNormalized = clamped;
+            StaminaChanged?.Invoke(staminaNormalized);
         }
     }
 }

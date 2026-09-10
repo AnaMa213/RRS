@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 2026-09-09
+last_updated: 2026-09-10
 project: RoadRage_Simulator
 project_key: NOKEY
 tracking_system: file-system
@@ -71,7 +71,7 @@ development_status:
   3-2-driver-control-and-local-vehicle-camera: review
   3-3-seat-entry-exit-and-passenger-presence: review
   3-4-simple-route-collision-and-vehicle-recovery: review
-  3-5-vehicle-damage-hook-and-team-wipe-contract-stub: backlog
+  3-5-vehicle-damage-hook-and-team-wipe-contract-stub: done
   3-6-epic-3-driving-playable-checkpoint: backlog
   epic-3-retrospective: optional
 

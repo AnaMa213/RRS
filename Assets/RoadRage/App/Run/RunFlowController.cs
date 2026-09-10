@@ -39,6 +39,8 @@ namespace RoadRage.App.Run
 
         private GameObject activeLocalPlayerVisual;
 
+        private LocalOnFootController activeLocalOnFootController;
+
         private NetworkedPlayerState localNetworkedPlayerState;
 
         private NetworkedVehicleState localSoloVehicleState;
@@ -58,6 +60,10 @@ namespace RoadRage.App.Run
         private bool networkHudBridgeActive;
 
         private NetworkedVehicleDriverController subscribedVehicleDriverController;
+
+        private NetworkedVehicleState subscribedVehicleState;
+
+        private bool subscribedVehicleStateCallbacks;
 
         public GameObject ActiveLocalPlayer
         {
@@ -93,6 +99,7 @@ namespace RoadRage.App.Run
             HandleLocalSoloVehicleRecoveryInteraction();
             RefreshLocalSoloDeathRecovery();
             ResolveLocalNetworkedPlayerStateIfNeeded();
+            RefreshLocalReviveCountdown();
             SynchronizeLocalSeatedPose();
             EnsureVehicleEventBridge();
         }
@@ -132,6 +139,7 @@ namespace RoadRage.App.Run
             }
 
             UnsubscribeFromLocalNetworkedPlayerState();
+            UnsubscribeFromLocalOnFootController();
             UnsubscribeFromVehicleEvents();
         }
 
@@ -189,6 +197,7 @@ namespace RoadRage.App.Run
 
             var onFootController = activeLocalPlayer.AddComponent<LocalOnFootController>();
             onFootController.AttachCamera(playerCamera);
+            SubscribeToLocalOnFootController(onFootController);
             AttachNetworkPoseReporter(activeLocalPlayer);
             AttachLocalVoidRespawnController(activeLocalPlayer, checkpointHud);
 
@@ -214,8 +223,8 @@ namespace RoadRage.App.Run
             }
 
             checkpointHud.ShowHudState(
-                NetworkedPlayerState.DefaultMaxHearts,
-                NetworkedPlayerState.DefaultMaxHearts,
+                NetworkedPlayerState.DefaultMaxHp,
+                NetworkedPlayerState.DefaultMaxHp,
                 NetworkedPlayerState.DefaultStaminaNormalized,
                 ResolveConnectedPlayerCount(),
                 NetworkedPlayerState.DefaultMoney);
@@ -272,6 +281,9 @@ namespace RoadRage.App.Run
             driverController.VehicleCollided += HandleVehicleCollided;
             driverController.VehicleRecovered += HandleVehicleRecovered;
             subscribedVehicleDriverController = driverController;
+            subscribedVehicleState = driverController.GetComponent<NetworkedVehicleState>();
+            SubscribeToVehicleState(subscribedVehicleState);
+            RefreshVehicleDamageHud();
         }
 
         private void UnsubscribeFromVehicleEvents()
@@ -283,15 +295,197 @@ namespace RoadRage.App.Run
 
             subscribedVehicleDriverController.VehicleCollided -= HandleVehicleCollided;
             subscribedVehicleDriverController.VehicleRecovered -= HandleVehicleRecovered;
+            UnsubscribeFromVehicleState();
             subscribedVehicleDriverController = null;
+            subscribedVehicleState = null;
         }
 
-        private void HandleVehicleCollided()
+        /// <summary>
+        /// Relais HUD (Story 3.4) toujours affiche sur chaque client, puis pont de degats Story 3.5
+        /// (joueurs assis + voiture) -- host-authoritative uniquement (AD-3/AD-18) : chaque client
+        /// recoit le meme evenement (relaye par NotifyVehicleCollidedRpc), mais seul le host (ou la
+        /// partie solo, ou aucun NetworkManager n'ecoute) calcule et applique reellement les degats ;
+        /// les autres clients reseau se contentent de lire NetworkedVehicleState.Hp (deja synchronise)
+        /// pour le message "voiture hors d'usage", jamais de le muter.
+        /// </summary>
+        private void HandleVehicleCollided(float impactSpeed)
         {
             if (checkpointHud != null)
             {
                 checkpointHud.ShowVehicleCollisionMessage();
             }
+
+            ApplyCollisionConsequencesIfAuthoritative(impactSpeed);
+            ShowVehicleInoperableMessageIfNeeded();
+        }
+
+        private void ApplyCollisionConsequencesIfAuthoritative(float impactSpeed)
+        {
+            if (!IsAuthoritativeForDamage())
+            {
+                return;
+            }
+
+            var vehicleDamage = NetworkedVehicleDriverController.ComputeCollisionDamage(impactSpeed);
+
+            if (IsNetworkSessionActive())
+            {
+                ApplyNetworkedCollisionDamage(vehicleDamage);
+            }
+            else
+            {
+                ApplySoloCollisionDamage(vehicleDamage);
+            }
+        }
+
+        private void ApplyNetworkedCollisionDamage(int vehicleDamage)
+        {
+            if (subscribedVehicleState == null)
+            {
+                return;
+            }
+
+            var service = NetworkedPlayerLifecycleService.Instance;
+            if (service != null)
+            {
+                for (var seatIndex = NetworkedVehicleState.DriverSeatIndex; seatIndex < NetworkedVehicleState.SeatCount; seatIndex++)
+                {
+                    if (subscribedVehicleState.TryGetSeatOccupant(seatIndex, out var clientId) && clientId != NetworkedVehicleState.UnoccupiedSeatClientId)
+                    {
+                        service.ApplyCollisionDamage(clientId, NetworkedPlayerLifecycleService.PlayerCollisionDamage);
+                    }
+                }
+            }
+
+            if (vehicleDamage > 0)
+            {
+                subscribedVehicleState.ApplyDamage(vehicleDamage);
+            }
+
+            RefreshVehicleDamageHud();
+        }
+
+        /// <summary>
+        /// Parite solo (Story 3.5) : la voiture partagee n'a pas de sieges NetworkedVehicleState
+        /// peuples hors reseau (le solo suit son propre siege via localSoloSeatIndex/
+        /// localSoloVehicleSeated), donc le seul occupant possible est le joueur local lui-meme --
+        /// applique via LocalVoidRespawnController.ApplyVehicleCollisionDamage (meme chemin Die() que
+        /// la chute hors limites) plutot que de dupliquer un etat Downed/resurrection complet pour un
+        /// mode qui n'a jamais de coequipier.
+        /// </summary>
+        private void ApplySoloCollisionDamage(int vehicleDamage)
+        {
+            if (localSoloVehicleSeated && activeLocalPlayer != null)
+            {
+                var localLifecycle = activeLocalPlayer.GetComponent<LocalVoidRespawnController>();
+                if (localLifecycle != null)
+                {
+                    localLifecycle.ApplyVehicleCollisionDamage(NetworkedPlayerLifecycleService.PlayerCollisionDamage);
+                }
+            }
+
+            if (vehicleDamage > 0 && localSoloVehicleState != null)
+            {
+                localSoloVehicleState.ApplyDamage(vehicleDamage);
+            }
+
+            if (localSoloVehicleSeated && localSoloVehicleState != null && localSoloVehicleState.IsInoperable())
+            {
+                ExitLocalSoloVehicle();
+            }
+
+            RefreshVehicleDamageHud();
+        }
+
+        private void ShowVehicleInoperableMessageIfNeeded()
+        {
+            var vehicleState = ResolveObservedVehicleState();
+            if (vehicleState != null && vehicleState.IsInoperable() && checkpointHud != null)
+            {
+                checkpointHud.ShowVehicleInoperableMessage();
+            }
+        }
+
+        private void SubscribeToVehicleState(NetworkedVehicleState vehicleState)
+        {
+            if (vehicleState == null || subscribedVehicleStateCallbacks)
+            {
+                return;
+            }
+
+            vehicleState.Hp.OnValueChanged += HandleVehicleHpChanged;
+            vehicleState.WheelDamaged.OnValueChanged += HandleVehicleDamageFlagChanged;
+            vehicleState.EngineDamaged.OnValueChanged += HandleVehicleDamageFlagChanged;
+            vehicleState.BrakeDamaged.OnValueChanged += HandleVehicleDamageFlagChanged;
+            subscribedVehicleStateCallbacks = true;
+        }
+
+        private void UnsubscribeFromVehicleState()
+        {
+            if (subscribedVehicleState == null || !subscribedVehicleStateCallbacks)
+            {
+                subscribedVehicleStateCallbacks = false;
+                return;
+            }
+
+            subscribedVehicleState.Hp.OnValueChanged -= HandleVehicleHpChanged;
+            subscribedVehicleState.WheelDamaged.OnValueChanged -= HandleVehicleDamageFlagChanged;
+            subscribedVehicleState.EngineDamaged.OnValueChanged -= HandleVehicleDamageFlagChanged;
+            subscribedVehicleState.BrakeDamaged.OnValueChanged -= HandleVehicleDamageFlagChanged;
+            subscribedVehicleStateCallbacks = false;
+        }
+
+        private void HandleVehicleHpChanged(int previousValue, int newValue)
+        {
+            RefreshVehicleDamageHud();
+            ShowVehicleInoperableMessageIfNeeded();
+        }
+
+        private void HandleVehicleDamageFlagChanged(bool previousValue, bool newValue)
+        {
+            RefreshVehicleDamageHud();
+        }
+
+        private void RefreshVehicleDamageHud()
+        {
+            if (checkpointHud == null)
+            {
+                return;
+            }
+
+            var vehicleState = ResolveObservedVehicleState();
+            if (vehicleState == null)
+            {
+                return;
+            }
+
+            checkpointHud.SetVehicleDamageStatus(
+                vehicleState.Hp.Value,
+                NetworkedVehicleState.DefaultMaxHp,
+                vehicleState.WheelDamaged.Value,
+                vehicleState.EngineDamaged.Value,
+                vehicleState.BrakeDamaged.Value);
+        }
+
+        private NetworkedVehicleState ResolveObservedVehicleState()
+        {
+            if (IsNetworkSessionActive())
+            {
+                return subscribedVehicleState;
+            }
+
+            return localSoloVehicleState == null ? subscribedVehicleState : localSoloVehicleState;
+        }
+
+        /// <summary>
+        /// Autorite de degats (Story 3.5, AD-3/AD-18) : le host (ou l'absence totale de NetworkManager
+        /// en ecoute, cas solo) peut calculer/appliquer des degats ; un client reseau non-host ne le
+        /// peut jamais -- meme garde que les autres chemins ApplyServer*/Try* de ce fichier.
+        /// </summary>
+        private static bool IsAuthoritativeForDamage()
+        {
+            var manager = NetworkManager.Singleton;
+            return manager == null || !manager.IsListening || manager.IsServer;
         }
 
         private void HandleVehicleRecovered()
@@ -328,10 +522,45 @@ namespace RoadRage.App.Run
             return null;
         }
 
+        private void SubscribeToLocalOnFootController(LocalOnFootController controller)
+        {
+            if (activeLocalOnFootController == controller)
+            {
+                return;
+            }
+
+            UnsubscribeFromLocalOnFootController();
+            activeLocalOnFootController = controller;
+
+            if (activeLocalOnFootController != null)
+            {
+                activeLocalOnFootController.StaminaChanged += HandleLocalStaminaChanged;
+            }
+        }
+
+        private void UnsubscribeFromLocalOnFootController()
+        {
+            if (activeLocalOnFootController == null)
+            {
+                return;
+            }
+
+            activeLocalOnFootController.StaminaChanged -= HandleLocalStaminaChanged;
+            activeLocalOnFootController = null;
+        }
+
+        private void HandleLocalStaminaChanged(float staminaNormalized)
+        {
+            if (checkpointHud != null)
+            {
+                checkpointHud.SetStamina(staminaNormalized);
+            }
+        }
+
         private void SubscribeToLocalNetworkedPlayerState(NetworkedPlayerState state)
         {
-            state.Hearts.OnValueChanged += HandleHeartsChanged;
-            state.MaxHearts.OnValueChanged += HandleHeartsChanged;
+            state.Hp.OnValueChanged += HandleHpChanged;
+            state.ReviveDeadlineTime.OnValueChanged += HandleReviveDeadlineChanged;
             state.StaminaNormalized.OnValueChanged += HandleStaminaChanged;
             state.Money.OnValueChanged += HandleMoneyChanged;
             state.Lifecycle.OnValueChanged += HandleLifecycleChanged;
@@ -346,8 +575,8 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            localNetworkedPlayerState.Hearts.OnValueChanged -= HandleHeartsChanged;
-            localNetworkedPlayerState.MaxHearts.OnValueChanged -= HandleHeartsChanged;
+            localNetworkedPlayerState.Hp.OnValueChanged -= HandleHpChanged;
+            localNetworkedPlayerState.ReviveDeadlineTime.OnValueChanged -= HandleReviveDeadlineChanged;
             localNetworkedPlayerState.StaminaNormalized.OnValueChanged -= HandleStaminaChanged;
             localNetworkedPlayerState.Money.OnValueChanged -= HandleMoneyChanged;
             localNetworkedPlayerState.Lifecycle.OnValueChanged -= HandleLifecycleChanged;
@@ -363,24 +592,55 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            checkpointHud.SetHearts(localNetworkedPlayerState.Hearts.Value, localNetworkedPlayerState.MaxHearts.Value);
-            checkpointHud.SetStamina(localNetworkedPlayerState.StaminaNormalized.Value);
+            checkpointHud.SetHp(localNetworkedPlayerState.Hp.Value, NetworkedPlayerState.DefaultMaxHp);
+            RefreshLocalReviveCountdown();
+            checkpointHud.SetStamina(activeLocalOnFootController == null
+                ? localNetworkedPlayerState.StaminaNormalized.Value
+                : activeLocalOnFootController.StaminaNormalized);
             checkpointHud.SetMoney(localNetworkedPlayerState.Money.Value);
         }
 
-        private void HandleHeartsChanged(int previousValue, int newValue)
+        private void HandleHpChanged(int previousValue, int newValue)
         {
-            if (checkpointHud == null || localNetworkedPlayerState == null)
+            if (checkpointHud == null)
             {
                 return;
             }
 
-            checkpointHud.SetHearts(localNetworkedPlayerState.Hearts.Value, localNetworkedPlayerState.MaxHearts.Value);
+            checkpointHud.SetHp(newValue, NetworkedPlayerState.DefaultMaxHp);
+        }
+
+        private void HandleReviveDeadlineChanged(double previousValue, double newValue)
+        {
+            RefreshLocalReviveCountdown();
+        }
+
+        private void RefreshLocalReviveCountdown()
+        {
+            if (checkpointHud == null || localNetworkedPlayerState == null || localNetworkedPlayerState.Lifecycle.Value != PlayerLifecycle.Downed)
+            {
+                return;
+            }
+
+            var deadline = localNetworkedPlayerState.ReviveDeadlineTime.Value;
+            if (deadline < 0d)
+            {
+                checkpointHud.ShowPlayerDownedMessage();
+                return;
+            }
+
+            checkpointHud.ShowPlayerDownedCountdown((float)(deadline - ResolveNetworkTime()));
+        }
+
+        private static double ResolveNetworkTime()
+        {
+            var manager = NetworkManager.Singleton;
+            return manager != null ? manager.ServerTime.Time : Time.timeAsDouble;
         }
 
         private void HandleStaminaChanged(float previousValue, float newValue)
         {
-            if (checkpointHud != null)
+            if (checkpointHud != null && activeLocalOnFootController == null)
             {
                 checkpointHud.SetStamina(newValue);
             }
@@ -510,6 +770,12 @@ namespace RoadRage.App.Run
                 return;
             }
 
+            if (vehicleState.IsInoperable())
+            {
+                ShowVehicleSeatMessage(NetworkedVehicleSeatService.VehicleInoperableMessage);
+                return;
+            }
+
             localSoloVehicleState = vehicleState;
             localSoloVehicleDriver = driverController;
             localSoloVehicleCameraRig = cameraRig;
@@ -530,6 +796,7 @@ namespace RoadRage.App.Run
             }
 
             SynchronizeLocalSoloSeatedPose();
+            RefreshVehicleDamageHud();
             ShowVehicleSeatMessage(ResolveSeatOccupiedMessage(localSoloSeatIndex));
         }
 
@@ -769,6 +1036,34 @@ namespace RoadRage.App.Run
         private void HandleLifecycleChanged(PlayerLifecycle previousValue, PlayerLifecycle newValue)
         {
             var localOnFootController = activeLocalPlayer == null ? null : activeLocalPlayer.GetComponent<LocalOnFootController>();
+
+            if (localOnFootController != null)
+            {
+                if (newValue == PlayerLifecycle.Downed)
+                {
+                    localOnFootController.IsDowned = true;
+                }
+                else if (previousValue == PlayerLifecycle.Downed)
+                {
+                    localOnFootController.IsDowned = false;
+                }
+            }
+
+            if (newValue == PlayerLifecycle.Downed)
+            {
+                if (checkpointHud != null)
+                {
+                    checkpointHud.ShowPlayerDownedMessage();
+                    RefreshLocalReviveCountdown();
+                }
+            }
+            else if (previousValue == PlayerLifecycle.Downed && newValue == PlayerLifecycle.Alive)
+            {
+                if (checkpointHud != null)
+                {
+                    checkpointHud.ShowPlayerRevivedMessage();
+                }
+            }
 
             if (newValue == PlayerLifecycle.Dead)
             {

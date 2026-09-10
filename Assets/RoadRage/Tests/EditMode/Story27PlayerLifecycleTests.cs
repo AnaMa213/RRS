@@ -41,12 +41,15 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void IsValidTransitionAllowsDownedToDeadOrDisconnectedOnly()
+        public void IsValidTransitionAllowsDownedToAliveDeadOrDisconnected()
         {
+            // Story 3.5 remplace l'ancienne regle "Downed -> Alive interdit" : la resurrection par un
+            // coequipier (TryReviveNearestDowned) et le respawn automatique a l'expiration non-
+            // resuscitee de la fenetre (TryRespawn) transitionnent tous deux Downed -> Alive directement.
             Assert.That(NetworkedPlayerLifecycleService.IsValidTransition(PlayerLifecycle.Downed, PlayerLifecycle.Dead), Is.True);
             Assert.That(NetworkedPlayerLifecycleService.IsValidTransition(PlayerLifecycle.Downed, PlayerLifecycle.Disconnected), Is.True);
-            Assert.That(NetworkedPlayerLifecycleService.IsValidTransition(PlayerLifecycle.Downed, PlayerLifecycle.Alive), Is.False,
-                "Downed -> Alive doit passer par un respawn (Dead), jamais une transition directe.");
+            Assert.That(NetworkedPlayerLifecycleService.IsValidTransition(PlayerLifecycle.Downed, PlayerLifecycle.Alive), Is.True,
+                "Story 3.5 : resurrection (coequipier) et respawn (fenetre expiree) transitionnent Downed -> Alive directement.");
         }
 
         [Test]
@@ -248,12 +251,21 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void LifecycleServiceZeroesHeartsOnDeathAndRestoresOnRespawn()
+        public void LifecycleServiceNoLongerForceZeroesOrRefillsHeartsOnDeathTransition()
         {
+            // Story 3.5 remplace le placeholder 2.7 : Hearts est desormais une ressource reellement
+            // consommable, depensee uniquement dans TryRespawn (jamais force a 0 sur un simple passage
+            // a Dead, jamais remplie inconditionnellement au respawn).
             var source = File.ReadAllText("Assets/RoadRage/App/Run/NetworkedPlayerLifecycleService.cs");
 
-            Assert.That(source, Does.Contain("state.Hearts.Value = 0"), "la vie doit se vider quand la transition aboutit a Dead.");
-            Assert.That(source, Does.Contain("state.Hearts.Value = state.MaxHearts.Value"), "la vie doit se restaurer au maximum au respawn.");
+            Assert.That(source, Does.Not.Contain("state.Hearts.Value = 0"),
+                "Story 3.5 : Hearts ne doit plus etre force a 0 sur un simple passage a Dead.");
+            Assert.That(source, Does.Not.Contain("state.Hearts.Value = state.MaxHearts.Value"),
+                "Story 3.5 : Hearts ne doit plus etre rempli inconditionnellement au respawn.");
+            Assert.That(source, Does.Contain("state.Hearts.Value -= 1"),
+                "Story 3.5 : chaque respawn reussi doit desormais depenser exactement 1 heart.");
+            Assert.That(source, Does.Contain("state.Hearts.Value <= 0"),
+                "Story 3.5 : TryRespawn doit refuser quand Hearts == 0 (Dead permanent pour le reste du run).");
         }
 
         [Test]
@@ -272,9 +284,9 @@ namespace RoadRage.Tests.EditMode
         {
             var source = File.ReadAllText("Assets/RoadRage/App/Run/LocalVoidRespawnController.cs");
 
-            Assert.That(source, Does.Contain("CheckpointHud.SetHearts(0, NetworkedPlayerState.DefaultMaxHearts);"));
+            Assert.That(source, Does.Contain("CheckpointHud.SetHp(0, NetworkedPlayerState.DefaultMaxHp);"));
             Assert.That(source, Does.Contain("CheckpointHud.ShowDeathOverlay();"));
-            Assert.That(source, Does.Contain("CheckpointHud.SetHearts(NetworkedPlayerState.DefaultMaxHearts, NetworkedPlayerState.DefaultMaxHearts);"));
+            Assert.That(source, Does.Contain("CheckpointHud.SetHp(NetworkedPlayerState.DefaultMaxHp, NetworkedPlayerState.DefaultMaxHp);"));
             Assert.That(source, Does.Contain("CheckpointHud.HideDeathOverlay();"));
         }
 
@@ -316,13 +328,13 @@ namespace RoadRage.Tests.EditMode
             try
             {
                 var hud = hudRoot.AddComponent<RunCheckpointHudScreen>();
-                var heartsLabel = AddLabel(hudRoot, "HeartsLabel");
+                var hpLabel = AddLabel(hudRoot, "HpLabel");
                 var panel = new GameObject("DeathOverlayPanel");
                 panel.transform.SetParent(hudRoot.transform);
                 panel.SetActive(false);
                 var deathLabel = AddLabel(hudRoot, "DeathOverlayLabel");
 
-                SetPrivateField(hud, "heartsLabel", heartsLabel);
+                SetPrivateField(hud, "hpLabel", hpLabel);
                 SetPrivateField(hud, "deathOverlayPanel", panel);
                 SetPrivateField(hud, "deathOverlayLabel", deathLabel);
 
@@ -331,14 +343,14 @@ namespace RoadRage.Tests.EditMode
 
                 InvokePrivateMethod(controller, "Die");
 
-                Assert.That(heartsLabel.text, Is.EqualTo("Vie : " + RunCheckpointHudScreen.FormatHearts(0, NetworkedPlayerState.DefaultMaxHearts)),
-                    "la mort solo doit vider la barre de vie du HUD, comme cote reseau.");
+                Assert.That(hpLabel.text, Is.EqualTo("HP : 0/100"),
+                    "la mort solo doit afficher les HP a 0 dans le HUD, comme cote reseau.");
                 Assert.That(panel.activeSelf, Is.True, "la mort solo doit afficher l'overlay plein ecran.");
 
                 InvokePrivateMethod(controller, "Respawn");
 
-                Assert.That(heartsLabel.text, Is.EqualTo("Vie : " + RunCheckpointHudScreen.FormatHearts(NetworkedPlayerState.DefaultMaxHearts, NetworkedPlayerState.DefaultMaxHearts)),
-                    "le respawn solo doit restaurer la vie au maximum.");
+                Assert.That(hpLabel.text, Is.EqualTo("HP : 100/100"),
+                    "le respawn solo doit restaurer les HP au maximum.");
                 Assert.That(panel.activeSelf, Is.False, "le respawn solo doit masquer l'overlay.");
             }
             finally
@@ -378,7 +390,7 @@ namespace RoadRage.Tests.EditMode
 
             var updateIndex = source.IndexOf("private void Update()");
             var guardIndex = source.IndexOf("if (!MovementEnabled)");
-            var stepCallIndex = source.IndexOf("Step(ReadInputIntent(), Time.deltaTime);");
+            var stepCallIndex = source.IndexOf("Step(ReadInputIntent(), deltaTime);");
 
             Assert.That(updateIndex, Is.GreaterThanOrEqualTo(0), "Update() doit exister.");
             Assert.That(guardIndex, Is.GreaterThan(updateIndex), "le garde-fou MovementEnabled doit etre dans Update().");

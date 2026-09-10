@@ -51,7 +51,8 @@ namespace RoadRage.Tests.EditMode
         {
             var source = File.ReadAllText(DriverControllerSourcePath);
 
-            Assert.That(source, Does.Contain("public event Action VehicleCollided;"));
+            // Story 3.5 : VehicleCollided porte desormais la vitesse d'impact (pont de degats vehicule/joueur).
+            Assert.That(source, Does.Contain("public event Action<float> VehicleCollided;"));
             Assert.That(source, Does.Contain("public event Action VehicleRecovered;"));
             Assert.That(source, Does.Contain("public void RecoverVehicle(Vector3 position, Quaternion rotation)"));
             Assert.That(source, Does.Contain("public void RecoverAtRecoveryPoint()"));
@@ -75,7 +76,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(source, Does.Contain("[Rpc(SendTo.NotServer)]"));
             Assert.That(Occurrences(source, "[Rpc(SendTo.NotServer)]"), Is.EqualTo(2),
                 "Collision et recuperation doivent chacune notifier les clients.");
-            Assert.That(source, Does.Contain("NotifyClientsIfNetworked(NotifyVehicleCollidedRpc);"));
+            Assert.That(source, Does.Contain("NotifyClientsIfNetworked(NotifyVehicleCollidedRpc, impactSpeed);"));
             Assert.That(source, Does.Contain("NotifyClientsIfNetworked(NotifyVehicleRecoveredRpc);"));
         }
 

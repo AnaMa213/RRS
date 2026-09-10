@@ -2,6 +2,7 @@ using System.IO;
 using System.Reflection;
 using NUnit.Framework;
 using RoadRage.App.Run;
+using RoadRage.Features.OnFoot;
 using RoadRage.Features.Players;
 using RoadRage.Features.UI;
 using TMPro;
@@ -11,49 +12,41 @@ using UnityEngine;
 namespace RoadRage.Tests.EditMode
 {
     /// <summary>
-    /// Couvre la Story 2.6 : conversion vie/coeurs, statut reseau solo/hote/client, mise a jour
-    /// ciblee (nombre de joueurs, vie/stamina/argent) sans reconstruire le HUD, et l'invariant
-    /// lecture-seule stricte (aucun setter public exploitable sur NetworkedPlayerState, aucune
-    /// ecriture directe de NetworkVariable depuis le HUD/RunFlowController).
+    /// Couvre la Story 2.6, mise a jour par la Story 3.5 : statut reseau solo/hote/client, HUD
+    /// cible (HP numeriques, stamina, joueurs, argent), stamina de sprint locale, et invariant
+    /// lecture-seule stricte cote HUD.
     /// </summary>
     public sealed class Story26InGameHudTests
     {
         [Test]
-        public void FormatHeartsRendersFilledAndEmptyGlyphs()
+        public void FormatHpRendersClampedNumericValue()
         {
-            Assert.That(RunCheckpointHudScreen.FormatHearts(2, 3), Is.EqualTo("♥♥♡"));
-            Assert.That(RunCheckpointHudScreen.FormatHearts(0, 3), Is.EqualTo("♡♡♡"));
-            Assert.That(RunCheckpointHudScreen.FormatHearts(3, 3), Is.EqualTo("♥♥♥"));
+            Assert.That(RunCheckpointHudScreen.FormatHp(75, 100), Is.EqualTo("75/100"));
+            Assert.That(RunCheckpointHudScreen.FormatHp(150, 100), Is.EqualTo("100/100"));
+            Assert.That(RunCheckpointHudScreen.FormatHp(-10, 100), Is.EqualTo("0/100"));
+            Assert.That(RunCheckpointHudScreen.FormatHp(0, 0), Is.EqualTo("0/0"));
         }
 
         [Test]
-        public void FormatHeartsClampsOutOfRangeValuesWithoutThrowing()
-        {
-            Assert.That(RunCheckpointHudScreen.FormatHearts(5, 3), Is.EqualTo("♥♥♥"));
-            Assert.That(RunCheckpointHudScreen.FormatHearts(-1, 3), Is.EqualTo("♡♡♡"));
-            Assert.That(RunCheckpointHudScreen.FormatHearts(0, 0), Is.Empty);
-        }
-
-        [Test]
-        public void ShowHudStateBindsHeartsStaminaPlayerCountAndMoneyPlaceholders()
+        public void ShowHudStateBindsHpStaminaPlayerCountAndMoneyPlaceholders()
         {
             var root = new GameObject("HudTest");
             try
             {
                 var hud = root.AddComponent<RunCheckpointHudScreen>();
-                var heartsLabel = AddLabel(root, "HeartsLabel");
+                var hpLabel = AddLabel(root, "HpLabel");
                 var staminaLabel = AddLabel(root, "StaminaLabel");
                 var playerCountLabel = AddLabel(root, "PlayerCountLabel");
                 var moneyLabel = AddLabel(root, "MoneyLabel");
 
-                SetPrivateField(hud, "heartsLabel", heartsLabel);
+                SetPrivateField(hud, "hpLabel", hpLabel);
                 SetPrivateField(hud, "staminaLabel", staminaLabel);
                 SetPrivateField(hud, "playerCountLabel", playerCountLabel);
                 SetPrivateField(hud, "moneyLabel", moneyLabel);
 
-                hud.ShowHudState(2, 3, 0.5f, 3, 150);
+                hud.ShowHudState(75, 100, 0.5f, 3, 150);
 
-                Assert.That(heartsLabel.text, Is.EqualTo("Vie : ♥♥♡"));
+                Assert.That(hpLabel.text, Is.EqualTo("HP : 75/100"));
                 Assert.That(staminaLabel.text, Is.EqualTo("Stamina : 50%"));
                 Assert.That(playerCountLabel.text, Is.EqualTo("Joueurs : 3"));
                 Assert.That(moneyLabel.text, Is.EqualTo("Argent : 150 $"));
@@ -71,22 +64,22 @@ namespace RoadRage.Tests.EditMode
             try
             {
                 var hud = root.AddComponent<RunCheckpointHudScreen>();
-                var heartsLabel = AddLabel(root, "HeartsLabel");
+                var hpLabel = AddLabel(root, "HpLabel");
                 var staminaLabel = AddLabel(root, "StaminaLabel");
                 var playerCountLabel = AddLabel(root, "PlayerCountLabel");
                 var moneyLabel = AddLabel(root, "MoneyLabel");
 
-                SetPrivateField(hud, "heartsLabel", heartsLabel);
+                SetPrivateField(hud, "hpLabel", hpLabel);
                 SetPrivateField(hud, "staminaLabel", staminaLabel);
                 SetPrivateField(hud, "playerCountLabel", playerCountLabel);
                 SetPrivateField(hud, "moneyLabel", moneyLabel);
 
-                hud.ShowHudState(2, 3, 0.5f, 1, 150);
+                hud.ShowHudState(80, 100, 0.5f, 1, 150);
 
                 hud.SetPlayerCount(4);
 
                 Assert.That(playerCountLabel.text, Is.EqualTo("Joueurs : 4"));
-                Assert.That(heartsLabel.text, Is.EqualTo("Vie : ♥♥♡"), "seul le compteur de joueurs doit changer.");
+                Assert.That(hpLabel.text, Is.EqualTo("HP : 80/100"), "seul le compteur de joueurs doit changer.");
                 Assert.That(staminaLabel.text, Is.EqualTo("Stamina : 50%"), "seul le compteur de joueurs doit changer.");
                 Assert.That(moneyLabel.text, Is.EqualTo("Argent : 150 $"), "seul le compteur de joueurs doit changer.");
             }
@@ -97,32 +90,50 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void SetHeartsUpdatesOnlyTheHeartsLabel()
+        public void SetHpUpdatesOnlyTheHpLabel()
         {
             var root = new GameObject("HudTest");
             try
             {
                 var hud = root.AddComponent<RunCheckpointHudScreen>();
-                var heartsLabel = AddLabel(root, "HeartsLabel");
+                var hpLabel = AddLabel(root, "HpLabel");
                 var staminaLabel = AddLabel(root, "StaminaLabel");
                 var moneyLabel = AddLabel(root, "MoneyLabel");
 
-                SetPrivateField(hud, "heartsLabel", heartsLabel);
+                SetPrivateField(hud, "hpLabel", hpLabel);
                 SetPrivateField(hud, "staminaLabel", staminaLabel);
                 SetPrivateField(hud, "moneyLabel", moneyLabel);
 
-                hud.ShowHudState(3, 3, 1f, 1, 0);
+                hud.ShowHudState(100, 100, 1f, 1, 0);
 
-                hud.SetHearts(1, 3);
+                hud.SetHp(35, 100);
 
-                Assert.That(heartsLabel.text, Is.EqualTo("Vie : ♥♡♡"));
-                Assert.That(staminaLabel.text, Is.EqualTo("Stamina : 100%"), "seule la vie doit changer.");
-                Assert.That(moneyLabel.text, Is.EqualTo("Argent : 0 $"), "seule la vie doit changer.");
+                Assert.That(hpLabel.text, Is.EqualTo("HP : 35/100"));
+                Assert.That(staminaLabel.text, Is.EqualTo("Stamina : 100%"), "seuls les HP doivent changer.");
+                Assert.That(moneyLabel.text, Is.EqualTo("Argent : 0 $"), "seuls les HP doivent changer.");
             }
             finally
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        [Test]
+        public void LocalOnFootControllerConsumesSprintStaminaAndBlocksSprintAtZero()
+        {
+            Assert.That(LocalOnFootController.ShouldSprint(Vector2.up, true, false, 1f), Is.True);
+            Assert.That(LocalOnFootController.ShouldSprint(Vector2.up, true, false, 0f), Is.False,
+                "a 0 stamina, le joueur ne peut plus courir.");
+            Assert.That(LocalOnFootController.ShouldSprint(Vector2.up, true, true, 1f), Is.False,
+                "Downed garde son plafond de vitesse et ne court pas.");
+            Assert.That(LocalOnFootController.ShouldSprint(Vector2.zero, true, false, 1f), Is.False,
+                "tenir sprint sans mouvement ne consomme pas de stamina.");
+
+            Assert.That(LocalOnFootController.ComputeNextStamina(1f, true, false, 1f, 0.28f, 0.22f), Is.EqualTo(0.72f).Within(0.001f));
+            Assert.That(LocalOnFootController.ComputeNextStamina(0.5f, false, false, 1f, 0.28f, 0.22f), Is.EqualTo(0.5f).Within(0.001f),
+                "avant le delai de recuperation, la stamina ne remonte pas.");
+            Assert.That(LocalOnFootController.ComputeNextStamina(0.5f, false, true, 1f, 0.28f, 0.22f), Is.EqualTo(0.72f).Within(0.001f),
+                "apres le delai de recuperation, la stamina remonte progressivement.");
         }
 
         [Test]
@@ -154,10 +165,11 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void NetworkedPlayerStateExposesHeartsStaminaAndMoneyAsServerWriteNetworkVariables()
+        public void NetworkedPlayerStateExposesHpHeartsStaminaAndMoneyAsServerWriteNetworkVariables()
         {
             var source = File.ReadAllText("Assets/RoadRage/Features/Players/NetworkedPlayerState.cs");
 
+            Assert.That(source, Does.Contain("NetworkVariable<int> Hp"));
             Assert.That(source, Does.Contain("NetworkVariable<int> MaxHearts"));
             Assert.That(source, Does.Contain("NetworkVariable<int> Hearts"));
             Assert.That(source, Does.Contain("NetworkVariable<float> StaminaNormalized"));
@@ -170,7 +182,7 @@ namespace RoadRage.Tests.EditMode
             var declaredMethods = typeof(NetworkedPlayerState).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
             Assert.That(declaredMethods, Is.Empty,
-                "NetworkedPlayerState ne doit exposer aucune methode publique : seules des NetworkVariable en champ public, ecrites uniquement par le host (Story 2.5/2.6).");
+                "NetworkedPlayerState ne doit exposer aucune methode publique : seules des NetworkVariable en champ public, ecrites uniquement par le host.");
         }
 
         [Test]
@@ -179,7 +191,7 @@ namespace RoadRage.Tests.EditMode
             var hudSource = File.ReadAllText("Assets/RoadRage/Features/UI/RunCheckpointHudScreen.cs");
             var runFlowSource = File.ReadAllText("Assets/RoadRage/App/Run/RunFlowController.cs");
 
-            foreach (var variableName in new[] { "Hearts", "MaxHearts", "StaminaNormalized", "Money" })
+            foreach (var variableName in new[] { "Hp", "Hearts", "MaxHearts", "StaminaNormalized", "Money" })
             {
                 Assert.That(hudSource, Does.Not.Contain(variableName + ".Value ="), "le HUD ne doit jamais ecrire " + variableName + ".");
                 Assert.That(runFlowSource, Does.Not.Contain(variableName + ".Value ="), "RunFlowController ne doit jamais ecrire " + variableName + ".");
@@ -192,8 +204,18 @@ namespace RoadRage.Tests.EditMode
             var source = File.ReadAllText("Assets/RoadRage/App/Run/RunFlowController.cs");
 
             Assert.That(source, Does.Contain("candidate.IsSpawned && candidate.ClientId.Value == localClientId"));
-            Assert.That(source, Does.Contain("state.Hearts.OnValueChanged += HandleHeartsChanged"));
-            Assert.That(source, Does.Contain("localNetworkedPlayerState.Hearts.OnValueChanged -= HandleHeartsChanged"));
+            Assert.That(source, Does.Contain("state.Hp.OnValueChanged += HandleHpChanged"));
+            Assert.That(source, Does.Contain("localNetworkedPlayerState.Hp.OnValueChanged -= HandleHpChanged"));
+        }
+
+        [Test]
+        public void RunFlowSubscribesToLocalOnFootStaminaForLiveHud()
+        {
+            var source = File.ReadAllText("Assets/RoadRage/App/Run/RunFlowController.cs");
+
+            Assert.That(source, Does.Contain("activeLocalOnFootController.StaminaChanged += HandleLocalStaminaChanged"));
+            Assert.That(source, Does.Contain("activeLocalOnFootController.StaminaChanged -= HandleLocalStaminaChanged"));
+            Assert.That(source, Does.Contain("checkpointHud.SetStamina(staminaNormalized);"));
         }
 
         [Test]
@@ -213,7 +235,7 @@ namespace RoadRage.Tests.EditMode
 
                 InvokePrivateMethod(controller, "HandleNetworkPlayerCountChanged", 0UL);
 
-                Assert.That(string.IsNullOrEmpty(playerCountLabel.text), Is.True, "le callback doit etre ignore si le HUD n'est pas encore lie (spawn pas termine).");
+                Assert.That(string.IsNullOrEmpty(playerCountLabel.text), Is.True, "le callback doit etre ignore si le HUD n'est pas encore lie.");
             }
             finally
             {
@@ -232,9 +254,9 @@ namespace RoadRage.Tests.EditMode
                 var controller = root.AddComponent<RunFlowController>();
                 var hud = hudRoot.AddComponent<RunCheckpointHudScreen>();
                 var playerCountLabel = AddLabel(hudRoot, "PlayerCountLabel");
-                var heartsLabel = AddLabel(hudRoot, "HeartsLabel");
+                var hpLabel = AddLabel(hudRoot, "HpLabel");
                 SetPrivateField(hud, "playerCountLabel", playerCountLabel);
-                SetPrivateField(hud, "heartsLabel", heartsLabel);
+                SetPrivateField(hud, "hpLabel", hpLabel);
                 SetPrivateField(controller, "checkpointHud", hud);
                 SetPrivateField(controller, "hudRuntimeBound", true);
 
@@ -248,7 +270,7 @@ namespace RoadRage.Tests.EditMode
                 }
 
                 Assert.That(playerCountLabel.text, Is.EqualTo("Joueurs : " + expectedCount));
-                Assert.That(string.IsNullOrEmpty(heartsLabel.text), Is.True, "seul le compteur de joueurs doit etre touche par ce callback.");
+                Assert.That(string.IsNullOrEmpty(hpLabel.text), Is.True, "seul le compteur de joueurs doit etre touche par ce callback.");
             }
             finally
             {

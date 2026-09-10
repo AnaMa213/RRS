@@ -35,6 +35,15 @@ namespace RoadRage.App.Run
 
         private bool isDead;
 
+        /// <summary>
+        /// HP local solo (Story 3.5) : distinct de la fenetre Downed/resurrection reseau (aucun
+        /// coequipier n'existe en solo pur) -- reutilise directement le meme mecanisme Die()/Respawn()
+        /// deja etabli pour la chute hors limites (Story 2.7), pour que le contrat de degats vehicule
+        /// reste jouable/testable seul (Acceptance Criteria Story 3.5) sans dupliquer un second etat
+        /// de cycle de vie complet.
+        /// </summary>
+        private int hp = NetworkedPlayerState.DefaultMaxHp;
+
         public bool IsDead
         {
             get { return isDead; }
@@ -83,9 +92,34 @@ namespace RoadRage.App.Run
             return positionY < voidHeightThreshold;
         }
 
+        /// <summary>
+        /// Degats de collision vehicule (Story 3.5) en solo pur : reduit le HP local, et declenche
+        /// Die() (meme chemin que la chute hors limites) une fois a 0 -- aucune fenetre Downed/
+        /// resurrection ici, un seul joueur existe en solo.
+        /// </summary>
+        public void ApplyVehicleCollisionDamage(int amount)
+        {
+            if (isDead || amount <= 0)
+            {
+                return;
+            }
+
+            hp = Mathf.Max(0, hp - amount);
+            if (CheckpointHud != null)
+            {
+                CheckpointHud.SetHp(hp, NetworkedPlayerState.DefaultMaxHp);
+            }
+
+            if (hp <= 0)
+            {
+                Die();
+            }
+        }
+
         private void Die()
         {
             isDead = true;
+            hp = 0;
 
             if (onFootController != null)
             {
@@ -94,7 +128,7 @@ namespace RoadRage.App.Run
 
             if (CheckpointHud != null)
             {
-                CheckpointHud.SetHearts(0, NetworkedPlayerState.DefaultMaxHearts);
+                CheckpointHud.SetHp(0, NetworkedPlayerState.DefaultMaxHp);
                 CheckpointHud.ShowDeathOverlay();
             }
         }
@@ -102,6 +136,7 @@ namespace RoadRage.App.Run
         private void Respawn()
         {
             isDead = false;
+            hp = NetworkedPlayerState.DefaultMaxHp;
 
             if (onFootController != null)
             {
@@ -111,7 +146,7 @@ namespace RoadRage.App.Run
 
             if (CheckpointHud != null)
             {
-                CheckpointHud.SetHearts(NetworkedPlayerState.DefaultMaxHearts, NetworkedPlayerState.DefaultMaxHearts);
+                CheckpointHud.SetHp(NetworkedPlayerState.DefaultMaxHp, NetworkedPlayerState.DefaultMaxHp);
                 CheckpointHud.HideDeathOverlay();
             }
         }
