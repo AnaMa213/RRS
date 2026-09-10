@@ -2,7 +2,7 @@
 title: 'Story 3.5 : Contrat de degats vehicule et stub de team-wipe'
 type: 'feature'
 created: '2026-09-09'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 context: []
 baseline_commit: 'c5b59a190e50320100240699b33c17b8f1ef53f9'

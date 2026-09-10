@@ -2,7 +2,7 @@
 title: 'Story 3.2 : Controle conducteur et camera vehicule locale'
 type: 'feature'
 created: '2026-09-09'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 context: []
 baseline_commit: 'b99d9669e13b0c3a20d70c19dca376d97d8022bd'
@@ -101,3 +101,54 @@ Modele arcade volontairement simple, sans `WheelCollider` -- coherent avec la de
 - Claim conducteur par l'utilisateur (touche F reelle) : confirme -- `DriverClientId` assigne, camera vehicule Cinemachine activee visuellement, camera on-foot non perturbee (leve le point "Ask First").
 - Conduite : signalee bloquee par l'utilisateur (voiture totalement figee malgre le claim) -- diagnostique en direct (composant de test temporaire en `FixedUpdate`, force continue + inspection `Rigidbody.IsSleeping()`) : la friction par defaut du `BoxCollider` (~0.6) opposait une friction statique (~7000 N sur 1200 kg) superieure a `motorForce` (4200 N), la voiture ne bougeait jamais. Corrige (`Greybox_PlayerCar_LowFriction.physicMaterial`, voir Code Map) et reconfirme en direct : acceleration normale des la premiere frame avec la valeur de production.
 - Camera strictement locale (non synchronisee) et rejet de revendication en double (2e client) : non re-testes manuellement apres le correctif de friction (logique de claim/camera inchangee par ce fix) -- couverts par relecture de code et tests structurels ; a confirmer par l'utilisateur avec Multiplayer Play Mode s'il le souhaite.
+
+## Suggested Review Order
+
+**Revendication conducteur et autorite reseau**
+
+- Sentinel `UnclaimedDriverClientId` + `NetworkVariable<ulong> DriverClientId` (server-write, everyone-read) -- fondation de l'arbitrage host.
+  [`NetworkedVehicleState.cs:51`](../../Assets/RoadRage/Features/Vehicles/NetworkedVehicleState.cs#L51)
+
+- Revue de code (subagent, diff complet 3.2) : claim/release et intention de conduite valides au depart contre `SenderClientId`, aucune donnee arbitraire cote client. Un gap reel etait present a l'epoque -- rien ne liberait `DriverClientId` a la deconnexion du conducteur -- mais Story 3.3 l'a deja corrige en integrant le siege conducteur au meme flux de liberation que les autres sieges ; verifie present dans l'etat courant.
+  [`NetworkedVehicleSeatService.cs:330`](../../Assets/RoadRage/App/Run/NetworkedVehicleSeatService.cs#L330)
+
+- Point d'entree consommateur : le controleur ne fait plus que lire `DriverClientId` (assignation deplacee au service de sieges en 3.3).
+  [`NetworkedVehicleDriverController.cs:485`](../../Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs#L485)
+
+**Conduite arcade host-simulee**
+
+- `VehicleDriveIntent` : struct immuable clampee au constructeur, meme patron que `OnFootMovementIntent`.
+  [`VehicleDriveIntent.cs:9`](../../Assets/RoadRage/Features/Vehicles/VehicleDriveIntent.cs#L9)
+
+- `OnNetworkSpawn` : `Rigidbody` non-kinematic uniquement sur le host, sinon pilote par `NetworkTransform`.
+  [`NetworkedVehicleDriverController.cs:135`](../../Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs#L135)
+
+- `ApplyPhysics` : vitesse cible + grip lateral code, coeur du ressenti arcade.
+  [`NetworkedVehicleDriverController.cs:434`](../../Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs#L434)
+
+- `ApplySteering` + `ResolveSteerDirectionMultiplier` : direction inversee uniquement en marche arriere reelle.
+  [`NetworkedVehicleDriverController.cs:544`](../../Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs#L544)
+
+- `ReadLocalDriveIntent` : lecture clavier locale, jamais de mutation d'etat partage directe.
+  [`NetworkedVehicleDriverController.cs:586`](../../Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs#L586)
+
+**Camera strictement locale**
+
+- `RefreshActivation` : active la `CinemachineCamera` enfant seulement si `DriverClientId` == client local ; jamais un `NetworkBehaviour`.
+  [`LocalVehicleCameraRig.cs:35`](../../Assets/RoadRage/Features/Vehicles/LocalVehicleCameraRig.cs#L35)
+
+**Cablage prefab/scene**
+
+- `Rigidbody` + `NetworkTransform` + `CinemachineCamera` enfant ajoutes au prefab partage.
+  [`Greybox_PlayerCar.prefab`](../../Assets/RoadRage/Prefabs/Greybox_PlayerCar.prefab)
+
+- Materiau bas-frottement necessaire pour que le grip code (et non la friction Unity par defaut) gouverne la voiture.
+  [`Greybox_PlayerCar_LowFriction.physicMaterial`](../../Assets/RoadRage/Prefabs/Greybox_PlayerCar_LowFriction.physicMaterial)
+
+- `CinemachineBrain` ajoute sur la Main Camera de `MVP_Run` et `Dev_VehicleSandbox`.
+  [`MVP_Run.unity`](../../Assets/RoadRage/App/Scenes/MVP_Run.unity)
+
+**Tests**
+
+- Verrouille sentinel, composants requis, camera inactive par defaut, frontiere asmdef.
+  [`Story32DriverControlAndLocalCameraTests.cs:33`](../../Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs#L33)
