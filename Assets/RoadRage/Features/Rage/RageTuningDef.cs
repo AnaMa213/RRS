@@ -1,0 +1,135 @@
+using System;
+using RoadRage.Shared.Definitions;
+using RoadRage.Shared.Domain;
+using UnityEngine;
+
+namespace RoadRage.Features.Rage
+{
+    /// <summary>
+    /// Donnee auteur statique des seuils de rage (Story 4.1). Vit comme asset sous
+    /// Assets/RoadRage/ScriptableObjects/Rage/ et porte un id globalement unique en minuscules,
+    /// stable, sur le meme gabarit que CharacterDef (Features.Players, Story 1.3) : l'id vit ici,
+    /// la validation de catalogue (unicite, casse, doublons) vit dans RageTuningCatalog.TryValidate.
+    /// </summary>
+    [CreateAssetMenu(fileName = "RageTuningDef", menuName = "RoadRage/Rage/Rage Tuning Def")]
+    public sealed class RageTuningDef : ScriptableObject
+    {
+        /// <summary>Un palier authored : seuil de RageValue a partir duquel Disposition devient cette valeur.</summary>
+        [Serializable]
+        public struct RageThreshold
+        {
+            [SerializeField]
+            private RageDisposition disposition;
+
+            [SerializeField]
+            private float minValue;
+
+            public RageThreshold(RageDisposition disposition, float minValue)
+            {
+                this.disposition = disposition;
+                this.minValue = minValue;
+            }
+
+            public RageDisposition Disposition
+            {
+                get { return disposition; }
+            }
+
+            public float MinValue
+            {
+                get { return minValue; }
+            }
+        }
+
+        [SerializeField]
+        [Tooltip("Id globalement unique en minuscules, ex. rage_default. Stable : ne jamais le renommer une fois publie.")]
+        private string id = string.Empty;
+
+        [SerializeField]
+        [Tooltip("Valeur maximale de RageValue ; ApplyRageDelta clampe a cette borne.")]
+        private float maxRageValue = 100f;
+
+        [SerializeField]
+        [Tooltip("Paliers tries par seuil strictement ascendant. Invariante d'authoring validee par RageTuningCatalog.TryValidate, pas recalculee a l'execution (cf. Design Notes).")]
+        private RageThreshold[] thresholds = Array.Empty<RageThreshold>();
+
+        /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
+        public DefinitionId Id
+        {
+            get { return new DefinitionId(id); }
+        }
+
+        /// <summary>Valeur brute de l'id, exposee pour les gardes de validation du catalogue.</summary>
+        public string RawId
+        {
+            get { return id ?? string.Empty; }
+        }
+
+        public float MaxRageValue
+        {
+            get { return maxRageValue; }
+        }
+
+        public RageThreshold[] Thresholds
+        {
+            get { return thresholds ?? Array.Empty<RageThreshold>(); }
+        }
+
+        /// <summary>
+        /// Predicat pur (Design Notes) sur des paliers tries par seuil ascendant : dernier palier
+        /// dont le seuil est franchi, Calm par defaut. Reste testable en EditMode sans Netcode.
+        /// </summary>
+        public RageDisposition ResolveDisposition(float rageValue)
+        {
+            var resolved = RageDisposition.Calm;
+            var currentThresholds = Thresholds;
+
+            for (var i = 0; i < currentThresholds.Length; i++)
+            {
+                if (rageValue >= currentThresholds[i].MinValue)
+                {
+                    resolved = currentThresholds[i].Disposition;
+                }
+            }
+
+            return resolved;
+        }
+
+        /// <summary>
+        /// Vrai si les paliers sont tries par seuil strictement ascendant -- invariante d'authoring
+        /// requise par ResolveDisposition, verifiee par RageTuningCatalog.TryValidate.
+        /// </summary>
+        public bool HasAscendingThresholds()
+        {
+            var currentThresholds = Thresholds;
+
+            for (var i = 1; i < currentThresholds.Length; i++)
+            {
+                if (currentThresholds[i].MinValue <= currentThresholds[i - 1].MinValue)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Vrai si le palier le plus haut reste atteignable : son seuil ne depasse pas MaxRageValue.
+        /// NetworkedRageState.ApplyRageDelta clampe RageValue a MaxRageValue, donc un palier authore
+        /// au-dessus ne resoudrait jamais -- invariante d'authoring requise, verifiee par
+        /// RageTuningCatalog.TryValidate.
+        /// </summary>
+        public bool HasTopThresholdWithinMaxRageValue()
+        {
+            var currentThresholds = Thresholds;
+
+            if (currentThresholds.Length == 0)
+            {
+                return true;
+            }
+
+            return currentThresholds[currentThresholds.Length - 1].MinValue <= maxRageValue;
+        }
+    }
+}

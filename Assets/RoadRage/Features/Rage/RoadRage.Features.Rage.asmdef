@@ -3,7 +3,8 @@
     "rootNamespace": "RoadRage.Features.Rage",
     "references": [
         "RoadRage.Shared",
-        "Unity.Netcode.Runtime"
+        "Unity.Netcode.Runtime",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
