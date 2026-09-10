@@ -2,7 +2,7 @@
 title: 'Story 3.3 : Entree sortie des sieges et presence passager'
 type: 'feature'
 created: '2026-09-09'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 context: []
 baseline_commit: '68a7d82cb10b8df66a386e536818ad345cc3896c'
@@ -94,6 +94,12 @@ baseline_commit: '68a7d82cb10b8df66a386e536818ad345cc3896c'
 - `unity command --project-path D:\Projets\RRS run_tests --mode EditMode --filter RoadRage.Tests.EditMode.Story33SeatEntryExitAndPassengerPresenceTests --filter_type testName --async_tests true`, puis `test_status` -- OK final apres correctif de parite solo/multi, 9/9 tests verts, 0 echec, 0 skip, duree 0.40 s.
 - `unity command --project-path D:\Projets\RRS run_tests --mode EditMode --filter RoadRage.Tests.EditMode.Story32DriverControlAndLocalCameraTests --filter_type testName --async_tests true`, puis `test_status` -- OK, 9/9 tests verts, 0 echec, 0 skip, duree 0.34 s.
 - `git status --short --branch` / `git diff --stat` -- OK ; changements limites aux fichiers de Story 3.3/correctif avant commit final.
+
+**Revue de code (2026-09-10, retroactive avant cloture d'epic) :**
+- Revue risk-scaled (subagent) sur le diff complet 3.3 : 2 findings.
+- Correctif applique (patch) : le chemin solo hors-ligne (`RunFlowController.TryEnterLocalSoloVehicle`) ne verifiait pas `LocalVoidRespawnController.IsDead` avant d'assoir le joueur, contrairement au chemin reseau (`NetworkedVehicleSeatService.CanEnterSeat` exige `PlayerLifecycle.Alive`) et a la matrice I/O figee ("Refus entree : joueur mort"). Un joueur solo mort (en attente du respawn `R`) pouvait monter en voiture en appuyant sur `E`. Garde ajoutee, identique au message `PlayerNotAliveMessage` du chemin reseau.
+- Finding differe (non cause par cette story) : voir `deferred-work.md` -- la porte de proximite d'entree de siege se fie a `WorldPosition` non validee cote host (dette pre-existante depuis la Story 2.5).
+- Suite EditMode complete relancee apres correctif : **254/254 tests verts**, 0 echec (a egalement revele et corrige 3 regressions pre-existantes sans lien avec cette story -- axe collider Story 1.4 invalide par la rotation visuelle de la Story 3.2, et hierarchie de route/boucle Story 1.5/1.6 invalidee par la refonte de carte de la Story 3.4 ; voir historique git pour le detail).
 
 ## Suggested Review Order
 

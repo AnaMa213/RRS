@@ -60,8 +60,11 @@ namespace RoadRage.Tests.EditMode
                 "Assets/RoadRage/ArtExports/Greybox_PlayerCar.fbx",
                 "vehicle_player_shared",
                 typeof(BoxCollider),
-                new Vector3(4.4f, 1.4f, 2.0f),
-                new Vector3(4.5f, 1.45f, 2.1f),
+                // Story 3.2 : le visuel a ete tourne de -90 degres pour aligner le nez sur +Z
+                // (nouvel avant gameplay) ; largeur/longueur sont donc desormais portees par
+                // x/z inverses par rapport a l'orientation d'origine de la Story 1.4.
+                new Vector3(2.0f, 1.4f, 4.4f),
+                new Vector3(2.1f, 1.45f, 4.5f),
                 "Body",
                 "Cabin",
                 "Hood",

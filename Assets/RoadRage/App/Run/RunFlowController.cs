@@ -758,6 +758,13 @@ namespace RoadRage.App.Run
 
         private void TryEnterLocalSoloVehicle(bool preferPassenger)
         {
+            var localVoidRespawnController = activeLocalPlayer.GetComponent<LocalVoidRespawnController>();
+            if (localVoidRespawnController != null && localVoidRespawnController.IsDead)
+            {
+                ShowVehicleSeatMessage(NetworkedVehicleSeatService.PlayerNotAliveMessage);
+                return;
+            }
+
             if (!TryResolveNearestLocalSoloVehicle(out var vehicleState, out var driverController, out var cameraRig, out var distance))
             {
                 ShowVehicleSeatMessage(NetworkedVehicleSeatService.VehicleUnavailableMessage);

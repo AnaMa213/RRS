@@ -61,7 +61,7 @@ namespace RoadRage.Tests.EditMode
                 AssertSerializedReference(flow, "playerSpawnPoint");
 
                 Assert.That(FindChild(root.transform, "GreyboxMap/Greybox_GroundPlane"), Is.Not.Null, "plan de sol greybox attendu");
-                Assert.That(FindChild(root.transform, "GreyboxMap/Greybox_RoadStrip"), Is.Not.Null, "bande de route greybox attendue");
+                Assert.That(FindChild(root.transform, "GreyboxMap/Greybox_RoadLoop_South"), Is.Not.Null, "bande de route greybox attendue (segment Sud de la boucle Story 3.4)");
                 Assert.That(FindChild(root.transform, "GreyboxMap/Greybox_CityBlock_A_West"), Is.Not.Null, "bloc urbain gauche attendu");
                 Assert.That(FindChild(root.transform, "GreyboxMap/Greybox_PlayerCar_Parked"), Is.Not.Null, "voiture partagee visible attendue");
             }

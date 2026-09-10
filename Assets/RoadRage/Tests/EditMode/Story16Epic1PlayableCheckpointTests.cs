@@ -102,7 +102,7 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(composition.SpawnRoot, Is.Not.Null);
 
                 Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_GroundPlane"), Is.Not.Null);
-                Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_RoadStrip"), Is.Not.Null);
+                Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_RoadLoop_South"), Is.Not.Null, "bande de route greybox attendue (segment Sud de la boucle Story 3.4)");
                 Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_PlayerCar_Parked"), Is.Not.Null);
                 Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_CityBlock_A_West"), Is.Not.Null);
                 Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_CityBlock_A_East"), Is.Not.Null);
