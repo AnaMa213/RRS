@@ -283,7 +283,7 @@ The route contains three AI vehicles with independent rage states and simple rag
 
 ### Epic 6: On-Foot Confrontation, Sandbox Stop & Economy Loop
 
-Players can leave the car for a compact confrontation or sandbox stop, resolve one Rage Road event, earn a shared money reward, buy one upgrade, and return that value to the next driving loop.
+Players can leave the car for a compact confrontation or sandbox stop, resolve one Rage Road event, earn a shared money reward, buy one upgrade, and return that value to the next driving loop. A high-rage AI vehicle can dismount its occupant as an on-foot NPC combatant, using the same on-foot module as the player confrontation.
 
 **FRs covered:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27
 
@@ -1038,7 +1038,7 @@ So that I can test the escalation path before building confrontation resolution.
 
 ## Epic 6: On-Foot Confrontation, Sandbox Stop & Economy Loop
 
-Players can leave the car for a compact confrontation or sandbox stop, resolve one Rage Road event, earn a shared money reward, buy one upgrade, and return that value to the next driving loop.
+Players can leave the car for a compact confrontation or sandbox stop, resolve one Rage Road event, earn a shared money reward, buy one upgrade, and return that value to the next driving loop. A high-rage AI vehicle can dismount its occupant as an on-foot NPC combatant, using the same on-foot module as the player confrontation.
 
 **Requirements covered:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27, NFR1, NFR2, NFR4, NFR5, NFR6, NFR13, NFR14, NFR15, NFR20, NFR21, UX-DR4
 
@@ -1058,6 +1058,7 @@ So that road events can briefly become a different playable module.
 **And** players can return to the car after the interaction ends
 **And** the on-foot module can run in `Dev_OnFootSandbox` without requiring the full MVP run
 **And** the transition preserves player lifecycle and network ownership rules
+**And** a targeted AI vehicle whose rage reaches the confrontation-triggering state can dismount its occupant as a host-owned on-foot AI NPC combatant through the same on-foot spawn/transition system used for players
 
 ### Story 6.2: Compact Rage Road Confrontation Resolution
 
@@ -1073,6 +1074,7 @@ So that escalation has a meaningful playable payoff.
 **When** players complete the compact confrontation objective
 **Then** the event is marked resolved by host-owned runtime state
 **And** resolution uses a greybox objective suitable for a beginner MVP, such as survive, interact, push back, or de-escalate within a small area
+**And** the objective can be a foot fight against the on-foot AI NPC combatant dismounted from the triggering high-rage AI vehicle
 **And** failure, timeout, or player death outcomes are visible in UI or logs
 **And** the confrontation can be tested without boss endpoint logic
 
