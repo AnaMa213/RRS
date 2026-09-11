@@ -1,0 +1,289 @@
+{
+  "built_at": "2026-09-11T18:37:23.409948+00:00",
+  "repo_root": "D:\\Projets\\RRS",
+  "commit": "f1cd9edadf7f48fd584bda8676a90eb70439cd44",
+  "indexed_files": 233,
+  "tracked_kept_files": 944,
+  "unsupported_kept_files": 711,
+  "suffix_counts": {
+    ".cs": 141,
+    ".json": 9,
+    ".md": 78,
+    ".py": 5
+  },
+  "nodes": 3540,
+  "edges": 6125,
+  "communities": 215,
+  "csharp_files": 141,
+  "csharp_unanalyzed": [],
+  "failed_sources": [],
+  "excluded_roots": [
+    ".git",
+    ".utmp",
+    ".vs",
+    "Build",
+    "Builds",
+    "ExportedObj",
+    "Library",
+    "Logs",
+    "MemoryCaptures",
+    "Obj",
+    "Recordings",
+    "ServerData",
+    "Temp",
+    "UserSettings",
+    "build",
+    "builds",
+    "exportedobj",
+    "graphify-out",
+    "library",
+    "logs",
+    "memorycaptures",
+    "obj",
+    "recordings",
+    "serverdata",
+    "temp",
+    "usersettings"
+  ],
+  "excluded_prefixes": [
+    ".agents/",
+    ".claude/",
+    ".codex/"
+  ],
+  "health": {
+    "node_count": 3540,
+    "unverified_node_count": 0,
+    "raw_edge_count": 6874,
+    "non_object_edges": 0,
+    "missing_endpoint_edges": 0,
+    "dangling_endpoint_edges": 464,
+    "self_loop_edges": 16,
+    "valid_candidate_edges": 6410,
+    "exact_duplicate_edges": 0,
+    "directed_unique_endpoint_pairs": 6129,
+    "directed_same_endpoint_collapsed_edges": 281,
+    "undirected_unique_endpoint_pairs": 6125,
+    "undirected_same_endpoint_collapsed_edges": 285,
+    "same_endpoint_group_count": 179,
+    "relation_variant_groups": 33,
+    "source_file_variant_groups": 0,
+    "source_location_variant_groups": 141,
+    "context_variant_groups": 41,
+    "post_build_graph_type": "Graph",
+    "post_build_node_count": 3540,
+    "post_build_edge_count": 6125,
+    "post_build_error": "",
+    "producer_suppression": {
+      "path": "C:\\Users\\Kenan\\AppData\\Roaming\\uv\\tools\\graphifyy\\Lib\\site-packages\\graphify\\extract.py",
+      "total_sites": 12,
+      "sites": [
+        {
+          "line": 1334,
+          "name": "seen_ids",
+          "tuple_arity": 0,
+          "sample": "seen_ids = {n[\"id\"] for n in nodes}"
+        },
+        {
+          "line": 1867,
+          "name": "seen_ids",
+          "tuple_arity": 0,
+          "sample": "seen_ids = {n[\"id\"] for n in nodes}"
+        },
+        {
+          "line": 1869,
+          "name": "seen_doc_refs",
+          "tuple_arity": 0,
+          "sample": "seen_doc_refs: set[str] = set()"
+        },
+        {
+          "line": 2239,
+          "name": "seen_ids",
+          "tuple_arity": 0,
+          "sample": "seen_ids: set[str] = {n[\"id\"] for n in nodes}"
+        },
+        {
+          "line": 2386,
+          "name": "seen_ids",
+          "tuple_arity": 0,
+          "sample": "seen_ids = {n.get(\"id\") for n in nodes}"
+        },
+        {
+          "line": 3024,
+          "name": "seen_keys",
+          "tuple_arity": 0,
+          "sample": "seen_keys: set[tuple] = set()"
+        },
+        {
+          "line": 3193,
+          "name": "seen_keys",
+          "tuple_arity": 0,
+          "sample": "seen_keys: set[tuple] = set()"
+        },
+        {
+          "line": 4885,
+          "name": "seen_ids",
+          "tuple_arity": 0,
+          "sample": "seen_ids: set[str] = set()"
+        },
+        {
+          "line": 4993,
+          "name": "seen_ids",
+          "tuple_arity": 0,
+          "sample": "seen_ids: set[str] = set()"
+        },
+        {
+          "line": 5072,
+          "name": "seen_ids",
+          "tuple_arity": 0,
+          "sample": "seen_ids: set[str] = set()"
+        },
+        {
+          "line": 5587,
+          "name": "seen_ids",
+          "tuple_arity": 0,
+          "sample": "seen_ids: set[str] = set()"
+        },
+        {
+          "line": 5588,
+          "name": "seen_edges",
+          "tuple_arity": 4,
+          "sample": "seen_edges: set[tuple[str, str, str, str | None]] = set()"
+        }
+      ],
+      "error": ""
+    },
+    "examples": [
+      {
+        "source": "assets_roadrage_features_players_networkedplayerstate_roadrage_features_players_networkedplayerstate",
+        "target": "assets_roadrage_features_players_networkedplayerstate_cs_networkvariable",
+        "edge_count": 13,
+        "relations": [
+          "references"
+        ],
+        "source_files": [
+          "Assets/RoadRage/Features/Players/NetworkedPlayerState.cs"
+        ],
+        "source_locations": [
+          "L101",
+          "L36",
+          "L41",
+          "L46",
+          "L51",
+          "L56",
+          "L61",
+          "L66",
+          "L71",
+          "L76",
+          "L81",
+          "L86",
+          "L91"
+        ],
+        "contexts": [
+          "field"
+        ]
+      },
+      {
+        "source": "assets_roadrage_features_vehicles_networkedvehiclestate_roadrage_features_vehicles_networkedvehiclestate",
+        "target": "assets_roadrage_features_vehicles_networkedvehiclestate_cs_networkvariable",
+        "edge_count": 12,
+        "relations": [
+          "references"
+        ],
+        "source_files": [
+          "Assets/RoadRage/Features/Vehicles/NetworkedVehicleState.cs"
+        ],
+        "source_locations": [
+          "L101",
+          "L106",
+          "L111",
+          "L55",
+          "L60",
+          "L65",
+          "L70",
+          "L75",
+          "L80",
+          "L85",
+          "L90",
+          "L96"
+        ],
+        "contexts": [
+          "field"
+        ]
+      },
+      {
+        "source": "packages_packages_lock",
+        "target": "packages_packages_lock_json_ref_com_unity_modules_jsonserialize",
+        "edge_count": 11,
+        "relations": [
+          "imports"
+        ],
+        "source_files": [
+          "Packages/packages-lock.json"
+        ],
+        "source_locations": [
+          "L181",
+          "L201",
+          "L265",
+          "L274",
+          "L316",
+          "L345",
+          "L446",
+          "L483",
+          "L499",
+          "L517",
+          "L606"
+        ],
+        "contexts": [
+          "import"
+        ]
+      },
+      {
+        "source": "assets_roadrage_features_ui_runcheckpointhudscreen_roadrage_features_ui_runcheckpointhudscreen",
+        "target": "assets_roadrage_features_ui_runcheckpointhudscreen_cs_tmp_text",
+        "edge_count": 8,
+        "relations": [
+          "references"
+        ],
+        "source_files": [
+          "Assets/RoadRage/Features/UI/RunCheckpointHudScreen.cs"
+        ],
+        "source_locations": [
+          "L35",
+          "L38",
+          "L41",
+          "L44",
+          "L48",
+          "L51",
+          "L54",
+          "L60"
+        ],
+        "contexts": [
+          "field"
+        ]
+      },
+      {
+        "source": "packages_packages_lock",
+        "target": "packages_packages_lock_json_ref_com_unity_modules_unitywebrequest",
+        "edge_count": 7,
+        "relations": [
+          "imports"
+        ],
+        "source_files": [
+          "Packages/packages-lock.json"
+        ],
+        "source_locations": [
+          "L27",
+          "L516",
+          "L532",
+          "L540",
+          "L549",
+          "L558",
+          "L591"
+        ],
+        "contexts": [
+          "import"
+        ]
+      }
+    ]
+  }
+}

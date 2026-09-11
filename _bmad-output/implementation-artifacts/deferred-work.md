@@ -151,3 +151,11 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-4-1-rage-state-module-and-definitions.md`
   summary: `RageStateDebugView` (dev-only HUD) vit dans l'assembly de production `RoadRage.Features.Rage` plutot que dans `RoadRage.DevTools`, forcant cet assembly a referencer `Unity.TextMeshPro`.
   evidence: Trouve par la revue risk-scaled du diff Story 4.1 : contrairement a `RageSandboxAutoStart.cs` (correctement isole sous `RoadRage.DevTools` avec garde `#if UNITY_EDITOR`), le HUD de debug est reste dans la feature de production faute d'avoir considere que `RoadRage.DevTools` reference deja plusieurs `RoadRage.Features.*` (meme derogation que `RoadRage.App`) et aurait pu l'heberger sans coupler `Features.Rage` a un package UI. Impact fonctionnel nul aujourd'hui (le composant n'est instancie que dans `Dev_RageSandbox`, scene hors de la liste de build principale, et ce projet est un jeu coop heberge par un pair, sans cible de build serveur dediee/headless a ce stade) ; nettoyage architectural facultatif, pas bloquant.
+
+- source_spec: none
+  summary: `NetworkedPlayerState.Money` reste un placeholder divergent alors que l'architecture prevoit `NetworkedCrewEconomyState` comme source de verite du crew wallet.
+  evidence: Audit Graphify baseline 2026-09-11 : `RunFlowController.HandleMoneyChanged` lit encore `NetworkedPlayerState.Money` pour le HUD, tandis que `NetworkedCrewEconomyState` existe mais n'est pas cable a ce flux. A resoudre avant toute Story introduisant une economie, une recompense, un achat ou une monnaie reelle ; les Stories Epic 4 ne doivent pas promouvoir ce placeholder en source de verite.
+
+- source_spec: none
+  summary: La future Story 4.5 doit examiner la duplication entre `NetworkedPlayerLifecycleIntent` et `NetworkedPlayerReviveIntent` avant de reutiliser revive/help comme effet de crew help.
+  evidence: Audit Graphify baseline 2026-09-11 : les deux composants `App/Run` exposent `RequestRevive`/`RequestReviveRpc` et appellent `NetworkedPlayerLifecycleService.TryReviveNearestDowned` ; le service host valide correctement l'emetteur, donc ce n'est pas un bug immediat. Si Story 4.5 reutilise ce flux, elle doit choisir ou consolider un contrat public unique au lieu d'ajouter un troisieme chemin.
