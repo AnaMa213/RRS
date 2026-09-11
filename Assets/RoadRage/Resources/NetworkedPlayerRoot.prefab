@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 6351651809446815331}
   - component: {fileID: 4816293745102938475}
   - component: {fileID: 960985213786361856}
+  - component: {fileID: 3997470327422242205}
   m_Layer: 0
   m_Name: NetworkedPlayerRoot
   m_TagString: Untagged
@@ -75,7 +76,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 42e445c5168729d41a7c9a87c60715b4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: RoadRage.Features.Players::RoadRage.Features.Players.NetworkedPlayerState
   ShowTopMostFoldoutHeaderGroup: 1
   Mode:
@@ -186,7 +187,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f665d7faeae8530459def9e82c520beb, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: RoadRage.Features.Players::RoadRage.Features.Players.NetworkedPlayerPresentation
   ShowTopMostFoldoutHeaderGroup: 1
   characterCatalog: {fileID: 11400000, guid: 090dcb6cd5516654e99a45174314c148, type: 2}
@@ -245,3 +246,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: RoadRage.App::RoadRage.App.Run.NetworkedPlayerReviveIntent
   ShowTopMostFoldoutHeaderGroup: 1
   reviveKey: 20
+--- !u!114 &3997470327422242205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433135406427400504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49beef70e5363c645a4cbde38131839d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: RoadRage.App::RoadRage.App.Run.NetworkedPassengerActionIntent
+  ShowTopMostFoldoutHeaderGroup: 1
+  catalog: {fileID: 11400000, guid: 9d69003229e4e574985eb33d0a927d2a, type: 2}

@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 2026-09-10
+last_updated: 2026-09-11
 # epic-3 closed 2026-09-10 : gate 3.6 passed (see spec-3-6, docs/setup/story-3-6-*-notes.md)
 project: RoadRage_Simulator
 project_key: NOKEY
@@ -78,7 +78,7 @@ development_status:
 
   epic-4: in-progress
   4-1-rage-state-module-and-definitions: review
-  4-2-passenger-action-framework-and-host-validated-intent: backlog
+  4-2-passenger-action-framework-and-host-validated-intent: review
   4-3-passenger-action-one-changes-rage: backlog
   4-4-passenger-action-two-creates-an-incident-or-resource-opportu: backlog
   4-5-passenger-action-three-provides-crew-help: backlog

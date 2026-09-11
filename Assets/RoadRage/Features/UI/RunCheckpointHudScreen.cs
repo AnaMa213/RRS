@@ -118,6 +118,11 @@ namespace RoadRage.Features.UI
             SetText(futureHudLabel, "Vehicule : " + SafeText(message));
         }
 
+        public void ShowPassengerActionVerdict(string message)
+        {
+            SetText(futureHudLabel, "Action passager : " + SafeText(message));
+        }
+
         public void ShowVehicleCollisionMessage()
         {
             ShowVehicleSeatMessage(VehicleCollisionMessage);

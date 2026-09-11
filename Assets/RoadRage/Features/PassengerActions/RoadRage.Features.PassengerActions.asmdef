@@ -2,7 +2,10 @@
     "name": "RoadRage.Features.PassengerActions",
     "rootNamespace": "RoadRage.Features.PassengerActions",
     "references": [
-        "RoadRage.Shared"
+        "RoadRage.Shared",
+        "Unity.Netcode.Runtime",
+        "Unity.Collections",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

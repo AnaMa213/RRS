@@ -3,7 +3,10 @@
     "rootNamespace": "RoadRage.DevTools",
     "references": [
         "RoadRage.App",
+        "RoadRage.Features.PassengerActions",
         "RoadRage.Features.Players",
+        "RoadRage.Features.Rage",
+        "RoadRage.Features.Run",
         "RoadRage.Features.UI",
         "RoadRage.Features.Vehicles",
         "RoadRage.Shared",

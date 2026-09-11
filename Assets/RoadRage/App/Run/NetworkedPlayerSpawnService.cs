@@ -151,6 +151,11 @@ namespace RoadRage.App.Run
                 LogAndShow("NetworkedPlayerRoot sans NetworkedVehicleSeatIntent : entree vehicule indisponible.", true);
             }
 
+            if (instance.GetComponent<NetworkedPassengerActionIntent>() == null)
+            {
+                LogAndShow("NetworkedPlayerRoot sans NetworkedPassengerActionIntent : actions passager indisponibles.", true);
+            }
+
             var spawnPoint = compositionRoot == null ? null : compositionRoot.SpawnRoot;
             var spawnPosition = ResolveSpawnPosition(spawnPoint);
             var spawnRotation = spawnPoint == null ? Quaternion.identity : spawnPoint.rotation;

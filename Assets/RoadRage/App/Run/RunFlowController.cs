@@ -1,5 +1,7 @@
 using RoadRage.Features.OnFoot;
+using RoadRage.Features.PassengerActions;
 using RoadRage.Features.Players;
+using RoadRage.Features.Rage;
 using RoadRage.Features.Run;
 using RoadRage.Features.UI;
 using RoadRage.Features.Vehicles;
@@ -35,6 +37,12 @@ namespace RoadRage.App.Run
         [SerializeField]
         private RunCheckpointHudScreen checkpointHud;
 
+        [SerializeField]
+        private PassengerActionCatalog passengerActionCatalog;
+
+        [SerializeField]
+        private NetworkedRageState passengerActionTarget;
+
         private GameObject activeLocalPlayer;
 
         private GameObject activeLocalPlayerVisual;
@@ -58,6 +66,10 @@ namespace RoadRage.App.Run
         private bool hudRuntimeBound;
 
         private bool networkHudBridgeActive;
+
+        private PassengerActionDebugView passengerActionView;
+
+        private NetworkedPassengerActionIntent boundPassengerActionIntent;
 
         private NetworkedVehicleDriverController subscribedVehicleDriverController;
 
@@ -99,6 +111,7 @@ namespace RoadRage.App.Run
             HandleLocalSoloVehicleRecoveryInteraction();
             RefreshLocalSoloDeathRecovery();
             ResolveLocalNetworkedPlayerStateIfNeeded();
+            EnsurePassengerActionBinding();
             RefreshLocalReviveCountdown();
             SynchronizeLocalSeatedPose();
             EnsureVehicleEventBridge();
@@ -207,6 +220,7 @@ namespace RoadRage.App.Run
             }
 
             BindHudRuntimeState();
+            EnsurePassengerActionBinding();
 
             Debug.Log("[Run] Joueur local spawn : " + bootstrap.Profiles.Current.DisplayName + " / " + character.Id);
             error = string.Empty;
@@ -228,6 +242,59 @@ namespace RoadRage.App.Run
                 NetworkedPlayerState.DefaultStaminaNormalized,
                 ResolveConnectedPlayerCount(),
                 NetworkedPlayerState.DefaultMoney);
+        }
+
+        private void EnsurePassengerActionBinding()
+        {
+            if (activeLocalPlayer == null || passengerActionCatalog == null)
+            {
+                return;
+            }
+
+            if (passengerActionTarget == null)
+            {
+                passengerActionTarget = FindAnyObjectByType<NetworkedRageState>();
+            }
+
+            if (passengerActionView == null)
+            {
+                var viewRoot = checkpointHud == null ? gameObject : checkpointHud.gameObject;
+                passengerActionView = viewRoot.GetComponent<PassengerActionDebugView>();
+                if (passengerActionView == null)
+                {
+                    passengerActionView = viewRoot.AddComponent<PassengerActionDebugView>();
+                }
+            }
+
+            NetworkedPassengerActionIntent intent;
+            if (IsNetworkSessionActive())
+            {
+                intent = localNetworkedPlayerState == null ? null : localNetworkedPlayerState.GetComponent<NetworkedPassengerActionIntent>();
+            }
+            else
+            {
+                intent = activeLocalPlayer.GetComponent<NetworkedPassengerActionIntent>();
+                if (intent == null)
+                {
+                    intent = activeLocalPlayer.AddComponent<NetworkedPassengerActionIntent>();
+                }
+            }
+
+            if (intent == null || intent == boundPassengerActionIntent)
+            {
+                return;
+            }
+
+            boundPassengerActionIntent = intent;
+            intent.Configure(
+                passengerActionCatalog,
+                FindAnyObjectByType<NetworkedRunState>(),
+                FindAnyObjectByType<NetworkedVehicleState>(),
+                passengerActionTarget,
+                checkpointHud,
+                passengerActionView,
+                () => localSoloVehicleSeated && NetworkedVehicleState.IsPassengerSeatIndex(localSoloSeatIndex),
+                () => activeLocalPlayer == null ? Vector3.zero : activeLocalPlayer.transform.position);
         }
 
         private void EnsureNetworkHudBridge()
