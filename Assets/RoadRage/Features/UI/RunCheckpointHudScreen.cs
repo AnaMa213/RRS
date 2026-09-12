@@ -55,6 +55,9 @@ namespace RoadRage.Features.UI
         private TMP_Text moneyLabel;
 
         [SerializeField]
+        private TMP_Text rageLabel;
+
+        [SerializeField]
         private GameObject deathOverlayPanel;
 
         [SerializeField]
@@ -66,6 +69,7 @@ namespace RoadRage.Features.UI
 
         private void Awake()
         {
+            EnsureRageLabel();
             ShowAwaitingProfile();
         }
 
@@ -106,6 +110,7 @@ namespace RoadRage.Features.UI
             SetText(staminaLabel, "Stamina : " + PlaceholderValue);
             SetText(playerCountLabel, "Joueurs : " + PlaceholderValue);
             SetText(moneyLabel, "Argent : " + PlaceholderValue);
+            ShowRageStatus(null, 0f, null);
         }
 
         public void ShowSpawnIssue(string message)
@@ -191,6 +196,18 @@ namespace RoadRage.Features.UI
             SetText(moneyLabel, "Argent : " + money + " $");
         }
 
+        public void ShowRageStatus(string targetName, float rageValue, string disposition)
+        {
+            EnsureRageLabel();
+            if (string.IsNullOrWhiteSpace(targetName))
+            {
+                SetText(rageLabel, "Rage : aucune cible");
+                return;
+            }
+
+            SetText(rageLabel, SafeText(targetName) + " | Rage " + Mathf.RoundToInt(rageValue) + " | " + SafeText(disposition));
+        }
+
         public void ShowDeathOverlay()
         {
             SetText(deathOverlayLabel, DeathOverlayText);
@@ -257,6 +274,31 @@ namespace RoadRage.Features.UI
             {
                 label.text = value;
             }
+        }
+
+        private void EnsureRageLabel()
+        {
+            if (rageLabel != null)
+            {
+                return;
+            }
+
+            var labelObject = new GameObject("RageStatusLabel", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            labelObject.transform.SetParent(transform, false);
+
+            var rect = labelObject.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(1f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-24f, -24f);
+            rect.sizeDelta = new Vector2(520f, 42f);
+
+            var label = labelObject.GetComponent<TextMeshProUGUI>();
+            label.alignment = TextAlignmentOptions.TopRight;
+            label.fontSize = 24f;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.raycastTarget = false;
+            rageLabel = label;
         }
 
         private static string SafeText(string value)

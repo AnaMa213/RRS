@@ -17,7 +17,7 @@ namespace RoadRage.Tests.PlayMode
     public sealed class Story42PassengerActionMvpRunPlayModeTests
     {
         [UnityTest]
-        public IEnumerator DevRageSandboxAcceptsAllThreePassengerSlotsWithoutApplyingEffects()
+        public IEnumerator DevRageSandboxAcceptsAllThreePassengerSlots()
         {
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
                 "Assets/RoadRage/App/Scenes/Dev_RageSandbox.unity",
@@ -40,7 +40,6 @@ namespace RoadRage.Tests.PlayMode
             intent.RequestSlot(2);
 
             Assert.That(accepted, Is.EqualTo(3));
-            Assert.That(target.RageValue.Value, Is.Zero, "Les effets restent reserves aux Stories 4.3-4.5.");
         }
 
         [UnityTest]

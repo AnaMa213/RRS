@@ -69,6 +69,11 @@ namespace RoadRage.App.Run
             }
         }
 
+        public void SetTarget(NetworkedRageState currentTarget)
+        {
+            target = currentTarget;
+        }
+
         public void RequestSlot(int slot)
         {
             var action = catalog == null ? null : catalog.GetAtSlot(slot);

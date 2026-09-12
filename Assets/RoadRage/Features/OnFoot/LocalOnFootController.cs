@@ -1,4 +1,6 @@
 using System;
+using RoadRage.Shared.Presentation;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -51,11 +53,16 @@ namespace RoadRage.Features.OnFoot
         [SerializeField]
         private float pitchLimit = 70f;
 
+        [SerializeField, Min(0.5f)] private float cameraDistance = 3.5f;
+        [SerializeField] private float cameraTargetHeight = 1.5f;
+        [SerializeField, Range(-0.4f, 0.4f)] private float cameraShoulderOffset = -0.12f;
+
         [SerializeField]
         private float gravity = -18f;
 
         private CharacterController characterController;
-        private float pitch;
+        private CinemachineCamera onFootCamera;
+        private CinemachineOrbitalFollow cameraOrbit;
         private float verticalVelocity;
         private float secondsSinceSprintStopped = 1f;
 
@@ -101,10 +108,6 @@ namespace RoadRage.Features.OnFoot
             characterController = GetComponent<CharacterController>();
             staminaNormalized = Mathf.Clamp01(staminaNormalized);
 
-            if (playerCamera == null)
-            {
-                playerCamera = Camera.main;
-            }
         }
 
         private void Update()
@@ -127,10 +130,26 @@ namespace RoadRage.Features.OnFoot
             }
 
             playerCamera = camera;
-            playerCamera.transform.SetParent(transform, false);
-            playerCamera.transform.localPosition = new Vector3(0f, 1.62f, -3.2f);
-            playerCamera.transform.localRotation = Quaternion.Euler(14f, 0f, 0f);
-            pitch = 14f;
+            playerCamera.transform.SetParent(null, true);
+            if (playerCamera.GetComponent<CinemachineBrain>() == null)
+                playerCamera.gameObject.AddComponent<CinemachineBrain>();
+            if (onFootCamera == null)
+            {
+                var rig = new GameObject("LocalOnFootCamera");
+                rig.SetActive(false);
+                rig.transform.SetParent(transform, false);
+                onFootCamera = rig.AddComponent<CinemachineCamera>();
+                ThirdPersonCameraConfiguration.Configure(onFootCamera, transform, cameraDistance,
+                    cameraTargetHeight, cameraShoulderOffset, false);
+                cameraOrbit = rig.GetComponent<CinemachineOrbitalFollow>();
+                cameraOrbit.VerticalAxis.Range = new Vector2(-15f, pitchLimit);
+            }
+            SetCameraActive(true);
+        }
+
+        public void SetCameraActive(bool active)
+        {
+            if (onFootCamera != null) onFootCamera.gameObject.SetActive(active);
         }
 
         public void Step(OnFootMovementIntent intent, float deltaTime)
@@ -214,12 +233,13 @@ namespace RoadRage.Features.OnFoot
                 return;
             }
 
-            transform.Rotate(Vector3.up, look.x * lookSensitivity, Space.World);
-
-            if (playerCamera != null)
+            if (cameraOrbit != null && onFootCamera.gameObject.activeInHierarchy)
             {
-                pitch = Mathf.Clamp(pitch - look.y * lookSensitivity, -pitchLimit, pitchLimit);
-                playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+                // Mouse delta is already integrated over the frame: do not multiply by deltaTime.
+                cameraOrbit.HorizontalAxis.Value = cameraOrbit.HorizontalAxis.ClampValue(
+                    cameraOrbit.HorizontalAxis.Value + look.x * lookSensitivity);
+                cameraOrbit.VerticalAxis.Value = cameraOrbit.VerticalAxis.ClampValue(
+                    cameraOrbit.VerticalAxis.Value - look.y * lookSensitivity);
             }
         }
 
@@ -244,7 +264,12 @@ namespace RoadRage.Features.OnFoot
                 verticalVelocity += gravity * deltaTime;
             }
 
-            var horizontal = (transform.right * intent.Move.x) + (transform.forward * intent.Move.y);
+            var forward = playerCamera == null ? transform.forward
+                : Vector3.ProjectOnPlane(playerCamera.transform.forward, Vector3.up).normalized;
+            var right = Vector3.Cross(Vector3.up, forward);
+            var horizontal = (right * intent.Move.x) + (forward * intent.Move.y);
+            if (horizontal.sqrMagnitude > 0.0001f)
+                transform.rotation = Quaternion.LookRotation(horizontal, Vector3.up);
             var isSprinting = ShouldSprint(intent.Move, intent.SprintRequested, IsDowned, staminaNormalized);
             UpdateStamina(isSprinting, WantsSprint(intent.Move, intent.SprintRequested, IsDowned), deltaTime);
 

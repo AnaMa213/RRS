@@ -75,7 +75,7 @@ namespace RoadRage.Tests.PlayMode
             Assert.That(controller, Is.Not.Null, "le joueur local doit pouvoir se deplacer a pied");
             Assert.That(runFlow.ActiveLocalPlayer.GetComponent<CharacterController>(), Is.Not.Null);
             Assert.That(controller.PlayerCamera, Is.Not.Null, "la camera locale doit etre attachee au controller");
-            Assert.That(controller.PlayerCamera.transform.parent, Is.EqualTo(runFlow.ActiveLocalPlayer.transform));
+            Assert.That(controller.PlayerCamera.transform.parent, Is.Null, "Main Camera stays independent during seat blends.");
         }
 
         [UnityTest]

@@ -29,6 +29,8 @@ namespace RoadRage.App.Run
 
         public const string VehicleInoperableMessage = "Entree vehicule refusee : voiture hors d'usage.";
 
+        public const string NotSeatedMessage = "Changement de siege refuse : joueur non assis.";
+
         public const float DefaultEntryRadius = 5f;
 
         public static NetworkedVehicleSeatService Instance { get; private set; }
@@ -142,6 +144,61 @@ namespace RoadRage.App.Run
             }
 
             TryEnterSeat(clientId, playerState, preferPassenger);
+        }
+
+        /// <summary>
+        /// Touche G (hors story, 2026-09-12) : cycle vers le prochain siege libre sans repasser par
+        /// une sortie/entree complete. Meme flux host-authoritative que RequestEnterOrExit ; reste
+        /// borne a la voiture partagee unique de ce service (limite pre-existante Story 3.3).
+        /// </summary>
+        public void RequestSwitchSeat(ulong clientId)
+        {
+            if (!isActiveHost)
+            {
+                return;
+            }
+
+            CacheReferences();
+            if (vehicleState == null)
+            {
+                Report(VehicleUnavailableMessage, true);
+                return;
+            }
+
+            if (!TryResolvePlayer(clientId, out var playerState) || !IsSeatedMode(playerState.Mode.Value))
+            {
+                Report(NotSeatedMessage, true);
+                return;
+            }
+
+            var currentSeatIndex = playerState.SeatIndex.Value;
+            if (!NetworkedVehicleState.IsValidSeatIndex(currentSeatIndex))
+            {
+                Report(NotSeatedMessage, true);
+                return;
+            }
+
+            for (var offset = 1; offset < NetworkedVehicleState.SeatCount; offset++)
+            {
+                var candidateSeatIndex = (currentSeatIndex + offset) % NetworkedVehicleState.SeatCount;
+                if (vehicleState.TryGetSeatOccupant(candidateSeatIndex, out var occupant) && occupant != NetworkedVehicleState.UnoccupiedSeatClientId)
+                {
+                    continue;
+                }
+
+                ReleaseVehicleSeat(currentSeatIndex, clientId);
+                if (!vehicleState.TryAssignSeat(candidateSeatIndex, clientId))
+                {
+                    Report(NoSeatAvailableMessage, true);
+                    return;
+                }
+
+                ApplySeatedState(playerState, candidateSeatIndex);
+                Report(candidateSeatIndex == NetworkedVehicleState.DriverSeatIndex ? "Siege conducteur occupe." : "Siege passager " + candidateSeatIndex + " occupe.", false);
+                return;
+            }
+
+            Report(NoSeatAvailableMessage, true);
         }
 
         public static bool CanEnterSeat(PlayerMode mode, PlayerLifecycle lifecycle, int seatIndex, float distanceToVehicle, float entryRadius)

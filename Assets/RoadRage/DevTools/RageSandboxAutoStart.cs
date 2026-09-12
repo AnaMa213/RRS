@@ -27,6 +27,11 @@ namespace RoadRage.DevTools
         [SerializeField]
         private PassengerActionCatalog passengerActionCatalog;
 
+        [SerializeField]
+        private RageTuningDef passengerActionRageTuning;
+
+        private const float PassengerActionOneRageDelta = 25f;
+
 #if UNITY_EDITOR
         private IEnumerator Start()
         {
@@ -121,7 +126,16 @@ namespace RoadRage.DevTools
             }
 
             intent.Configure(passengerActionCatalog, runState, vehicleState, target, null, view);
+            intent.ActionValidated += HandlePassengerActionValidated;
             view.Bind(passengerActionCatalog, intent.RequestSlot, true);
+        }
+
+        private void HandlePassengerActionValidated(PassengerActionDef action, Transform actor, NetworkedRageState target)
+        {
+            if (action != null && action.Slot == 0 && target != null)
+            {
+                target.ApplyRageDelta(PassengerActionOneRageDelta, passengerActionRageTuning);
+            }
         }
 #else
         private void Start()

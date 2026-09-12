@@ -126,6 +126,9 @@ namespace RoadRage.Features.Vehicles
         /// <summary>Recuperation appliquee (auto retournement/vide ou manuelle) -- meme evenement pour host et solo.</summary>
         public event Action VehicleRecovered;
 
+        /// <summary>Klaxon (ajout hors story, 2026-09-12) : evenement purement presentation, aucun etat mute.</summary>
+        public event Action VehicleHonked;
+
         private void Awake()
         {
             CacheComponents();
@@ -362,6 +365,29 @@ namespace RoadRage.Features.Vehicles
         private void NotifyVehicleRecoveredRpc()
         {
             VehicleRecovered?.Invoke();
+        }
+
+        /// <summary>
+        /// Klaxon (ajout hors story) : declenchable par le conducteur local, host ou solo comme le
+        /// reste du fichier. Purement cosmetique (aucun NetworkVariable mute) donc relaye via un seul
+        /// Rpc unifie SendTo.Everyone plutot que de dupliquer le couple attribut Server puis NotServer
+        /// deja fige a 2 occurrences par le test de regression Collision/Recuperation de Story 3.4.
+        /// </summary>
+        public void RequestHonk()
+        {
+            if (!IsSpawned)
+            {
+                VehicleHonked?.Invoke();
+                return;
+            }
+
+            HonkRpc();
+        }
+
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Everyone)]
+        private void HonkRpc()
+        {
+            VehicleHonked?.Invoke();
         }
 
         /// <summary>

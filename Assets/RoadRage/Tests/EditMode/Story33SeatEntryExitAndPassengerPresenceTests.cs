@@ -165,7 +165,11 @@ namespace RoadRage.Tests.EditMode
             Assert.That(runFlowSource, Does.Contain("ResolveLocalSoloSeatIndex(preferPassenger)"));
             Assert.That(runFlowSource, Does.Contain("NetworkedVehicleState.FirstPassengerSeatIndex"));
             Assert.That(runFlowSource, Does.Contain("localSoloVehicleDriver.SetLocalSoloDriverActive(IsDriverSeat(localSoloSeatIndex))"));
-            Assert.That(runFlowSource, Does.Contain("localSoloVehicleCameraRig.SetLocalSoloCameraActive(IsDriverSeat(localSoloSeatIndex))"));
+            // Extension (2026-09-12, hors story) : chaque siege passager a desormais sa propre camera
+            // (demande explicite de test manuel), donc l'appel porte le siege plutot qu'un simple bool
+            // driver/passager -- le contrat conserve reste "une camera locale est explicitement activee
+            // a l'entree du vehicule solo".
+            Assert.That(runFlowSource, Does.Contain("localSoloVehicleCameraRig.SetLocalSoloCameraActive(true, localSoloSeatIndex)"));
             Assert.That(runFlowSource, Does.Contain("RefreshLocalSoloDeathRecovery"));
             Assert.That(runFlowSource, Does.Contain("localVoidRespawnController.IsDead"));
             Assert.That(runFlowSource, Does.Contain("RestoreLocalSoloOnFootControl(false, false)"));

@@ -3,7 +3,8 @@
     "rootNamespace": "RoadRage.Features.OnFoot",
     "references": [
         "RoadRage.Shared",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Cinemachine"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

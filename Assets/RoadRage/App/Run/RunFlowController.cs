@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using RoadRage.Features.OnFoot;
 using RoadRage.Features.PassengerActions;
 using RoadRage.Features.Players;
@@ -22,6 +24,12 @@ namespace RoadRage.App.Run
 
         public const string MissingCharacterPreviewMessage = "Entree monde refusee : le personnage selectionne n'a pas de prefab d'apercu assigne.";
 
+        public const string NoRageTargetMessage = "Rage : aucune cible.";
+
+        private const float PassengerActionOneRageDelta = 25f;
+
+        private const int MinimumMvpRageTargetCount = 3;
+
         [SerializeField]
         private RunCompositionRoot compositionRoot;
 
@@ -42,6 +50,12 @@ namespace RoadRage.App.Run
 
         [SerializeField]
         private NetworkedRageState passengerActionTarget;
+
+        [SerializeField]
+        private RageTuningDef passengerActionRageTuning;
+
+        [SerializeField]
+        private GameObject devVehiclePrefab;
 
         private GameObject activeLocalPlayer;
 
@@ -71,11 +85,17 @@ namespace RoadRage.App.Run
 
         private NetworkedPassengerActionIntent boundPassengerActionIntent;
 
+        private NetworkedPassengerActionIntent subscribedPassengerActionIntent;
+
+        private int focusedRageTargetIndex;
+
         private NetworkedVehicleDriverController subscribedVehicleDriverController;
 
         private NetworkedVehicleState subscribedVehicleState;
 
         private bool subscribedVehicleStateCallbacks;
+
+        private readonly HashSet<NetworkedVehicleDriverController> secondaryDamageWiredVehicles = new HashSet<NetworkedVehicleDriverController>();
 
         public GameObject ActiveLocalPlayer
         {
@@ -86,6 +106,8 @@ namespace RoadRage.App.Run
         {
             EnsureNetworkSessionMonitor();
             EnsureNetworkHudBridge();
+            EnsureMinimumMvpRageTargets();
+            RefreshFocusedRageTarget();
 
             if (checkpointHud != null)
             {
@@ -112,9 +134,15 @@ namespace RoadRage.App.Run
             RefreshLocalSoloDeathRecovery();
             ResolveLocalNetworkedPlayerStateIfNeeded();
             EnsurePassengerActionBinding();
+            HandleRageTargetDevControls();
+            RefreshFocusedRageHud();
             RefreshLocalReviveCountdown();
             SynchronizeLocalSeatedPose();
             EnsureVehicleEventBridge();
+            EnsureSecondaryVehicleDamageBridges();
+            HandleLocalSoloSeatSwitchInteraction();
+            HandleVehicleHornInteraction();
+            HandleRageTargetCameraLockInteraction();
         }
 
         private void ResolveLocalNetworkedPlayerStateIfNeeded()
@@ -154,6 +182,7 @@ namespace RoadRage.App.Run
             UnsubscribeFromLocalNetworkedPlayerState();
             UnsubscribeFromLocalOnFootController();
             UnsubscribeFromVehicleEvents();
+            UnsubscribeFromPassengerActionIntent();
         }
 
         public bool TrySpawnSelectedProfile(out string error)
@@ -255,6 +284,10 @@ namespace RoadRage.App.Run
             {
                 passengerActionTarget = FindAnyObjectByType<NetworkedRageState>();
             }
+            else
+            {
+                RefreshFocusedRageTarget();
+            }
 
             if (passengerActionView == null)
             {
@@ -282,10 +315,18 @@ namespace RoadRage.App.Run
 
             if (intent == null || intent == boundPassengerActionIntent)
             {
+                if (intent != null)
+                {
+                    intent.SetTarget(passengerActionTarget);
+                }
+
                 return;
             }
 
+            UnsubscribeFromPassengerActionIntent();
             boundPassengerActionIntent = intent;
+            subscribedPassengerActionIntent = intent;
+            intent.ActionValidated += HandlePassengerActionValidated;
             intent.Configure(
                 passengerActionCatalog,
                 FindAnyObjectByType<NetworkedRunState>(),
@@ -295,6 +336,195 @@ namespace RoadRage.App.Run
                 passengerActionView,
                 () => localSoloVehicleSeated && NetworkedVehicleState.IsPassengerSeatIndex(localSoloSeatIndex),
                 () => activeLocalPlayer == null ? Vector3.zero : activeLocalPlayer.transform.position);
+        }
+
+        private void UnsubscribeFromPassengerActionIntent()
+        {
+            if (subscribedPassengerActionIntent != null)
+            {
+                subscribedPassengerActionIntent.ActionValidated -= HandlePassengerActionValidated;
+                subscribedPassengerActionIntent = null;
+            }
+        }
+
+        private void HandlePassengerActionValidated(PassengerActionDef action, Transform actor, NetworkedRageState target)
+        {
+            if (action == null || action.Slot != 0 || target == null)
+            {
+                return;
+            }
+
+            target.ApplyRageDelta(PassengerActionOneRageDelta, passengerActionRageTuning);
+            SetFocusedRageTarget(target, false);
+            RefreshFocusedRageHud();
+        }
+
+        public void CycleFocusedRageTarget()
+        {
+            var targets = FindRageTargets();
+            if (targets.Length == 0)
+            {
+                passengerActionTarget = null;
+                checkpointHud?.ShowPassengerActionVerdict(NoRageTargetMessage);
+                checkpointHud?.ShowRageStatus(null, 0f, null);
+                return;
+            }
+
+            var currentIndex = Array.IndexOf(targets, passengerActionTarget);
+            focusedRageTargetIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % targets.Length;
+            SetFocusedRageTarget(targets[focusedRageTargetIndex], true);
+        }
+
+        public bool TrySpawnDevVehicle(bool rageTarget)
+        {
+            if (!TryFindDevVehicleSpawnPose(out var position, out var rotation))
+            {
+                checkpointHud?.ShowVehicleSeatMessage("Spawn dev refuse : aucune position libre.");
+                return false;
+            }
+
+            var vehicle = CreateDevVehicle(rageTarget ? "DevRageTargetVehicle" : "DevVehicle", position, rotation, rageTarget);
+            if (vehicle == null)
+            {
+                return false;
+            }
+
+            checkpointHud?.ShowVehicleSeatMessage(rageTarget ? "Spawn dev rage-target." : "Spawn dev vehicule.");
+            if (rageTarget)
+            {
+                SetFocusedRageTarget(vehicle.GetComponent<NetworkedRageState>(), true);
+            }
+
+            return true;
+        }
+
+        private void HandleRageTargetDevControls()
+        {
+            if (IsNetworkSessionActive())
+            {
+                return;
+            }
+
+            var keyboard = Keyboard.current;
+            if (keyboard == null)
+            {
+                return;
+            }
+
+            if (keyboard.cKey.wasPressedThisFrame)
+            {
+                CycleFocusedRageTarget();
+            }
+
+            if (keyboard.vKey.wasPressedThisFrame)
+            {
+                TrySpawnDevVehicle(keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
+            }
+        }
+
+        private void RefreshFocusedRageTarget()
+        {
+            var targets = FindRageTargets();
+            if (targets.Length == 0)
+            {
+                passengerActionTarget = null;
+                return;
+            }
+
+            for (var i = 0; i < targets.Length; i++)
+            {
+                if (targets[i] == passengerActionTarget)
+                {
+                    focusedRageTargetIndex = i;
+                    return;
+                }
+            }
+
+            focusedRageTargetIndex = Mathf.Clamp(focusedRageTargetIndex, 0, targets.Length - 1);
+            SetFocusedRageTarget(targets[focusedRageTargetIndex], false);
+        }
+
+        private void SetFocusedRageTarget(NetworkedRageState target, bool moveCamera)
+        {
+            passengerActionTarget = target;
+            boundPassengerActionIntent?.SetTarget(target);
+            RefreshFocusedRageHud();
+
+            if (!moveCamera || target == null || playerCamera == null)
+            {
+                return;
+            }
+
+            playerCamera.transform.position = target.transform.position + new Vector3(0f, 5f, -8f);
+            playerCamera.transform.LookAt(target.transform.position + Vector3.up);
+        }
+
+        private void RefreshFocusedRageHud()
+        {
+            if (passengerActionTarget == null)
+            {
+                checkpointHud?.ShowRageStatus(null, 0f, null);
+                return;
+            }
+
+            checkpointHud?.ShowRageStatus(
+                passengerActionTarget.gameObject.name,
+                passengerActionTarget.RageValue.Value,
+                passengerActionTarget.Disposition.Value.ToString());
+        }
+
+        /// <summary>
+        /// Bug fix (hors Story 4.3, regression report du 2026-09-12) : sans garde d'autorite, un client
+        /// reseau non-host executait aussi cette creation localement (Start() tourne sur chaque pair),
+        /// donc en plus des vehicules repliques par le host il instanciait ses propres doublons non
+        /// reseautes -- d'ou des positions differentes entre solo/host et host/client. Seul le host (ou
+        /// l'absence de session reseau, cas solo) peut creer ces vehicules, comme IsAuthoritativeForDamage.
+        /// </summary>
+        private void EnsureMinimumMvpRageTargets()
+        {
+            if (!string.Equals(gameObject.scene.name, "MVP_Run", StringComparison.Ordinal) || !IsAuthoritativeForDamage())
+            {
+                return;
+            }
+
+            var targets = FindRageTargets();
+            for (var i = targets.Length; i < MinimumMvpRageTargetCount; i++)
+            {
+                CreateDevVehicle("MVP_RageTargetVehicle_" + i, new Vector3(6f + (i * 4f), 0f, -44f), Quaternion.identity, true);
+            }
+        }
+
+        private bool TryFindDevVehicleSpawnPose(out Vector3 position, out Quaternion rotation)
+        {
+            rotation = Quaternion.identity;
+            var origin = ResolveSpawnPoint();
+            var basePosition = origin == null ? Vector3.zero : origin.position;
+            var baseRotation = origin == null ? Quaternion.identity : origin.rotation;
+            rotation = baseRotation;
+
+            for (var i = 0; i < 8; i++)
+            {
+                position = basePosition + (baseRotation * new Vector3(4f + (i * 3f), 0f, 0f));
+                if (!Physics.CheckBox(position + new Vector3(0f, 0.75f, 0f), new Vector3(1.2f, 0.75f, 2.4f), rotation))
+                {
+                    return true;
+                }
+            }
+
+            position = Vector3.zero;
+            return false;
+        }
+
+        private static NetworkedRageState[] FindRageTargets()
+        {
+            var targets = FindObjectsByType<NetworkedRageState>(FindObjectsInactive.Exclude);
+            Array.Sort(targets, (left, right) => left.GetEntityId().CompareTo(right.GetEntityId()));
+            return targets;
+        }
+
+        private GameObject CreateDevVehicle(string objectName, Vector3 position, Quaternion rotation, bool rageTarget)
+        {
+            return DevVehicleSpawner.Create(devVehiclePrefab, objectName, position, rotation, rageTarget);
         }
 
         private void EnsureNetworkHudBridge()
@@ -365,6 +595,64 @@ namespace RoadRage.App.Run
             UnsubscribeFromVehicleState();
             subscribedVehicleDriverController = null;
             subscribedVehicleState = null;
+        }
+
+        /// <summary>
+        /// Bug fix (hors Story 4.3, regression report du 2026-09-12) : EnsureVehicleEventBridge ne
+        /// cable les degats que sur UN SEUL vehicule (celui du joueur). Avec Story 4.3 ajoutant
+        /// plusieurs vehicules rage-target/dev, tous les autres ne prenaient jamais de degats, meme
+        /// vides ou avec un passager. Chaque vehicule additionnel recoit ici son propre pont de degats,
+        /// independant du HUD/joueur solo qui reste sur subscribedVehicleDriverController.
+        /// </summary>
+        private void EnsureSecondaryVehicleDamageBridges()
+        {
+            var vehicles = FindObjectsByType<NetworkedVehicleDriverController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var vehicle in vehicles)
+            {
+                if (vehicle == null || vehicle == subscribedVehicleDriverController || !secondaryDamageWiredVehicles.Add(vehicle))
+                {
+                    continue;
+                }
+
+                var vehicleState = vehicle.GetComponent<NetworkedVehicleState>();
+                vehicle.VehicleCollided += impactSpeed => ApplySecondaryVehicleCollisionDamage(vehicleState, impactSpeed);
+            }
+        }
+
+        /// <summary>
+        /// Meme calcul de degats que ApplyNetworkedCollisionDamage (Story 3.5), mais applique au
+        /// vehicule qui a effectivement collisionne plutot qu'au seul vehicule observe par le HUD.
+        /// Fonctionne sans conducteur ni passager : seul le PV du vehicule est mute dans ce cas.
+        /// </summary>
+        private void ApplySecondaryVehicleCollisionDamage(NetworkedVehicleState vehicleState, float impactSpeed)
+        {
+            if (!IsAuthoritativeForDamage() || vehicleState == null)
+            {
+                return;
+            }
+
+            var vehicleDamage = NetworkedVehicleDriverController.ComputeCollisionDamage(impactSpeed);
+            if (vehicleDamage <= 0)
+            {
+                return;
+            }
+
+            if (IsNetworkSessionActive())
+            {
+                var service = NetworkedPlayerLifecycleService.Instance;
+                if (service != null)
+                {
+                    for (var seatIndex = NetworkedVehicleState.DriverSeatIndex; seatIndex < NetworkedVehicleState.SeatCount; seatIndex++)
+                    {
+                        if (vehicleState.TryGetSeatOccupant(seatIndex, out var clientId) && clientId != NetworkedVehicleState.UnoccupiedSeatClientId)
+                        {
+                            service.ApplyCollisionDamage(clientId, NetworkedPlayerLifecycleService.PlayerCollisionDamage);
+                        }
+                    }
+                }
+            }
+
+            vehicleState.ApplyDamage(vehicleDamage);
         }
 
         /// <summary>
@@ -739,6 +1027,7 @@ namespace RoadRage.App.Run
                 if (localOnFootController != null)
                 {
                     localOnFootController.MovementEnabled = false;
+                localOnFootController.SetCameraActive(false);
                 }
 
                 SetLocalPlayerBodyActive(false);
@@ -823,6 +1112,141 @@ namespace RoadRage.App.Run
             }
         }
 
+        /// <summary>
+        /// Touche de test (hors story, 2026-09-12) : cycle les 4 sieges sans sortir du vehicule, pour
+        /// verifier rapidement les cameras dediees par siege sans repasser par sortie/entree.
+        /// </summary>
+        private void HandleLocalSoloSeatSwitchInteraction()
+        {
+            if (IsNetworkSessionActive() || !localSoloVehicleSeated)
+            {
+                return;
+            }
+
+            var keyboard = Keyboard.current;
+            if (keyboard == null || !keyboard.gKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            localSoloSeatIndex = (localSoloSeatIndex + 1) % NetworkedVehicleState.SeatCount;
+            localSoloVehicleDriver.SetLocalSoloDriverActive(IsDriverSeat(localSoloSeatIndex));
+            if (localSoloVehicleCameraRig != null)
+            {
+                localSoloVehicleCameraRig.SetLocalSoloCameraActive(true, localSoloSeatIndex);
+            }
+
+            SynchronizeLocalSoloSeatedPose();
+            ShowVehicleSeatMessage(ResolveSeatOccupiedMessage(localSoloSeatIndex));
+        }
+
+        /// <summary>Klaxon (hors story, 2026-09-12) : reserve au conducteur, solo ou reseau.</summary>
+        private void HandleVehicleHornInteraction()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null || !keyboard.hKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            if (!IsNetworkSessionActive())
+            {
+                if (localSoloVehicleSeated && IsDriverSeat(localSoloSeatIndex) && localSoloVehicleDriver != null)
+                {
+                    localSoloVehicleDriver.RequestHonk();
+                }
+
+                return;
+            }
+
+            if (TryResolveLocalSeatedVehicle(out var vehicleState, out var driverController)
+                && IsDriverSeat(vehicleState.FindSeatIndex(NetworkManager.Singleton.LocalClientId)))
+            {
+                driverController.RequestHonk();
+            }
+        }
+
+        /// <summary>
+        /// Verrouillage camera sur la rage target focalisee (hors story, 2026-09-12) : demande passager
+        /// ET conducteur, bascule avec T. La camera suit la cible en continu (LocalVehicleCameraRig)
+        /// tant que le verrouillage reste actif, y compris si la cible bouge encore.
+        /// </summary>
+        private void HandleRageTargetCameraLockInteraction()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null || !keyboard.tKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            if (!TryResolveLocalSeatedVehicleCameraRig(out var cameraRig))
+            {
+                return;
+            }
+
+            if (cameraRig.HasRageTargetLookOverride)
+            {
+                cameraRig.SetRageTargetLookOverride(null);
+                ShowVehicleSeatMessage("Verrouillage camera desactive.");
+                return;
+            }
+
+            if (passengerActionTarget == null)
+            {
+                ShowVehicleSeatMessage(NoRageTargetMessage);
+                return;
+            }
+
+            cameraRig.SetRageTargetLookOverride(passengerActionTarget.transform);
+            ShowVehicleSeatMessage("Camera verrouillee sur la cible rage.");
+        }
+
+        private bool TryResolveLocalSeatedVehicle(out NetworkedVehicleState vehicleState, out NetworkedVehicleDriverController driverController)
+        {
+            var manager = NetworkManager.Singleton;
+            if (manager == null || !manager.IsClient)
+            {
+                vehicleState = null;
+                driverController = null;
+                return false;
+            }
+
+            var states = FindObjectsByType<NetworkedVehicleState>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var candidate in states)
+            {
+                if (candidate.FindSeatIndex(manager.LocalClientId) == NetworkedVehicleState.NoSeatIndex)
+                {
+                    continue;
+                }
+
+                vehicleState = candidate;
+                driverController = candidate.GetComponent<NetworkedVehicleDriverController>();
+                return driverController != null;
+            }
+
+            vehicleState = null;
+            driverController = null;
+            return false;
+        }
+
+        private bool TryResolveLocalSeatedVehicleCameraRig(out LocalVehicleCameraRig cameraRig)
+        {
+            if (!IsNetworkSessionActive())
+            {
+                cameraRig = localSoloVehicleSeated ? localSoloVehicleCameraRig : null;
+                return cameraRig != null;
+            }
+
+            if (TryResolveLocalSeatedVehicle(out var vehicleState, out _))
+            {
+                cameraRig = vehicleState.GetComponent<LocalVehicleCameraRig>();
+                return cameraRig != null;
+            }
+
+            cameraRig = null;
+            return false;
+        }
+
         private void TryEnterLocalSoloVehicle(bool preferPassenger)
         {
             var localVoidRespawnController = activeLocalPlayer.GetComponent<LocalVoidRespawnController>();
@@ -860,13 +1284,14 @@ namespace RoadRage.App.Run
             if (localOnFootController != null)
             {
                 localOnFootController.MovementEnabled = false;
+                localOnFootController.SetCameraActive(false);
             }
 
             SetLocalPlayerBodyActive(false);
             localSoloVehicleDriver.SetLocalSoloDriverActive(IsDriverSeat(localSoloSeatIndex));
             if (localSoloVehicleCameraRig != null)
             {
-                localSoloVehicleCameraRig.SetLocalSoloCameraActive(IsDriverSeat(localSoloSeatIndex));
+                localSoloVehicleCameraRig.SetLocalSoloCameraActive(true, localSoloSeatIndex);
             }
 
             SynchronizeLocalSoloSeatedPose();
@@ -933,6 +1358,7 @@ namespace RoadRage.App.Run
             if (localOnFootController != null)
             {
                 localOnFootController.MovementEnabled = false;
+                localOnFootController.SetCameraActive(false);
             }
 
             var seatIndex = NetworkedVehicleState.IsValidSeatIndex(localSoloSeatIndex)
@@ -1089,6 +1515,7 @@ namespace RoadRage.App.Run
             if (localOnFootController != null)
             {
                 localOnFootController.MovementEnabled = false;
+                localOnFootController.SetCameraActive(false);
             }
 
             SetLocalPlayerBodyActive(false);

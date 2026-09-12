@@ -3776,6 +3776,8 @@ MonoBehaviour:
   checkpointHud: {fileID: 1848109589}
   passengerActionCatalog: {fileID: 11400000, guid: 9d69003229e4e574985eb33d0a927d2a, type: 2}
   passengerActionTarget: {fileID: 1232442133}
+  passengerActionRageTuning: {fileID: 11400000, guid: b8c83454773ea076bdde2c773576a1d9, type: 2}
+  devVehiclePrefab: {fileID: 6514829079454662262, guid: 33db4bab0111dcf45b577851b4f6bf82, type: 3}
 --- !u!114 &1414698254
 MonoBehaviour:
   m_ObjectHideFlags: 0

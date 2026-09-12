@@ -18,6 +18,9 @@ namespace RoadRage.App.Run
         [SerializeField]
         private Key enterExitKey = Key.E;
 
+        [SerializeField]
+        private Key switchSeatKey = Key.G;
+
         private NetworkedPlayerState state;
 
         private void Awake()
@@ -38,12 +41,20 @@ namespace RoadRage.App.Run
             }
 
             var keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard[enterExitKey].wasPressedThisFrame)
+            if (keyboard == null)
             {
                 return;
             }
 
-            RequestEnterOrExit(IsPassengerModifierPressed(keyboard));
+            if (keyboard[enterExitKey].wasPressedThisFrame)
+            {
+                RequestEnterOrExit(IsPassengerModifierPressed(keyboard));
+            }
+
+            if (keyboard[switchSeatKey].wasPressedThisFrame)
+            {
+                RequestSwitchSeat();
+            }
         }
 
         public void RequestEnterOrExit(bool preferPassenger)
@@ -93,6 +104,56 @@ namespace RoadRage.App.Run
             }
 
             service.RequestEnterOrExit(clientId, preferPassenger);
+        }
+
+        /// <summary>Touche G (hors story, 2026-09-12) : parite reseau avec le cycle de siege solo de RunFlowController.</summary>
+        public void RequestSwitchSeat()
+        {
+            CacheState();
+
+            var manager = NetworkManager.Singleton;
+            if (manager == null || !manager.IsListening || state == null || state.ClientId.Value != manager.LocalClientId)
+            {
+                return;
+            }
+
+            if (IsServer)
+            {
+                ApplyServerSwitchSeatRequest(manager.LocalClientId);
+                return;
+            }
+
+            RequestSwitchSeatRpc();
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void RequestSwitchSeatRpc(RpcParams rpcParams = default)
+        {
+            CacheState();
+
+            if (state == null || state.ClientId.Value != rpcParams.Receive.SenderClientId)
+            {
+                return;
+            }
+
+            ApplyServerSwitchSeatRequest(rpcParams.Receive.SenderClientId);
+        }
+
+        private void ApplyServerSwitchSeatRequest(ulong clientId)
+        {
+            if (!IsServer)
+            {
+                return;
+            }
+
+            var service = NetworkedVehicleSeatService.Instance;
+            if (service == null)
+            {
+                Debug.LogWarning("[Vehicles] Demande de changement de siege ignoree : NetworkedVehicleSeatService absent.");
+                return;
+            }
+
+            service.RequestSwitchSeat(clientId);
         }
 
         private bool IsRepresentingLocalClient()

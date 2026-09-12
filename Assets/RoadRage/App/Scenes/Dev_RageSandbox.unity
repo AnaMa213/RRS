@@ -464,6 +464,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: RoadRage.DevTools::RoadRage.DevTools.RageSandboxAutoStart
   passengerActionCatalog: {fileID: 11400000, guid: 9d69003229e4e574985eb33d0a927d2a, type: 2}
+  passengerActionRageTuning: {fileID: 11400000, guid: b8c83454773ea076bdde2c773576a1d9, type: 2}
 --- !u!114 &1020132822
 MonoBehaviour:
   m_ObjectHideFlags: 0
