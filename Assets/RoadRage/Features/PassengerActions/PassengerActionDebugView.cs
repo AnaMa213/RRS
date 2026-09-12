@@ -11,12 +11,22 @@ namespace RoadRage.Features.PassengerActions
         private Action<int> requestSlot;
         private bool allowNumericKeys;
         private string verdict = "Aucun verdict.";
+        private NetworkedPassengerActionIncidentState incidentState;
 
-        public void Bind(PassengerActionCatalog actionCatalog, Action<int> onRequestSlot, bool numericKeys)
+        public string IncidentText => incidentState == null || !incidentState.IsActive
+            ? "Incident : aucun"
+            : "Incident : actif (" + incidentState.ActivationCount.Value + ")";
+
+        public void Bind(
+            PassengerActionCatalog actionCatalog,
+            Action<int> onRequestSlot,
+            bool numericKeys,
+            NetworkedPassengerActionIncidentState currentIncidentState = null)
         {
             catalog = actionCatalog;
             requestSlot = onRequestSlot;
             allowNumericKeys = numericKeys;
+            incidentState = currentIncidentState;
         }
 
         public void ShowVerdict(PassengerActionVerdict value)
@@ -52,6 +62,7 @@ namespace RoadRage.Features.PassengerActions
 
             GUI.enabled = true;
             GUILayout.Label(verdict);
+            GUILayout.Label(IncidentText);
             GUILayout.EndArea();
         }
     }

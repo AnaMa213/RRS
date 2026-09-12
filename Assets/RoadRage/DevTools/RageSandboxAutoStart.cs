@@ -125,9 +125,10 @@ namespace RoadRage.DevTools
                 view = FindAnyObjectByType<Canvas>().gameObject.AddComponent<PassengerActionDebugView>();
             }
 
-            intent.Configure(passengerActionCatalog, runState, vehicleState, target, null, view);
+            var incidentState = FindAnyObjectByType<NetworkedPassengerActionIncidentState>();
+            intent.Configure(passengerActionCatalog, runState, vehicleState, target, null, view, null, null, incidentState);
             intent.ActionValidated += HandlePassengerActionValidated;
-            view.Bind(passengerActionCatalog, intent.RequestSlot, true);
+            view.Bind(passengerActionCatalog, intent.RequestSlot, true, incidentState);
         }
 
         private void HandlePassengerActionValidated(PassengerActionDef action, Transform actor, NetworkedRageState target)

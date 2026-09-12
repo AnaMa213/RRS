@@ -80,7 +80,7 @@ development_status:
   4-1-rage-state-module-and-definitions: review
   4-2-passenger-action-framework-and-host-validated-intent: review
   4-3-passenger-action-one-changes-rage: review
-  4-4-passenger-action-two-creates-an-incident-or-resource-opportu: backlog
+  4-4-passenger-action-two-creates-an-incident-or-resource-opportu: review
   4-5-passenger-action-three-provides-crew-help: backlog
   4-6-epic-4-passenger-chaos-playable-checkpoint: backlog
   epic-4-retrospective: optional

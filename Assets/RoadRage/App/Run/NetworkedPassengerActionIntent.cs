@@ -25,6 +25,7 @@ namespace RoadRage.App.Run
         private NetworkedRunState runState;
         private NetworkedVehicleState vehicleState;
         private NetworkedRageState target;
+        private NetworkedPassengerActionIncidentState incidentState;
         private PassengerActionDebugView debugView;
         private RunCheckpointHudScreen checkpointHud;
         private Func<bool> localPassengerContext;
@@ -48,7 +49,8 @@ namespace RoadRage.App.Run
             RunCheckpointHudScreen hud,
             PassengerActionDebugView view,
             Func<bool> offlinePassenger = null,
-            Func<Vector3> offlineActorPosition = null)
+            Func<Vector3> offlineActorPosition = null,
+            NetworkedPassengerActionIncidentState currentIncidentState = null)
         {
             if (actionCatalog != null)
             {
@@ -62,10 +64,11 @@ namespace RoadRage.App.Run
             debugView = view;
             localPassengerContext = offlinePassenger;
             localActorPosition = offlineActorPosition;
+            incidentState = currentIncidentState;
 
             if (debugView != null)
             {
-                debugView.Bind(catalog, RequestSlot, false);
+                debugView.Bind(catalog, RequestSlot, false, incidentState);
             }
         }
 
@@ -179,6 +182,11 @@ namespace RoadRage.App.Run
             if (verdict.Accepted)
             {
                 cooldownEndsAt[action.Slot] = now + action.CooldownSeconds;
+                if (action.Slot == 1)
+                {
+                    ResolveIncidentState()?.ActivateOrRefresh();
+                }
+
                 ActionValidated?.Invoke(action, state == null ? transform : state.transform, resolvedTarget);
             }
 
@@ -221,6 +229,16 @@ namespace RoadRage.App.Run
             VerdictReceived?.Invoke(verdict);
             debugView?.ShowVerdict(verdict);
             checkpointHud?.ShowPassengerActionVerdict(verdict.Message);
+        }
+
+        private NetworkedPassengerActionIncidentState ResolveIncidentState()
+        {
+            if (incidentState == null)
+            {
+                incidentState = FindAnyObjectByType<NetworkedPassengerActionIncidentState>();
+            }
+
+            return incidentState;
         }
     }
 }

@@ -3,6 +3,8 @@
     "rootNamespace": "RoadRage.Features.UI",
     "references": [
         "RoadRage.Shared",
+        "RoadRage.Features.PassengerActions",
+        "Unity.Netcode.Runtime",
         "UnityEngine.UI",
         "Unity.TextMeshPro"
     ],

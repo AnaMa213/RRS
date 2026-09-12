@@ -1,4 +1,5 @@
 using System.Text;
+using RoadRage.Features.PassengerActions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -57,6 +58,10 @@ namespace RoadRage.Features.UI
         [SerializeField]
         private TMP_Text rageLabel;
 
+        private TMP_Text incidentLabel;
+
+        private NetworkedPassengerActionIncidentState incidentState;
+
         [SerializeField]
         private GameObject deathOverlayPanel;
 
@@ -70,7 +75,20 @@ namespace RoadRage.Features.UI
         private void Awake()
         {
             EnsureRageLabel();
+            EnsureIncidentLabel();
             ShowAwaitingProfile();
+        }
+
+        private void Update()
+        {
+            if (incidentState == null)
+            {
+                incidentState = FindAnyObjectByType<NetworkedPassengerActionIncidentState>();
+            }
+
+            SetText(incidentLabel, incidentState == null || !incidentState.IsActive
+                ? "Incident : aucun"
+                : "Incident : actif (" + incidentState.ActivationCount.Value + ")");
         }
 
         public void ShowAwaitingProfile()
@@ -299,6 +317,31 @@ namespace RoadRage.Features.UI
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.raycastTarget = false;
             rageLabel = label;
+        }
+
+        private void EnsureIncidentLabel()
+        {
+            if (incidentLabel != null)
+            {
+                return;
+            }
+
+            var labelObject = new GameObject("PassengerActionIncidentLabel", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            labelObject.transform.SetParent(transform, false);
+
+            var rect = labelObject.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(1f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-24f, -66f);
+            rect.sizeDelta = new Vector2(520f, 42f);
+
+            var label = labelObject.GetComponent<TextMeshProUGUI>();
+            label.alignment = TextAlignmentOptions.TopRight;
+            label.fontSize = 24f;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.raycastTarget = false;
+            incidentLabel = label;
         }
 
         private static string SafeText(string value)

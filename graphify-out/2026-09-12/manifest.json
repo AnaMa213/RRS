@@ -396,21 +396,21 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/NetworkedVehicleSeatIntent.cs": {
-    "mtime": 1788978271.256664,
-    "seen": 1789154390.867359,
-    "ast_hash": "f12b6398130e64b47303c5deaa5f2b24",
+    "mtime": 1789223567.3768191,
+    "seen": 1789223650.6857827,
+    "ast_hash": "16a9d1388468da3ae9adad171686992f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/NetworkedVehicleSeatService.cs": {
-    "mtime": 1789062899.6029406,
-    "seen": 1789154390.8673594,
-    "ast_hash": "49ab9a945b039b9fdd56acef0f0466a5",
+    "mtime": 1789223546.9252157,
+    "seen": 1789223650.6857839,
+    "ast_hash": "8e397c840babafa2a5bc720558230b97",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/RunFlowController.cs": {
-    "mtime": 1789219799.250291,
-    "seen": 1789220094.5710552,
-    "ast_hash": "2581ce726560e59b2844c5093bccae26",
+    "mtime": 1789246473.0574324,
+    "seen": 1789246545.3223355,
+    "ast_hash": "18e766183baaf586df6b1293155c471b",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Services/AppSceneRouter.cs": {
@@ -420,9 +420,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/DevTools/RageSandboxAutoStart.cs": {
-    "mtime": 1789210421.2360005,
-    "seen": 1789210924.9060829,
-    "ast_hash": "6e888b84c6f5c32644a06ff625140579",
+    "mtime": 1789246473.0589383,
+    "seen": 1789246545.322337,
+    "ast_hash": "3252a3e012fbf16504e5033ace7bd87f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/DevTools/RoadRageNetcodeSmokeTestAutoStart.cs": {
@@ -450,9 +450,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/OnFoot/LocalOnFootController.cs": {
-    "mtime": 1789062770.095479,
-    "seen": 1789154390.8673642,
-    "ast_hash": "cd9dde1693aa1e0056e0c1c1e29cb27a",
+    "mtime": 1789225048.7047658,
+    "seen": 1789243908.0575266,
+    "ast_hash": "781ff6574ef26ef3606ea071ab3763c7",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/OnFoot/OnFootMovementIntent.cs": {
@@ -648,15 +648,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/UI/RunCheckpointHudScreen.cs": {
-    "mtime": 1789210556.1284008,
-    "seen": 1789210924.906114,
-    "ast_hash": "c5d1f268fc8837cfd69e3a86af7d8e46",
+    "mtime": 1789246344.0886197,
+    "seen": 1789246545.3223705,
+    "ast_hash": "5578e28f8e5769dc81c74c95ce38e370",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/LocalVehicleCameraRig.cs": {
-    "mtime": 1789219715.0106773,
-    "seen": 1789220094.5710886,
-    "ast_hash": "269c3ee2178c625a7cd18f51e9015c2a",
+    "mtime": 1789225214.9547648,
+    "seen": 1789243908.057555,
+    "ast_hash": "baec6310f5a3d79e997d0d23c4230e5f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleState.cs": {
@@ -906,9 +906,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story15EmptyMapEntryPlayModeTests.cs": {
-    "mtime": 1788861949.9956422,
-    "seen": 1789154390.8674068,
-    "ast_hash": "c4f41a2efa55ba8770b495906511a9ac",
+    "mtime": 1789225087.3510888,
+    "seen": 1789243908.0575883,
+    "ast_hash": "eb42b49154d2b28f09efcb936c32c8f1",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story16Epic1PlayableCheckpointPlayModeTests.cs": {
@@ -3870,9 +3870,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789211168.6980715,
-    "seen": 1789211186.9121974,
-    "ast_hash": "488728108165126a253d914df53815ed",
+    "mtime": 1789246177.9625857,
+    "seen": 1789246545.3227725,
+    "ast_hash": "14fe75c58ca1fa984a0983f9a51680ad",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -4236,9 +4236,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/NetworkedPassengerActionIntent.cs": {
-    "mtime": 1789210360.6831796,
-    "seen": 1789210924.9060743,
-    "ast_hash": "31bdaffddbb8d5cc83e98a9570be6479",
+    "mtime": 1789246473.0574324,
+    "seen": 1789246545.322328,
+    "ast_hash": "9f39a97d3afef8fa97b2bda666ac74fd",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/PassengerActions/PassengerActionCatalog.cs": {
@@ -4323,6 +4323,54 @@
     "mtime": 1789216571.9162993,
     "seen": 1789217381.6423652,
     "ast_hash": "21484d8fb01e8528bdbfe3fb2c682bdb",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Shared/Presentation/ThirdPersonCameraConfiguration.cs": {
+    "mtime": 1789225048.7026362,
+    "seen": 1789243908.057566,
+    "ast_hash": "ba9d7a6c2e5f7ee0a57eddf7ae039c1e",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/ThirdPersonCameraTests.cs": {
+    "mtime": 1789225239.214738,
+    "seen": 1789243908.0575855,
+    "ast_hash": "827aef1fe09be37698cf611f1b20b273",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/handoff-2026-09-12-vehicle-camera-seat-fixes.md": {
+    "mtime": 1789224388.029155,
+    "seen": 1789243908.0579278,
+    "ast_hash": "abe42b948b1cad087e1b2bdeb0aaf472",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-camera-troisieme-personne.md": {
+    "mtime": 1789224897.9499784,
+    "seen": 1789243908.057956,
+    "ast_hash": "2173583d3b3d37fe2008de6252d7b95b",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/PassengerActions/NetworkedPassengerActionIncidentState.cs": {
+    "mtime": 1789246344.0871167,
+    "seen": 1789246545.3223505,
+    "ast_hash": "29049352e732e0dddcbd53fd9bfdb8f4",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story44PassengerActionTwoCreatesIncidentTests.cs": {
+    "mtime": 1789246473.0589383,
+    "seen": 1789246545.322403,
+    "ast_hash": "543b446c51dd3b9540e6d79657060098",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/PlayMode/Story44PassengerActionTwoMvpRunPlayModeTests.cs": {
+    "mtime": 1789246833.4889295,
+    "seen": 1789247714.449565,
+    "ast_hash": "4834b06bcea73e509830d9fac0572992",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-4-4-passenger-action-two-creates-an-incident-or-resource-opportu.md": {
+    "mtime": 1789246594.43712,
+    "seen": 1789247714.450325,
+    "ast_hash": "b1b7a1f7ffa4c40cf19a778d3614539c",
     "semantic_hash": ""
   }
 }

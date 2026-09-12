@@ -335,7 +335,8 @@ namespace RoadRage.App.Run
                 checkpointHud,
                 passengerActionView,
                 () => localSoloVehicleSeated && NetworkedVehicleState.IsPassengerSeatIndex(localSoloSeatIndex),
-                () => activeLocalPlayer == null ? Vector3.zero : activeLocalPlayer.transform.position);
+                () => activeLocalPlayer == null ? Vector3.zero : activeLocalPlayer.transform.position,
+                FindAnyObjectByType<NetworkedPassengerActionIncidentState>());
         }
 
         private void UnsubscribeFromPassengerActionIntent()
