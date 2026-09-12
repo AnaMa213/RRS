@@ -80,6 +80,8 @@ FR27: Each gameplay epic after the technical readiness gate must leave the game 
 
 FR28: The project can use existing Unity assets, starter controllers, UI libraries, menu frameworks, and gameplay add-ons when they are compatible, maintained, legally usable, and do not violate the architecture contracts.
 
+FR29: The player has an inventory bar (starting at 3 slots, expandable later) with a default melee weapon (fists) in the first slot, usable to strike whatever is directly in front of the player, dealing type-specific damage (vehicle vs. character).
+
 ### Non-Functional Requirements
 
 NFR1: The MVP must remain feasible for one solo developer using vibe coding and AI assistance.
@@ -162,7 +164,7 @@ NFR24: A purchased or imported asset must not become an unreviewed black box for
 - Unity MCP must not silently add paid services, change package versions, convert the project to dedicated servers, or store secrets.
 - Blender MCP and asset-generation tools must not bypass the asset intake checklist.
 - The architecture spine governs engine, camera, input, networking, module boundaries, runtime state, package pins, and asset pipeline decisions.
-- Module slices to preserve in epic/story design: Vehicle, OnFoot, PassengerActions, Rage, Economy, Lobby/Network, Run, Boss, SandboxStops, and UI.
+- Module slices to preserve in epic/story design: Vehicle, OnFoot, PassengerActions, Rage, Inventory, Combat, Economy, Lobby/Network, Run, Boss, SandboxStops, and UI.
 - Development slices to preserve where useful: `Dev_VehicleSandbox`, `Dev_OnFootSandbox`, `Dev_RageSandbox`, `Dev_LobbySmokeTest`, and `MVP_Run`.
 - Starter implementation should begin with Milestone 0: empty project health check, package installation verification, scene seed, and Multiplayer Play Mode local smoke test.
 - Epic planning should favor playable checkpoints: after each epic, the user should be able to press Play or launch a development build and test visible progress.
@@ -184,6 +186,8 @@ UX-DR5: Passenger action UI must make three actions available and show a visible
 UX-DR6: Camera and input must be local-only presentation concerns and must not mutate shared gameplay state directly.
 
 UX-DR7: Menu, lobby, character creation, HUD, and in-game UI may use existing Unity UI foundations or third-party UI assets if they pass the Epic 0 adoption checklist.
+
+UX-DR8: Gameplay UI must show the player's inventory bar and currently equipped item.
 
 ## FR Coverage Map
 
@@ -243,6 +247,8 @@ FR27: Epic 1 through Epic 7 - every gameplay epic leaves the game launchable and
 
 FR28: Epic 0 - add-on and asset reuse evaluation before implementation.
 
+FR29: Epic 6 - inventory bar and default fist melee action.
+
 ## Epic List
 
 ### Epic 0: Technical, Tools & Asset/Addon Readiness Gate
@@ -285,7 +291,7 @@ The route contains three AI vehicles with independent rage states and simple rag
 
 Players can leave the car for a compact confrontation or sandbox stop, resolve one Rage Road event, earn a shared money reward, buy one upgrade, and return that value to the next driving loop. A high-rage AI vehicle can dismount its occupant as an on-foot NPC combatant, using the same on-foot module as the player confrontation.
 
-**FRs covered:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27
+**FRs covered:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27, FR29
 
 ### Epic 7: Boss Endpoint, Victory/Failure & MVP Integration Pass
 
@@ -875,6 +881,10 @@ So that I can immediately see my action affect the world.
 **And** the HUD or dev UI shows the rage change clearly
 **And** the action has placeholder animation, sound, or visual feedback suitable for greybox testing
 **And** the final action name and tone remain replaceable until content-rating boundaries are finalized
+**And** on `MVP_Run`, a Rage HUD element is anchored to the top-right of the screen and shows the currently focused rage target's state
+**And** `MVP_Run` contains at least two additional drivable vehicles configured as rage targets, so rage can be tested against more than one target at once
+**And** a dev-facing control lets a player spawn a normal vehicle or a rage-target vehicle into `MVP_Run` at any time, and every spawned vehicle is checked for clearance and placed so it is immediately drivable, never embedded in terrain or geometry
+**And** the passenger camera can focus on a chosen rage target and cycle between all currently available rage targets, so the passenger can see which target's rage is changing
 
 ### Story 4.4: Passenger Action Two Creates an Incident or Resource Opportunity
 
@@ -1038,11 +1048,49 @@ So that I can test the escalation path before building confrontation resolution.
 
 ## Epic 6: On-Foot Confrontation, Sandbox Stop & Economy Loop
 
-Players can leave the car for a compact confrontation or sandbox stop, resolve one Rage Road event, earn a shared money reward, buy one upgrade, and return that value to the next driving loop. A high-rage AI vehicle can dismount its occupant as an on-foot NPC combatant, using the same on-foot module as the player confrontation.
+Players can leave the car for a compact confrontation or sandbox stop, resolve one Rage Road event, earn a shared money reward, buy one upgrade, and return that value to the next driving loop. A high-rage AI vehicle can dismount its occupant as an on-foot NPC combatant, using the same on-foot module as the player confrontation. A dev-only harness lets the fist-melee action and a test mannequin validate combat damage before the real AI-driven dismount exists.
 
-**Requirements covered:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27, NFR1, NFR2, NFR4, NFR5, NFR6, NFR13, NFR14, NFR15, NFR20, NFR21, UX-DR4
+**Requirements covered:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27, FR29, NFR1, NFR2, NFR4, NFR5, NFR6, NFR13, NFR14, NFR15, NFR20, NFR21, UX-DR4, UX-DR8
 
-### Story 6.1: On-Foot Transition for Confrontation and Sandbox Stops
+### Story 6.1: Inventory Bar and Fist Melee Action
+
+**Implements:** FR29, FR24, FR25, FR26, FR27, NFR4, NFR5, NFR13, NFR14, NFR15, NFR21, UX-DR8
+
+As a player,
+I want a small inventory bar with my fists as a default melee option,
+So that I can strike something in front of me even before other items exist.
+
+**Acceptance Criteria:**
+
+**Given** a connected player exists
+**When** the player's inventory is initialized
+**Then** the player has an inventory bar with 3 slots (expandable later) and fists occupy slot 1 by default
+**And** the player can trigger a melee strike against whatever is directly in front of them within a short reach
+**And** a strike against a vehicle's HP applies -0.5 HP or 0 HP at random
+**And** a strike against another player's or an NPC's HP applies -3 HP, or -5 HP on a critical hit with a 2% critical chance
+**And** melee damage is applied host-side through a validated intent, consistent with how other player-initiated effects mutate shared state
+**And** strike stats are authored as a ScriptableObject definition with a stable id, not hardcoded per caller
+**And** the inventory bar and currently equipped item are visible in the gameplay UI
+
+### Story 6.2: Dev NPC Dismount and Test Mannequin
+
+**Implements:** FR24, NFR2, NFR21
+
+As a solo developer,
+I want a dev-only control that ejects the "PNJ" driver from the currently focused rage-target vehicle and spawns a test mannequin,
+So that I can validate melee damage against a real target before the real AI-driven dismount behavior exists.
+
+**Acceptance Criteria:**
+
+**Given** a rage target vehicle is currently focused (per Story 4.3's camera target switching)
+**When** a developer triggers the dev dismount control on `MVP_Run`
+**Then** a test mannequin NPC spawns beside that rage target vehicle, positioned so it is immediately reachable and not embedded in geometry
+**And** the mannequin has 100 HP tracked in host-owned state
+**And** the mannequin can be damaged by the player's fist melee action from Story 6.1
+**And** a small blood VFX plays whenever a player or the mannequin loses HP, using one shared effect for both cases
+**And** this control is explicitly dev-only tooling, kept separate from the real AI-vehicle-dismount behavior planned for Story 6.3
+
+### Story 6.3: On-Foot Transition for Confrontation and Sandbox Stops
 
 **Implements:** FR13, FR14, FR24, FR25, FR27
 
@@ -1060,7 +1108,7 @@ So that road events can briefly become a different playable module.
 **And** the transition preserves player lifecycle and network ownership rules
 **And** a targeted AI vehicle whose rage reaches the confrontation-triggering state can dismount its occupant as a host-owned on-foot AI NPC combatant through the same on-foot spawn/transition system used for players
 
-### Story 6.2: Compact Rage Road Confrontation Resolution
+### Story 6.4: Compact Rage Road Confrontation Resolution
 
 **Implements:** FR12, FR14, FR24, FR25, FR27, NFR21
 
@@ -1078,7 +1126,7 @@ So that escalation has a meaningful playable payoff.
 **And** failure, timeout, or player death outcomes are visible in UI or logs
 **And** the confrontation can be tested without boss endpoint logic
 
-### Story 6.3: Shared Money Reward for Road-Rage Victory
+### Story 6.5: Shared Money Reward for Road-Rage Victory
 
 **Implements:** FR12, FR16, FR18, FR19, FR24, FR25, FR26
 
@@ -1095,7 +1143,7 @@ So that the rage loop feeds the upgrade loop.
 **And** absurd side actions may grant low-value feedback but do not become the primary money source
 **And** the host validates reward grants to prevent duplicate payouts
 
-### Story 6.4: Compact Sandbox Stop with Happenings
+### Story 6.6: Compact Sandbox Stop with Happenings
 
 **Implements:** FR15, FR17, FR24, FR25, FR26, NFR20
 
@@ -1112,7 +1160,7 @@ So that the world has a playful non-driving interaction space.
 **And** outcomes can affect money, minor resources, rage, or crew-help feedback without requiring boss logic
 **And** low-value comedy interactions remain replaceable until tone boundaries are finalized
 
-### Story 6.5: One Upgrade Purchase
+### Story 6.7: One Upgrade Purchase
 
 **Implements:** FR18, FR19, FR20, FR24, FR25, FR26, NFR13, NFR14
 
@@ -1130,7 +1178,7 @@ So that winning a confrontation changes the next driving loop.
 **And** the purchased state is stored in host-owned runtime state
 **And** insufficient money, duplicate purchase, and disconnected player cases produce visible feedback
 
-### Story 6.6: Upgrade Effect on the Next Driving Loop
+### Story 6.8: Upgrade Effect on the Next Driving Loop
 
 **Implements:** FR20, FR24, FR25, FR27
 
@@ -1147,7 +1195,7 @@ So that the economy loop has visible gameplay value.
 **And** clients see consistent upgraded behavior or UI feedback
 **And** the effect can be disabled for comparison in a development test
 
-### Story 6.7: Economy, Confrontation, and Stop UI Feedback
+### Story 6.9: Economy, Confrontation, and Stop UI Feedback
 
 **Implements:** FR12, FR15, FR16, FR18, FR19, FR20, FR26, FR27, UX-DR4
 
@@ -1164,7 +1212,7 @@ So that the expanded loop remains understandable.
 **And** failed purchases, failed interactions, and unavailable actions are visibly explained
 **And** UI remains usable for one to four connected players
 
-### Story 6.8: Epic 6 Economy Loop Playable Checkpoint
+### Story 6.10: Epic 6 Economy Loop Playable Checkpoint
 
 **Implements:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27
 
@@ -1177,6 +1225,7 @@ So that I can test the MVP reward loop before boss and final integration.
 **Given** on-foot transition, confrontation resolution, sandbox stop, money reward, upgrade purchase, and upgrade effect exist
 **When** the game is tested from driving into a Rage Road event
 **Then** players can trigger an event, leave the car, resolve a confrontation, receive money, buy one upgrade, return to driving, and see the upgrade affect gameplay
+**And** the fist melee action and dev NPC-dismount/mannequin harness from Stories 6.1-6.2 are confirmed working against the real on-foot AI dismount from Story 6.3
 **And** all key state changes are host-authoritative and visible in UI
 **And** the checkpoint notes identify what remains for final failure, victory, and full-run polish in Epic 7
 

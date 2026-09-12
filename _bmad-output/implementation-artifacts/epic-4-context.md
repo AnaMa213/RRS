@@ -4,7 +4,7 @@
 
 ## Goal
 
-Non-driving players (passengers) get three chaos actions they can trigger through in-game UI while someone else drives. Each action sends client intent to the host, which validates and applies the effect, producing a visible change to a target's rage state, an incident, a low-value resource opportunity, or a crew-help effect. This epic gives co-op players a meaningful role beyond driving and establishes the rage/intent contracts that later epics build on: AI traffic will attach real rage-driven behavior to vehicles, and rage escalation here is what eventually triggers a Rage Road confrontation.
+L'Epic 4 donne un vrai role aux passagers pendant la conduite: ils disposent de trois actions de chaos declenchees depuis l'UI, transmises comme intentions client, validees cote host, puis appliquees sous forme d'effet visible sur la rage d'une cible, un incident, une opportunite de faible valeur ou une aide d'equipage. Cet epic etablit aussi le contrat de rage independante qui sera consomme plus tard par le trafic IA, les evenements Rage Road et la boucle complete du MVP.
 
 ## Stories
 
@@ -17,32 +17,42 @@ Non-driving players (passengers) get three chaos actions they can trigger throug
 
 ## Requirements & Constraints
 
-- Rage must be tracked independently per target (not a shared/global meter), with both a numeric value and a state label.
-- Passengers get exactly three action slots. Each is authored as static, host-validated data, not one-off scripts.
-- Every action is submitted as client intent and only takes effect after host validation; invalid target, unavailable seat, cooldown, and disconnected-player cases must all produce visible feedback rather than failing silently.
-- Every action must visibly change at least one of: target rage, an incident marker, a low-value resource/opportunity, or a crew-help effect. No action may directly grant upgrades or declare run outcomes — significant rewards stay tied to later road-rage confrontation, not to these side actions.
-- The rage module and action framework must each be playable and testable on their own (a rage/action sandbox), without depending on real AI traffic or Rage Road confrontation from later epics.
-- The epic must end in a launchable, testable state with the new capability verified by at least two players in a local multiplayer test.
-- Exact tuning numbers, action names, and tone/content-rating boundaries are explicitly unresolved and expected to change before final content — build for replaceability, not lock-in.
+- La rage doit exister comme etat gameplay visible, suivi par cible et non comme jauge globale; au minimum une cible doit pouvoir afficher une valeur et un libelle d'etat de rage pendant les tests.
+- Les passagers ont trois emplacements d'actions MVP accessibles via l'UI en jeu.
+- Chaque action passager doit envoyer une intention au host avant toute mutation d'etat partage; le host valide l'acteur, le siege/mode joueur, la cible, la disponibilite, le cooldown, la portee utile et la version du payload avant d'appliquer l'effet.
+- Les cas de cooldown, cible invalide, siege indisponible et joueur deconnecte doivent produire un retour visible.
+- Les trois actions couvrent trois usages MVP: augmenter/changer la rage, creer un incident ou une opportunite de faible valeur, et fournir une aide d'equipage.
+- Chaque action doit produire un resultat visible sur au moins un axe: rage, incident, ressource/opportunite mineure ou effet d'aide.
+- `MVP_Run` doit permettre de tester la rage contre plusieurs cibles: au moins deux vehicules drivable supplementaires configures comme rage targets, plus un controle dev pour faire apparaitre un vehicule normal ou rage-target avec verification de clearance.
+- Les actions absurdes restent des jouets, declencheurs ou gains faibles; les recompenses significatives restent reservees aux confrontations Rage Road des epics ulterieurs.
+- Les noms finaux, le ton, les animations, les sons, les visuels et les limites de classification/contenu restent remplacables tant que les limites de ton ne sont pas tranchees.
+- L'epic doit rester testable sans trafic IA reel d'Epic 5 ni resolution de confrontation d'Epic 6.
+- Le checkpoint final doit laisser le jeu lancable et verifiable en local Multiplayer Play Mode avec au moins deux joueurs, dont un conducteur et un passager.
 
 ## Technical Decisions
 
-- Rage lives per target on a host-owned networked rage-state component (calm/irritated/flee/block/ram/confrontation-capable), never as a shared/global value; other systems read rage through a narrow interface/event and never mutate it directly.
-- Static passenger-action and rage-tuning data are ScriptableObject definitions with stable, globally unique, lowercase ids, registered into one shared definition catalog at bootstrap; network payloads send definition ids, not full data, and host/clients must resolve the same catalog version.
-- Runtime session values (current rage, action cooldowns, etc.) live in host-owned networked state, never inside ScriptableObject assets.
-- `RunFlowController` remains an Epic 4 composition/wiring root: do not implement PassengerActions, Rage, cooldowns, targeting, or reward logic inside it; keep those mechanics in feature slices or host-owned services and connect them through minimal contracts/wiring.
-- Client input becomes a typed intent sent to the host (never a direct state mutation); host validation checks actor, run phase, player mode/seat, cooldown, target reference, range, and payload version before applying any effect.
-- Targets referenced in intents use a Netcode-safe object reference, never authored ids or indexes, so targeting stays correct across spawn/despawn and late join.
-- Gameplay-authoritative networked objects and variables are host-owned/server-write by default; camera and input remain local-only presentation and must never touch shared state directly.
-- Naming conventions to follow: networked state components prefixed `Networked...`, ScriptableObject definitions suffixed `...Def`, client intent types suffixed `...Intent`; feature code organized under `Rage` and `PassengerActions` feature folders; diagnostic logs prefixed with the owning feature tag (e.g. `[Rage]`).
+- Le projet reste feature-sliced: le code de rage vit dans `Features/Rage`, les actions passager dans `Features/PassengerActions`, et la composition passe par Run, Shared ou des interfaces/evenements etroits plutot que par mutation directe entre features.
+- La rage d'un vehicule ennemi appartient a un composant reseau host-owned de type `NetworkedRageState`; les valeurs de session vivent dans des `NetworkBehaviour`/`NetworkVariable`, jamais dans les ScriptableObjects.
+- Les definitions statiques de rage, seuils et actions passager sont des ScriptableObjects avec ids stables, globaux et en minuscules, enregistres dans le catalogue de definitions partage au bootstrap.
+- Les payloads reseau envoient des ids de definition et des references Netcode-sures vers les cibles, pas des copies de donnees, des index de voie ou des ids authored utilises comme identite runtime.
+- Les objets gameplay faisant autorite sont host-owned et les `NetworkVariable` gameplay sont server-write par defaut.
+- Les input handlers et scripts UI ne mutent jamais l'etat partage directement; ils collectent l'entree locale, construisent une intention typee et la soumettent au host.
+- Camera et input restent de la presentation locale et ne sont pas synchronises comme etat gameplay; le focus/cycle de camera entre rage targets sert a observer quelle cible change, pas a porter une autorite gameplay.
+- Les conventions de nommage a conserver: composants d'etat reseau prefixes `Networked`, definitions suffixees `Def`, intentions client suffixees `Intent`, logs diagnostics prefixes par la feature proprietaire comme `[Rage]` ou `[PassengerActions]`.
 
 ## UX & Interaction Patterns
 
-- Gameplay UI (HUD or dev UI) must show current rage state and the three available passenger actions, alongside the run/money/failure/victory elements already established.
-- Each action needs a visible result after use (rage change, incident, resource, or crew-help feedback), plus visible feedback when an action is unavailable, on cooldown, or targets something invalid.
-- A dev UI/HUD element showing raw rage state is acceptable and expected during greybox testing, ahead of any polished presentation.
+- Le HUD ou la dev UI doit rendre lisibles l'etat de rage courant et les trois actions passager disponibles.
+- Dans `MVP_Run`, le HUD de rage est ancre en haut a droite et montre l'etat de la rage target actuellement focalisee.
+- Le passager peut focaliser une rage target et cycler entre les rage targets disponibles pour voir quelle cible est affectee.
+- Chaque action doit donner un retour visible apres usage, meme en greybox: changement de rage, marqueur d'incident, opportunite mineure ou feedback d'aide.
+- Les etats indisponible, cooldown et cible invalide doivent etre visibles pour le passager.
+- L'UI gameplay lit l'etat partage et envoie seulement des intentions; elle ne devient pas proprietaire de la rage, des cooldowns ou des resultats.
 
 ## Cross-Story Dependencies
 
-- Story order is largely linear: 4.1 (rage module) must exist before 4.2 (action framework); 4.2 must exist before 4.3, 4.4, and 4.5 (the three individual actions), which can otherwise proceed in any order; 4.6 is the epic's checkpoint and depends on all five prior stories working together.
-- Depends on the driving/seat setup from Epic 3 (a passenger seat to trigger actions from) but must not depend on AI traffic (Epic 5) or Rage Road confrontation (Epic 6) — those epics consume this epic's rage/action output later, so keep the rage and intent contracts stable for them to build on without rework.
+- Story 4.1 pose la rage et ses definitions; Story 4.2 depend de cette base pour fournir le framework d'actions et le pipeline d'intention host-validee.
+- Stories 4.3, 4.4 et 4.5 dependent du framework de Story 4.2 et peuvent ensuite avancer comme trois actions MVP separees.
+- Story 4.6 depend de l'ensemble des stories precedentes et verifie l'experience passager/conducteur en contexte jouable.
+- L'epic depend des sieges et de la conduite partages d'Epic 3, mais ne doit pas attendre le trafic IA d'Epic 5 ni la confrontation/economie d'Epic 6.
+- Les epics 5 et 6 consommeront les contrats produits ici: rage par cible, intentions passager validees par le host, effets visibles et donnees statiques stables.

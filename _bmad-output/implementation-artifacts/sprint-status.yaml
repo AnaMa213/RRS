@@ -95,14 +95,16 @@ development_status:
   epic-5-retrospective: optional
 
   epic-6: backlog
-  6-1-on-foot-transition-for-confrontation-and-sandbox-stops: backlog
-  6-2-compact-rage-road-confrontation-resolution: backlog
-  6-3-shared-money-reward-for-road-rage-victory: backlog
-  6-4-compact-sandbox-stop-with-happenings: backlog
-  6-5-one-upgrade-purchase: backlog
-  6-6-upgrade-effect-on-the-next-driving-loop: backlog
-  6-7-economy-confrontation-and-stop-ui-feedback: backlog
-  6-8-epic-6-economy-loop-playable-checkpoint: backlog
+  6-1-inventory-bar-and-fist-melee-action: backlog
+  6-2-dev-npc-dismount-and-test-mannequin: backlog
+  6-3-on-foot-transition-for-confrontation-and-sandbox-stops: backlog
+  6-4-compact-rage-road-confrontation-resolution: backlog
+  6-5-shared-money-reward-for-road-rage-victory: backlog
+  6-6-compact-sandbox-stop-with-happenings: backlog
+  6-7-one-upgrade-purchase: backlog
+  6-8-upgrade-effect-on-the-next-driving-loop: backlog
+  6-9-economy-confrontation-and-stop-ui-feedback: backlog
+  6-10-epic-6-economy-loop-playable-checkpoint: backlog
   epic-6-retrospective: optional
 
   epic-7: backlog
