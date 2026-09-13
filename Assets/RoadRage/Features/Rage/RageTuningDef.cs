@@ -6,10 +6,12 @@ using UnityEngine;
 namespace RoadRage.Features.Rage
 {
     /// <summary>
-    /// Donnee auteur statique des seuils de rage (Story 4.1). Vit comme asset sous
-    /// Assets/RoadRage/ScriptableObjects/Rage/ et porte un id globalement unique en minuscules,
-    /// stable, sur le meme gabarit que CharacterDef (Features.Players, Story 1.3) : l'id vit ici,
-    /// la validation de catalogue (unicite, casse, doublons) vit dans RageTuningCatalog.TryValidate.
+    /// Donnee auteur statique des seuils de rage (Story 4.1) et des tendances de temperament
+    /// (Story 5.1 : borne de peur et sensibilites, multiplicateurs appliques a la magnitude d'un
+    /// NpcReactionEffect). Vit comme asset sous Assets/RoadRage/ScriptableObjects/Rage/ et porte un
+    /// id globalement unique en minuscules, stable, sur le meme gabarit que CharacterDef
+    /// (Features.Players, Story 1.3) : l'id vit ici, la validation de catalogue (unicite, casse,
+    /// doublons) vit dans RageTuningCatalog.TryValidate. Jamais mutee a l'execution.
     /// </summary>
     [CreateAssetMenu(fileName = "RageTuningDef", menuName = "RoadRage/Rage/Rage Tuning Def")]
     public sealed class RageTuningDef : ScriptableObject
@@ -50,6 +52,18 @@ namespace RoadRage.Features.Rage
         private float maxRageValue = 100f;
 
         [SerializeField]
+        [Tooltip("Valeur maximale de FearValue ; ApplyFearDelta et ApplyReactionEffect clampent a cette borne.")]
+        private float maxFearValue = 100f;
+
+        [SerializeField]
+        [Tooltip("Multiplicateur de sensibilite du canal rage (Story 5.1) : 1 = neutre, 0 = canal inerte.")]
+        private float rageSensitivity = 1f;
+
+        [SerializeField]
+        [Tooltip("Multiplicateur de sensibilite du canal peur (Story 5.1) : 1 = neutre, 0 = canal inerte.")]
+        private float fearSensitivity = 1f;
+
+        [SerializeField]
         [Tooltip("Paliers tries par seuil strictement ascendant. Invariante d'authoring validee par RageTuningCatalog.TryValidate, pas recalculee a l'execution (cf. Design Notes).")]
         private RageThreshold[] thresholds = Array.Empty<RageThreshold>();
 
@@ -70,6 +84,23 @@ namespace RoadRage.Features.Rage
             get { return maxRageValue; }
         }
 
+        public float MaxFearValue
+        {
+            get { return maxFearValue; }
+        }
+
+        /// <summary>Multiplicateur applique a la magnitude d'un effet visant le canal rage (0 = canal inerte).</summary>
+        public float RageSensitivity
+        {
+            get { return rageSensitivity; }
+        }
+
+        /// <summary>Multiplicateur applique a la magnitude d'un effet visant le canal peur (0 = canal inerte).</summary>
+        public float FearSensitivity
+        {
+            get { return fearSensitivity; }
+        }
+
         public RageThreshold[] Thresholds
         {
             get { return thresholds ?? Array.Empty<RageThreshold>(); }
@@ -86,6 +117,26 @@ namespace RoadRage.Features.Rage
             if (!float.IsFinite(maxRageValue) || maxRageValue < 0f)
             {
                 error = "MaxRageValue invalide.";
+                return false;
+            }
+
+            // Une sensibilite de 0 reste valide : elle rend le canal inerte (matrice I/O, Story 5.1).
+            // Seules les valeurs negatives ou non finies sont refusees, comme pour les bornes.
+            if (!float.IsFinite(maxFearValue) || maxFearValue < 0f)
+            {
+                error = "MaxFearValue invalide : 'maxFearValue' doit etre fini et superieur ou egal a 0.";
+                return false;
+            }
+
+            if (!float.IsFinite(rageSensitivity) || rageSensitivity < 0f)
+            {
+                error = "RageSensitivity invalide : 'rageSensitivity' doit etre fini et superieur ou egal a 0.";
+                return false;
+            }
+
+            if (!float.IsFinite(fearSensitivity) || fearSensitivity < 0f)
+            {
+                error = "FearSensitivity invalide : 'fearSensitivity' doit etre fini et superieur ou egal a 0.";
                 return false;
             }
 
