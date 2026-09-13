@@ -576,15 +576,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Rage/NetworkedRageState.cs": {
-    "mtime": 1789071212.4078588,
-    "seen": 1789154390.867377,
-    "ast_hash": "c5f9552e5f0c65c3c5ace403429bab5b",
+    "mtime": 1789329971.1130288,
+    "seen": 1789330051.2303956,
+    "ast_hash": "251a95f537cf31ccbc1cf8bf9a14ae7b",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Rage/RageStateDebugView.cs": {
-    "mtime": 1789071230.4541526,
-    "seen": 1789154390.8673778,
-    "ast_hash": "d1aa32f2b3feca25639ea34a9df5fa98",
+    "mtime": 1789329978.7143974,
+    "seen": 1789330051.230398,
+    "ast_hash": "ea69a549fe732dc45d27062c18a5496f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Rage/RageTuningCatalog.cs": {
@@ -594,9 +594,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Rage/RageTuningDef.cs": {
-    "mtime": 1789314550.2709498,
-    "seen": 1789314749.9453392,
-    "ast_hash": "9361b9cfecaeb65f498cb9d32824f7c4",
+    "mtime": 1789329964.8378382,
+    "seen": 1789330051.2304876,
+    "ast_hash": "b3d3db83a0cfe26d6a2974fa7a720687",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Run/NetworkedRunState.cs": {
@@ -3852,9 +3852,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789327310.0180817,
-    "seen": 1789329167.3024037,
-    "ast_hash": "f78af948f0d67213d48caab4e69e94d0",
+    "mtime": 1789329830.2850907,
+    "seen": 1789330051.2941196,
+    "ast_hash": "f2512750a3d14122b4a3757b0e899574",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -4694,7 +4694,7 @@
   ".vscode/mcp.json": {
     "mtime": 1789293397.8698504,
     "seen": 1789329167.3018427,
-    "ast_hash": "45d5d1e5f72188de071136d8dade9a5e",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -5607,6 +5607,24 @@
     "mtime": 1789329100.9350326,
     "seen": 1789329167.302368,
     "ast_hash": "886b52d7d72c51a1f917844cb6fc5777",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Shared/Domain/NpcReactionEffect.cs": {
+    "mtime": 1789329958.8002217,
+    "seen": 1789330051.2319772,
+    "ast_hash": "e51f14ea10b96635f24a512759b6d845",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story51NpcRageFearFoundationTests.cs": {
+    "mtime": 1789329999.3016644,
+    "seen": 1789330051.235104,
+    "ast_hash": "af7cdf3beebc7e0491d1ad47e82cebdb",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-5-1-configurable-npc-rage-fear-foundation.md": {
+    "mtime": 1789330027.9082487,
+    "seen": 1789330051.2937536,
+    "ast_hash": "494eb4985ea73e25a9d2f703fb1a8ac2",
     "semantic_hash": ""
   }
 }

@@ -1,11 +1,12 @@
 ---
-title: 'Story 5.1 : fondation configurable Rage/Fear des PNJ'
-type: 'feature'
-created: '2026-09-13'
-status: 'done'
+title: "Story 5.1 : fondation configurable Rage/Fear des PNJ"
+type: "feature"
+created: "2026-09-13"
+status: "done"
 review_loop_iteration: 0
-baseline_commit: 'f9a39e6fe2105d9dbb5b1315be58b83204894635'
-context: ['{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md']
+baseline_commit: "f9a39e6fe2105d9dbb5b1315be58b83204894635"
+context:
+  ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md"]
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
@@ -19,15 +20,18 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 ## Boundaries & Constraints
 
 **Always:**
+
 - `NetworkedRageState` reste l'unique source de verite et gagne `FearValue` a cote de `RageValue`/`Disposition`; NetworkVariables serveur-ecriture, lecture `Everyone`.
 - Les tendances vivent dans `RageTuningDef`, jamais mutees a l'execution; les valeurs de session vivent dans les NetworkVariables.
 - `TryValidate` reste le contrat des donnees authored (messages sans accents nommant le champ fautif); `RageDisposition` (0-5) fige.
 - Testable seule: suite EditMode sans Netcode + controle visuel dans `Dev_RageSandbox`.
 
 **Ask First:**
+
 - Toute modification du comportement des appels existants (`ApplyRageDelta` du slot 0 via `RunFlowController` et son homologue `RageSandboxAutoStart`); cette story n'en prevoit aucune.
 
 **Never:**
+
 - Changer la signature de `ApplyRageDelta(float, RageTuningDef)` ou les noms des champs serialises `id`, `maxRageValue`, `thresholds`.
 - Ajouter trafic, boss, archetypes finaux, comportement lie a un niveau, catalogue de definitions partage ou composant reseau de peur separe.
 - Referencer une autre `RoadRage.Features.*` depuis `RoadRage.Features.Rage` (garde `RoadRageScaffoldTests`).
@@ -35,14 +39,14 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 
 ## I/O & Edge-Case Matrix
 
-| Scenario | Input / State | Expected Behavior | Error Handling |
-|----------|--------------|---------------------------|----------------|
-| Canal rage | `NpcReactionEffect(Rage, 25)`, sensibilite 1, `RageValue` 90 | `RageValue` 100, `Disposition` recalculee, `FearValue` inchangee | N/A |
-| Canal peur | `NpcReactionEffect(Fear, 25)`, `FearValue` 90, max 100 | `FearValue` 100, rage et `Disposition` inchangees | N/A |
-| Canaux les deux | `NpcReactionEffect(Both, 25)` | les deux bougent, `Disposition` recalculee une fois | N/A |
-| Independance | deux cibles, effet sur la premiere | seule la premiere change | N/A |
+| Scenario               | Input / State                                                       | Expected Behavior                                                              | Error Handling                               |
+| ---------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
+| Canal rage             | `NpcReactionEffect(Rage, 25)`, sensibilite 1, `RageValue` 90        | `RageValue` 100, `Disposition` recalculee, `FearValue` inchangee               | N/A                                          |
+| Canal peur             | `NpcReactionEffect(Fear, 25)`, `FearValue` 90, max 100              | `FearValue` 100, rage et `Disposition` inchangees                              | N/A                                          |
+| Canaux les deux        | `NpcReactionEffect(Both, 25)`                                       | les deux bougent, `Disposition` recalculee une fois                            | N/A                                          |
+| Independance           | deux cibles, effet sur la premiere                                  | seule la premiere change                                                       | N/A                                          |
 | Sensibilites invalides | `RageSensitivity` = 0 (canal vise) / -1 / NaN; `maxFearValue` = NaN | 0 = canal inerte; -1 et NaN refusent le tuning (`maxFearValue` 0 reste valide) | `TryValidate` faux, message nommant le champ |
-| Entree inerte | `ReactionChannel.None`, magnitude nulle, ou `tuning` absent | aucun changement | no-op silencieux |
+| Entree inerte          | `ReactionChannel.None`, magnitude nulle, ou `tuning` absent         | aucun changement                                                               | no-op silencieux                             |
 
 </frozen-after-approval>
 
@@ -59,6 +63,7 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 ## Tasks & Acceptance
 
 **Execution:**
+
 - [x] `Assets/RoadRage/Shared/Domain/NpcReactionEffect.cs` -- creer `ReactionChannel` + `NpcReactionEffect` + `TryValidate` -- contrat du canal d'effet, referencable hors de la feature Rage.
 - [x] `Assets/RoadRage/Features/Rage/RageTuningDef.cs` -- ajouter `maxFearValue` (100), `rageSensitivity`, `fearSensitivity` (1), accesseurs, regles de `TryValidate` -- tendances authored sans renommer l'existant.
 - [x] `Assets/RoadRage/Features/Rage/NetworkedRageState.cs` -- ajouter `FearValue`, `ApplyFearDelta`, `ApplyReactionEffect` -- etat et application host-authoritative.
@@ -66,6 +71,7 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 - [x] `Assets/RoadRage/Tests/EditMode/Story51NpcRageFearFoundationTests.cs` -- fixture couvrant la matrice I/O et le tuning livre -- preuve deterministe sans Netcode.
 
 **Acceptance Criteria:**
+
 - Given la fondation Story 4 close, when une cible recoit un effet, then elle porte rage et peur host-authoritative et chaque cible reste independante.
 - Given un effet configure, when il vise la rage, la peur ou les deux, then seuls les canaux vises changent, `Disposition` n'etant recalculee que si la rage change.
 - Given un tuning invalide, when `TryValidate` s'execute, then il est refuse avec un message nommant le champ et `RageTuningCatalog.TryValidate` refuse un catalogue qui le contient.
@@ -80,9 +86,11 @@ Tendances = **multiplicateurs de sensibilite** sur la magnitude de l'effet, pas 
 ## Verification
 
 **Commands:**
+
 - Aucune commande CLI: verification par le Test Runner Unity, a lancer par l'humain (checkpoint de verification du workflow).
 
 **Manual checks (if no CLI):**
+
 - `RoadRage.Tests.EditMode` filtre sur `Story51NpcRageFearFoundationTests`, puis suite complete: attendu vert, sans nouvelle fixture rouge.
 - Apres import Unity, verifier que les `.cs.meta` des 2 nouveaux fichiers existent (sans eux git ne suit pas l'asset).
 - `Dev_RageSandbox` en Play Mode hote: label avec rage et peur; un effet sur le canal peur seul bouge la peur, pas la rage.
