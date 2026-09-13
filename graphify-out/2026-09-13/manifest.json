@@ -3852,9 +3852,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789313578.7779374,
-    "seen": 1789314750.0628123,
-    "ast_hash": "0da235e56e9edc3f392881c40ccc1648",
+    "mtime": 1789327310.0180817,
+    "seen": 1789329167.3024037,
+    "ast_hash": "f78af948f0d67213d48caab4e69e94d0",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -4266,9 +4266,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-2-passenger-action-framework-and-host-validated-intent.md": {
-    "mtime": 1789314782.6512997,
-    "seen": 1789317362.809547,
-    "ast_hash": "a7d606b242cb9689cf5e11650cc5ee89",
+    "mtime": 1789327281.6364005,
+    "seen": 1789329167.302397,
+    "ast_hash": "b80ca94a051f97d64c5017013fb48fdb",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/handoff-story-4-2-codex-to-claude.md": {
@@ -4296,9 +4296,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-3-passenger-action-one-changes-rage.md": {
-    "mtime": 1789314782.6523046,
-    "seen": 1789317362.8095484,
-    "ast_hash": "ae2154e23a8848deb6bf76496c29b518",
+    "mtime": 1789327281.6379097,
+    "seen": 1789329167.3023977,
+    "ast_hash": "377a737357ab4d22f95442e53aae9628",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/DevVehicleSpawner.cs": {
@@ -4350,9 +4350,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-4-passenger-action-two-creates-an-incident-or-resource-opportu.md": {
-    "mtime": 1789314383.3054538,
-    "seen": 1789314750.0624385,
-    "ast_hash": "c0e04eb553963304e4730401893392f3",
+    "mtime": 1789327281.638421,
+    "seen": 1789329167.3023984,
+    "ast_hash": "6e695412555cc2d23bf023983f738731",
     "semantic_hash": ""
   },
   ".agents/skills/2d-pixel-perfect/references/camera-setup-builtin.cs": {
@@ -4693,8 +4693,8 @@
   },
   ".vscode/mcp.json": {
     "mtime": 1789293397.8698504,
-    "seen": 1789308446.2057545,
-    "ast_hash": "",
+    "seen": 1789329167.3018427,
+    "ast_hash": "45d5d1e5f72188de071136d8dade9a5e",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -5586,21 +5586,27 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-6-profile-freeze-session-payload-and-selected-character-spawn.md": {
-    "mtime": 1789314383.3054538,
-    "seen": 1789314750.0626068,
-    "ast_hash": "19a96fe3fcdb323f489744070adb5b9b",
+    "mtime": 1789327281.6399307,
+    "seen": 1789329167.3024,
+    "ast_hash": "be371197e6e63f837eb7aa968fa031f7",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-fix-ui-assembly-and-camera-input-tests.md": {
-    "mtime": 1789318127.3401854,
-    "seen": 1789318150.147855,
-    "ast_hash": "832d49ddd444e5cb39bb21c4ab26b599",
+    "mtime": 1789327281.6399307,
+    "seen": 1789329167.3024027,
+    "ast_hash": "9a7a99f594abb4d70fc2b4626737a39f",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-epic-4-review-closure.md": {
-    "mtime": 1789326668.4712331,
-    "seen": 1789327158.6073492,
-    "ast_hash": "28b80b1420160865bcaaec8e24843f8a",
+    "mtime": 1789327310.0165775,
+    "seen": 1789329167.3024013,
+    "ast_hash": "226e7a22ce56cec9cb945931ebeda8e9",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/epic-5-context.md": {
+    "mtime": 1789329100.9350326,
+    "seen": 1789329167.302368,
+    "ast_hash": "886b52d7d72c51a1f917844cb6fc5777",
     "semantic_hash": ""
   }
 }

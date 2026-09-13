@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d6f62f4b`
+- Built from commit: `5fbee154`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -862,16 +862,16 @@
 10. `LobbyFlowController` - 42 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `NetworkedPassengerActionIntent` --references--> `PassengerActionCatalog`  [EXTRACTED]
-  Assets/RoadRage/App/Run/NetworkedPassengerActionIntent.cs → Assets/RoadRage/Features/PassengerActions/PassengerActionCatalog.cs
-- `NetworkedPassengerActionIntent` --references--> `RunCheckpointHudScreen`  [EXTRACTED]
-  Assets/RoadRage/App/Run/NetworkedPassengerActionIntent.cs → Assets/RoadRage/Features/UI/RunCheckpointHudScreen.cs
-- `RunFlowController` --references--> `NetworkedPassengerActionIntent`  [EXTRACTED]
-  Assets/RoadRage/App/Run/RunFlowController.cs → Assets/RoadRage/App/Run/NetworkedPassengerActionIntent.cs
-- `Fixture` --references--> `NetworkedPassengerActionIntent`  [EXTRACTED]
-  Assets/RoadRage/Tests/EditMode/Story43PassengerActionOneChangesRageTests.cs → Assets/RoadRage/App/Run/NetworkedPassengerActionIntent.cs
-- `Fixture` --references--> `NetworkedPassengerActionIntent`  [EXTRACTED]
-  Assets/RoadRage/Tests/EditMode/Story44PassengerActionTwoCreatesIncidentTests.cs → Assets/RoadRage/App/Run/NetworkedPassengerActionIntent.cs
+- `RoadRageBootstrap` --references--> `PlayerProfileFileStore`  [EXTRACTED]
+  Assets/RoadRage/App/Bootstrap/RoadRageBootstrap.cs → Assets/RoadRage/Features/Players/PlayerProfileFileStore.cs
+- `PlayerProfileBootstrapService` --references--> `PlayerProfileFileStore`  [EXTRACTED]
+  Assets/RoadRage/Features/Players/PlayerProfileBootstrapService.cs → Assets/RoadRage/Features/Players/PlayerProfileFileStore.cs
+- `Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests` --references--> `CharacterCatalog`  [EXTRACTED]
+  Assets/RoadRage/Tests/EditMode/Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests.cs → Assets/RoadRage/Features/Players/CharacterCatalog.cs
+- `NetworkedBossState` --inherits--> `HostOwnedNetworkStateBehaviour`  [EXTRACTED]
+  Assets/RoadRage/Features/Boss/NetworkedBossState.cs → Assets/RoadRage/Shared/Networking/HostOwnedNetworkStateBehaviour.cs
+- `NetworkedCrewEconomyState` --inherits--> `HostOwnedNetworkStateBehaviour`  [EXTRACTED]
+  Assets/RoadRage/Features/Economy/NetworkedCrewEconomyState.cs → Assets/RoadRage/Shared/Networking/HostOwnedNetworkStateBehaviour.cs
 
 ## Import Cycles
 - None detected.
@@ -3635,20 +3635,20 @@ Cohesion: 0.67
 Nodes (3): Critical Default, Generic Migration Success Gate, Generic Upgrade Contract
 
 ## Knowledge Gaps
-- **5137 isolated node(s):** `ActiveLocalPlayer`, `Version`, `Count`, `Accepted`, `SenderDisconnected` (+5132 more)
+- **5137 isolated node(s):** `Etat`, `Ce qu'il faut aller chercher en premier`, `Hypotheses, par ordre de plausibilite`, `Pistes ecartees par lecture du code`, `Etat a etablir avant de considerer la Story 4.6 terminee` (+5132 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 6680 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **144 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
+- **Why does `NetworkedPlayerSpawnService` connect `NetworkedPlayerSpawnService` to `RunCheckpointHudScreen`, `RoadRage.Features.Players`, `MonoBehaviour`, `NetworkedVehicleState`, `NetworkedPlayerState`, `CharacterCatalog`?**
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Why does `RunCheckpointHudScreen` connect `RunCheckpointHudScreen` to `NetworkedPlayerPresentation`, `GreyboxAssetSeedMetadata`, `Story26InGameHudTests`, `RunFlowController`, `.BootstrapToWorldCompletesEpic1PlayableCheckpoint`, `MonoBehaviour`, `NetworkedVehicleState`, `NetworkedVehicleState`, `Story36Epic3DrivingPlayableCheckpointTests`, `Story27PlayerLifecycleTests`, `NetworkedPlayerSpawnService`, `NetworkedPassengerActionIntent`, `LocalVoidRespawnController`?**
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Why does `RunFlowController` connect `RunFlowController` to `PassengerActionCatalog`, `RageTuningCatalog`, `GreyboxAssetSeedMetadata`, `.BootstrapToWorldCompletesEpic1PlayableCheckpoint`, `RunCheckpointHudScreen`, `Story26InGameHudTests`, `Story43PassengerActionOneChangesRageTests`, `RageTuningDef`, `Story15EmptyMapEntryTests`, `.Update`, `NetworkedVehicleState`, `RoadRage.App.Run`, `.StartGameWithProfileLoadsMvpRunAndSpawnsLocalOnFootPlayer`, `MonoBehaviour`, `Story36Epic3DrivingPlayableCheckpointTests`, `NetworkedRageState`, `NetworkedPassengerActionIntent`, `.FrozenSelectionSpawnsTheSelectedCharacterInMvpRunAndStaysImmutable`, `.MvpRunProvidesOfflineAndNetworkPassengerActionWiring`?**
-  _High betweenness centrality (0.012) - this node is a cross-community bridge._
-- **Why does `LobbyFlowController` connect `LobbyFlowController` to `LobbyRoomService`, `LobbyRosterScreen`, `GreyboxAssetSeedMetadata`, `OnlineServicesBootstrapService`, `RoadRage.Features.UI`, `LobbyRosterService`, `MonoBehaviour`, `LobbyShellScreen`, `Difficulty`, `Story12LobbyShellPlayModeTests`, `Story12LobbyShellTests`, `LobbyJoinService`, `CharacterCatalog`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `RoadRageBootstrap` connect `RoadRageBootstrap` to `LobbyRoomService`, `Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests`, `NetworkedPlayerPresentation`, `OnlineServicesBootstrapService`, `RoadRage.Features.UI`, `Story11MainMenuLaunchTests`, `LobbyRosterService`, `UserNotice`, `MonoBehaviour`, `NetworkedPlayerSpawnService`, `LobbyJoinService`, `PlayerProfile`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **What connects `ActiveLocalPlayer`, `Version`, `Count` to the rest of the system?**
+- **What connects `Etat`, `Ce qu'il faut aller chercher en premier`, `Hypotheses, par ordre de plausibilite` to the rest of the system?**
   _5137 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests` be split into smaller, more focused modules?**
   _Cohesion score 0.11097560975609756 - nodes in this community are weakly interconnected._
