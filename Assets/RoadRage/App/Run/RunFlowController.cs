@@ -200,7 +200,9 @@ namespace RoadRage.App.Run
                 return false;
             }
 
-            if (characterCatalog == null || !characterCatalog.TryGetById(bootstrap.Profiles.Current.CharacterId, out var character) || character == null)
+            // Le spawn solo consomme la meme selection gelee que le payload reseau (Story 4.6) : plus
+            // aucune lecture live du profil courant en aval du menu.
+            if (characterCatalog == null || !characterCatalog.TryGetById(bootstrap.Profiles.SessionSelection.CharacterId, out var character) || character == null)
             {
                 error = MissingCharacterMessage;
                 return false;
@@ -245,13 +247,13 @@ namespace RoadRage.App.Run
 
             if (checkpointHud != null)
             {
-                checkpointHud.ShowRunState(ResolveLobbyState(), bootstrap.Profiles.Current.DisplayName, character.DisplayName);
+                checkpointHud.ShowRunState(ResolveLobbyState(), bootstrap.Profiles.SessionSelection.DisplayName, character.DisplayName);
             }
 
             BindHudRuntimeState();
             EnsurePassengerActionBinding();
 
-            Debug.Log("[Run] Joueur local spawn : " + bootstrap.Profiles.Current.DisplayName + " / " + character.Id);
+            Debug.Log("[Run] Joueur local spawn : " + bootstrap.Profiles.SessionSelection.DisplayName + " / " + character.Id);
             error = string.Empty;
             return true;
         }

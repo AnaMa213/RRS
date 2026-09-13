@@ -28,6 +28,8 @@ namespace RoadRage.App.MainMenu
 
         public const string MissingCharacterMessage = "Personnage indisponible : entree de catalogue manquante.";
 
+        public const string SelectionFrozenMessage = "Selection de personnage gelee : elle ne peut plus changer pendant la session.";
+
         [SerializeField]
         private MainMenuScreen screen;
 
@@ -118,6 +120,11 @@ namespace RoadRage.App.MainMenu
                 return;
             }
 
+            // Le bootstrap est DontDestroyOnLoad : une session precedente peut avoir laisse le depot
+            // gele. Le menu est la seule surface de selection, donc sa (re)ouverture leve le gel avant
+            // toute lecture et tout Set (Story 4.6), sinon le menu resterait en lecture seule.
+            bootstrap.Profiles.Unfreeze();
+
             if (profileBootstrap == null || catalog == null)
             {
                 PublishNotice(MissingCatalogMessage, UserNoticeSeverity.Warning);
@@ -148,7 +155,14 @@ namespace RoadRage.App.MainMenu
             }
 
             canPersistProfile = steamAvailable;
-            bootstrap.Profiles.Set(resolution.Profile);
+
+            // Un depot gele refuserait la mutation : ne rien ecrire et rendre le refus visible plutot
+            // que de laisser la session croire que la selection a change (Story 4.6).
+            if (!bootstrap.Profiles.Set(resolution.Profile))
+            {
+                RefuseFrozenSelectionChange();
+                return;
+            }
 
             if (canPersistProfile && resolution.ShouldPersist)
             {
@@ -190,7 +204,14 @@ namespace RoadRage.App.MainMenu
             var displayName = previous != null ? previous.DisplayName : character.DisplayName;
             var profile = new PlayerProfile(displayName, character.Id);
 
-            bootstrap.Profiles.Set(profile);
+            // Meme garde que la resolution initiale : sous gel, ni mutation, ni ProfileChanged, ni
+            // ecriture disque, et le refus reste visible dans le menu (Story 4.6).
+            if (!bootstrap.Profiles.Set(profile))
+            {
+                RefuseFrozenSelectionChange();
+                return;
+            }
+
             if (canPersistProfile && !profileBootstrap.TryPersist(profile, profileOwnerSteamId, true))
             {
                 PublishNotice(ProfilePersistenceFailedMessage, UserNoticeSeverity.Warning);
@@ -198,6 +219,17 @@ namespace RoadRage.App.MainMenu
             Debug.Log("[Players] Personnage selectionne : " + character.RawId);
 
             ShowProfile(profile);
+        }
+
+        /// <summary>
+        /// Refus visible d'un changement de personnage demande sous gel (Story 4.6) : l'ecran ne doit
+        /// jamais laisser croire qu'une selection gelee a ete remplacee, et le refus n'est jamais
+        /// seulement journalise.
+        /// </summary>
+        private void RefuseFrozenSelectionChange()
+        {
+            Debug.LogWarning("[Players] " + SelectionFrozenMessage);
+            PublishNotice(SelectionFrozenMessage, UserNoticeSeverity.Warning);
         }
 
         private void ShowProfile(PlayerProfile profile)

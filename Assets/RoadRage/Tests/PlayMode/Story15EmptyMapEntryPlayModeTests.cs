@@ -55,9 +55,7 @@ namespace RoadRage.Tests.PlayMode
         [UnityTest]
         public IEnumerator StartGameWithProfileLoadsMvpRunAndSpawnsLocalOnFootPlayer()
         {
-            yield return EnterLobbyShell();
-
-            RoadRageBootstrap.Instance.Profiles.Set(new PlayerProfile("Kenan", new DefinitionId("char_rookie")));
+            yield return EnterLobbyShell(new PlayerProfile("Kenan", new DefinitionId("char_rookie")));
 
             var screen = Object.FindAnyObjectByType<LobbyShellScreen>();
             Assert.That(screen, Is.Not.Null);
@@ -112,7 +110,11 @@ namespace RoadRage.Tests.PlayMode
             Assert.That(Mathf.Abs(afterIdle.z - beforeIdle.z), Is.LessThan(0.01f), "sans intention horizontale le joueur doit s'arreter");
         }
 
-        private static IEnumerator EnterLobbyShell()
+        /// <summary>
+        /// Depuis la Story 4.6, le clic Play gele la selection de personnage : un profil a imposer pour
+        /// le run doit donc etre publie avant ce clic, jamais apres (une mutation sous gel est refusee).
+        /// </summary>
+        private static IEnumerator EnterLobbyShell(PlayerProfile profileBeforePlay = null)
         {
             SceneManager.LoadScene(AppSceneRouter.MainMenuLobbySceneName);
             yield return null;
@@ -120,6 +122,12 @@ namespace RoadRage.Tests.PlayMode
 
             var menuScreen = Object.FindAnyObjectByType<MainMenuScreen>();
             Assert.That(menuScreen, Is.Not.Null, "MainMenuScreen introuvable dans MainMenuLobby");
+
+            if (profileBeforePlay != null)
+            {
+                Assert.That(RoadRageBootstrap.Instance.Profiles.Set(profileBeforePlay), Is.True,
+                    "le profil doit rester publiable tant que le lobby n'est pas entre");
+            }
 
             ClickSerializedButton(menuScreen, "playButton");
             yield return null;

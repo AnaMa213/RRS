@@ -409,7 +409,7 @@ namespace RoadRage.App.Lobby
                 return;
             }
 
-            var profile = bootstrap.Profiles.Current;
+            var profile = bootstrap.Profiles.SessionSelection;
             if (profile == null || profile.CharacterId.IsEmpty)
             {
                 Debug.LogWarning("[Lobby] Start Game refuse : profil joueur incomplet.");
@@ -614,6 +614,22 @@ namespace RoadRage.App.Lobby
             PublishLocalProfile();
         }
 
+        /// <summary>
+        /// Gele la selection de personnage a l'entree du lobby (Story 4.6) : des cet instant, plus aucune
+        /// mutation n'est acceptee, donc HandleProfileChanged ne peut plus republier au roster. Le gel est
+        /// un instantane, jamais un second conteneur : NetworkPlayerRegistry reste l'instantane par client.
+        /// </summary>
+        private void FreezeProfileSelection()
+        {
+            if (bootstrap == null || bootstrap.Profiles == null)
+            {
+                Debug.LogWarning("[Lobby] Gel de la selection impossible : depot de profil indisponible.");
+                return;
+            }
+
+            bootstrap.Profiles.Freeze();
+        }
+
         /// <summary>Sans effet hors lobby actif (voir LobbyRosterService.PublishLocalProfile) : ne fait rien en solo.</summary>
         private void PublishLocalProfile()
         {
@@ -622,7 +638,7 @@ namespace RoadRage.App.Lobby
                 return;
             }
 
-            var profile = bootstrap != null && bootstrap.Profiles != null ? bootstrap.Profiles.Current : null;
+            var profile = bootstrap != null && bootstrap.Profiles != null ? bootstrap.Profiles.SessionSelection : null;
             var displayName = profile != null ? profile.DisplayName : string.Empty;
             var characterId = profile != null ? profile.CharacterId.Value : string.Empty;
             lobbyRoster.PublishLocalProfile(displayName, characterId);
@@ -726,6 +742,10 @@ namespace RoadRage.App.Lobby
             switch (status)
             {
                 case LobbyRoomStatus.Open:
+                    // Entree du lobby hote : la selection de personnage est gelee avant toute
+                    // publication au roster (Story 4.6). Idempotent avec le gel de Play en solo.
+                    FreezeProfileSelection();
+
                     if (screen != null)
                     {
                         screen.ShowRoomCreated(lobbyRoom.JoinCode.ToString());
@@ -794,6 +814,10 @@ namespace RoadRage.App.Lobby
             switch (status)
             {
                 case LobbyJoinStatus.Joined:
+                    // Entree du lobby invite : gel de la selection avant la publication au roster,
+                    // comme cote hote (Story 4.6).
+                    FreezeProfileSelection();
+
                     if (screen != null)
                     {
                         screen.ShowJoinedRoom(lobbyJoin.JoinedLobbyId.ToString());

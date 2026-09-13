@@ -403,6 +403,9 @@ namespace RoadRage.Tests.EditMode
         /// <summary>
         /// Toute mutation publique du depot doit lever ProfileChanged : un chemin muet
         /// desynchroniserait silencieusement l'entree monde de la Story 1.5.
+        /// Depuis la Story 4.6, Freeze()/Unfreeze() completent la surface publique : ce sont des portes
+        /// de session, pas des mutations de profil (elles ne touchent jamais Current et ne levent rien,
+        /// ce que verifie Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnTests).
         /// </summary>
         [Test]
         public void PlayerProfileStoreExposesNoSilentMutator()
@@ -413,8 +416,8 @@ namespace RoadRage.Tests.EditMode
                 .Select(method => method.Name)
                 .ToArray();
 
-            Assert.That(mutators, Is.EquivalentTo(new[] { "Set" }),
-                "seul Set mute le depot ; tout autre mutateur doit lever ProfileChanged avant d'exister");
+            Assert.That(mutators, Is.EquivalentTo(new[] { "Set", "Freeze", "Unfreeze" }),
+                "Set reste la seule porte de mutation du profil ; tout autre mutateur doit lever ProfileChanged avant d'exister");
         }
 
         [Test]
