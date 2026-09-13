@@ -139,11 +139,6 @@ namespace RoadRage.App.Run
                 runState = FindAnyObjectByType<NetworkedRunState>();
             }
 
-            if (vehicleState == null)
-            {
-                vehicleState = FindAnyObjectByType<NetworkedVehicleState>();
-            }
-
             var action = catalog != null && catalog.TryGetById(new DefinitionId(intent.ActionId.ToString()), out var found)
                 ? found
                 : null;
@@ -155,7 +150,7 @@ namespace RoadRage.App.Run
             var actorId = state == null ? senderClientId : state.ClientId.Value;
             var seatMatches = !networked
                 ? localPassengerContext != null && localPassengerContext()
-                : vehicleState != null && vehicleState.TryGetSeatOccupant(seatIndex, out var occupant) && occupant == actorId;
+                : TryFindActorVehicle(seatIndex, actorId, out vehicleState);
             var catalogValid = catalog != null && catalog.TryValidate(out _);
             var targetValid = resolvedTarget != null && (!networked || (resolvedTarget.IsSpawned && resolvedTarget.NetworkObject != null));
             var context = new PassengerActionValidationContext(
@@ -239,6 +234,22 @@ namespace RoadRage.App.Run
             }
 
             return incidentState;
+        }
+
+        private static bool TryFindActorVehicle(int seatIndex, ulong actorId, out NetworkedVehicleState resolvedVehicle)
+        {
+            resolvedVehicle = null;
+            var vehicles = FindObjectsByType<NetworkedVehicleState>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var candidate in vehicles)
+            {
+                if (candidate != null && candidate.TryGetSeatOccupant(seatIndex, out var occupant) && occupant == actorId)
+                {
+                    resolvedVehicle = candidate;
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

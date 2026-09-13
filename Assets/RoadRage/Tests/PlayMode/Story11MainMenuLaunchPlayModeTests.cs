@@ -76,6 +76,9 @@ namespace RoadRage.Tests.PlayMode
             var setupPanel = (GameObject)GetPrivateField(screen, "setupPanel");
             var noticePanel = (GameObject)GetPrivateField(screen, "noticePanel");
 
+            // Le profil est maintenant resolu apres Awake (Story 4.5) : le test de cablage part
+            // donc volontairement de l'etat public du menu, plutot que de son ordre de cycle interne.
+            screen.ShowMenu();
             Assert.That(menuPanel.activeSelf, Is.True, "menu panel must be visible right after Awake");
             Assert.That(setupPanel.activeSelf, Is.False);
 

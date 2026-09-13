@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using RoadRage.Features.Online;
+using RoadRage.Features.Players;
+using RoadRage.Shared.Definitions;
 using RoadRage.Shared.Domain;
 
 namespace RoadRage.Tests.EditMode
@@ -185,6 +187,25 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void JoinedLobbyPublishesTheFrozenSessionSelection()
+        {
+            var roster = BuildService(out var lobbyPlatform, out _, out var lobbyJoin);
+            lobbyPlatform.NextJoinOutcome = new LobbyJoinOutcome(true, LobbyJoinFailureReason.None);
+            lobbyJoin.JoinByCodeAsync("123456").GetAwaiter().GetResult();
+
+            var profiles = new PlayerProfileStore();
+            profiles.Set(new PlayerProfile("Invite", new DefinitionId("char_veteran")));
+            profiles.Freeze();
+            var selection = profiles.SessionSelection;
+            roster.PublishLocalProfile(selection.DisplayName, selection.CharacterId.Value);
+
+            Assert.That(lobbyJoin.Status, Is.EqualTo(LobbyJoinStatus.Joined));
+            Assert.That(profiles.IsFrozen, Is.True);
+            Assert.That(lobbyPlatform.LastProfileDisplayName, Is.EqualTo("Invite"));
+            Assert.That(lobbyPlatform.LastProfileCharacterId, Is.EqualTo("char_veteran"));
+        }
+
+        [Test]
         public void ConstructorRejectsNullArguments()
         {
             var steamPlatform = new FakeSteamPlatform { IsValid = true, IsLoggedOn = true };
@@ -234,6 +255,8 @@ namespace RoadRage.Tests.EditMode
         {
             public LobbyCreateOutcome NextCreateOutcome { get; set; } = LobbyCreateOutcome.Failed;
 
+            public LobbyJoinOutcome NextJoinOutcome { get; set; } = LobbyJoinOutcome.Failed;
+
             public LobbyRosterSnapshot NextRoster { get; set; } = LobbyRosterSnapshot.Empty;
 
             public int GetRosterSnapshotCallCount { get; private set; }
@@ -257,7 +280,7 @@ namespace RoadRage.Tests.EditMode
 
             public Task<LobbyJoinOutcome> JoinLobbyAsync(ulong lobbyId)
             {
-                return Task.FromResult(LobbyJoinOutcome.Failed);
+                return Task.FromResult(NextJoinOutcome);
             }
 
             public void LeaveCurrentLobby()

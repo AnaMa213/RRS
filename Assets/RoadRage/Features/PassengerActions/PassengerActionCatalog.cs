@@ -103,7 +103,7 @@ namespace RoadRage.Features.PassengerActions
                     return false;
                 }
 
-                if (action.Version < 1 || action.CooldownSeconds < 0f || action.MaxRange <= 0f)
+                if (action.Version < 1 || !float.IsFinite(action.CooldownSeconds) || action.CooldownSeconds < 0f || !float.IsFinite(action.MaxRange) || action.MaxRange <= 0f)
                 {
                     error = "Version, cooldown ou portee invalide pour " + id + ".";
                     return false;

@@ -76,6 +76,21 @@ namespace RoadRage.Tests.EditMode
             AssertCode(catalog, action, intent, Context(cooldownEndsAt: 2d), PassengerActionVerdictCode.CooldownActive);
             AssertCode(catalog, action, intent, Context(targetValid: false), PassengerActionVerdictCode.InvalidTarget);
             AssertCode(catalog, action, intent, Context(distance: action.MaxRange + 0.01f), PassengerActionVerdictCode.TargetOutOfRange);
+            AssertCode(catalog, action, intent, Context(distance: float.NaN), PassengerActionVerdictCode.TargetOutOfRange);
+        }
+
+        [Test]
+        public void CatalogRejectsNonFiniteCooldownOrRange()
+        {
+            var action = NewAction();
+            var catalog = NewCatalog(action);
+
+            Set(action, "cooldownSeconds", float.NaN);
+            Assert.That(catalog.TryValidate(out _), Is.False);
+
+            Set(action, "cooldownSeconds", 1f);
+            Set(action, "maxRange", float.PositiveInfinity);
+            Assert.That(catalog.TryValidate(out _), Is.False);
         }
 
         [Test]

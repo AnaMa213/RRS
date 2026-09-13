@@ -75,6 +75,40 @@ namespace RoadRage.Features.Rage
             get { return thresholds ?? Array.Empty<RageThreshold>(); }
         }
 
+        public bool TryValidate(out string error)
+        {
+            if (string.IsNullOrWhiteSpace(RawId) || RawId != RawId.Trim() || RawId != RawId.ToLowerInvariant())
+            {
+                error = "Id de tuning de rage invalide.";
+                return false;
+            }
+
+            if (!float.IsFinite(maxRageValue) || maxRageValue < 0f)
+            {
+                error = "MaxRageValue invalide.";
+                return false;
+            }
+
+            var currentThresholds = Thresholds;
+            for (var i = 0; i < currentThresholds.Length; i++)
+            {
+                if (!float.IsFinite(currentThresholds[i].MinValue) || currentThresholds[i].MinValue > maxRageValue)
+                {
+                    error = "Palier de rage invalide a l'index " + i + ".";
+                    return false;
+                }
+            }
+
+            if (!HasAscendingThresholds())
+            {
+                error = "Paliers de rage non ascendants.";
+                return false;
+            }
+
+            error = string.Empty;
+            return true;
+        }
+
         /// <summary>
         /// Predicat pur (Design Notes) sur des paliers tries par seuil ascendant : dernier palier
         /// dont le seuil est franchi, Calm par defaut. Reste testable en EditMode sans Netcode.
@@ -130,6 +164,14 @@ namespace RoadRage.Features.Rage
             }
 
             return currentThresholds[currentThresholds.Length - 1].MinValue <= maxRageValue;
+        }
+
+        private void OnValidate()
+        {
+            if (!TryValidate(out var error))
+            {
+                Debug.LogWarning("[Rage] RageTuningDef invalide : " + error, this);
+            }
         }
     }
 }

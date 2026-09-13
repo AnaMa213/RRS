@@ -1,5 +1,4 @@
 using System.Text;
-using RoadRage.Features.PassengerActions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -60,8 +59,6 @@ namespace RoadRage.Features.UI
 
         private TMP_Text incidentLabel;
 
-        private NetworkedPassengerActionIncidentState incidentState;
-
         [SerializeField]
         private GameObject deathOverlayPanel;
 
@@ -77,18 +74,6 @@ namespace RoadRage.Features.UI
             EnsureRageLabel();
             EnsureIncidentLabel();
             ShowAwaitingProfile();
-        }
-
-        private void Update()
-        {
-            if (incidentState == null)
-            {
-                incidentState = FindAnyObjectByType<NetworkedPassengerActionIncidentState>();
-            }
-
-            SetText(incidentLabel, incidentState == null || !incidentState.IsActive
-                ? "Incident : aucun"
-                : "Incident : actif (" + incidentState.ActivationCount.Value + ")");
         }
 
         public void ShowAwaitingProfile()
@@ -144,6 +129,14 @@ namespace RoadRage.Features.UI
         public void ShowPassengerActionVerdict(string message)
         {
             SetText(futureHudLabel, "Action passager : " + SafeText(message));
+        }
+
+        public void ShowPassengerActionIncidentStatus(int activationCount)
+        {
+            EnsureIncidentLabel();
+            SetText(incidentLabel, activationCount <= 0
+                ? "Incident : aucun"
+                : "Incident : actif (" + activationCount + ")");
         }
 
         public void ShowVehicleCollisionMessage()

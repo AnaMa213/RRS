@@ -87,6 +87,8 @@ namespace RoadRage.App.Run
 
         private NetworkedPassengerActionIntent subscribedPassengerActionIntent;
 
+        private readonly HashSet<NetworkedPassengerActionIntent> authoritativePassengerActionIntents = new HashSet<NetworkedPassengerActionIntent>();
+
         private int focusedRageTargetIndex;
 
         private NetworkedVehicleDriverController subscribedVehicleDriverController;
@@ -134,6 +136,8 @@ namespace RoadRage.App.Run
             RefreshLocalSoloDeathRecovery();
             ResolveLocalNetworkedPlayerStateIfNeeded();
             EnsurePassengerActionBinding();
+            EnsureAuthoritativePassengerActionBindings();
+            RefreshPassengerActionIncidentHud();
             HandleRageTargetDevControls();
             RefreshFocusedRageHud();
             RefreshLocalReviveCountdown();
@@ -170,6 +174,17 @@ namespace RoadRage.App.Run
             RefreshLocalSeatMode(candidate.Mode.Value, candidate.Mode.Value);
         }
 
+        private void RefreshPassengerActionIncidentHud()
+        {
+            if (checkpointHud == null)
+            {
+                return;
+            }
+
+            var incidentState = FindAnyObjectByType<NetworkedPassengerActionIncidentState>();
+            checkpointHud.ShowPassengerActionIncidentStatus(incidentState == null ? 0 : incidentState.ActivationCount.Value);
+        }
+
         private void OnDestroy()
         {
             var manager = NetworkManager.Singleton;
@@ -183,6 +198,14 @@ namespace RoadRage.App.Run
             UnsubscribeFromLocalOnFootController();
             UnsubscribeFromVehicleEvents();
             UnsubscribeFromPassengerActionIntent();
+            foreach (var intent in authoritativePassengerActionIntents)
+            {
+                if (intent != null)
+                {
+                    intent.ActionValidated -= HandlePassengerActionValidated;
+                }
+            }
+            authoritativePassengerActionIntents.Clear();
         }
 
         public bool TrySpawnSelectedProfile(out string error)
@@ -350,6 +373,25 @@ namespace RoadRage.App.Run
             }
         }
 
+        private void EnsureAuthoritativePassengerActionBindings()
+        {
+            var manager = NetworkManager.Singleton;
+            if (manager == null || !manager.IsListening || !manager.IsServer)
+            {
+                return;
+            }
+
+            // ponytail: scans player intents while the host is active; subscribe from the spawn service if player counts grow.
+            var intents = FindObjectsByType<NetworkedPassengerActionIntent>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var intent in intents)
+            {
+                if (intent != null && intent != subscribedPassengerActionIntent && authoritativePassengerActionIntents.Add(intent))
+                {
+                    intent.ActionValidated += HandlePassengerActionValidated;
+                }
+            }
+        }
+
         private void HandlePassengerActionValidated(PassengerActionDef action, Transform actor, NetworkedRageState target)
         {
             if (action == null || action.Slot != 0 || target == null)
@@ -358,8 +400,10 @@ namespace RoadRage.App.Run
             }
 
             target.ApplyRageDelta(PassengerActionOneRageDelta, passengerActionRageTuning);
-            SetFocusedRageTarget(target, false);
-            RefreshFocusedRageHud();
+            if (target == passengerActionTarget)
+            {
+                RefreshFocusedRageHud();
+            }
         }
 
         public void CycleFocusedRageTarget()
@@ -1030,7 +1074,7 @@ namespace RoadRage.App.Run
                 if (localOnFootController != null)
                 {
                     localOnFootController.MovementEnabled = false;
-                localOnFootController.SetCameraActive(false);
+                    localOnFootController.SetCameraActive(false);
                 }
 
                 SetLocalPlayerBodyActive(false);

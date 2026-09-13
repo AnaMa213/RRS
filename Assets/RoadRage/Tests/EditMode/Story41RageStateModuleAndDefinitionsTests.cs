@@ -249,6 +249,15 @@ namespace RoadRage.Tests.EditMode
             Assert.That(error, Is.Empty);
         }
 
+        [Test]
+        public void RageTuningDefValidationRejectsNonFiniteMaxValue()
+        {
+            var tuning = NewTuning("rage_default", float.NaN);
+
+            Assert.That(tuning.TryValidate(out var error), Is.False);
+            Assert.That(error, Does.Contain("MaxRageValue"));
+        }
+
         // ---------------------------------------------------------------- Assets livres
 
         [Test]
@@ -269,6 +278,7 @@ namespace RoadRage.Tests.EditMode
 
             Assert.That(tuning.RawId, Is.EqualTo(tuning.RawId.ToLowerInvariant()));
             Assert.That(tuning.RawId, Is.Not.Empty);
+            Assert.That(tuning.TryValidate(out var error), Is.True, error);
             Assert.That(tuning.HasAscendingThresholds(), Is.True);
         }
 

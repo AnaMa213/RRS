@@ -90,7 +90,7 @@ namespace RoadRage.Features.PassengerActions
             if (intent.Sequence == 0UL || intent.Sequence <= context.LastSequence) return Reject(PassengerActionVerdictCode.ReplayedSequence, "sequence rejouee");
             if (context.Now < context.CooldownEndsAt) return Reject(PassengerActionVerdictCode.CooldownActive, "cooldown actif");
             if (!context.TargetValid) return Reject(PassengerActionVerdictCode.InvalidTarget, "cible invalide");
-            if (context.TargetDistance > action.MaxRange) return Reject(PassengerActionVerdictCode.TargetOutOfRange, "cible hors portee");
+            if (!float.IsFinite(context.TargetDistance) || context.TargetDistance > action.MaxRange) return Reject(PassengerActionVerdictCode.TargetOutOfRange, "cible hors portee");
             return new PassengerActionVerdict(PassengerActionVerdictCode.Accepted, "action acceptee");
         }
 

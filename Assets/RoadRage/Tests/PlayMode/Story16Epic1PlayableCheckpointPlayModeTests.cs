@@ -150,15 +150,16 @@ namespace RoadRage.Tests.PlayMode
 
                 var start = runFlow.ActiveLocalPlayer.transform.position;
                 controller.Step(new OnFootMovementIntent(Vector2.up, Vector2.zero, true), 0.25f);
-                Assert.That(runFlow.ActiveLocalPlayer.transform.position.z, Is.GreaterThan(start.z + 0.5f),
-                    "le joueur doit pouvoir sprinter dans la carte vide");
+                var displacement = runFlow.ActiveLocalPlayer.transform.position - start;
+                Assert.That(new Vector2(displacement.x, displacement.z).magnitude, Is.GreaterThan(0.5f),
+                    "le joueur doit pouvoir sprinter dans la carte vide, dans la direction de sa camera");
 
                 var hud = Object.FindAnyObjectByType<RunCheckpointHudScreen>();
                 Assert.That(hud, Is.Not.Null, "HUD placeholder attendu dans MVP_Run");
                 AssertSerializedTextContains(hud, "lobbyStateLabel", RunCheckpointHudScreen.LocalLobbyState);
                 AssertSerializedTextContains(hud, "playerStateLabel", displayName);
                 AssertSerializedTextContains(hud, "playerStateLabel", selectedCharacter.DisplayName);
-                AssertSerializedTextContains(hud, "futureHudLabel", RunCheckpointHudScreen.FutureHudState);
+                AssertSerializedTextContains(hud, "futureHudLabel", "Vehicule : HP");
 
                 Assert.That(blockingLogs, Is.Empty, string.Join("\n", blockingLogs));
             }

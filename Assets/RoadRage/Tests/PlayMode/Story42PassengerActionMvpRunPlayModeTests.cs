@@ -24,10 +24,9 @@ namespace RoadRage.Tests.PlayMode
                 new LoadSceneParameters(LoadSceneMode.Single));
             for (var frame = 0; frame < 8; frame++) yield return null;
 
-            var actor = GameObject.Find("PassengerActionActor");
-            Assert.That(actor, Is.Not.Null);
-            var state = actor.GetComponent<NetworkedPlayerState>();
-            var intent = actor.GetComponent<NetworkedPassengerActionIntent>();
+            var intent = Object.FindAnyObjectByType<NetworkedPassengerActionIntent>();
+            Assert.That(intent, Is.Not.Null, "le harness doit creer une intention passager, quel que soit son clientId.");
+            var state = intent.GetComponent<NetworkedPlayerState>();
             var target = Object.FindAnyObjectByType<NetworkedRageState>();
             Assert.That(state.Mode.Value, Is.EqualTo(RoadRage.Shared.Domain.PlayerMode.Passenger));
             Assert.That(intent, Is.Not.Null);

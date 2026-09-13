@@ -6,7 +6,6 @@ using Unity.Cinemachine;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.LowLevel;
 
 namespace RoadRage.Tests.EditMode
 {
@@ -17,19 +16,25 @@ namespace RoadRage.Tests.EditMode
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/RoadRage/Prefabs/Greybox_PlayerCar.prefab");
             var vehicle = Object.Instantiate(prefab);
-            var mouse = InputSystem.AddDevice<Mouse>();
-            UnityEngine.InputSystem.InputAction action = null;
-            var wasEnabled = false;
             try
             {
                 vehicle.GetComponent<LocalVehicleCameraRig>().SetLocalSoloCameraActive(true);
                 var orbit = vehicle.GetComponentInChildren<CinemachineOrbitalFollow>();
                 var input = orbit.GetComponent<CinemachineInputAxisController>();
-                action = input.Controllers[0].Input.InputAction.action;
-                wasEnabled = action.enabled;
-                action.Enable();
-                InputSystem.QueueStateEvent(mouse, new MouseState { delta = new Vector2(100f, 20f) });
-                InputSystem.Update();
+                var action = input.Controllers[0].Input.InputAction.action;
+                var hasPointerDeltaBinding = false;
+                foreach (var binding in action.bindings)
+                {
+                    if (binding.effectivePath == "<Pointer>/delta")
+                    {
+                        hasPointerDeltaBinding = true;
+                        break;
+                    }
+                }
+
+                Assert.That(hasPointerDeltaBinding, Is.True, "L'orbite doit rester liee au delta natif de la souris.");
+                input.ReadControlValueOverride = (_, hint, _, _) =>
+                    hint == IInputAxisOwner.AxisDescriptor.Hints.Y ? 20f : 100f;
                 var yaw = orbit.HorizontalAxis.Value;
                 var pitch = orbit.VerticalAxis.Value;
                 var deltaTime = Time.deltaTime > 0f ? Time.deltaTime : 1f;
@@ -44,8 +49,6 @@ namespace RoadRage.Tests.EditMode
             }
             finally
             {
-                if (action != null && !wasEnabled) action.Disable();
-                InputSystem.RemoveDevice(mouse);
                 Object.DestroyImmediate(vehicle);
             }
         }

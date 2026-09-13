@@ -141,6 +141,12 @@ namespace RoadRage.Features.Rage
                     error = "Palier au-dessus de MaxRageValue pour le tuning de rage " + rawId + ".";
                     return false;
                 }
+
+                if (!candidate.TryValidate(out error))
+                {
+                    error = "Tuning de rage invalide " + rawId + " : " + error;
+                    return false;
+                }
             }
 
             error = string.Empty;
