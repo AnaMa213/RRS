@@ -330,15 +330,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Lobby/LobbyFlowController.cs": {
-    "mtime": 1788959609.585979,
-    "seen": 1789154390.8673525,
-    "ast_hash": "6378e386d98d65cef7207407c7e24c32",
+    "mtime": 1789313578.591022,
+    "seen": 1789314749.940725,
+    "ast_hash": "f5dbc00cf463481d5f83314e041c6e7f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/MainMenu/MainMenuFlowController.cs": {
-    "mtime": 1788942008.8424368,
-    "seen": 1789154390.8673532,
-    "ast_hash": "a6d229c9d2576027a32ce50f4be98dea",
+    "mtime": 1789313578.581257,
+    "seen": 1789314749.940727,
+    "ast_hash": "e3b3c1b3ad36902ac6dffb73b4309153",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/LocalVoidRespawnController.cs": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/RunFlowController.cs": {
-    "mtime": 1789246473.0574324,
-    "seen": 1789246545.3223355,
-    "ast_hash": "18e766183baaf586df6b1293155c471b",
+    "mtime": 1789317810.110065,
+    "seen": 1789317841.0790632,
+    "ast_hash": "90ebec121c4ec9c1b0cb80fa33ca1490",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Services/AppSceneRouter.cs": {
@@ -414,9 +414,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/DevTools/RageSandboxAutoStart.cs": {
-    "mtime": 1789247905.340091,
-    "seen": 1789248041.670739,
-    "ast_hash": "f69023e014525aa896d46b705bcb5479",
+    "mtime": 1789326630.5956662,
+    "seen": 1789326657.1376004,
+    "ast_hash": "b17706f66fe5036b5fe0f0ed01df5288",
     "semantic_hash": ""
   },
   "Assets/RoadRage/DevTools/RoadRageNetcodeSmokeTestAutoStart.cs": {
@@ -570,9 +570,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Players/PlayerProfileStore.cs": {
-    "mtime": 1788855451.6769316,
-    "seen": 1789154390.8673766,
-    "ast_hash": "3f1fc242d364a24e4b9566c87e9f3e13",
+    "mtime": 1789313578.581257,
+    "seen": 1789314749.945149,
+    "ast_hash": "70d882bd065850b200fe1fe8ddd4eb3e",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Rage/NetworkedRageState.cs": {
@@ -588,15 +588,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Rage/RageTuningCatalog.cs": {
-    "mtime": 1789073054.9287727,
-    "seen": 1789154390.8673782,
-    "ast_hash": "cebaaac7b3f649e3ff3c1b45085c1a08",
+    "mtime": 1789317338.7557192,
+    "seen": 1789317362.748231,
+    "ast_hash": "f50e57bbc7d43fccaf5e7adba78bce92",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Rage/RageTuningDef.cs": {
-    "mtime": 1789073044.2895994,
-    "seen": 1789154390.8673787,
-    "ast_hash": "5abea6d7565396d6fe39f9ddc5b44067",
+    "mtime": 1789314550.2709498,
+    "seen": 1789314749.9453392,
+    "ast_hash": "9361b9cfecaeb65f498cb9d32824f7c4",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Run/NetworkedRunState.cs": {
@@ -636,9 +636,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/UI/RunCheckpointHudScreen.cs": {
-    "mtime": 1789246344.0886197,
-    "seen": 1789246545.3223705,
-    "ast_hash": "5578e28f8e5769dc81c74c95ce38e370",
+    "mtime": 1789317810.1080608,
+    "seen": 1789317841.0832946,
+    "ast_hash": "440fd6a752ea1c1c319d62d43b96cb5d",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/LocalVehicleCameraRig.cs": {
@@ -762,9 +762,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story13CharacterSetupTests.cs": {
-    "mtime": 1789306826.6800466,
-    "seen": 1789306830.5207982,
-    "ast_hash": "b29a88ae36423b48c90215b8737b248f",
+    "mtime": 1789313578.591022,
+    "seen": 1789314749.94971,
+    "ast_hash": "d4af4da628fe1199ca3bb2d6fd10fdeb",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story14GreyboxAssetSeedTests.cs": {
@@ -804,9 +804,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story24LobbyRosterTests.cs": {
-    "mtime": 1788960872.9614158,
-    "seen": 1789154390.8673985,
-    "ast_hash": "b49608f27c05c62b5f8b537587356b56",
+    "mtime": 1789326617.7130275,
+    "seen": 1789326657.1561155,
+    "ast_hash": "19e38ba9d61994654782be8ed93709a1",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story25NetworkedPlayerSpawnTests.cs": {
@@ -870,15 +870,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story41RageStateModuleAndDefinitionsTests.cs": {
-    "mtime": 1789073060.2014587,
-    "seen": 1789154390.8674045,
-    "ast_hash": "ca04c3b28da2248819a07c51d9fbc241",
+    "mtime": 1789314606.8677619,
+    "seen": 1789314749.9547122,
+    "ast_hash": "9353196c56eb8050509228ff1bab8bda",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story11MainMenuLaunchPlayModeTests.cs": {
-    "mtime": 1788811288.363,
-    "seen": 1789154390.867405,
-    "ast_hash": "f807a3c6b1c3b16c7825c2a0133f9fa2",
+    "mtime": 1789318121.5510328,
+    "seen": 1789318150.0896716,
+    "ast_hash": "4f41031a5138b8b8e0a3c444b886bb87",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story12LobbyShellPlayModeTests.cs": {
@@ -888,15 +888,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story15EmptyMapEntryPlayModeTests.cs": {
-    "mtime": 1789306826.6939366,
-    "seen": 1789306830.5208187,
-    "ast_hash": "0881d0f7860df608567926dc95dc543f",
+    "mtime": 1789313578.581257,
+    "seen": 1789314749.956525,
+    "ast_hash": "5edc2ec107828c838f70d08335504350",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story16Epic1PlayableCheckpointPlayModeTests.cs": {
-    "mtime": 1789306826.6851883,
-    "seen": 1789306830.5208192,
-    "ast_hash": "149de278f38dcda1d3e2ae59170026fe",
+    "mtime": 1789322321.083382,
+    "seen": 1789322344.184575,
+    "ast_hash": "37a9337e7483343aaffdbdcdd834fbe8",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story21OnlineServicesPlayModeTests.cs": {
@@ -3606,9 +3606,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/deferred-work.md": {
-    "mtime": 1789306826.8846402,
-    "seen": 1789306830.5213158,
-    "ast_hash": "d5c9ef1c02696db46c08de944732bbf3",
+    "mtime": 1789313578.7712278,
+    "seen": 1789314750.0581162,
+    "ast_hash": "cd7ae9e70f7ef458cc68c28ab6d995ed",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/epic-0-context.md": {
@@ -3636,8 +3636,8 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/epic-4-context.md": {
-    "mtime": 1789306826.9388158,
-    "seen": 1789306830.521321,
+    "mtime": 1789306867.851119,
+    "seen": 1789307784.0293696,
     "ast_hash": "83f32e940c0cdb507be9052374328665",
     "semantic_hash": ""
   },
@@ -3840,9 +3840,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-1-rage-state-module-and-definitions.md": {
-    "mtime": 1789073249.8495643,
-    "seen": 1789154390.8677363,
-    "ast_hash": "d6201406bd9006e2f98191bbfc4c7939",
+    "mtime": 1789314782.6507962,
+    "seen": 1789317362.8095458,
+    "ast_hash": "fcb9346d3d5e292201159b235599c0af",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-fix-mainmenulobby-label-constrast.md": {
@@ -3852,9 +3852,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789306826.8938162,
-    "seen": 1789306830.5213568,
-    "ast_hash": "21548e091bd15d3dedf9485a77af6630",
+    "mtime": 1789313578.7779374,
+    "seen": 1789314750.0628123,
+    "ast_hash": "0da235e56e9edc3f392881c40ccc1648",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -4218,15 +4218,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/NetworkedPassengerActionIntent.cs": {
-    "mtime": 1789247905.3385794,
-    "seen": 1789248041.670723,
-    "ast_hash": "257558e91e110841335f7daeaada1c1d",
+    "mtime": 1789314586.2359016,
+    "seen": 1789314749.9410136,
+    "ast_hash": "c95cb1ca4dbb01906fbdf7b065a60783",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/PassengerActions/PassengerActionCatalog.cs": {
-    "mtime": 1789156476.393478,
-    "seen": 1789157305.7554564,
-    "ast_hash": "244657b2847795fc7b540740b9ac0e72",
+    "mtime": 1789314550.2699432,
+    "seen": 1789314749.9437351,
+    "ast_hash": "34861942ca2edaa12fa0dfcd1f303b67",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/PassengerActions/PassengerActionDebugView.cs": {
@@ -4248,27 +4248,27 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/PassengerActions/PassengerActionValidation.cs": {
-    "mtime": 1789156864.88249,
-    "seen": 1789157305.7554595,
-    "ast_hash": "5e19a3f2d9494dc9af3ab29fc7f143d8",
+    "mtime": 1789314550.2699432,
+    "seen": 1789314749.9440265,
+    "ast_hash": "4caeef2193b3509b912bc7d9737223ce",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story42PassengerActionFrameworkTests.cs": {
-    "mtime": 1789156852.3238108,
-    "seen": 1789157305.7555034,
-    "ast_hash": "8ec453639475d37b7ee08f9daf5169fa",
+    "mtime": 1789314606.8687627,
+    "seen": 1789314749.9547145,
+    "ast_hash": "d62f46cd0a4a3064fc16ec29e5cb13a5",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story42PassengerActionMvpRunPlayModeTests.cs": {
-    "mtime": 1789210450.5741513,
-    "seen": 1789210924.9061644,
-    "ast_hash": "df6bcbc200c77aa6cbcba1f0cb312d7a",
+    "mtime": 1789327136.2805667,
+    "seen": 1789327158.5277574,
+    "ast_hash": "590b2c9e956930bbf34922459a65bfa3",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-2-passenger-action-framework-and-host-validated-intent.md": {
-    "mtime": 1789159629.2772188,
-    "seen": 1789159673.6002173,
-    "ast_hash": "0fe9c13264e83063509a888043b05212",
+    "mtime": 1789314782.6512997,
+    "seen": 1789317362.809547,
+    "ast_hash": "a7d606b242cb9689cf5e11650cc5ee89",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/handoff-story-4-2-codex-to-claude.md": {
@@ -4296,9 +4296,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-3-passenger-action-one-changes-rage.md": {
-    "mtime": 1789211274.848886,
-    "seen": 1789217381.642802,
-    "ast_hash": "3ca588131d3525213b895059fa925c32",
+    "mtime": 1789314782.6523046,
+    "seen": 1789317362.8095484,
+    "ast_hash": "ae2154e23a8848deb6bf76496c29b518",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/DevVehicleSpawner.cs": {
@@ -4314,9 +4314,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/ThirdPersonCameraTests.cs": {
-    "mtime": 1789225239.214738,
-    "seen": 1789243908.0575855,
-    "ast_hash": "827aef1fe09be37698cf611f1b20b273",
+    "mtime": 1789322400.2953975,
+    "seen": 1789322426.028708,
+    "ast_hash": "78a7d650fe4ee6ab183401e5d5782358",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/handoff-2026-09-12-vehicle-camera-seat-fixes.md": {
@@ -4350,9 +4350,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-4-passenger-action-two-creates-an-incident-or-resource-opportu.md": {
-    "mtime": 1789299031.1186504,
-    "seen": 1789299336.813692,
-    "ast_hash": "98ec7d8f09adafcf51c33651b00f5a16",
+    "mtime": 1789314383.3054538,
+    "seen": 1789314750.0624385,
+    "ast_hash": "c0e04eb553963304e4730401893392f3",
     "semantic_hash": ""
   },
   ".agents/skills/2d-pixel-perfect/references/camera-setup-builtin.cs": {
@@ -4693,8 +4693,8 @@
   },
   ".vscode/mcp.json": {
     "mtime": 1789293397.8698504,
-    "seen": 1789306733.9698796,
-    "ast_hash": "45d5d1e5f72188de071136d8dade9a5e",
+    "seen": 1789308446.2057545,
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -5514,9 +5514,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/MainMenu/MainMenuProfileFlowController.cs": {
-    "mtime": 1789306826.6650078,
-    "seen": 1789306830.5207312,
-    "ast_hash": "2cdd1adc86d0f8fedd341edfdf1f82b3",
+    "mtime": 1789313578.581257,
+    "seen": 1789314749.9407287,
+    "ast_hash": "c53680e95d1d53a0fa0616d061353036",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Online/ISteamIdentitySource.cs": {
@@ -5532,9 +5532,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Players/PlayerProfileBootstrapService.cs": {
-    "mtime": 1789306826.6650078,
-    "seen": 1789306830.5207715,
-    "ast_hash": "4500d9eb09c4a1356d931cf1f5cc782a",
+    "mtime": 1789307524.2730174,
+    "seen": 1789307783.969015,
+    "ast_hash": "c0b90c766bfe6efec12c6a47e3a86b8c",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Players/PlayerProfileFileStore.cs": {
@@ -5550,21 +5550,57 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests.cs": {
-    "mtime": 1789306826.6897182,
-    "seen": 1789306830.5208158,
-    "ast_hash": "f5f318abed038a753268297e8ee5bae1",
+    "mtime": 1789307561.4935968,
+    "seen": 1789307783.9741416,
+    "ast_hash": "0c0515da6c18f55e0462f9b172fe25e5",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story45PersistentSteamProfileAndMainMenuCharacterSelectionPlayModeTests.cs": {
-    "mtime": 1789306826.6902335,
-    "seen": 1789306830.5208244,
-    "ast_hash": "6ad7bdc07b5b9fd0facedef0931c1405",
+    "mtime": 1789307561.4950998,
+    "seen": 1789307783.9751337,
+    "ast_hash": "c9105f975ae843d7c46ac1658a27f10d",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-5-persistent-steam-profile-and-main-menu-character-selection.md": {
-    "mtime": 1789306826.9181933,
-    "seen": 1789306830.5213542,
-    "ast_hash": "2c46d9c24a771807bc2c25c1aea878df",
+    "mtime": 1789307814.2245698,
+    "seen": 1789308446.2063057,
+    "ast_hash": "4941165783d00b57e82789495fe9da46",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnTests.cs": {
+    "mtime": 1789313578.6200607,
+    "seen": 1789314749.9556606,
+    "ast_hash": "a32832238ad49c782431da7d5a5f1dce",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/PlayMode/Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnPlayModeTests.cs": {
+    "mtime": 1789313578.591022,
+    "seen": 1789314749.9585328,
+    "ast_hash": "2d43f1a84e72a6f5b9e1c05438cf2e24",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/handoff-2026-09-13-story-4-6-playmode-regressions.md": {
+    "mtime": 1789313578.836404,
+    "seen": 1789314750.0589585,
+    "ast_hash": "d389cecef958f31b89604c131b675ad5",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-4-6-profile-freeze-session-payload-and-selected-character-spawn.md": {
+    "mtime": 1789314383.3054538,
+    "seen": 1789314750.0626068,
+    "ast_hash": "19a96fe3fcdb323f489744070adb5b9b",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-fix-ui-assembly-and-camera-input-tests.md": {
+    "mtime": 1789318127.3401854,
+    "seen": 1789318150.147855,
+    "ast_hash": "832d49ddd444e5cb39bb21c4ab26b599",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-epic-4-review-closure.md": {
+    "mtime": 1789326668.4712331,
+    "seen": 1789327158.6073492,
+    "ast_hash": "28b80b1420160865bcaaec8e24843f8a",
     "semantic_hash": ""
   }
 }
