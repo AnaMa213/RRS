@@ -64291,7 +64291,7 @@
         "title": "Story 4.4 : La seconde action passager cree un incident",
         "type": "feature",
         "created": "2026-09-12",
-        "status": "in-review",
+        "status": "done",
         "review_loop_iteration": "0",
         "context": "[]",
         "baseline_commit": "c1ab683c7840d7a69c04b3dc1994865556ddd317",
@@ -122318,7 +122318,7 @@
       "frontmatter": {
         "title": "Cloture de revue Epic 4 \u2014 preuve multi-joueur et reconciliation",
         "date": "2026-09-13",
-        "status": "in-progress",
+        "status": "done",
         "author": "Codex"
       },
       "node_kind": "page",
@@ -122360,7 +122360,7 @@
       "node_kind": "heading",
       "norm_label": "hors perimetre",
       "source_file": "_bmad-output/implementation-artifacts/spec-epic-4-review-closure.md",
-      "source_location": "L52"
+      "source_location": "L53"
     },
     {
       "id": "bmad_output_implementation_artifacts_spec_epic_4_review_closure_intent",
@@ -122396,7 +122396,7 @@
       "node_kind": "heading",
       "norm_label": "risques et garde-fous",
       "source_file": "_bmad-output/implementation-artifacts/spec-epic-4-review-closure.md",
-      "source_location": "L57"
+      "source_location": "L58"
     },
     {
       "id": "bmad_output_implementation_artifacts_spec_epic_4_review_closure_travail_minimal",
@@ -140283,7 +140283,7 @@
         "title": "Story 4.6 : Gel du profil, payload de session et spawn du personnage selectionne",
         "type": "feature",
         "created": "2026-09-13",
-        "status": "in-review",
+        "status": "done",
         "review_loop_iteration": "0",
         "context": "[]",
         "baseline_commit": "03419f428e3ebdb378b412894ccb6539732131e4"
@@ -273852,7 +273852,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/implementation-artifacts/spec-epic-4-review-closure.md",
-      "source_location": "L52",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -273863,7 +273863,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/implementation-artifacts/spec-epic-4-review-closure.md",
-      "source_location": "L57",
+      "source_location": "L58",
       "weight": 1.0
     },
     {
@@ -330167,5 +330167,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "d6f62f4bb7d4653e372ec71eb705e44f373815bd"
+  "built_at_commit": "5fbee154a1b7a380c618670b1f08db55fbbdc095"
 }
