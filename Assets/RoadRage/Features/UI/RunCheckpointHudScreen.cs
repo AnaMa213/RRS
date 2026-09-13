@@ -209,6 +209,11 @@ namespace RoadRage.Features.UI
 
         public void ShowRageStatus(string targetName, float rageValue, string disposition)
         {
+            ShowRageStatus(targetName, rageValue, 0f, disposition);
+        }
+
+        public void ShowRageStatus(string targetName, float rageValue, float fearValue, string disposition)
+        {
             EnsureRageLabel();
             if (string.IsNullOrWhiteSpace(targetName))
             {
@@ -216,7 +221,8 @@ namespace RoadRage.Features.UI
                 return;
             }
 
-            SetText(rageLabel, SafeText(targetName) + " | Rage " + Mathf.RoundToInt(rageValue) + " | " + SafeText(disposition));
+            SetText(rageLabel, SafeText(targetName) + " | Rage " + Mathf.RoundToInt(rageValue)
+                + " | Peur " + Mathf.RoundToInt(fearValue) + " | " + SafeText(disposition));
         }
 
         public void ShowDeathOverlay()

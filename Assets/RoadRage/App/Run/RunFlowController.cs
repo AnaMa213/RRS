@@ -28,6 +28,8 @@ namespace RoadRage.App.Run
 
         private const float PassengerActionOneRageDelta = 25f;
 
+        private const float DevReactionEffectMagnitude = 25f;
+
         private const int MinimumMvpRageTargetCount = 3;
 
         [SerializeField]
@@ -467,6 +469,42 @@ namespace RoadRage.App.Run
             {
                 TrySpawnDevVehicle(keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
             }
+
+            if (keyboard.yKey.wasPressedThisFrame)
+            {
+                TryApplyFocusedRageReaction(
+                    keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed
+                        ? ReactionChannel.Both
+                        : ReactionChannel.Fear);
+            }
+        }
+
+        /// <summary>
+        /// Declencheur de verification Story 5.1 dans MVP_Run : Y applique la peur a la cible
+        /// focalisee, Shift+Y applique rage et peur. Reserve au solo et a l'hote.
+        /// </summary>
+        public bool TryApplyFocusedRageReaction(ReactionChannel channel)
+        {
+            if (!IsAuthoritativeForDamage()
+                || passengerActionTarget == null
+                || passengerActionRageTuning == null
+                || channel == ReactionChannel.None)
+            {
+                return false;
+            }
+
+            var effect = new NpcReactionEffect(channel, DevReactionEffectMagnitude);
+            if (!effect.TryValidate(out _))
+            {
+                return false;
+            }
+
+            passengerActionTarget.ApplyReactionEffect(effect, passengerActionRageTuning);
+            RefreshFocusedRageHud();
+            checkpointHud?.ShowPassengerActionVerdict(channel == ReactionChannel.Fear
+                ? "Test peur applique a la cible focalisee."
+                : "Test rage et peur applique a la cible focalisee.");
+            return true;
         }
 
         private void RefreshFocusedRageTarget()
@@ -517,6 +555,7 @@ namespace RoadRage.App.Run
             checkpointHud?.ShowRageStatus(
                 passengerActionTarget.gameObject.name,
                 passengerActionTarget.RageValue.Value,
+                passengerActionTarget.FearValue.Value,
                 passengerActionTarget.Disposition.Value.ToString());
         }
 

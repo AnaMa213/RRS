@@ -1,5 +1,5 @@
 <!-- bmad:context -->
-<!-- Verified 2026-09-11 against f1cd9edadf7f48fd584bda8676a90eb70439cd44. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+<!-- Verified 2026-09-13 against 8b1883905807e820d490f16fa575c3bf92bbf8eb. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
 ## RoadRage Simulator
 
@@ -23,4 +23,5 @@ Unity 6 cooperative driving prototype. BMAD remains the source of truth for Stor
 - Use Ponytail as an over-engineering guard, not as a reason to skip required robustness, networking rules, tests, or edge cases.
 - Use Blender MCP only for actual Blender or 3D asset work.
 - BMAD review checks acceptance criteria and change impact; do not turn review into automatic whole-repo cleanup.
+- Toute fonctionnalite MVP jouable doit etre integree et verifiee dans `Assets/RoadRage/App/Scenes/MVP_Run.unity`; les scenes `Dev_*` restent reservees aux essais de modules isoles et ne remplacent pas un test d'integration.
 <!-- /bmad:context -->

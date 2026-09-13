@@ -4,6 +4,7 @@ using NUnit.Framework;
 using RoadRage.App.Run;
 using RoadRage.Features.Rage;
 using RoadRage.Features.Vehicles;
+using RoadRage.Shared.Domain;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -26,6 +27,7 @@ namespace RoadRage.Tests.PlayMode
             Assert.That(rageLabel, Is.Not.Null);
             Assert.That(rageLabel.rectTransform.anchorMin, Is.EqualTo(new Vector2(1f, 1f)));
             Assert.That(rageLabel.text, Does.Contain("Rage"));
+            Assert.That(rageLabel.text, Does.Contain("Peur"));
 
             var targets = Object.FindObjectsByType<NetworkedRageState>(FindObjectsInactive.Exclude);
             Assert.That(targets.Length, Is.GreaterThanOrEqualTo(3));
@@ -67,6 +69,23 @@ namespace RoadRage.Tests.PlayMode
             var focusedBefore = Read<NetworkedRageState>(flow, "passengerActionTarget");
             flow.CycleFocusedRageTarget();
             Assert.That(Read<NetworkedRageState>(flow, "passengerActionTarget"), Is.Not.EqualTo(focusedBefore));
+        }
+
+        [UnityTest]
+        public IEnumerator MvpRunAppliesFearReactionToTheFocusedRageTarget()
+        {
+            yield return SceneManager.LoadSceneAsync("MVP_Run", LoadSceneMode.Single);
+            yield return null;
+
+            var flow = Object.FindAnyObjectByType<RunFlowController>();
+            var target = Read<NetworkedRageState>(flow, "passengerActionTarget");
+            var rageBefore = target.RageValue.Value;
+            var fearBefore = target.FearValue.Value;
+
+            Assert.That(flow.TryApplyFocusedRageReaction(ReactionChannel.Fear), Is.True);
+            Assert.That(target.RageValue.Value, Is.EqualTo(rageBefore));
+            Assert.That(target.FearValue.Value, Is.EqualTo(fearBefore + 25f));
+            Assert.That(GameObject.Find("RageStatusLabel").GetComponent<TextMeshProUGUI>().text, Does.Contain("Peur 25"));
         }
 
         private static T Read<T>(object target, string field) where T : class
