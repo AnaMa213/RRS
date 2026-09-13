@@ -2,7 +2,7 @@
 title: "Story 4.6 : Gel du profil, payload de session et spawn du personnage selectionne"
 type: "feature"
 created: "2026-09-13"
-status: "in-progress"
+status: "in-review"
 review_loop_iteration: 0
 context: []
 baseline_commit: "03419f428e3ebdb378b412894ccb6539732131e4"
@@ -97,3 +97,84 @@ Le gel vit dans `PlayerProfileStore` : c'est deja le seul depot, `Set` y est dej
 **Etat de verification : INCOMPLET.** Les criteres d'acceptation metier sont implantes et couverts par les fixtures, mais leur satisfaction n'est pas prouvee de bout en bout : on ne sait pas non plus si `Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnPlayModeTests` a effectivement tourne, la remontee ne listant que trois fixtures rouges. L'audit de matrice du workflow traite un test qui n'a pas tourne comme manquant, et deux lignes de la matrice (ecriture disque refusee sous gel, notice de refus visible) ne sont couvertes que par ce fichier. Trace complete et plan de triage : `handoff-2026-09-13-story-4-6-playmode-regressions.md` ; dette consignee dans `deferred-work.md`.
 
 **Manual checks (non couverts par les tests) :** Play Mode sur `MainMenuLobby` : Veteran, Play, Back -- la selection redevient modifiable et le profil affiche est le bon. Puis solo avec Veteran : verifier visuellement le modele spawne dans `MVP_Run`.
+
+## Suggested Review Order
+
+**Le gel, point unique**
+
+- Le coeur de la story : capturer l'instantane a l'entree du lobby, en un seul endroit.
+  [`PlayerProfileStore.cs:48`](../../Assets/RoadRage/Features/Players/PlayerProfileStore.cs#L48)
+
+- La seule porte de mutation, qui refuse desormais sous gel sans lever `ProfileChanged`.
+  [`PlayerProfileStore.cs:75`](../../Assets/RoadRage/Features/Players/PlayerProfileStore.cs#L75)
+
+- Lecture unique de la selection : instantane sous gel, profil courant sinon.
+  [`PlayerProfileStore.cs:35`](../../Assets/RoadRage/Features/Players/PlayerProfileStore.cs#L35)
+
+- Le degel libère l'instantane ; sans lui le menu resterait en lecture seule.
+  [`PlayerProfileStore.cs:63`](../../Assets/RoadRage/Features/Players/PlayerProfileStore.cs#L63)
+
+**Entree du lobby**
+
+- Entree de la coquille lobby cote solo : le clic Play devient le point d'ancrage du gel.
+  [`MainMenuFlowController.cs:85`](../../Assets/RoadRage/App/MainMenu/MainMenuFlowController.cs#L85)
+
+- Entree hote : gel avant toute publication au roster, donc plus de re-publication possible.
+  [`LobbyFlowController.cs:747`](../../Assets/RoadRage/App/Lobby/LobbyFlowController.cs#L747)
+
+- Entree invite : meme gel sur join reussi, idempotent avec le gel de Play.
+  [`LobbyFlowController.cs:819`](../../Assets/RoadRage/App/Lobby/LobbyFlowController.cs#L819)
+
+**Degel et garde de persistance**
+
+- Le degel appartient au menu, seule surface de selection et seul point de retour.
+  [`MainMenuProfileFlowController.cs:126`](../../Assets/RoadRage/App/MainMenu/MainMenuProfileFlowController.cs#L126)
+
+- Ecriture initiale gardee : un `Set` refuse ne doit pas laisser passer le `TryPersist` qui suit.
+  [`MainMenuProfileFlowController.cs:161`](../../Assets/RoadRage/App/MainMenu/MainMenuProfileFlowController.cs#L161)
+
+- Meme garde au clic d'emplacement : c'est le trou que la story existe pour fermer.
+  [`MainMenuProfileFlowController.cs:209`](../../Assets/RoadRage/App/MainMenu/MainMenuProfileFlowController.cs#L209)
+
+- Le refus est visible au joueur, jamais seulement journalise.
+  [`MainMenuProfileFlowController.cs:229`](../../Assets/RoadRage/App/MainMenu/MainMenuProfileFlowController.cs#L229)
+
+- Retour au menu : degel puis rejeu de la derniere notice.
+  [`MainMenuFlowController.cs:96`](../../Assets/RoadRage/App/MainMenu/MainMenuFlowController.cs#L96)
+
+**Lecture unique de la selection en aval du menu**
+
+- Le payload de session transporte la selection gelee, plus une lecture live.
+  [`LobbyFlowController.cs:412`](../../Assets/RoadRage/App/Lobby/LobbyFlowController.cs#L412)
+
+- La publication au roster lit la meme source, sans conteneur parallele.
+  [`LobbyFlowController.cs:641`](../../Assets/RoadRage/App/Lobby/LobbyFlowController.cs#L641)
+
+- Le spawn solo consomme exactement la meme selection que le multi.
+  [`RunFlowController.cs:205`](../../Assets/RoadRage/App/Run/RunFlowController.cs#L205)
+
+**Tests**
+
+- Contrat du gel : refus sans mutation ni evenement.
+  [`Story46…Tests.cs:48`](../../Assets/RoadRage/Tests/EditMode/Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnTests.cs#L48)
+
+- Depot herite gele : le cas qui rendrait le menu definitivement en lecture seule.
+  [`Story46…Tests.cs:137`](../../Assets/RoadRage/Tests/EditMode/Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnTests.cs#L137)
+
+- Les deux ecritures gardees et ordonnees : `Set` refuse avant tout `TryPersist`.
+  [`Story46…Tests.cs:178`](../../Assets/RoadRage/Tests/EditMode/Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnTests.cs#L178)
+
+- Garde anti-fuite : aucun chemin de session n'ecrit le profil ni ne contourne le depot.
+  [`Story46…Tests.cs:267`](../../Assets/RoadRage/Tests/EditMode/Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnTests.cs#L267)
+
+- Seule preuve bout en bout : menu reel, choix non defaut, spawn, refus, retour menu.
+  [`Story46…PlayModeTests.cs:65`](../../Assets/RoadRage/Tests/PlayMode/Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnPlayModeTests.cs#L65)
+
+- Gel par room ouverte isole du gel de Play ; `Assert.Inconclusive` sans Steam, comme Story22.
+  [`Story46…PlayModeTests.cs:174`](../../Assets/RoadRage/Tests/PlayMode/Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnPlayModeTests.cs#L174)
+
+- Garde Story 1.3 elargie : `Freeze`/`Unfreeze` sont des portes de session, pas des mutations.
+  [`Story13CharacterSetupTests.cs:411`](../../Assets/RoadRage/Tests/EditMode/Story13CharacterSetupTests.cs#L411)
+
+- Story 1.5 adaptee : le profil est desormais pose avant le clic Play, jamais apres le gel.
+  [`Story15…PlayModeTests.cs:117`](../../Assets/RoadRage/Tests/PlayMode/Story15EmptyMapEntryPlayModeTests.cs#L117)
