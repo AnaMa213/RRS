@@ -84,6 +84,12 @@ Un validateur pur retourne un verdict. `NetworkedPassengerActionIntent` adapte s
 **Manual checks (if no CLI):**
 - Depuis `MainMenuLobby`, entrer dans `MVP_Run` hors ligne puis en hote/client : prendre un siege passager, utiliser les trois slots et verifier les verdicts, sans changement de rage. Garder `Dev_RageSandbox` comme diagnostic isole.
 
+### Review Findings
+
+- [x] [Review][Patch] Resoudre le vehicule reellement occupe par l'acteur [Assets/RoadRage/App/Run/NetworkedPassengerActionIntent.cs:142] — la validation cherche maintenant le vehicule contenant le client au siege indique.
+- [x] [Review][Patch] Refuser les donnees numeriques non finies [Assets/RoadRage/Features/PassengerActions/PassengerActionValidation.cs:75] — distance, portee et cooldown non finis sont rejetes.
+- [x] [Review][Patch] Prouver le flux client distant vers l'hote [Assets/RoadRage/DevTools/RageSandboxAutoStart.cs] — le sandbox MPPM cree un passager par client et la validation manuelle verte couvre slots, verdict cible et etats host-owned repliquees.
+
 ## Suggested Review Order
 
 **Validation pure et modele de donnees**

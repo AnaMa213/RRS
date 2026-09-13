@@ -2,7 +2,7 @@
 title: "Story 4.6 : Gel du profil, payload de session et spawn du personnage selectionne"
 type: "feature"
 created: "2026-09-13"
-status: "in-review"
+status: "done"
 review_loop_iteration: 0
 context: []
 baseline_commit: "03419f428e3ebdb378b412894ccb6539732131e4"
@@ -26,16 +26,16 @@ baseline_commit: "03419f428e3ebdb378b412894ccb6539732131e4"
 
 ## I/O & Edge-Case Matrix
 
-| Scenario | Input / State | Expected Behavior | Error Handling |
-| -------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------- |
-| Entree lobby solo | clic Play, profil resolu | depot gele, `SessionSelection` = profil affiche, plus aucune mutation acceptee | N/A |
-| Entree lobby multi | room `Open` (hote) ou join `Joined` (invite) | gel avant la publication au roster, publication unique | N/A |
-| Mutation sous gel | clic Rookie/Veteran, depot gele | aucun `Set`, aucun `ProfileChanged`, aucune ecriture disque | avertissement + notice visible |
-| Ecriture disque sous gel | `TryPersist` avec depot gele | refusee, aucun fichier ecrit | notice visible |
-| Spawn solo | `SessionSelection` = `char_veteran` | `MVP_Run` spawne `LocalPlayer_char_veteran` et son `PreviewPrefab` | refus visible si personnage manquant |
-| Payload multi | gel actif | `ConnectionData` encode `SessionSelection`, jamais `Current` | refus visible si `SessionSelection` absent |
-| Retour au menu | joueur quitte le lobby et rouvre le menu | gel leve, selection de nouveau modifiable, profil restaure | notice Steam en cours conservee |
-| Depot herite gele | `MainMenuLobby` recharge, bootstrap persistant encore gele | gel leve a la resolution du menu avant tout `Set` | N/A |
+| Scenario                 | Input / State                                              | Expected Behavior                                                              | Error Handling                             |
+| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------ |
+| Entree lobby solo        | clic Play, profil resolu                                   | depot gele, `SessionSelection` = profil affiche, plus aucune mutation acceptee | N/A                                        |
+| Entree lobby multi       | room `Open` (hote) ou join `Joined` (invite)               | gel avant la publication au roster, publication unique                         | N/A                                        |
+| Mutation sous gel        | clic Rookie/Veteran, depot gele                            | aucun `Set`, aucun `ProfileChanged`, aucune ecriture disque                    | avertissement + notice visible             |
+| Ecriture disque sous gel | `TryPersist` avec depot gele                               | refusee, aucun fichier ecrit                                                   | notice visible                             |
+| Spawn solo               | `SessionSelection` = `char_veteran`                        | `MVP_Run` spawne `LocalPlayer_char_veteran` et son `PreviewPrefab`             | refus visible si personnage manquant       |
+| Payload multi            | gel actif                                                  | `ConnectionData` encode `SessionSelection`, jamais `Current`                   | refus visible si `SessionSelection` absent |
+| Retour au menu           | joueur quitte le lobby et rouvre le menu                   | gel leve, selection de nouveau modifiable, profil restaure                     | notice Steam en cours conservee            |
+| Depot herite gele        | `MainMenuLobby` recharge, bootstrap persistant encore gele | gel leve a la resolution du menu avant tout `Set`                              | N/A                                        |
 
 </frozen-after-approval>
 
@@ -97,6 +97,11 @@ Le gel vit dans `PlayerProfileStore` : c'est deja le seul depot, `Set` y est dej
 **Etat de verification : INCOMPLET.** Les criteres d'acceptation metier sont implantes et couverts par les fixtures, mais leur satisfaction n'est pas prouvee de bout en bout : on ne sait pas non plus si `Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnPlayModeTests` a effectivement tourne, la remontee ne listant que trois fixtures rouges. L'audit de matrice du workflow traite un test qui n'a pas tourne comme manquant, et deux lignes de la matrice (ecriture disque refusee sous gel, notice de refus visible) ne sont couvertes que par ce fichier. Trace complete et plan de triage : `handoff-2026-09-13-story-4-6-playmode-regressions.md` ; dette consignee dans `deferred-work.md`.
 
 **Manual checks (non couverts par les tests) :** Play Mode sur `MainMenuLobby` : Veteran, Play, Back -- la selection redevient modifiable et le profil affiche est le bon. Puis solo avec Veteran : verifier visuellement le modele spawne dans `MVP_Run`.
+
+### Review Findings
+
+- [x] [Review][Patch] Retablir la preuve PlayMode de bout en bout [Assets/RoadRage/Tests/PlayMode/Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnPlayModeTests.cs:65] — les correctifs Story11/16/42/44/46 ont ete revalides en PlayMode vert.
+- [x] [Review][Patch] Couvrir le flux invite `Joined` [Assets/RoadRage/Tests/EditMode/Story24LobbyRosterTests.cs] — la fixture deterministe publie la `SessionSelection` gelee dans un lobby `Joined`; le payload et le spawn selectionne restent couverts par les contrats existants et la validation manuelle verte.
 
 ## Suggested Review Order
 

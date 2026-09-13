@@ -2,7 +2,7 @@
 title: "Story 4.4 : La seconde action passager cree un incident"
 type: 'feature'
 created: '2026-09-12'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 context: []
 baseline_commit: 'c1ab683c7840d7a69c04b3dc1994865556ddd317'
@@ -77,6 +77,10 @@ Un marqueur d'incident unique est le plus petit resultat persistant qui respecte
 
 **Manual checks (if no CLI):**
 - Dans `MVP_Run`, entrer comme passager, utiliser le slot 2 sur une rage target valide, verifier le marqueur d'incident; attendre ou reutiliser immediatement l'action et verifier que le cooldown ne le rafraichit pas.
+
+### Review Findings
+
+- [x] [Review][Patch] Couvrir l'incident depuis un passager client [Assets/RoadRage/DevTools/RageSandboxAutoStart.cs] — la validation MPPM verte confirme que le slot 1 du client cree une unique activation server-owned, observee par les deux roles.
 
 ## Suggested Review Order
 

@@ -2,7 +2,7 @@
 title: "Story 4.3 : L'action passager un change la rage"
 type: 'feature'
 created: '2026-09-12'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 context: []
 baseline_commit: '6c529fccebe6160bf54097fdb326c502b1395c48'
@@ -81,6 +81,10 @@ Delta constant dans `RunFlowController` pour cette story: c'est moins joli qu'un
 
 **Manual checks (if no CLI):**
 - Depuis `MVP_Run`, entrer comme passager, cycler les rage targets, declencher le slot 1, verifier la hausse de rage dans le HUD top-right, puis spawner un vehicule normal et un rage-target sans encastrement.
+
+### Review Findings
+
+- [x] [Review][Patch] Appliquer la rage des clients distants sur le chemin hote [Assets/RoadRage/App/Run/NetworkedPassengerActionIntent.cs:182] — l'hote s'abonne egalement aux intents des joueurs distants et applique la mutation host-owned une seule fois.
 
 ## Suggested Review Order
 

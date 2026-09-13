@@ -6,11 +6,11 @@ Baseline : `03419f428e3ebdb378b412894ccb6539732131e4`
 
 ## Etat
 
-| Suite | Resultat |
-| --- | --- |
-| Recompilation Editor | Non rapportee |
+| Suite                              | Resultat                                                                                                          |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Recompilation Editor               | Non rapportee                                                                                                     |
 | EditMode `RoadRage.Tests.EditMode` | Vert, hors les 2 echecs preexistants deja differes (violation d'asmdef Story 4.4, flake `ThirdPersonCameraTests`) |
-| PlayMode `RoadRage.Tests.PlayMode` | **3 fixtures rouges**, cause racine inconnue |
+| PlayMode `RoadRage.Tests.PlayMode` | **3 fixtures rouges**, cause racine inconnue                                                                      |
 
 Fixtures rouges, telles que remontees par l'humain :
 

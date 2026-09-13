@@ -104,6 +104,10 @@ L'ordre ascendant des paliers est une invariante d'authoring validee par `RageTu
 **Manual checks (if no CLI):**
 - Lancer `Dev_RageSandbox` en Play Mode (hote) : verifier l'affichage initial "Rage : 0 (Calm)", declencher le `[ContextMenu]` de test pour verifier que le libelle change de palier visiblement.
 
+### Review Findings
+
+- [x] [Review][Patch] Valider chaque `RageTuningDef` a l'authoring [Assets/RoadRage/Features/Rage/RageTuningDef.cs:15] — `TryValidate` + `OnValidate` couvrent l'asset isole, les bornes et les valeurs finies.
+
 ## Suggested Review Order
 
 **Etat de rage host-owned**
