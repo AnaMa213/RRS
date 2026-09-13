@@ -1,12 +1,22 @@
 # MVP Scope
 
+> **Superseded scope notice — 2026-09-13:** This legacy slice table is retained for traceability. The current authoritative scope is `course-correction-2026-09-13.md`.
+
+## MVP 1 — Foundation Sandbox
+
+Build and validate isolated reusable systems: Steam-backed persistent cosmetic profile, pre-lobby Rookie/Veteran selection, selected-character spawn, multiplayer boundaries, individual wallet, configurable Rage/Fear, vehicle identity/damage hooks, interactions, items, and NPC foundations as dedicated stories require. Do not assemble complete levels, bosses, checkpoints, or a full economy loop.
+
+## MVP 2 — Advanced Gameplay Assembly
+
+Compose validated foundations into city/highway levels, normal level-to-level carryover, inter-level checkpoint restart, encounters, bosses, progression, balancing, and presentation. Exact boss and reward details remain provisional.
+
 This companion holds MVP limits and deferred scope so downstream planning does not inflate the first build.
 
 ## MVP Question
 
 Can cooperative driving, passenger provocation, per-vehicle rage, crisis, and money feel fun with multiple players when built as a small loop?
 
-## Included Slice
+## Legacy Included Slice (superseded)
 
 | Area | MVP scope |
 | --- | --- |
@@ -24,11 +34,11 @@ Can cooperative driving, passenger provocation, per-vehicle rage, crisis, and mo
 | Run outcome | Team wipe restarts the run; boss death declares victory |
 | Composition | Independently testable modules that compose into one integrated run |
 
-## Deferred From MVP
+## Deferred From MVP 1
 
 - Rich city content.
 - Complex final boss.
-- Roguelite progression.
+- Roguelite progression and full run assembly.
 - Many driver archetypes.
 - Deep economy.
 - Varied weapons.

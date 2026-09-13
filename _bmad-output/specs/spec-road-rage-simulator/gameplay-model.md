@@ -1,8 +1,14 @@
 # Gameplay Model
 
+> **Supersession — 2026-09-13:** The following original loop is retained as MVP 2 direction, not MVP 1 scope. See `course-correction-2026-09-13.md` for locked requirements and ownership boundaries.
+
+## Current foundation model
+
+MVP 1 validates independent bricks. Persistent profile cosmetics, Steam identity, lobby/session state, and runtime player representation are distinct. Economy and inventory are individual; host authority owns multiplayer runtime mutation. Rage/Fear is configurable response data, not a Level 1-specific controller.
+
 This companion holds the load-bearing gameplay model that is too detailed for the five-field SPEC kernel.
 
-## Core Loop
+## MVP 2 Target Core Loop
 
 1. Players drive a shared road route cooperatively.
 2. Passengers use active chaos actions to provoke, interfere, collect, help, or amplify incidents.
@@ -37,8 +43,8 @@ Towns and stops are compact sandbox zones containing happenings, money opportuni
 
 ## Economy Role
 
-Meaningful money comes mainly from road rage: provoking, confronting, and beating hostile drivers. Absurd actions should pay little and act primarily as comedic toys, pacing tools, and escalation triggers.
+Meaningful money comes mainly from road rage: provoking, confronting, and beating hostile drivers. Every player earns and spends their own money; rewards and purchases are not shared. Exact reward amounts remain provisional.
 
-## Run Outcome
+## MVP 2 Run Outcome
 
-The game supports online co-op for up to four players. If every player dies, the run restarts from the beginning. Victory occurs when the boss dies. The MVP includes a simple boss endpoint to prove this victory condition; complex boss behavior remains deferred. The exact health, damage, revive, and vehicle destruction rules remain open.
+The game supports online co-op for up to four players. When the party dies, MVP 2 restarts from the latest inter-level checkpoint and resets temporary run resources; exact recovery rules remain open. Boss progression and victory are MVP 2 assembly work.

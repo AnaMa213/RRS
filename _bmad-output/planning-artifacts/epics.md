@@ -16,6 +16,19 @@ inputDocuments:
 
 # RoadRage_Simulator - Epic Breakdown
 
+> **Authoritative course correction — 2026-09-13.** Completed Epic 0–3 and implemented/review-pending Stories 4.1–4.4 remain historical. Where legacy backlog below conflicts with `spec-road-rage-simulator/course-correction-2026-09-13.md`, the correction wins. MVP 1 is a foundation sandbox; city/highway, complete run, bosses, and checkpoints are MVP 2 assembly.
+
+## Corrective roadmap (current)
+
+| Order | Story | Scope | Status |
+| --- | --- | --- | --- |
+| 0 | Review 4.1–4.4 | Final code reviews and resolve Story 4.4's `review`/`done` document discrepancy. | required gate |
+| 1 | 4.5 Persistent Steam Profile and Main Menu Character Selection | Auto-created Steam profile, Rookie default, persisted Rookie/Veteran cosmetic selection, inspectable menu preview; no nickname or profile page. | backlog |
+| 2 | 4.6 Profile Freeze, Session Payload, and Selected-Character Spawn | Freeze selection at lobby entry; preserve existing payload → host resolution → spawn → presentation chain in solo and multiplayer. | backlog |
+| 3 | 5.1 Configurable NPC Rage/Fear Foundation | Extend current Rage foundation with minimal Fear and data-driven tendencies; no traffic, boss, or final archetype catalog. | backlog |
+| 4 | 6.5 Individual Wallet Authority | Establish host-authoritative per-player wallet before reward, purchase, or inventory economy work. | backlog |
+| later | MVP 2 assembly | Levels, litter loop, encounters, bosses, run/checkpoint flow, balance, final integration. | deferred |
+
 ## Overview
 
 This document provides the complete epic and story breakdown for RoadRage_Simulator, decomposing the requirements from the SPEC, architecture spine, beginner guide, and MCP tooling setup into implementable stories.
@@ -825,9 +838,9 @@ So that I can test walking, entering the car, driving, exiting, and recovering b
 **And** a local Multiplayer Play Mode host/client check confirms shared car state is visible to clients
 **And** the checkpoint notes list which parts are greybox, which assets are placeholders, and what remains for Epic 4
 
-## Epic 4: Passenger Chaos Actions & Rage Module
+## Epic 4: Passenger Chaos, Rage Sandbox & Profile Correction
 
-Passengers can use three MVP actions that target vehicles or situations, send validated host-side intent, and produce visible effects on independent rage, incidents, low-value resources, or crew-help feedback.
+The implemented Rage/passenger sandbox remains usable and reviewable. Its remaining work corrects profile/menu/session flow before more gameplay systems are built.
 
 **Requirements covered:** FR7, FR9, FR10, FR17, FR24, FR25, FR26, FR27, NFR4, NFR5, NFR6, NFR13, NFR14, NFR15, NFR20, UX-DR4, UX-DR5
 
@@ -903,62 +916,62 @@ So that side actions feel playful without becoming the main money source.
 **And** repeated use is limited by cooldown, availability, or test tuning
 **And** the action can be tested without Rage Road confrontation from Epic 6
 
-### Story 4.5: Passenger Action Three Provides Crew Help
+### Story 4.5: Persistent Steam Profile and Main Menu Character Selection
 
-**Implements:** FR9, FR10, FR24, FR26, UX-DR5
+**Implements:** profile correction, UX current requirements, FR24, FR26
 
-As a passenger,
-I want a third chaos action that helps the crew,
-So that passenger play includes more than pure escalation.
-
-**Acceptance Criteria:**
-
-**Given** the passenger action framework is available
-**When** the passenger triggers the third MVP action
-**Then** the host validates the action and applies a visible crew-help effect such as temporary support, risk reduction, distraction, or preparation for later rewards
-**And** the effect is represented in shared runtime state or clear local feedback as appropriate
-**And** the action does not directly purchase upgrades or declare run outcomes
-**And** cooldown and unavailable-state feedback are visible to the passenger
-
-### Story 4.6: Epic 4 Passenger Chaos Playable Checkpoint
-
-**Implements:** FR7, FR9, FR10, FR17, FR24, FR25, FR26, FR27
-
-As a solo developer,
-I want a playable passenger chaos checkpoint,
-So that I can test co-op roles and rage feedback before adding real AI traffic behavior.
+As a player,
+I want my Steam-backed cosmetic profile and character choice available directly in Main Menu,
+So that no manual profile-creation screen is required before play.
 
 **Acceptance Criteria:**
 
-**Given** the three passenger actions and rage module exist
-**When** the game is launched with at least two players in a local Multiplayer Play Mode test
-**Then** one player can drive while another passenger triggers three actions and sees visible results
-**And** rage, incident, resource, or crew-help feedback is visible in UI
-**And** host validation prevents clients from directly mutating shared rage or action state
-**And** the checkpoint notes list tuning placeholders and content-tone items that remain open
+**Given** Steam is available on first launch
+**When** Main Menu opens
+**Then** a persistent local profile is automatically created from Steam identity with Rookie selected by default
+**And** no nickname input, confirmation, offline fallback, or profile-management screen is shown
+**And** Main Menu shows an inspectable 3D preview and direct Rookie/Veteran controls
+**And** Rookie/Veteran affect visual presentation only and the selection persists across relaunches
 
-## Epic 5: AI Traffic & Rage Road Trigger
+### Story 4.6: Profile Freeze, Session Payload, and Selected-Character Spawn
 
-The route contains three AI vehicles with independent rage states and simple rage-driven behaviors, and escalation can trigger the first Rage Road event.
+**Implements:** profile/session correction, FR24, FR25, FR26, FR27
+
+As a co-op player,
+I want the character I selected before lobby entry to be the one that spawns,
+So that persistent profile, session, and runtime player state remain distinct.
+
+**Acceptance Criteria:**
+
+**Given** a selected persistent profile exists
+**When** the player starts solo play or enters a multiplayer lobby and the session begins
+**Then** the existing connection payload, host profile resolution, `CharacterId`, spawn, and presentation path use the selected character
+**And** selection becomes read-only after lobby entry and no lobby control can change it
+**And** lobby/session state and runtime player state do not persist into the profile
+**And** solo plus host/client tests cover selection persistence, lobby immutability, and spawned presentation
+
+## Epic 5: NPC Response Foundation and Future Traffic
+
+MVP 1 first establishes configurable NPC Rage/Fear response. Traffic, Rage Road, and vehicle behavior are MVP 2 assembly after this foundation is validated.
 
 **Requirements covered:** FR6, FR7, FR8, FR11, FR24, FR25, FR27, NFR2, NFR4, NFR5, NFR6, NFR13, NFR14, NFR18
 
-### Story 5.1: Three AI Vehicles on the Route
+### Story 5.1: Configurable NPC Rage/Fear Foundation
 
-**Implements:** FR6, FR7, FR24, FR25, FR27, NFR4, NFR6, NFR18
+**Implements:** NPC response correction, FR24, FR25, FR27, NFR4, NFR6
 
 As a player,
-I want AI vehicles to exist on the route,
-So that the road starts to feel like a reactive driving space.
+I want NPC reaction tendencies to support Rage and Fear,
+So that later city and highway behavior is configurable rather than hard-coded.
 
 **Acceptance Criteria:**
 
-**Given** the driving route and rage module exist
-**When** the AI traffic module is added
-**Then** the route contains three AI vehicle prefabs with stable ids and visible placeholder art
-**And** each AI vehicle has its own `NetworkedAIVehicleState` and independent rage state
-**And** AI vehicle runtime state is host-owned and server-write by default
-**And** the scene can be tested without starting a Rage Road confrontation
+**Given** the Story 4 Rage foundation has passed final review
+**When** Fear and reaction tuning are introduced
+**Then** each target can hold host-authoritative Rage and Fear state with static data-driven tendencies
+**And** an effect can be configured to influence Rage, Fear, or both
+**And** no complete traffic controller, boss, final archetype list, or level-specific behavior is introduced
+**And** the foundation remains independently testable in a sandbox
 
 ### Story 5.2: Basic AI Route Following and Recovery
 
@@ -1046,9 +1059,9 @@ So that I can test the escalation path before building confrontation resolution.
 **And** local and online smoke tests confirm host-authoritative state updates
 **And** the checkpoint notes list tuning assumptions for Epic 6 confrontation design
 
-## Epic 6: On-Foot Confrontation, Sandbox Stop & Economy Loop
+## Epic 6: Individual Economy Foundation and Future On-Foot Assembly
 
-Players can leave the car for a compact confrontation or sandbox stop, resolve one Rage Road event, earn a shared money reward, buy one upgrade, and return that value to the next driving loop. A high-rage AI vehicle can dismount its occupant as an on-foot NPC combatant, using the same on-foot module as the player confrontation. A dev-only harness lets the fist-melee action and a test mannequin validate combat damage before the real AI-driven dismount exists.
+MVP 1 may validate individual wallet, inventory, interactions, and on-foot bricks independently. The legacy shared-money confrontation/upgrade loop and its integrated assembly are deferred to MVP 2.
 
 **Requirements covered:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27, FR29, NFR1, NFR2, NFR4, NFR5, NFR6, NFR13, NFR14, NFR15, NFR20, NFR21, UX-DR4, UX-DR8
 
@@ -1126,22 +1139,22 @@ So that escalation has a meaningful playable payoff.
 **And** failure, timeout, or player death outcomes are visible in UI or logs
 **And** the confrontation can be tested without boss endpoint logic
 
-### Story 6.5: Shared Money Reward for Road-Rage Victory
+### Story 6.5: Individual Wallet Authority
 
-**Implements:** FR12, FR16, FR18, FR19, FR24, FR25, FR26
+**Implements:** economy correction, FR24, FR25, FR26
 
 As a co-op player,
-I want a resolved road-rage confrontation to grant money,
-So that the rage loop feeds the upgrade loop.
+I want future rewards and purchases to belong to me,
+So that the economy never becomes a shared crew wallet.
 
 **Acceptance Criteria:**
 
-**Given** a Rage Road confrontation can be resolved
-**When** the players win the confrontation
-**Then** `NetworkedCrewEconomyState` grants a shared money reward large enough to buy the first upgrade
-**And** money is shown in the HUD to all connected players
-**And** absurd side actions may grant low-value feedback but do not become the primary money source
-**And** the host validates reward grants to prevent duplicate payouts
+**Given** networked player identity exists
+**When** an economy foundation is added
+**Then** runtime wallet ownership is per player and host-authoritative
+**And** `NetworkedCrewEconomyState` and `NetworkedPlayerState.Money` are not used as competing sources of truth
+**And** no reward balance, shop, progression, shared transfer, or persistent economy is introduced
+**And** tests cover owner-only mutation and client presentation
 
 ### Story 6.6: Compact Sandbox Stop with Happenings
 
@@ -1229,9 +1242,9 @@ So that I can test the MVP reward loop before boss and final integration.
 **And** all key state changes are host-authoritative and visible in UI
 **And** the checkpoint notes identify what remains for final failure, victory, and full-run polish in Epic 7
 
-## Epic 7: Boss Endpoint, Victory/Failure & MVP Integration Pass
+## Epic 7: MVP 2 Run, Level, Boss, and Checkpoint Assembly
 
-The full MVP run is assembled end to end: lobby, spawn, movement, driving, passenger chaos, rage, Rage Road, money, upgrade, simple boss endpoint, team-wipe restart, and boss-kill victory.
+This epic is deferred until MVP 1 foundations are validated. It will assemble levels, normal transitions, inter-level checkpoint restart, bosses, and final integration without revising persistent-profile or per-player-economy ownership.
 
 **Requirements covered:** FR1, FR20, FR21, FR22, FR23, FR24, FR25, FR26, FR27, NFR1, NFR2, NFR4, NFR5, NFR6, NFR11, NFR12, NFR20, NFR21, UX-DR3, UX-DR4
 

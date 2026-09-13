@@ -2,12 +2,14 @@
 title: "Story 4.4 : La seconde action passager cree un incident"
 type: 'feature'
 created: '2026-09-12'
-status: 'done'
+status: 'in-review'
 review_loop_iteration: 0
 context: []
 baseline_commit: 'c1ab683c7840d7a69c04b3dc1994865556ddd317'
 story_key: '4-4-passenger-action-two-creates-an-incident-or-resource-opportu'
 ---
+
+> **2026-09-13 status reconciliation:** implementation and tests are complete, but final code review has not been recorded. This story remains `in-review`, matching `sprint-status.yaml`.
 
 <frozen-after-approval reason="human-owned intent -- do not modify unless human renegotiates">
 

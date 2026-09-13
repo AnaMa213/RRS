@@ -7,7 +7,7 @@ paradigm: Feature-Sliced Host-Authoritative Unity
 scope: Road Rage Simulator MVP technical architecture for the online co-op vertical slice
 status: final
 created: 2026-09-02
-updated: 2026-09-02
+updated: 2026-09-13
 binds:
   - SPEC-road-rage-simulator/CAP-1
   - SPEC-road-rage-simulator/CAP-2
@@ -244,6 +244,28 @@ flowchart TD
 - **Binds:** all MVP implementation work
 - **Prevents:** features claiming success against incompatible local-only, editor-only, or production-service assumptions.
 - **Rule:** The MVP targets Windows PC development builds first, using the Steamworks test AppID (`480`/Spacewar) as the non-production environment. Stack adoption requires an empty project package lock check, one local Multiplayer Play Mode host/client smoke test, one remote two-player Steamworks Networking Sockets smoke test, session cap validation at four players, host-quit handling, and visible Lobby/UI errors for join, Networking Sockets, disconnect, and service failures.
+
+### AD-29 - Persistent Profile Is Pre-Lobby Cosmetic Data [ADOPTED]
+
+- **Binds:** MVP 1 player entry, lobby, spawn, presentation.
+- **Prevents:** persistent profile objects owning runtime life, wallet, inventory, seat, lobby, or network state.
+- **Rule:** On first launch, create a locally persisted profile from Steam identity with Steam display name and a selected cosmetic `CharacterId`. Rookie is the default; Rookie/Veteran have no gameplay effect. Main Menu is the only selection surface and owns its local preview. Lobby entry freezes the selection. The existing connection payload, host resolution, `NetworkedPlayerState.CharacterId`, and runtime presentation carry the frozen choice into a session.
+
+### AD-30 - MVP 1 Foundations Before MVP 2 Assembly [ADOPTED]
+
+- **Binds:** roadmap, Run, Boss, SandboxStops, Economy, AI traffic.
+- **Prevents:** city/highway levels, boss flow, checkpoint logic, and final run state being built around unvalidated foundations.
+- **Rule:** MVP 1 uses isolated development sandboxes and small greybox integrations to validate reusable systems. MVP 2 alone composes them into roguelite levels, normal level transitions, inter-level checkpoint restart, bosses, balancing, and presentation. Exact reset requirements for mandatory assets after restart remain deferred.
+
+### AD-31 - Individual Economy and Configurable NPC Response [ADOPTED]
+
+- **Binds:** Economy, Inventory, Rage, Vehicles, PassengerActions, future NPC behavior.
+- **Prevents:** shared wallet ownership, Rage/Fear hard-coded inside one vehicle controller, and level-specific behavior leaking into reusable features.
+- **Rule:** Every runtime wallet, owned item, and temporary resource belongs to one player and is mutated by the host. `NetworkedCrewEconomyState` is superseded before real economy work. NPC response state supports data-defined Rage and Fear tendencies; effects may change one or both meters, while vehicle movement and archetype behavior consume the resulting response through narrow feature boundaries.
+
+### Course-correction supersessions
+
+AD-5, AD-6, AD-8, AD-15, AD-16, AD-17, AD-22, AD-24, and AD-26 remain historical design context only where they prescribe one integrated MVP route, team-wipe restart from the beginning, crew wallet, fixed Rage Road/boss cardinality, or transient profile state. AD-29 through AD-31 are the current binding interpretation; host authority, ScriptableObject authored data, local camera/input, prefab stability, and Steam networking remain unchanged.
 
 ## Consistency Conventions
 
