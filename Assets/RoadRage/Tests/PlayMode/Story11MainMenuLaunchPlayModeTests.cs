@@ -91,6 +91,10 @@ namespace RoadRage.Tests.PlayMode
             RoadRageBootstrap.Instance.Notices.Publish(new UserNotice(UserNoticeSeverity.Warning, "Test PlayMode"));
             Assert.That(noticePanel.activeSelf, Is.True, "MainMenuFlowController must wire NoticePublished to ShowNotice");
 
+            InvokePrivateMethod(screen, "RaisePlayRequested");
+            InvokePrivateMethod(screen, "RaiseBackRequested");
+            Assert.That(noticePanel.activeSelf, Is.True, "returning to the menu must restore the latest visible notice");
+
             LogAssert.Expect(LogType.Log, "[App] Quit demande en Play Mode Editor : aucune fermeture d'Editor declenchee.");
             InvokePrivateMethod(screen, "RaiseQuitRequested");
         }

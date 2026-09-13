@@ -12,6 +12,7 @@ using RoadRage.Features.UI;
 using RoadRage.Shared.Definitions;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -90,6 +91,7 @@ namespace RoadRage.Tests.PlayMode
             var previewImage = preview.GetComponent<RawImage>();
             Assert.That(previewImage.texture, Is.Not.Null, "un RenderTexture doit alimenter l'apercu");
             Assert.That(GameObject.Find("MenuCharacterPreviewRig"), Is.Not.Null, "le banc de rendu de l'apercu doit exister");
+            AssertPreviewRendersAndRotates(preview, previewImage);
 
             var steamOnline = bootstrap.OnlineServices != null && bootstrap.OnlineServices.Status == OnlineServicesStatus.Online;
 
@@ -204,6 +206,34 @@ namespace RoadRage.Tests.PlayMode
             var label = GetPrivateField(screen, "selectedCharacterLabel") as TMP_Text;
             Assert.That(label, Is.Not.Null, "MainMenuScreen.selectedCharacterLabel doit etre cable");
             Assert.That(label.text, Is.EqualTo(expectedLabel), "le choix courant doit rester lisible en texte");
+        }
+
+        private static void AssertPreviewRendersAndRotates(MenuCharacterPreview preview, RawImage previewImage)
+        {
+            var renderTexture = previewImage.texture as RenderTexture;
+            Assert.That(renderTexture, Is.Not.Null, "l'apercu doit etre rendu dans une RenderTexture");
+
+            var previous = RenderTexture.active;
+            var snapshot = new Texture2D(renderTexture.width, renderTexture.height, TextureFormat.RGBA32, false);
+            try
+            {
+                RenderTexture.active = renderTexture;
+                snapshot.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
+                snapshot.Apply();
+                Assert.That(snapshot.GetPixels32().Any(pixel => pixel.r != 0 || pixel.g != 0 || pixel.b != 0), Is.True,
+                    "l'apercu doit contenir le personnage, pas seulement un RenderTexture vide");
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                Object.Destroy(snapshot);
+            }
+
+            var anchor = GetPrivateField(preview, "anchor") as Transform;
+            Assert.That(anchor, Is.Not.Null, "l'apercu doit exposer son ancrage de rotation");
+            var rotation = anchor.localRotation;
+            preview.OnDrag(new PointerEventData(EventSystem.current) { delta = new Vector2(8f, 0f) });
+            Assert.That(Quaternion.Angle(rotation, anchor.localRotation), Is.GreaterThan(0f), "le glisser doit faire tourner l'apercu");
         }
 
         private static CharacterCatalog GetCatalog(MainMenuProfileFlowController flow)

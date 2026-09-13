@@ -228,6 +228,24 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void NormalizedStoredNameIsRewritten()
+        {
+            var service = NewService();
+            var rookie = LoadCatalog().GetAt(0);
+            Assert.That(fileStore.TrySave(new PlayerProfile("  Kenan  ", rookie.Id), SteamId), Is.True);
+
+            var resolution = service.Resolve(true, "Ignored", SteamId);
+
+            Assert.That(resolution.Profile.DisplayName, Is.EqualTo("Kenan"));
+            Assert.That(resolution.ShouldPersist, Is.True, "la forme persistante doit rester normalisee");
+            Assert.That(service.TryPersist(resolution.Profile, SteamId, resolution.ShouldPersist), Is.True);
+
+            PlayerProfile reloaded;
+            Assert.That(fileStore.TryLoad(SteamId, out reloaded), Is.True);
+            Assert.That(reloaded.DisplayName, Is.EqualTo("Kenan"));
+        }
+
+        [Test]
         public void EmptyCatalogIsReportedWithoutThrowing()
         {
             var emptyCatalog = ScriptableObject.CreateInstance<CharacterCatalog>();

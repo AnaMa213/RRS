@@ -75,7 +75,10 @@ namespace RoadRage.Features.Players
                     string nameError;
                     if (PlayerNameValidator.TryNormalize(stored.DisplayName, out storedName, out nameError))
                     {
-                        return new PlayerProfileResolution(new PlayerProfile(storedName, storedCharacter.Id), false, string.Empty);
+                        return new PlayerProfileResolution(
+                            new PlayerProfile(storedName, storedCharacter.Id),
+                            !string.Equals(storedName, stored.DisplayName, StringComparison.Ordinal),
+                            string.Empty);
                     }
 
                     // Nom persistant inutilisable : le personnage est conserve, le libelle retombe sur

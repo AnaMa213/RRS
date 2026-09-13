@@ -24,6 +24,8 @@ namespace RoadRage.App.MainMenu
 
         public const string ProfileStoreUnavailableMessage = "Profil non enregistre : le depot de session est indisponible.";
 
+        public const string ProfilePersistenceFailedMessage = "Profil non enregistre : ecriture sur disque impossible.";
+
         public const string MissingCharacterMessage = "Personnage indisponible : entree de catalogue manquante.";
 
         [SerializeField]
@@ -150,7 +152,10 @@ namespace RoadRage.App.MainMenu
 
             if (canPersistProfile && resolution.ShouldPersist)
             {
-                profileBootstrap.TryPersist(resolution.Profile, profileOwnerSteamId, true);
+                if (!profileBootstrap.TryPersist(resolution.Profile, profileOwnerSteamId, true))
+                {
+                    PublishNotice(ProfilePersistenceFailedMessage, UserNoticeSeverity.Warning);
+                }
             }
 
             if (!string.IsNullOrEmpty(resolution.Error))
@@ -186,7 +191,10 @@ namespace RoadRage.App.MainMenu
             var profile = new PlayerProfile(displayName, character.Id);
 
             bootstrap.Profiles.Set(profile);
-            profileBootstrap.TryPersist(profile, profileOwnerSteamId, canPersistProfile);
+            if (canPersistProfile && !profileBootstrap.TryPersist(profile, profileOwnerSteamId, true))
+            {
+                PublishNotice(ProfilePersistenceFailedMessage, UserNoticeSeverity.Warning);
+            }
             Debug.Log("[Players] Personnage selectionne : " + character.RawId);
 
             ShowProfile(profile);

@@ -26,7 +26,7 @@ namespace RoadRage.App.MainMenu
             }
 
             screen.PlayRequested += screen.ShowSetupPlaceholder;
-            screen.BackRequested += screen.ShowMenu;
+            screen.BackRequested += ReturnToMenu;
             screen.QuitRequested += QuitApplication;
 
             if (bootstrap != null && bootstrap.Notices != null)
@@ -48,7 +48,7 @@ namespace RoadRage.App.MainMenu
             }
 
             screen.PlayRequested -= screen.ShowSetupPlaceholder;
-            screen.BackRequested -= screen.ShowMenu;
+            screen.BackRequested -= ReturnToMenu;
             screen.QuitRequested -= QuitApplication;
 
             if (bootstrap != null && bootstrap.Notices != null)
@@ -65,6 +65,16 @@ namespace RoadRage.App.MainMenu
             Debug.Log("[App] Quit demande, fermeture de l'application.");
             Application.Quit();
 #endif
+        }
+
+        private void ReturnToMenu()
+        {
+            screen.ShowMenu();
+
+            if (bootstrap != null && bootstrap.Notices != null && bootstrap.Notices.LastNotice.HasValue)
+            {
+                screen.ShowNotice(bootstrap.Notices.LastNotice.Value);
+            }
         }
     }
 }

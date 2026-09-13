@@ -259,3 +259,10 @@ Fichier JSON unique (`player-profile.json`) ecrit via `JsonUtility` sur un DTO d
 
 - Meme retrait dans la coquille de lobby, avec sa justification ecrite.
   [`Story12…PlayModeTests.cs:57`](../../Assets/RoadRage/Tests/PlayMode/Story12LobbyShellPlayModeTests.cs#L57)
+
+### Review Findings
+
+- [x] [Review][Patch] Surface visible on profile-write failure [Assets/RoadRage/App/MainMenu/MainMenuProfileFlowController.cs:153] — `TryPersist` returns `false` for recoverable I/O failures, but both initial repair and later selection saves discard it; the session changes while the player receives no visible warning and loses the choice on restart.
+- [x] [Review][Patch] Preserve the Steam-unavailable warning when returning to the menu [Assets/RoadRage/Features/UI/MainMenuScreen.cs:151] — `ShowMenu` clears the sole offline notice and the Back handler does not replay `Notices.LastNotice`, violating the requirement that the Steam error remains visible.
+- [x] [Review][Patch] Repair persisted names after normalization [Assets/RoadRage/Features/Players/PlayerProfileBootstrapService.cs:78] — a valid-but-untrimmed stored display name is normalized in memory but `ShouldPersist` stays false, leaving the persistent record outside the specified normalized form indefinitely.
+- [x] [Review][Patch] Verify rendered and inspectable character preview in PlayMode [Assets/RoadRage/Tests/PlayMode/Story45PersistentSteamProfileAndMainMenuCharacterSelectionPlayModeTests.cs:88] — current coverage asserts only a rig and RenderTexture exist; a blank/culling-broken or non-rotating preview remains green despite the acceptance criterion.
