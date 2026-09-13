@@ -1,5 +1,9 @@
 [workflow]
 
+activation_steps_append = [
+  """Checkpoint vérification obligatoire : juste avant d’exécuter tout test, build, validation automatisée ou commande de vérification, demande à l’utilisateur de la lancer manuellement. N’exécute pas cette commande. Attends son résultat, puis poursuis selon la sortie fournie. Cette règle s’applique à toutes les routes de bmad-build."""
+]
+
 implementation_handoff = """
 Launch a subagent with no prior conversation context, with this prompt:
 
