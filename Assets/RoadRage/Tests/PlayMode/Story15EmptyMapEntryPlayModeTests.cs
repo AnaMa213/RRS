@@ -31,22 +31,24 @@ namespace RoadRage.Tests.PlayMode
             yield return null;
         }
 
+        /// <summary>
+        /// Depuis la Story 4.5, le menu principal publie toujours un profil (identite Steam, ou repli
+        /// en memoire non persiste quand Steam est indisponible). Le cas « Start Game sans profil »
+        /// n'est donc plus atteignable depuis l'interface : le refus de LobbyFlowController reste en
+        /// place comme defense en profondeur et sa garde de source est verifiee en EditMode
+        /// (Story15EmptyMapEntryTests). Ce test verrouille desormais la garantie qui remplace ce cas.
+        /// </summary>
         [UnityTest]
-        public IEnumerator StartGameWithoutProfilePublishesVisibleWarningAndStaysInLobby()
+        public IEnumerator MenuAlwaysPublishesAProfileBeforeLobbyEntry()
         {
             yield return EnterLobbyShell();
 
-            var screen = Object.FindAnyObjectByType<LobbyShellScreen>();
-            Assert.That(screen, Is.Not.Null);
+            Assert.That(RoadRageBootstrap.Instance.Profiles.HasProfile, Is.True,
+                "le menu doit publier un profil avant toute entree dans le lobby");
 
-            UserNotice? published = null;
-            RoadRageBootstrap.Instance.Notices.NoticePublished += notice => published = notice;
+            Assert.That(RoadRageBootstrap.Instance.Profiles.Current.CharacterId.IsEmpty, Is.False,
+                "le profil publie doit porter un personnage exploitable par l'entree monde");
 
-            ClickSerializedButton(screen, "startGameButton");
-            yield return null;
-
-            Assert.That(published, Is.Not.Null, "un refus Start Game sans profil doit etre visible");
-            Assert.That(published.Value.Message, Is.EqualTo(LobbyFlowController.MissingProfileStartGameMessage));
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(AppSceneRouter.MainMenuLobbySceneName));
         }
 

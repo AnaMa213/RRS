@@ -1,29 +1,24 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
-using RoadRage.App.Players;
 using RoadRage.Features.Players;
-using RoadRage.Features.UI;
 using RoadRage.Shared.Definitions;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEditorInternal;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace RoadRage.Tests.EditMode
 {
     /// <summary>
     /// Story 1.3 : regles de validation du nom joueur, coherence du catalogue de personnages,
-    /// purete du profil de session, cablage de scene et frontieres d'assemblies.
+    /// purete du profil de session et frontieres d'assemblies.
+    /// Le cablage de scene du flux manuel de creation de profil n'est plus verrouille ici depuis la
+    /// Story 4.5 : ce flux a ete retire au profit du menu principal persistant.
     /// </summary>
     public sealed class Story13CharacterSetupTests
     {
-        private const string MainMenuLobbyScenePath = "Assets/RoadRage/App/Scenes/MainMenuLobby.unity";
         private const string CharacterCatalogAssetPath = "Assets/RoadRage/ScriptableObjects/Players/CharacterCatalog.asset";
         private const string UiAsmdefPath = "Assets/RoadRage/Features/UI/RoadRage.Features.UI.asmdef";
         private const string PlayersAsmdefPath = "Assets/RoadRage/Features/Players/RoadRage.Features.Players.asmdef";
@@ -431,114 +426,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(property.PropertyType, Is.EqualTo(typeof(PlayerProfileStore)));
         }
 
-        // ---------------------------------------------------------------- Scene
-
-        [Test]
-        public void MainMenuLobbySceneContainsWiredCharacterSetupComponents()
-        {
-            var scene = EditorSceneManager.OpenScene(MainMenuLobbyScenePath, OpenSceneMode.Additive);
-            try
-            {
-                var screen = FindComponentInScene<CharacterSetupScreen>(scene);
-                Assert.That(screen != null, Is.True, "CharacterSetupScreen expected in MainMenuLobby scene");
-                AssertSerializedObjectFieldsNonNull(screen);
-
-                var flowController = FindComponentInScene<PlayerProfileFlowController>(scene);
-                Assert.That(flowController != null, Is.True, "PlayerProfileFlowController expected in MainMenuLobby scene");
-                AssertSerializedObjectFieldsNonNull(flowController);
-
-                var lobbyShell = FindComponentInScene<LobbyShellScreen>(scene);
-                Assert.That(lobbyShell != null, Is.True, "LobbyShellScreen expected in MainMenuLobby scene");
-                var characterSetupButton = GetPrivateField(lobbyShell, "characterSetupButton") as UnityEngine.Object;
-                Assert.That(characterSetupButton != null, Is.True, "LobbyShellScreen.characterSetupButton doit etre cable dans la scene");
-            }
-            finally
-            {
-                EditorSceneManager.CloseScene(scene, true);
-            }
-        }
-
-        [Test]
-        public void CharacterPanelIsInactiveAtLoadAndDrawsOverSetupPanel()
-        {
-            var scene = EditorSceneManager.OpenScene(MainMenuLobbyScenePath, OpenSceneMode.Additive);
-            try
-            {
-                var screen = FindComponentInScene<CharacterSetupScreen>(scene);
-                Assert.That(screen != null, Is.True);
-
-                var panel = screen.gameObject;
-                Assert.That(panel.activeSelf, Is.False, "le panneau de setup de personnage doit etre inactif au chargement");
-
-                var setupPanel = FindComponentInScene<LobbyShellScreen>(scene).gameObject;
-                Assert.That(panel.transform.parent, Is.SameAs(setupPanel.transform.parent),
-                    "le panneau de personnage est un frere du panneau de setup, pas un troisieme etat du menu");
-                Assert.That(panel.transform.GetSiblingIndex(), Is.GreaterThan(setupPanel.transform.GetSiblingIndex()),
-                    "le panneau de personnage doit se superposer au panneau de setup");
-            }
-            finally
-            {
-                EditorSceneManager.CloseScene(scene, true);
-            }
-        }
-
-        /// <summary>
-        /// L'ordre de fratrie seul ne prouve ni l'opacite ni le blocage des clics : sans fond opaque
-        /// capteur de raycast, les boutons de la coquille de lobby resteraient visibles et cliquables
-        /// sous le panneau. Ce test verrouille le fond plein ecran lui-meme.
-        /// </summary>
-        [Test]
-        public void CharacterPanelHasOpaqueFullScreenRaycastBlockingBackground()
-        {
-            var scene = EditorSceneManager.OpenScene(MainMenuLobbyScenePath, OpenSceneMode.Additive);
-            try
-            {
-                var screen = FindComponentInScene<CharacterSetupScreen>(scene);
-                Assert.That(screen != null, Is.True);
-
-                var background = screen.GetComponent<Image>();
-                Assert.That(background != null, Is.True, "le panneau de personnage doit porter un fond Image");
-                Assert.That(background.raycastTarget, Is.True, "le fond doit bloquer les clics vers la coquille de lobby en dessous");
-                Assert.That(background.color.a, Is.EqualTo(1f).Within(0.001f), "le fond doit etre opaque");
-
-                var rect = (RectTransform)screen.transform;
-                Assert.That(rect.anchorMin, Is.EqualTo(Vector2.zero), "le fond doit couvrir tout l'ecran");
-                Assert.That(rect.anchorMax, Is.EqualTo(Vector2.one), "le fond doit couvrir tout l'ecran");
-                Assert.That(rect.offsetMin, Is.EqualTo(Vector2.zero));
-                Assert.That(rect.offsetMax, Is.EqualTo(Vector2.zero));
-                Assert.That(rect.localScale, Is.EqualTo(Vector3.one));
-            }
-            finally
-            {
-                EditorSceneManager.CloseScene(scene, true);
-            }
-        }
-
         // ---------------------------------------------------------------- Frontieres
-
-        [Test]
-        public void CharacterSetupScreenSourceNeverLoadsScenesNorTouchesTheProfileStore()
-        {
-            var path = Path.Combine(AssetsPath("RoadRage", "Features", "UI"), "CharacterSetupScreen.cs");
-            Assert.That(File.Exists(path), Is.True, path);
-
-            var source = File.ReadAllText(path);
-
-            foreach (var forbidden in new[]
-                     {
-                         "SceneManagement",
-                         "SceneManager",
-                         "Application.Quit",
-                         "PlayerProfile",
-                         "CharacterCatalog",
-                         "CharacterDef",
-                         "RoadRage.Features.Players"
-                     })
-            {
-                Assert.That(source, Does.Not.Contain(forbidden),
-                    "CharacterSetupScreen ne doit ni charger de scene ni connaitre les types du feature joueurs : " + forbidden);
-            }
-        }
 
         [Test]
         public void UiAssemblyDoesNotReferencePlayersAssembly()
@@ -642,67 +530,11 @@ namespace RoadRage.Tests.EditMode
             return catalog;
         }
 
-        /// <summary>
-        /// Construit un chemin absolu sous Assets/ (meme raison qu'en Story 1.2 : le repertoire courant
-        /// n'est pas garanti sous la commande de repli -batchmode -runTests).
-        /// </summary>
-        private static string AssetsPath(params string[] segments)
-        {
-            var path = Application.dataPath;
-
-            foreach (var segment in segments)
-            {
-                path = Path.Combine(path, segment);
-            }
-
-            return path;
-        }
-
-        private static T FindComponentInScene<T>(Scene scene) where T : Component
-        {
-            foreach (var rootObject in scene.GetRootGameObjects())
-            {
-                var component = rootObject.GetComponentInChildren<T>(true);
-                if (component != null)
-                {
-                    return component;
-                }
-            }
-
-            return null;
-        }
-
-        private static object GetPrivateField(object target, string fieldName)
-        {
-            var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(field, Is.Not.Null, "field not found: " + fieldName);
-            return field.GetValue(target);
-        }
-
         private static void SetPrivateField(object target, string fieldName, object value)
         {
             var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(field, Is.Not.Null, "field not found: " + fieldName);
             field.SetValue(target, value);
-        }
-
-        private static void AssertSerializedObjectFieldsNonNull(Component component)
-        {
-            var fields = component.GetType()
-                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                .Where(field => field.IsPublic || field.GetCustomAttribute<SerializeField>() != null)
-                .Where(field => typeof(UnityEngine.Object).IsAssignableFrom(field.FieldType))
-                .ToArray();
-
-            Assert.That(fields.Length, Is.GreaterThan(0), component.GetType().Name + " : aucune reference serialisee inspectee");
-
-            foreach (var field in fields)
-            {
-                var value = field.GetValue(component) as UnityEngine.Object;
-
-                // Comparaison via l'operateur == surcharge d'UnityEngine.Object (Patch 5 de la Story 1.2).
-                Assert.That(value != null, Is.True, component.GetType().Name + "." + field.Name);
-            }
         }
     }
 }

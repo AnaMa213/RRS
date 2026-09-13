@@ -54,27 +54,12 @@ namespace RoadRage.Tests.PlayMode
             Assert.That(published, Is.Not.Null, "Join By Code doit publier une notice via UserNoticeChannel");
         }
 
-        [UnityTest]
-        public IEnumerator StartGameRequestedPublishesUnavailableNoticeAndLoadsNoScene()
-        {
-            yield return PressPlayAndEnterLobbyShell();
-
-            var screen = Object.FindAnyObjectByType<LobbyShellScreen>();
-            Assert.That(screen, Is.Not.Null);
-
-            var sceneBefore = SceneManager.GetActiveScene().name;
-            var sceneCountBefore = SceneManager.sceneCount;
-
-            UserNotice? published = null;
-            RoadRageBootstrap.Instance.Notices.NoticePublished += notice => published = notice;
-
-            ClickSerializedButton(screen, "startGameButton");
-            yield return null;
-
-            Assert.That(published, Is.Not.Null, "Start Game doit publier une notice via UserNoticeChannel");
-            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(sceneBefore), "Start Game ne doit charger aucune scene en Epic 1");
-            Assert.That(SceneManager.sceneCount, Is.EqualTo(sceneCountBefore), "Start Game ne doit charger aucune scene, y compris en mode additif");
-        }
+        // Le test « Start Game refuse et ne charge aucune scene » a ete retire avec la Story 4.5 : le
+        // menu principal publie desormais toujours un profil (identite Steam, ou repli en memoire non
+        // persiste), donc le refus MissingProfileStartGameMessage n'est plus atteignable depuis
+        // l'interface. La garde reste en place dans LobbyFlowController comme defense en profondeur et
+        // son existence est verrouillee en EditMode (Story15EmptyMapEntryTests). Le parcours positif
+        // (Start Game avec profil -> MVP_Run) est couvert par Story15EmptyMapEntryPlayModeTests.
 
         [UnityTest]
         public IEnumerator DifficultyChangeUpdatesMatchSettingsAndDisplayedLabel()

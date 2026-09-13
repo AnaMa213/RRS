@@ -5,7 +5,6 @@ using System.Reflection;
 using NUnit.Framework;
 using RoadRage.App.Lobby;
 using RoadRage.App.MainMenu;
-using RoadRage.App.Players;
 using RoadRage.App.Run;
 using RoadRage.App.Services;
 using RoadRage.Features.OnFoot;
@@ -61,8 +60,7 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(FindComponentInScene<MainMenuFlowController>(scene), Is.Not.Null, "flux menu attendu");
                 Assert.That(FindComponentInScene<LobbyShellScreen>(scene), Is.Not.Null, "coquille lobby attendue");
                 Assert.That(FindComponentInScene<LobbyFlowController>(scene), Is.Not.Null, "flux lobby attendu");
-                Assert.That(FindComponentInScene<CharacterSetupScreen>(scene), Is.Not.Null, "setup personnage attendu");
-                Assert.That(FindComponentInScene<PlayerProfileFlowController>(scene), Is.Not.Null, "flux profil attendu");
+                Assert.That(FindComponentInScene<MainMenuProfileFlowController>(scene), Is.Not.Null, "flux profil du menu attendu");
 
                 var menu = FindComponentInScene<MainMenuScreen>(scene);
                 AssertSerializedObjectReference(menu, "noticePanel");
@@ -152,11 +150,11 @@ namespace RoadRage.Tests.EditMode
             foreach (var file in new[]
                      {
                          "Assets/RoadRage/App/MainMenu/MainMenuFlowController.cs",
-                         "Assets/RoadRage/App/Players/PlayerProfileFlowController.cs",
+                         "Assets/RoadRage/App/MainMenu/MainMenuProfileFlowController.cs",
                          "Assets/RoadRage/App/Run/RunFlowController.cs",
                          "Assets/RoadRage/Features/UI/MainMenuScreen.cs",
+                         "Assets/RoadRage/Features/UI/MenuCharacterPreview.cs",
                          "Assets/RoadRage/Features/UI/LobbyShellScreen.cs",
-                         "Assets/RoadRage/Features/UI/CharacterSetupScreen.cs",
                          "Assets/RoadRage/Features/UI/RunCheckpointHudScreen.cs",
                          "Assets/RoadRage/Features/OnFoot/LocalOnFootController.cs"
                      })

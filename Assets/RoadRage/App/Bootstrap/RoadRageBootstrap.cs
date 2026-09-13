@@ -38,6 +38,18 @@ namespace RoadRage.App
         public PlayerProfileStore Profiles { get; private set; }
 
         /// <summary>
+        /// Fichier de profil persistant (Story 4.5) : identite Steam et choix cosmetique uniquement.
+        /// Porte par cet objet persistant pour que le menu ecrive et le run lise le meme chemin.
+        /// </summary>
+        public PlayerProfileFileStore ProfileFiles { get; private set; }
+
+        /// <summary>
+        /// Frontiere d'identite Steam locale (Story 4.5), portee par la meme instance que
+        /// OnlineServices : un seul acces au SDK Steam pour le statut et pour l'identite.
+        /// </summary>
+        public ISteamIdentitySource SteamIdentity { get; private set; }
+
+        /// <summary>
         /// Service unique d'initialisation des services en ligne Steam (Story 2.1). Construit ici,
         /// declenche par LobbyFlowController a l'ouverture du flux de lobby.
         /// </summary>
@@ -99,7 +111,10 @@ namespace RoadRage.App
             Router = new AppSceneRouter();
             Notices = new UserNoticeChannel();
             Profiles = new PlayerProfileStore();
-            OnlineServices = new OnlineServicesBootstrapService(new FacepunchSteamPlatform(), SteamTestAppId);
+            ProfileFiles = new PlayerProfileFileStore(PlayerProfileFileStore.DefaultFilePath);
+            var steamPlatform = new FacepunchSteamPlatform();
+            OnlineServices = new OnlineServicesBootstrapService(steamPlatform, SteamTestAppId);
+            SteamIdentity = steamPlatform;
             var lobbyPlatform = new FacepunchSteamLobbyPlatform();
             LobbyRoom = new LobbyRoomService(lobbyPlatform, OnlineServices);
             LobbyJoin = new LobbyJoinService(lobbyPlatform, OnlineServices);

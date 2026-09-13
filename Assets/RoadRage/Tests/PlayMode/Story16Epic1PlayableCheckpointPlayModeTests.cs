@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using NUnit.Framework;
 using RoadRage.App;
 using RoadRage.App.Lobby;
-using RoadRage.App.Players;
+using RoadRage.App.MainMenu;
 using RoadRage.App.Run;
 using RoadRage.App.Services;
 using RoadRage.Features.OnFoot;
@@ -22,6 +23,10 @@ namespace RoadRage.Tests.PlayMode
 {
     public sealed class Story16Epic1PlayableCheckpointPlayModeTests
     {
+        private string originalProfileFilePath;
+
+        private string tempProfileFilePath;
+
         [UnityTearDown]
         public IEnumerator TearDown()
         {
@@ -31,6 +36,19 @@ namespace RoadRage.Tests.PlayMode
                 Object.Destroy(survivor.gameObject);
             }
 
+            if (originalProfileFilePath != null)
+            {
+                PlayerProfileFileStore.DefaultFilePath = originalProfileFilePath;
+                originalProfileFilePath = null;
+            }
+
+            if (!string.IsNullOrEmpty(tempProfileFilePath) && File.Exists(tempProfileFilePath))
+            {
+                File.Delete(tempProfileFilePath);
+            }
+
+            tempProfileFilePath = null;
+
             yield return null;
         }
 
@@ -39,6 +57,12 @@ namespace RoadRage.Tests.PlayMode
         {
             var blockingLogs = new List<string>();
             Application.logMessageReceived += CaptureBlockingLog;
+
+            // Le profil persistant est redirige hors du dossier utilisateur avant le chargement du
+            // bootstrap : le checkpoint ne doit ni lire ni ecraser le profil reel de la machine.
+            originalProfileFilePath = PlayerProfileFileStore.DefaultFilePath;
+            tempProfileFilePath = Path.Combine(Path.GetTempPath(), "roadrage-story45-" + System.Guid.NewGuid().ToString("N") + ".json");
+            PlayerProfileFileStore.DefaultFilePath = tempProfileFilePath;
 
             try
             {
@@ -51,6 +75,28 @@ namespace RoadRage.Tests.PlayMode
 
                 var menuScreen = Object.FindAnyObjectByType<MainMenuScreen>();
                 Assert.That(menuScreen, Is.Not.Null, "MainMenuScreen attendu dans MainMenuLobby");
+
+                // Depuis la Story 4.5, le menu principal resout le profil et porte la seule selection de
+                // personnage : plus aucun ecran de creation, plus aucune saisie de nom.
+                var profileFlow = Object.FindAnyObjectByType<MainMenuProfileFlowController>();
+                Assert.That(profileFlow, Is.Not.Null, "MainMenuProfileFlowController attendu dans le menu");
+
+                var catalog = GetCatalog(profileFlow);
+                Assert.That(catalog.Count, Is.GreaterThanOrEqualTo(2), "au moins deux personnages selectionnables attendus");
+
+                var bootstrap = RoadRageBootstrap.Instance;
+                Assert.That(bootstrap.Profiles.HasProfile, Is.True, "le menu doit resoudre un profil utilisable des l'ouverture");
+
+                ClickSerializedButton(menuScreen, "secondaryCharacterButton");
+                yield return null;
+
+                var selectedCharacter = catalog.GetAt((int)MainMenuScreen.CharacterOption.Secondary);
+                Assert.That(selectedCharacter, Is.Not.Null, "personnage selectionne attendu");
+                Assert.That(bootstrap.Profiles.Current.CharacterId, Is.EqualTo(selectedCharacter.Id),
+                    "le clic sur un emplacement du menu doit publier ce personnage");
+
+                var displayName = bootstrap.Profiles.Current.DisplayName;
+                Assert.That(displayName, Is.Not.Empty, "le profil resolu doit porter un nom affichable");
 
                 ClickSerializedButton(menuScreen, "playButton");
                 yield return null;
@@ -65,7 +111,6 @@ namespace RoadRage.Tests.PlayMode
                 // seulement que le clic fait evoluer LobbyRoomService vers un etat terminal, jamais
                 // bloque sur Creating. Couverture complete (code affiche, notice, fermeture) dans
                 // Story22HostCreatedPrivateRoomPlayModeTests.
-                var bootstrap = RoadRageBootstrap.Instance;
                 ClickSerializedButton(lobbyScreen, "createLobbyButton");
 
                 var roomSettleFrames = 0;
@@ -87,31 +132,6 @@ namespace RoadRage.Tests.PlayMode
                 yield return null;
                 Assert.That(lobbyFlow.Settings.Difficulty, Is.Not.EqualTo(Difficulty.Normal),
                     "le checkpoint doit conserver un reglage lobby local modifiable");
-
-                var profileFlow = Object.FindAnyObjectByType<PlayerProfileFlowController>();
-                Assert.That(profileFlow, Is.Not.Null, "PlayerProfileFlowController attendu dans le flux Epic 1");
-
-                ClickSerializedButton(lobbyScreen, "characterSetupButton");
-                yield return null;
-
-                var setupScreen = GetScreen(profileFlow);
-                var catalog = GetCatalog(profileFlow);
-                Assert.That(catalog.Count, Is.GreaterThanOrEqualTo(2), "au moins deux personnages selectionnables attendus");
-
-                ClickSerializedButton(setupScreen, "characterCycleButton");
-                yield return null;
-
-                var selectedCharacter = catalog.GetAt(profileFlow.CurrentIndex);
-                Assert.That(selectedCharacter, Is.Not.Null, "personnage selectionne attendu");
-
-                SetInputText(setupScreen, "Checkpoint");
-                ClickSerializedButton(setupScreen, "confirmButton");
-                yield return null;
-
-                var profileStore = RoadRageBootstrap.Instance.Profiles;
-                Assert.That(profileStore.HasProfile, Is.True, "un profil valide doit etre garde pour l'entree monde");
-                Assert.That(profileStore.Current.DisplayName, Is.EqualTo("Checkpoint"));
-                Assert.That(profileStore.Current.CharacterId, Is.EqualTo(selectedCharacter.Id));
 
                 ClickSerializedButton(lobbyScreen, "startGameButton");
                 yield return null;
@@ -136,7 +156,7 @@ namespace RoadRage.Tests.PlayMode
                 var hud = Object.FindAnyObjectByType<RunCheckpointHudScreen>();
                 Assert.That(hud, Is.Not.Null, "HUD placeholder attendu dans MVP_Run");
                 AssertSerializedTextContains(hud, "lobbyStateLabel", RunCheckpointHudScreen.LocalLobbyState);
-                AssertSerializedTextContains(hud, "playerStateLabel", "Checkpoint");
+                AssertSerializedTextContains(hud, "playerStateLabel", displayName);
                 AssertSerializedTextContains(hud, "playerStateLabel", selectedCharacter.DisplayName);
                 AssertSerializedTextContains(hud, "futureHudLabel", RunCheckpointHudScreen.FutureHudState);
 
@@ -156,25 +176,11 @@ namespace RoadRage.Tests.PlayMode
             }
         }
 
-        private static CharacterSetupScreen GetScreen(PlayerProfileFlowController flow)
-        {
-            var screen = GetPrivateField(flow, "characterSetupScreen") as CharacterSetupScreen;
-            Assert.That(screen != null, Is.True, "PlayerProfileFlowController.characterSetupScreen doit etre cable");
-            return screen;
-        }
-
-        private static CharacterCatalog GetCatalog(PlayerProfileFlowController flow)
+        private static CharacterCatalog GetCatalog(MainMenuProfileFlowController flow)
         {
             var catalog = GetPrivateField(flow, "catalog") as CharacterCatalog;
-            Assert.That(catalog != null, Is.True, "PlayerProfileFlowController.catalog doit etre cable");
+            Assert.That(catalog != null, Is.True, "MainMenuProfileFlowController.catalog doit etre cable");
             return catalog;
-        }
-
-        private static void SetInputText(CharacterSetupScreen screen, string value)
-        {
-            var input = GetPrivateField(screen, "nameInputField") as TMP_InputField;
-            Assert.That(input != null, Is.True, "CharacterSetupScreen.nameInputField doit etre cable");
-            input.text = value;
         }
 
         private static void ClickSerializedButton(Component component, string buttonFieldName)

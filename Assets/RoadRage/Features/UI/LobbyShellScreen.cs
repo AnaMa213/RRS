@@ -7,8 +7,11 @@ using UnityEngine.UI;
 namespace RoadRage.Features.UI
 {
     /// <summary>
-    /// Ecran UGUI de la coquille de lobby locale (Story 1.2) : creation/join de room, personnage, et
-    /// jeu solo local (difficulte + Start Game). Depuis la Story 2.4, cet ecran ne represente plus le
+    /// Ecran UGUI de la coquille de lobby locale (Story 1.2) : creation/join de room et jeu solo
+    /// local (difficulte + Start Game). Le choix de personnage n'est plus expose ici depuis la
+    /// Story 4.5 : le menu principal est la seule surface de selection, et ce panneau ne fait que
+    /// refléter le profil deja resolu.
+    /// Depuis la Story 2.4, cet ecran ne represente plus le
     /// "lobby" une fois une room active : LobbyFlowController le masque au profit de LobbyRosterScreen
     /// des qu'une room est ouverte ou rejointe, et le restaure a la fermeture. N'appelle jamais de
     /// chargement de scene direct et ne mute jamais l'objet de reglages de partie du feature Lobby : il
@@ -43,9 +46,6 @@ namespace RoadRage.Features.UI
         private Button difficultyButton;
 
         [SerializeField]
-        private Button characterSetupButton;
-
-        [SerializeField]
         private TMP_Text settingsSummaryLabel;
 
         private Difficulty displayedDifficulty = Difficulty.Normal;
@@ -57,9 +57,6 @@ namespace RoadRage.Features.UI
         public event Action StartGameRequested;
 
         public event Action<Difficulty> DifficultyChanged;
-
-        /// <summary>Point d'entree du flux de setup de personnage (Story 1.3).</summary>
-        public event Action CharacterSetupRequested;
 
         private void Awake()
         {
@@ -97,15 +94,6 @@ namespace RoadRage.Features.UI
             else
             {
                 Debug.LogWarning("[UI] LobbyShellScreen sans reference vers difficultyButton.");
-            }
-
-            if (characterSetupButton != null)
-            {
-                characterSetupButton.onClick.AddListener(RaiseCharacterSetupRequested);
-            }
-            else
-            {
-                Debug.LogWarning("[UI] LobbyShellScreen sans reference vers characterSetupButton.");
             }
 
             if (settingsSummaryLabel == null)
@@ -234,11 +222,6 @@ namespace RoadRage.Features.UI
         private void RaiseStartGameRequested()
         {
             StartGameRequested?.Invoke();
-        }
-
-        private void RaiseCharacterSetupRequested()
-        {
-            CharacterSetupRequested?.Invoke();
         }
     }
 }
