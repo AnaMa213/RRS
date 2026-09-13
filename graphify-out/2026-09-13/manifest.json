@@ -3870,9 +3870,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789248086.9707649,
-    "seen": 1789248101.4866288,
-    "ast_hash": "0abc178c453376439285f248b2d9dc93",
+    "mtime": 1789299031.1196513,
+    "seen": 1789299336.8136945,
+    "ast_hash": "fb6c862ff851397dffc6610d3e6790d8",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -3924,15 +3924,15 @@
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/architecture/architecture-RoadRage_Simulator-2026-09-02/.memlog.md": {
-    "mtime": 1788351199.538081,
-    "seen": 1789154390.867743,
-    "ast_hash": "9f433f7344220e80a160bab982b6dd55",
+    "mtime": 1789298852.636456,
+    "seen": 1789299336.8137012,
+    "ast_hash": "59e6b1a73c2aa1ad53379e55648824a4",
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/architecture/architecture-RoadRage_Simulator-2026-09-02/ARCHITECTURE-SPINE.md": {
-    "mtime": 1789206672.792055,
-    "seen": 1789206721.4519565,
-    "ast_hash": "461470def3cf2a9a9e9e557d75ebe956",
+    "mtime": 1789298871.4616146,
+    "seen": 1789299336.8137019,
+    "ast_hash": "367396064d077d251b882f5554533b1a",
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/architecture/architecture-RoadRage_Simulator-2026-09-02/beginner-architecture-guide.md": {
@@ -3966,9 +3966,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/epics.md": {
-    "mtime": 1789206672.792055,
-    "seen": 1789206721.4519606,
-    "ast_hash": "e0de1df92237ef1388c2b4895a1099ec",
+    "mtime": 1789299020.0432227,
+    "seen": 1789299336.8137062,
+    "ast_hash": "da94e21bdfc7f44550bbd094fdfb04e0",
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-02.md": {
@@ -3978,33 +3978,33 @@
     "semantic_hash": ""
   },
   "_bmad-output/specs/spec-road-rage-simulator/.memlog.md": {
-    "mtime": 1788353806.381875,
-    "seen": 1789154390.867749,
-    "ast_hash": "0f64f706a23e99ff90f9d863ff362dd3",
+    "mtime": 1789299095.9799476,
+    "seen": 1789299336.813711,
+    "ast_hash": "b7bd32025ecfd78503dd9af310cd6e26",
     "semantic_hash": ""
   },
   "_bmad-output/specs/spec-road-rage-simulator/SPEC.md": {
-    "mtime": 1788353774.9342055,
-    "seen": 1789154390.8677495,
-    "ast_hash": "d157a8a4144aa93a13cdbd208204fe75",
+    "mtime": 1789298819.2058916,
+    "seen": 1789299336.8137116,
+    "ast_hash": "c05621b66f5fb4979782b5e1590b3b43",
     "semantic_hash": ""
   },
   "_bmad-output/specs/spec-road-rage-simulator/gameplay-model.md": {
-    "mtime": 1788353774.9342055,
-    "seen": 1789154390.86775,
-    "ast_hash": "5d5b81821929341f5eaa99b5d209b12e",
+    "mtime": 1789298842.8602924,
+    "seen": 1789299336.8137128,
+    "ast_hash": "a113c54bd131407b5e5e3d63ad25fe5b",
     "semantic_hash": ""
   },
   "_bmad-output/specs/spec-road-rage-simulator/module-composition.md": {
-    "mtime": 1788353754.8050103,
-    "seen": 1789154390.8677504,
-    "ast_hash": "8142e230c4b1cf88dfb9d5a4f0756753",
+    "mtime": 1789298842.8613832,
+    "seen": 1789299336.8137136,
+    "ast_hash": "5e8fae08dd5685f0af5ef031b2c99800",
     "semantic_hash": ""
   },
   "_bmad-output/specs/spec-road-rage-simulator/mvp-scope.md": {
-    "mtime": 1788353795.447555,
-    "seen": 1789154390.8677511,
-    "ast_hash": "2887c2cbbf6978eb1a21fb18897c1e5c",
+    "mtime": 1789298842.8602924,
+    "seen": 1789299336.8137143,
+    "ast_hash": "5703b1ffa70b72bdb2d207e41ab9688c",
     "semantic_hash": ""
   },
   "_bmad/_config/manifest.yaml": {
@@ -4368,9 +4368,1167 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-4-4-passenger-action-two-creates-an-incident-or-resource-opportu.md": {
-    "mtime": 1789248086.969751,
-    "seen": 1789248101.4866261,
-    "ast_hash": "b90f614da22d990c5dd057c64444de1a",
+    "mtime": 1789299031.1186504,
+    "seen": 1789299336.813692,
+    "ast_hash": "98ec7d8f09adafcf51c33651b00f5a16",
+    "semantic_hash": ""
+  },
+  ".agents/skills/2d-pixel-perfect/references/camera-setup-builtin.cs": {
+    "mtime": 1789291788.9965105,
+    "seen": 1789299336.8129554,
+    "ast_hash": "4b13a8f3e7525e5b8706085eb3fc1877",
+    "semantic_hash": ""
+  },
+  ".agents/skills/2d-pixel-perfect/references/camera-setup-urp.cs": {
+    "mtime": 1789291788.9965105,
+    "seen": 1789299336.812959,
+    "ast_hash": "d97d4ed69cfef961e15ab5fead14348e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/2d-pixel-perfect/references/pipeline-detection.cs": {
+    "mtime": 1789291788.9965105,
+    "seen": 1789299336.8129609,
+    "ast_hash": "00fd9ed8ff9d819323f9a96d0a933274",
+    "semantic_hash": ""
+  },
+  ".agents/skills/2d-pixel-perfect/references/sprite-settings.cs": {
+    "mtime": 1789291788.9965105,
+    "seen": 1789299336.8129618,
+    "ast_hash": "46a528ce6440b7f05edb6ffc2c86d325",
+    "semantic_hash": ""
+  },
+  ".agents/skills/localization/resources/L10nBatchProcessor.cs": {
+    "mtime": 1789291789.015635,
+    "seen": 1789299336.8129878,
+    "ast_hash": "6f1db4bb4a09ede312428928035a6f9b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/localization/resources/LocalizedFontAsset.cs": {
+    "mtime": 1789291789.0171442,
+    "seen": 1789299336.8129888,
+    "ast_hash": "9b3b1117725219c2658a728a372bb314",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/authoringvsruntime.cs": {
+    "mtime": 1789291789.019654,
+    "seen": 1789299336.8129897,
+    "ast_hash": "d3c6f1a25796980f6733c49efb37c9e0",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/buildaddressablespostprocess.cs": {
+    "mtime": 1789291789.019654,
+    "seen": 1789299336.8129904,
+    "ast_hash": "67ebeee8a9fdc4922939dfc1a6e38890",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/cacheloadedatlases.cs": {
+    "mtime": 1789291789.019654,
+    "seen": 1789299336.812991,
+    "ast_hash": "dc429b5a1569d50dc68d42bd796a00ee",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/cleanupbatchoperations.cs": {
+    "mtime": 1789291789.0206542,
+    "seen": 1789299336.812992,
+    "ast_hash": "95c920dd6cfb8123c4486b1fd19fed81",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/createandconfiguremasteratlas.cs": {
+    "mtime": 1789291789.0206542,
+    "seen": 1789299336.8129928,
+    "ast_hash": "d753a3e3caceaed9f15b26225a550dbb",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/custompackersetup.cs": {
+    "mtime": 1789291789.0206542,
+    "seen": 1789299336.8129933,
+    "ast_hash": "b5e61158ce8c203ab6eccf8ec254175b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/deprecatedmethods.cs": {
+    "mtime": 1789291789.0206542,
+    "seen": 1789299336.8129942,
+    "ast_hash": "d5e1d6827a6843b1f9f00080b8b35278",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/dontmodifywithoutsaving.cs": {
+    "mtime": 1789291789.0216541,
+    "seen": 1789299336.812995,
+    "ast_hash": "cfd85049f42c0ddccb988841cd0bc7dd",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/dontpackinruntimebuilds.cs": {
+    "mtime": 1789291789.0216541,
+    "seen": 1789299336.812996,
+    "ast_hash": "90fd2663c9b9bfedc9d38c7fd4944aaf",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/dontscriptspriteatlasineditor.cs": {
+    "mtime": 1789291789.0216541,
+    "seen": 1789299336.8129964,
+    "ast_hash": "5dd8ac78aef7ac8fe67abbaf35061ddf",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/editorconfiguration.cs": {
+    "mtime": 1789291789.0216541,
+    "seen": 1789299336.8129969,
+    "ast_hash": "10165e9bfa212c7c4e374a9891adb6ea",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/enablespritepacking.cs": {
+    "mtime": 1789291789.0226543,
+    "seen": 1789299336.8129976,
+    "ast_hash": "3b7f2655174e64a37078093e14c83f60",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/gridspritepacker.cs": {
+    "mtime": 1789291789.0226543,
+    "seen": 1789299336.8129983,
+    "ast_hash": "784b83ee636992d366a5626cffdf02d7",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/handlelatebinding.cs": {
+    "mtime": 1789291789.0231564,
+    "seen": 1789299336.812999,
+    "ast_hash": "69fa4270e435c7dd73ca5c8771e22444",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/handlenullcases.cs": {
+    "mtime": 1789291789.0231564,
+    "seen": 1789299336.8129997,
+    "ast_hash": "1baecd5c0435da3c9765a750b85272e9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/migratev1tov2.cs": {
+    "mtime": 1789291789.0231564,
+    "seen": 1789299336.8130002,
+    "ast_hash": "a04b298f5e5100d2b94b580c056e313f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/multipagepacker.cs": {
+    "mtime": 1789291789.0231564,
+    "seen": 1789299336.813001,
+    "ast_hash": "098b0b73fefdc2a9cfcc5d6d40e70f05",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/optimizetexturesettings.cs": {
+    "mtime": 1789291789.0241585,
+    "seen": 1789299336.8130016,
+    "ast_hash": "498d8e98458899afeebc175c3f0f8778",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/packerdebugging.cs": {
+    "mtime": 1789291789.0241585,
+    "seen": 1789299336.8130023,
+    "ast_hash": "dcaa8c8e5c3abd28db06698448c1ff9b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/packtransform.cs": {
+    "mtime": 1789291789.0241585,
+    "seen": 1789299336.813003,
+    "ast_hash": "d612116cf6018ddfc3a1aa0e9acb9ea8",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/platformnames.cs": {
+    "mtime": 1789291789.0241585,
+    "seen": 1789299336.8130038,
+    "ast_hash": "a79767b3d78fc45ff47d6aa3c3cb38fc",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/queryspritesefficiently.cs": {
+    "mtime": 1789291789.0251584,
+    "seen": 1789299336.8130045,
+    "ast_hash": "c1a926fbbe077ea3aededdccb7a4c959",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/registercallbacks.cs": {
+    "mtime": 1789291789.0251584,
+    "seen": 1789299336.8130052,
+    "ast_hash": "e502d6cefee17c74ea9e2c8e942b289d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/runtimeatlasloader.cs": {
+    "mtime": 1789291789.0251584,
+    "seen": 1789299336.813006,
+    "ast_hash": "a7e9ce8ec824d937c66adfbc52ad0ab4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/runtimespriteaccess.cs": {
+    "mtime": 1789291789.0261753,
+    "seen": 1789299336.8130064,
+    "ast_hash": "719a06e771b239172646b666e91b294c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/savespriteatlasasset.cs": {
+    "mtime": 1789291789.0261753,
+    "seen": 1789299336.813007,
+    "ast_hash": "86f962f2acc10e9b5a3457e16040eb0c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/scriptablepacker.cs": {
+    "mtime": 1789291789.0261753,
+    "seen": 1789299336.8130076,
+    "ast_hash": "7904f862894f33163b4d61349f6dce10",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/setincludeinbuild.cs": {
+    "mtime": 1789291789.0261753,
+    "seen": 1789299336.8130078,
+    "ast_hash": "4eab3a24255e1853fa50bddc5a0dfa8e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/sizeoptimizedpacker.cs": {
+    "mtime": 1789291789.0271752,
+    "seen": 1789299336.8130085,
+    "ast_hash": "0a3628f57692fea8b6b725e196cc361e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/spriteatlaslatebinding.cs": {
+    "mtime": 1789291789.0271752,
+    "seen": 1789299336.8130095,
+    "ast_hash": "4504ad8f3add4820f582690fafacc1e4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/spriteatlasprebuildgenerator.cs": {
+    "mtime": 1789291789.0276778,
+    "seen": 1789299336.81301,
+    "ast_hash": "ea2e2b325cc9ef56cd8c7d7a7b466d76",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/spritedata.cs": {
+    "mtime": 1789291789.0276778,
+    "seen": 1789299336.813011,
+    "ast_hash": "ca61e55b736d141a7bb4d78130359020",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/spritepack.cs": {
+    "mtime": 1789291789.0276778,
+    "seen": 1789299336.8130116,
+    "ast_hash": "8eb7e6e0200866b600fca8294adbf6f5",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/texturedata.cs": {
+    "mtime": 1789291789.0276778,
+    "seen": 1789299336.8130121,
+    "ast_hash": "22f884c0aa28d295e2db5e4942699e33",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/updatebuildscripts.cs": {
+    "mtime": 1789291789.0286787,
+    "seen": 1789299336.813013,
+    "ast_hash": "bd9310029d76a71f70b0a32c255acef1",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/updatesettingsconfiguration.cs": {
+    "mtime": 1789291789.0286787,
+    "seen": 1789299336.8130138,
+    "ast_hash": "5805f344fe1c55d46bff5584e922a27e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/usevariantswisely.cs": {
+    "mtime": 1789291789.0286787,
+    "seen": 1789299336.8130145,
+    "ast_hash": "50465e4ab162ef04e07b929e7752ce66",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/resources/variantatlas.cs": {
+    "mtime": 1789291789.0296793,
+    "seen": 1789299336.813015,
+    "ast_hash": "e3acb6e819f888843fc22c79f588a6fd",
+    "semantic_hash": ""
+  },
+  ".agents/skills/optimize-web/resources/WebOptimizer.cs": {
+    "mtime": 1789291789.0346873,
+    "seen": 1789299336.8130155,
+    "ast_hash": "0eb7abe901cf83c21174ef5fc0b94da2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/optimize-web/resources/toktx-examples.sh": {
+    "mtime": 1789291789.0346873,
+    "seen": 1789299336.8130164,
+    "ast_hash": "256bb698de23a5f2fbbab70b70e8083a",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/scripts/AutomaticSliceTexture.cs": {
+    "mtime": 1789291789.045218,
+    "seen": 1789299336.813017,
+    "ast_hash": "56f9a30d570ee56b61ea6d77710d7a1e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/scripts/GenerateNewSpriteRects.cs": {
+    "mtime": 1789291789.046218,
+    "seen": 1789299336.8130176,
+    "ast_hash": "3013e6e7fbac4999cdacd0a61980c463",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/scripts/GetTextureSourceImageSize.cs": {
+    "mtime": 1789291789.0467203,
+    "seen": 1789299336.813018,
+    "ast_hash": "37c0b9b9212b9bdc312f9cb5e7622334",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/scripts/GetTextureToSlice.cs": {
+    "mtime": 1789291789.0467203,
+    "seen": 1789299336.8130186,
+    "ast_hash": "a758fdceaa0248258ca0659113f2c716",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/scripts/GridSliceTexture.cs": {
+    "mtime": 1789291789.047222,
+    "seen": 1789299336.8130193,
+    "ast_hash": "7cf0c15708c68e26b2d8ca60e724e82f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/scripts/IsometricSliceTexture.cs": {
+    "mtime": 1789291789.047222,
+    "seen": 1789299336.81302,
+    "ast_hash": "2c9d8cbd57aabe900527ef1172bc280b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/scripts/SetPivotExample.cs": {
+    "mtime": 1789291789.047222,
+    "seen": 1789299336.8130205,
+    "ast_hash": "852f762a0a03555ecf0f1c391d6cd6c2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/scripts/SpriteToPng.cs": {
+    "mtime": 1789291789.0482242,
+    "seen": 1789299336.8130212,
+    "ast_hash": "8f0306ebc6e3dc2d3a17c3ca2970d9d2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-segment-3x3grid/scripts/SpriteGridAnalysis.cs": {
+    "mtime": 1789291789.0492241,
+    "seen": 1789299336.8130217,
+    "ast_hash": "4295cb694654221de1baf1342b7df15f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/tilemap-palette-create/scripts/CreatePaletteTemplate.cs": {
+    "mtime": 1789291789.050225,
+    "seen": 1789299336.8130226,
+    "ast_hash": "d51bcc121a378e8c1b69efe6d6ae71ae",
+    "semantic_hash": ""
+  },
+  ".vscode/mcp.json": {
+    "mtime": 1789293397.8698504,
+    "seen": 1789299336.813078,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "skills-lock.json": {
+    "mtime": 1789291822.72508,
+    "seen": 1789299336.8132043,
+    "ast_hash": "ce8b575231d87d0623dd147bbd42e4e7",
+    "semantic_hash": ""
+  },
+  ".agents/skills/2d-pixel-perfect/SKILL.md": {
+    "mtime": 1789291788.9950075,
+    "seen": 1789299336.813205,
+    "ast_hash": "9c15717cbc4120308cea6fdd1c0c9e2b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/2d-pixel-perfect/references/api-reference.md": {
+    "mtime": 1789291788.9950075,
+    "seen": 1789299336.8132055,
+    "ast_hash": "211607ccd663b76143b2e1d4a72c75c7",
+    "semantic_hash": ""
+  },
+  ".agents/skills/audio-setup-mixers/SKILL.md": {
+    "mtime": 1789291788.9965105,
+    "seen": 1789299336.8132062,
+    "ast_hash": "e8e5af7993e1648767ab820902e079d2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/audio-setup-mixers/references/api.md": {
+    "mtime": 1789291788.9985251,
+    "seen": 1789299336.8132067,
+    "ast_hash": "a518c36261d4a8ba21224778a1ba051d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/SKILL.md": {
+    "mtime": 1789291788.9985251,
+    "seen": 1789299336.8133438,
+    "ast_hash": "4155673d3bb8a8d49522596b360738b4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/achievements.md": {
+    "mtime": 1789291788.9995277,
+    "seen": 1789299336.8133445,
+    "ast_hash": "955c56f3c03e10b65c049b8d341e9344",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/apis.md": {
+    "mtime": 1789291788.9995277,
+    "seen": 1789299336.813345,
+    "ast_hash": "3229b555c5008ceb38a3f417351b2206",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/authentication.md": {
+    "mtime": 1789291788.9995277,
+    "seen": 1789299336.8133454,
+    "ast_hash": "126b47c3e4ddf511c991e8d5f02499f7",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/battlepass.md": {
+    "mtime": 1789291789.000528,
+    "seen": 1789299336.8133464,
+    "ast_hash": "d20e2fdb86825bbf26db8e6c53550a54",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/cloud-code.md": {
+    "mtime": 1789291789.000528,
+    "seen": 1789299336.8133469,
+    "ast_hash": "1ab8a7e702655047361770ecf3d84d26",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/cloud-save.md": {
+    "mtime": 1789291789.0015285,
+    "seen": 1789299336.8133473,
+    "ast_hash": "3faaf99735eb72f48ec53c88e83272d4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/deployment.md": {
+    "mtime": 1789291789.0015285,
+    "seen": 1789299336.8133478,
+    "ast_hash": "8cbca48dda72d9e98235f4e8c4adfad5",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/player-account.md": {
+    "mtime": 1789291789.0015285,
+    "seen": 1789299336.8133485,
+    "ast_hash": "c2ca30671b63bad55cfe5409966652a9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/remote-config.md": {
+    "mtime": 1789291789.0025287,
+    "seen": 1789299336.813349,
+    "ast_hash": "b66224f3994392a7816b4037d421a13b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/build-live-game/references/tooling.md": {
+    "mtime": 1789291789.0030317,
+    "seen": 1789299336.81335,
+    "ast_hash": "ff1ac467f8713b6d787044a0e6d7df92",
+    "semantic_hash": ""
+  },
+  ".agents/skills/generate-editor-search-query/SKILL.md": {
+    "mtime": 1789291789.0030317,
+    "seen": 1789299336.8133504,
+    "ast_hash": "8c19eb23687591bc35ad3069bdf57bbf",
+    "semantic_hash": ""
+  },
+  ".agents/skills/generate-editor-search-query/references/open-search-window.md": {
+    "mtime": 1789291789.0040348,
+    "seen": 1789299336.813351,
+    "ast_hash": "81229cbcfa45791d7ecafa45ccfb46ee",
+    "semantic_hash": ""
+  },
+  ".agents/skills/generate-editor-search-query/references/query-patterns.md": {
+    "mtime": 1789291789.0040348,
+    "seen": 1789299336.8133516,
+    "ast_hash": "522434f98cdbb97acf4eb5f2a891a40d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/README.md": {
+    "mtime": 1789291789.0040348,
+    "seen": 1789299336.813352,
+    "ast_hash": "9bc8de71be3c179d13a3f12c3aa04d01",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/SKILL.md": {
+    "mtime": 1789291789.0040348,
+    "seen": 1789299336.8133526,
+    "ast_hash": "31bba78b7b19692346a9ad24fc8cb3c5",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/api-notes.md": {
+    "mtime": 1789291789.0050352,
+    "seen": 1789299336.8133533,
+    "ast_hash": "9c8f092f2bcef7d2270dde5508470b6e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/codeless-catalog.md": {
+    "mtime": 1789291789.0050352,
+    "seen": 1789299336.813354,
+    "ast_hash": "157a22a023cf68a967a1e3608247896a",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/convert-adapty.md": {
+    "mtime": 1789291789.0060356,
+    "seen": 1789299336.8133545,
+    "ast_hash": "0586431914b49cf398ea45a187e4dbac",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/convert-essentialkit.md": {
+    "mtime": 1789291789.006538,
+    "seen": 1789299336.813355,
+    "ast_hash": "36e9f019e7969cf18b7fc66d773e75d2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/convert-revenuecat.md": {
+    "mtime": 1789291789.006538,
+    "seen": 1789299336.8133557,
+    "ast_hash": "1202ff8b84855a6e4a4ba93ec5223fcf",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/convert-unipay.md": {
+    "mtime": 1789291789.006538,
+    "seen": 1789299336.8133564,
+    "ast_hash": "37f39fb3023570028c0589cd2c567d91",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/migration-v4-to-v5.md": {
+    "mtime": 1789291789.006538,
+    "seen": 1789299336.8133569,
+    "ast_hash": "6b0502b630478123e00d4ed0ab32894e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/path-add-iap-to-new-project.md": {
+    "mtime": 1789291789.006538,
+    "seen": 1789299336.8133574,
+    "ast_hash": "b50625432fd32985a9f67994764d0df8",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/path-convert-native-google-billing.md": {
+    "mtime": 1789291789.006538,
+    "seen": 1789299336.8133578,
+    "ast_hash": "0610cc46d652948bfeca019d5fe70a0f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/path-convert-native-storekit.md": {
+    "mtime": 1789291789.0080442,
+    "seen": 1789299336.8133585,
+    "ast_hash": "640d29c23e534122ff4feb146ff9e794",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/path-implement-iap-d2c.md": {
+    "mtime": 1789291789.0080442,
+    "seen": 1789299336.813359,
+    "ast_hash": "0f407cae4dce8332caf5fcf568d15b98",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/platform-notes.md": {
+    "mtime": 1789291789.0090485,
+    "seen": 1789299336.8133595,
+    "ast_hash": "c8ffe0943e48fc771147cbadc321e1e2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/implement-in-app-purchases/references/pre-check.md": {
+    "mtime": 1789291789.0090485,
+    "seen": 1789299336.8133602,
+    "ast_hash": "393d31f845a7fcba789f9f832d9e2eb1",
+    "semantic_hash": ""
+  },
+  ".agents/skills/initialize-ai-navigation/SKILL.md": {
+    "mtime": 1789291789.0090485,
+    "seen": 1789299336.813361,
+    "ast_hash": "d96a5aec9b16216abb448071ef353f71",
+    "semantic_hash": ""
+  },
+  ".agents/skills/initialize-ai-navigation/references/navigation-system.md": {
+    "mtime": 1789291789.010048,
+    "seen": 1789299336.8133614,
+    "ast_hash": "19f6d21a813c546f6f89cae3db7737b7",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/CHANGELOG.md": {
+    "mtime": 1789291789.010048,
+    "seen": 1789299336.813362,
+    "ast_hash": "acd29fb0a074da167743d4341fc31414",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/README.md": {
+    "mtime": 1789291789.010048,
+    "seen": 1789299336.8133626,
+    "ast_hash": "dab7c1b8229b44937d0ca1bcf6a2a799",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/SKILL.md": {
+    "mtime": 1789291789.0110488,
+    "seen": 1789299336.8133633,
+    "ast_hash": "71a984d39150527fa5f4e189f101b80b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/banner-api.md": {
+    "mtime": 1789291789.011623,
+    "seen": 1789299336.8133638,
+    "ast_hash": "a5e006ad85a1b52a0b37f1ad4e82aa2d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/best-practices.md": {
+    "mtime": 1789291789.011623,
+    "seen": 1789299336.8133643,
+    "ast_hash": "92361940fd5ea1a4d7e749ad7f012252",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/dependency-resolution.md": {
+    "mtime": 1789291789.011623,
+    "seen": 1789299336.813365,
+    "ast_hash": "31a4bab9543c5a17964e353a69f090e5",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/ilrd-api.md": {
+    "mtime": 1789291789.011623,
+    "seen": 1789299336.8133655,
+    "ast_hash": "50c04651e8bb41977efc6418f722b0af",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/initialization-api.md": {
+    "mtime": 1789291789.0131307,
+    "seen": 1789299336.813366,
+    "ast_hash": "01dd208d14ec732861c6f40c654c1fc9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/interstitial-api.md": {
+    "mtime": 1789291789.0131307,
+    "seen": 1789299336.8133664,
+    "ast_hash": "5067140bafeaeae4e25bb3e4394662b5",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/ios-setup.md": {
+    "mtime": 1789291789.0131307,
+    "seen": 1789299336.8133671,
+    "ast_hash": "0c22f52ab4cb92ccb1911ab37460a116",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/migration-sdk-9.md": {
+    "mtime": 1789291789.014133,
+    "seen": 1789299336.8133678,
+    "ast_hash": "976e9fa5bccd8fd7f4115261ce455b41",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/privacy-settings.md": {
+    "mtime": 1789291789.014133,
+    "seen": 1789299336.8133683,
+    "ast_hash": "2b11da0d7a32643307e5198ca690ce81",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/rewarded-api.md": {
+    "mtime": 1789291789.014133,
+    "seen": 1789299336.813369,
+    "ast_hash": "7e5d501efcb0b2d93002abd87beefcdc",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/testing-and-validation.md": {
+    "mtime": 1789291789.014133,
+    "seen": 1789299336.8133695,
+    "ast_hash": "57e577ce846537b1894efba5675facaa",
+    "semantic_hash": ""
+  },
+  ".agents/skills/levelplay-unity-integration/references/troubleshooting.md": {
+    "mtime": 1789291789.015635,
+    "seen": 1789299336.8133702,
+    "ast_hash": "e2b2a2231ca1fc970285148e66f1a27d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/localization/SKILL.md": {
+    "mtime": 1789291789.015635,
+    "seen": 1789299336.8133707,
+    "ast_hash": "b2f75ca6dc6ce754ce281b5d31f2caab",
+    "semantic_hash": ""
+  },
+  ".agents/skills/localization/references/api-notes.md": {
+    "mtime": 1789291789.015635,
+    "seen": 1789299336.8133712,
+    "ast_hash": "ca9e9c30a12eadb5189c3009fc2c9975",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/SKILL.md": {
+    "mtime": 1789291789.0176518,
+    "seen": 1789299336.813372,
+    "ast_hash": "750cb296b57769e2dd620120d13153af",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/references/addressables-delivery.md": {
+    "mtime": 1789291789.0176518,
+    "seen": 1789299336.8133724,
+    "ast_hash": "7e885fa1c804f4e49a6c8eaf5d22f07c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/references/api.md": {
+    "mtime": 1789291789.0176518,
+    "seen": 1789299336.8133729,
+    "ast_hash": "c39e0bfc8ed058c6f6e51fba1ba7b495",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/references/best-practices.md": {
+    "mtime": 1789291789.0186543,
+    "seen": 1789299336.8133733,
+    "ast_hash": "3503b2d9c8905c6581a26732a0d68e2b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/references/common-errors.md": {
+    "mtime": 1789291789.0186543,
+    "seen": 1789299336.8133743,
+    "ast_hash": "98270d49053084bf2583d79dc493bf16",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/references/custom-packing.md": {
+    "mtime": 1789291789.0186543,
+    "seen": 1789299336.8133748,
+    "ast_hash": "3f4bc675e188ce957779d88560d3689c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/manage-sprite-atlas/references/manual-authoring.md": {
+    "mtime": 1789291789.0186543,
+    "seen": 1789299336.8133755,
+    "ast_hash": "d5db09214b8ac3aeb3ea6e32bb5ff243",
+    "semantic_hash": ""
+  },
+  ".agents/skills/migrate-birp-to-urp/SKILL.md": {
+    "mtime": 1789291789.0296793,
+    "seen": 1789299336.813376,
+    "ast_hash": "cd3a0b8871f0517f0c1d6f959694bf56",
+    "semantic_hash": ""
+  },
+  ".agents/skills/migrate-birp-to-urp/references/capturing-the-editor.md": {
+    "mtime": 1789291789.0306785,
+    "seen": 1789299336.8133764,
+    "ast_hash": "bd35c257fcf8f176f38633b9671d49a6",
+    "semantic_hash": ""
+  },
+  ".agents/skills/migrate-birp-to-urp/references/complex-shader-situations.md": {
+    "mtime": 1789291789.0306785,
+    "seen": 1789299336.8133774,
+    "ast_hash": "857ff815b396a8238752756233e391a9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/migrate-birp-to-urp/references/custom-shader-triage.md": {
+    "mtime": 1789291789.0306785,
+    "seen": 1789299336.8133779,
+    "ast_hash": "e1e4ef41d044682ebd17281b6fa44f8d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/migrate-birp-to-urp/references/implementation-patterns.md": {
+    "mtime": 1789291789.0306785,
+    "seen": 1789299336.8133783,
+    "ast_hash": "6c77b4141aecfa4fd5103251c89930ee",
+    "semantic_hash": ""
+  },
+  ".agents/skills/migrate-birp-to-urp/references/migration-workflow.md": {
+    "mtime": 1789291789.0321805,
+    "seen": 1789299336.8133788,
+    "ast_hash": "94051fbcac07f1f87a083cdad370a5e9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/migrate-birp-to-urp/references/quality-settings-map.md": {
+    "mtime": 1789291789.0321805,
+    "seen": 1789299336.8133795,
+    "ast_hash": "a85531c80cd700f15db55aabec30c985",
+    "semantic_hash": ""
+  },
+  ".agents/skills/new-unity-project/SKILL.md": {
+    "mtime": 1789291789.0321805,
+    "seen": 1789299336.81338,
+    "ast_hash": "6bd9b9fca1625853b7ae6a407d8f6c40",
+    "semantic_hash": ""
+  },
+  ".agents/skills/optimize-audio/SKILL.md": {
+    "mtime": 1789291789.0331829,
+    "seen": 1789299336.813381,
+    "ast_hash": "96d428e8e8ad9bfe99ae085647fe4321",
+    "semantic_hash": ""
+  },
+  ".agents/skills/optimize-audio/resources/audio-import-api.md": {
+    "mtime": 1789291789.0336857,
+    "seen": 1789299336.8133814,
+    "ast_hash": "36df17774f6f7f1fe9943b9d193a1c9a",
+    "semantic_hash": ""
+  },
+  ".agents/skills/optimize-audio/resources/platform-settings.md": {
+    "mtime": 1789291789.0336857,
+    "seen": 1789299336.813382,
+    "ast_hash": "8e39acf86c58cb54c82563f46275f677",
+    "semantic_hash": ""
+  },
+  ".agents/skills/optimize-text-mesh-pro/SKILL.md": {
+    "mtime": 1789291789.0336857,
+    "seen": 1789299336.8133826,
+    "ast_hash": "4ac8f6a983099ed902d55d33f0fb52e3",
+    "semantic_hash": ""
+  },
+  ".agents/skills/optimize-web/SKILL.md": {
+    "mtime": 1789291789.0346873,
+    "seen": 1789299336.813383,
+    "ast_hash": "dacf703dfeb5b4d684e57cf3e3fc2b6c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-multiplayer-services/SKILL.md": {
+    "mtime": 1789291789.0371928,
+    "seen": 1789299336.8133836,
+    "ast_hash": "45e6490f09eee439f4c7efa0e80f29fa",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-multiplayer-services/references/dgs-entrypoint.md": {
+    "mtime": 1789291789.0376992,
+    "seen": 1789299336.8133845,
+    "ast_hash": "9f5f6c3ec153cecfd0b7485943d015ce",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-multiplayer-services/references/entrypoints.md": {
+    "mtime": 1789291789.0376992,
+    "seen": 1789299336.8133852,
+    "ast_hash": "59c4a7b13efaca8e2f16ae9f085fff82",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-multiplayer-services/references/examples.md": {
+    "mtime": 1789291789.0376992,
+    "seen": 1789299336.8133857,
+    "ast_hash": "881a059f55bb29697862306dbfee4766",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-multiplayer-services/references/implementation-fit.md": {
+    "mtime": 1789291789.0387013,
+    "seen": 1789299336.8133862,
+    "ast_hash": "0a8cd728850eff97ab1eee9ce4af113c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-multiplayer-services/references/underlying-services.md": {
+    "mtime": 1789291789.0387013,
+    "seen": 1789299336.813387,
+    "ast_hash": "dbeecf8ee92072b6fc90e68a19c597cc",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-multiplayer-services/references/workflows-prerequisites.md": {
+    "mtime": 1789291789.0387013,
+    "seen": 1789299336.8133876,
+    "ast_hash": "c26876ccce140d6be2a31447a219aa06",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/SKILL.md": {
+    "mtime": 1789291789.0397015,
+    "seen": 1789299336.8133883,
+    "ast_hash": "d1c206e6d328a95b24ccdcab5adb3eb6",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/evals/README.md": {
+    "mtime": 1789291789.0397015,
+    "seen": 1789299336.813389,
+    "ast_hash": "a13618fd0f1a0c64105a26cf68e8f45b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/evals/promptfooconfig.yaml": {
+    "mtime": 1789291789.0407014,
+    "seen": 1789299336.8133895,
+    "ast_hash": "848e04ad62b3f72baaf193d7858b932c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/evals/tests/init-and-login.yaml": {
+    "mtime": 1789291789.0407014,
+    "seen": 1789299336.81339,
+    "ast_hash": "61d4eacbccc56bd2075441097050a589",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/evals/tests/text-chat.yaml": {
+    "mtime": 1789291789.0407014,
+    "seen": 1789299336.8133905,
+    "ast_hash": "9d5f7827b20a4af66f08fb74949cf9e0",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/evals/tests/voice-channels.yaml": {
+    "mtime": 1789291789.0407014,
+    "seen": 1789299336.8133912,
+    "ast_hash": "c952505b1b4de6c8c64f6035514fa5b9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/references/events-and-participants.md": {
+    "mtime": 1789291789.0407014,
+    "seen": 1789299336.813392,
+    "ast_hash": "e1b83b74886f0d2ae345310e90d7d07e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/references/init-and-login.md": {
+    "mtime": 1789291789.0422027,
+    "seen": 1789299336.8133924,
+    "ast_hash": "a762316b80740fcb97fde64b521749eb",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/references/text-chat.md": {
+    "mtime": 1789291789.0422027,
+    "seen": 1789299336.8133929,
+    "ast_hash": "2e2505c7f7efc69b99075445691ad7d4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/references/troubleshooting.md": {
+    "mtime": 1789291789.0422027,
+    "seen": 1789299336.8133936,
+    "ast_hash": "6a8cc05e36af5f082d65d990fffe142f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/setup-vivox-voice-chat/references/voice-channels.md": {
+    "mtime": 1789291789.0432084,
+    "seen": 1789299336.813394,
+    "ast_hash": "880031c723c93259eedf96d927fbd4e9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/shader-graph-create-custom-node/SKILL.md": {
+    "mtime": 1789291789.043714,
+    "seen": 1789299336.8133948,
+    "ast_hash": "69cfd68ae6afc9d131b32914e17ebf38",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/SKILL.md": {
+    "mtime": 1789291789.044216,
+    "seen": 1789299336.8133953,
+    "ast_hash": "9ae8caefbcdddf0dc9ecccb82b72197d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/references/api_reference.md": {
+    "mtime": 1789291789.044216,
+    "seen": 1789299336.813396,
+    "ast_hash": "1867e77674298ec38b1772e0f990dcb0",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/references/background.md": {
+    "mtime": 1789291789.045218,
+    "seen": 1789299336.8133965,
+    "ast_hash": "f8e277b8b7baa97b14776a08c5be323d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/references/templates.md": {
+    "mtime": 1789291789.045218,
+    "seen": 1789299336.813397,
+    "ast_hash": "846745e2b90134026bcad9fcf6962d5f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-editor/scripts/README.md": {
+    "mtime": 1789291789.047222,
+    "seen": 1789299336.8133974,
+    "ast_hash": "310c6fde0bac002a902a002bab7d7d74",
+    "semantic_hash": ""
+  },
+  ".agents/skills/sprite-segment-3x3grid/SKILL.md": {
+    "mtime": 1789291789.0482242,
+    "seen": 1789299336.8133984,
+    "ast_hash": "f1df4fd6e4038117702b334af8ab2bef",
+    "semantic_hash": ""
+  },
+  ".agents/skills/tilemap-palette-create/SKILL.md": {
+    "mtime": 1789291789.0492241,
+    "seen": 1789299336.8133988,
+    "ast_hash": "c2d46d7a1b74bbaa661df6d0b0c19f56",
+    "semantic_hash": ""
+  },
+  ".agents/skills/tilemap-ruletile-createempty/SKILL.md": {
+    "mtime": 1789291789.050225,
+    "seen": 1789299336.8133993,
+    "ast_hash": "e0227639bf998abf143e18dd6b2e05a4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/tilemap-ruletile-createempty/resources/hexagonalruletile.md": {
+    "mtime": 1789291789.051225,
+    "seen": 1789299336.8133998,
+    "ast_hash": "c89d4cbb25a4cf65b7e91a1e58ac9175",
+    "semantic_hash": ""
+  },
+  ".agents/skills/tilemap-ruletile-createempty/resources/ruletile.md": {
+    "mtime": 1789291789.051225,
+    "seen": 1789299336.8134005,
+    "ast_hash": "b46d0539af9b05759f83687a5b324a12",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-ugui/SKILL.md": {
+    "mtime": 1789291789.056267,
+    "seen": 1789299336.813401,
+    "ast_hash": "b9ccc78daade4243f524bd8510eae82d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-ugui/references/scrollview-setup.md": {
+    "mtime": 1789291789.0567696,
+    "seen": 1789299336.8134017,
+    "ast_hash": "21d1866b4e5344f1f5a77df96d470e8d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-uitk/SKILL.md": {
+    "mtime": 1789291789.0577736,
+    "seen": 1789299336.8134024,
+    "ast_hash": "d581ad81230983f17c9e056d33ed31f9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-uitk/references/common-issues.md": {
+    "mtime": 1789291789.0584888,
+    "seen": 1789299336.813403,
+    "ast_hash": "305ad805a1e46e5e8b7bf9e618dae03e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-uitk/references/custom-elements.md": {
+    "mtime": 1789291789.0584888,
+    "seen": 1789299336.8134034,
+    "ast_hash": "6903783f1ae2c09bc728b9bb0e619b60",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-uitk/references/painter2d.md": {
+    "mtime": 1789291789.0594916,
+    "seen": 1789299336.813404,
+    "ast_hash": "99676a3344e8af09dbb53944b44165bd",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-uitk/references/pointermanipulator-guide.md": {
+    "mtime": 1789291789.0594916,
+    "seen": 1789299336.8134046,
+    "ast_hash": "659ba79e079added728de17067c309c7",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-uitk/references/svg-icons.md": {
+    "mtime": 1789291789.0594916,
+    "seen": 1789299336.8134053,
+    "ast_hash": "6faf6e61669ac89258017ef5be9b32df",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-uitk/references/ui-runtime-binding.md": {
+    "mtime": 1789291789.0594916,
+    "seen": 1789299336.813406,
+    "ast_hash": "7bb30dac8d005ae0d90631723eb2ef10",
+    "semantic_hash": ""
+  },
+  ".agents/skills/ui-uitk/references/uss-guide.md": {
+    "mtime": 1789291789.0604916,
+    "seen": 1789299336.8134067,
+    "ast_hash": "5984c9f82a4a469194ceff8687b945dc",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/CHANGELOG.md": {
+    "mtime": 1789291789.0614915,
+    "seen": 1789299336.813407,
+    "ast_hash": "39af3f92c3f44261bdd76452baa975f9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/SECURITY.md": {
+    "mtime": 1789291789.0614915,
+    "seen": 1789299336.8134077,
+    "ast_hash": "0ba9e625a58b4163167e3f463e91732c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/SKILL.md": {
+    "mtime": 1789291789.0614915,
+    "seen": 1789299336.8134084,
+    "ast_hash": "e65c290fb38480501e0b50c13a5c2a52",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/references/auth-license-cloud.md": {
+    "mtime": 1789291789.0614915,
+    "seen": 1789299336.813409,
+    "ast_hash": "47605d50031a96c83707bbd972ab1d64",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/references/build-run-test.md": {
+    "mtime": 1789291789.0614915,
+    "seen": 1789299336.8134096,
+    "ast_hash": "27c961d0ce94c9ea5a6d3df247072654",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/references/collaboration.md": {
+    "mtime": 1789291789.0630558,
+    "seen": 1789299336.8134103,
+    "ast_hash": "415190a4be40290e531fc692852ba886",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/references/config-hub.md": {
+    "mtime": 1789291789.0635657,
+    "seen": 1789299336.8134108,
+    "ast_hash": "46eedfd2f0a88453c3fcb2fc3e3b4ddd",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/references/diagnostics-maintenance.md": {
+    "mtime": 1789291789.0635657,
+    "seen": 1789299336.8134115,
+    "ast_hash": "8f1e5aca04813c3e7b5c8f8f7d7684d3",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/references/editors-install.md": {
+    "mtime": 1789291789.0635657,
+    "seen": 1789299336.8134122,
+    "ast_hash": "fd9f64e1a11277d6fe1751f06c3bf173",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/references/integration-advanced.md": {
+    "mtime": 1789291789.064569,
+    "seen": 1789299336.8134127,
+    "ast_hash": "5de7c5504deeae1068b609f28bda499f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/references/projects-templates.md": {
+    "mtime": 1789291789.064569,
+    "seen": 1789299336.8134134,
+    "ast_hash": "bf1b20336fdbc9884b0dc9c4f9402e1d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-cli/references/version-control.md": {
+    "mtime": 1789291789.064569,
+    "seen": 1789299336.813414,
+    "ast_hash": "a8740120305dbdc1a4047a1c0306a734",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-package-management/SKILL.md": {
+    "mtime": 1789291789.0655682,
+    "seen": 1789299336.8134148,
+    "ast_hash": "c851b6e710c8880d7a8f0323dbc56720",
+    "semantic_hash": ""
+  },
+  ".agents/skills/unity-package-management/references/select-packages.md": {
+    "mtime": 1789291789.06607,
+    "seen": 1789299336.8134155,
+    "ast_hash": "764339905292c92c9f7d22f03cf7336e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/urp-postprocessing/SKILL.md": {
+    "mtime": 1789291789.06607,
+    "seen": 1789299336.813416,
+    "ast_hash": "7e41264320885ae8f2dd0b6c9cc594e9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/urp-postprocessing/references/code-templates.md": {
+    "mtime": 1789291789.0670724,
+    "seen": 1789299336.8134165,
+    "ast_hash": "eee932341c85858dc289aa06b9a1c121",
+    "semantic_hash": ""
+  },
+  ".agents/skills/urp-postprocessing/references/effect-reference.md": {
+    "mtime": 1789291789.0670724,
+    "seen": 1789299336.8134172,
+    "ast_hash": "2f8a7979c773ad5aad7be8ce2b81acbc",
+    "semantic_hash": ""
+  },
+  ".agents/skills/validate-urp-render-graph-renderer-feature/SKILL.md": {
+    "mtime": 1789291789.0670724,
+    "seen": 1789299336.8134174,
+    "ast_hash": "244f66730fecc3c0f456029a8e3415fd",
+    "semantic_hash": ""
+  },
+  ".github/copilot-instructions.md": {
+    "mtime": 1789290779.5856059,
+    "seen": 1789299336.813644,
+    "ast_hash": "2b23503628bf2ec71d067a85ca8948ab",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-13.md": {
+    "mtime": 1789299080.638793,
+    "seen": 1789299336.8137083,
+    "ast_hash": "9617470023ba9ddb19f92b7b72e1d3ac",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/ux-designs/ux-RoadRage_Simulator-2026-09-13/.memlog.md": {
+    "mtime": 1789298885.0864775,
+    "seen": 1789299336.8137088,
+    "ast_hash": "adab7f13a99816f95c19191c033c9378",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/ux-designs/ux-RoadRage_Simulator-2026-09-13/DESIGN.md": {
+    "mtime": 1789298906.1176026,
+    "seen": 1789299336.8137095,
+    "ast_hash": "02f090fe73804da62375651fa0e70edb",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/ux-designs/ux-RoadRage_Simulator-2026-09-13/EXPERIENCE.md": {
+    "mtime": 1789298906.1181264,
+    "seen": 1789299336.81371,
+    "ast_hash": "0165e501aa1da9125bb90f8fcc911346",
+    "semantic_hash": ""
+  },
+  "_bmad-output/specs/spec-road-rage-simulator/course-correction-2026-09-13.md": {
+    "mtime": 1789298819.2048922,
+    "seen": 1789299336.8137124,
+    "ast_hash": "7dbc33e776ac6df951368385e3d322d7",
     "semantic_hash": ""
   }
 }

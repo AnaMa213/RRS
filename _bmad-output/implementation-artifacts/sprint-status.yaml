@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 2026-09-13
+last_updated: 09-13-2026 14:00
 # 2026-09-13 course correction: 4.5, 4.6, 5.1 and 6.5 retain their backlog keys
 # but their authoritative scopes are replaced in planning-artifacts/epics.md.
 # Stories 4.1–4.4 remain in review; 4.4's implementation-spec status was reconciled to in-review.
@@ -42,7 +42,7 @@ development_status:
   epic-0: done
   0-1-setup-readiness-checklist-and-local-workspace-baseline: done
   0-2-unity-editor-project-creation-and-package-pinning: done
-  0-3-unity-cloud-services-lobby-and-relay-readiness: done
+  0-3-steamworks-lobby-and-networking-sockets-readiness: done
   0-4-project-structure-scenes-namespaces-and-runtime-state-skelet: done
   0-5-codex-claude-unity-mcp-and-blender-mcp-configuration: done
   0-6-blender-and-3d-asset-intake-pipeline: done
@@ -84,12 +84,12 @@ development_status:
   4-2-passenger-action-framework-and-host-validated-intent: review
   4-3-passenger-action-one-changes-rage: review
   4-4-passenger-action-two-creates-an-incident-or-resource-opportu: review
-  4-5-passenger-action-three-provides-crew-help: backlog
-  4-6-epic-4-passenger-chaos-playable-checkpoint: backlog
+  4-5-persistent-steam-profile-and-main-menu-character-selection: backlog
+  4-6-profile-freeze-session-payload-and-selected-character-spawn: backlog
   epic-4-retrospective: optional
 
   epic-5: backlog
-  5-1-three-ai-vehicles-on-the-route: backlog
+  5-1-configurable-npc-rage-fear-foundation: backlog
   5-2-basic-ai-route-following-and-recovery: backlog
   5-3-rage-driven-ai-behavior-states: backlog
   5-4-rage-road-event-trigger: backlog
@@ -102,7 +102,7 @@ development_status:
   6-2-dev-npc-dismount-and-test-mannequin: backlog
   6-3-on-foot-transition-for-confrontation-and-sandbox-stops: backlog
   6-4-compact-rage-road-confrontation-resolution: backlog
-  6-5-shared-money-reward-for-road-rage-victory: backlog
+  6-5-individual-wallet-authority: backlog
   6-6-compact-sandbox-stop-with-happenings: backlog
   6-7-one-upgrade-purchase: backlog
   6-8-upgrade-effect-on-the-next-driving-loop: backlog
