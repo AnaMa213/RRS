@@ -36045,13 +36045,13 @@
             "callee": "AngleAxis",
             "receiver_type": "Quaternion",
             "lang": "csharp",
-            "line": "L212"
+            "line": "L206"
           },
           {
             "callee": "MoveRotation",
             "receiver_type": "Rigidbody",
             "lang": "csharp",
-            "line": "L213"
+            "line": "L207"
           }
         ]
       },
@@ -36093,7 +36093,7 @@
       },
       "norm_label": ".cachecomponents()",
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L253"
+      "source_location": "L247"
     },
     {
       "id": "assets_roadrage_features_vehicles_networkedaivehicledrivercontroller_roadrage_features_vehicles_networkedaivehicledrivercontroller_fixedupdate",
@@ -36193,13 +36193,13 @@
             "callee": "Teleport",
             "receiver_type": "NetworkTransform",
             "lang": "csharp",
-            "line": "L238"
+            "line": "L232"
           }
         ]
       },
       "norm_label": ".recoveratwaypoint()",
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L224"
+      "source_location": "L218"
     },
     {
       "id": "assets_roadrage_features_vehicles_networkedaivehicledrivercontroller_roadrage_features_vehicles_networkedaivehicledrivercontroller_resolveuprightrecoveryrotation",
@@ -36219,19 +36219,19 @@
             "callee": "ProjectOnPlane",
             "receiver_type": "Vector3",
             "lang": "csharp",
-            "line": "L244"
+            "line": "L238"
           },
           {
             "callee": "LookRotation",
             "receiver_type": "Quaternion",
             "lang": "csharp",
-            "line": "L250"
+            "line": "L244"
           }
         ]
       },
       "norm_label": ".resolveuprightrecoveryrotation()",
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L242"
+      "source_location": "L236"
     },
     {
       "id": "assets_roadrage_tests_editmode_story26ingamehudtests_roadrage_tests_editmode_story26ingamehudtests_addlabel",
@@ -43823,25 +43823,25 @@
             "callee": "ReadAllText",
             "receiver_type": "File",
             "lang": "csharp",
-            "line": "L129"
+            "line": "L126"
           },
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L131"
+            "line": "L128"
           },
           {
             "callee": "Contain",
             "receiver_type": "Does",
             "lang": "csharp",
-            "line": "L132"
+            "line": "L129"
           }
         ]
       },
       "norm_label": ".drivercontrollerappliesrecoverywithoutrpcoradvancingwaypointindex()",
       "source_file": "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs",
-      "source_location": "L126"
+      "source_location": "L123"
     },
     {
       "id": "assets_roadrage_tests_editmode_story52basicairoutefollowingandrecoverytests_roadrage_tests_editmode_story52basicairoutefollowingandrecoverytests_drivercontrollerhasnosharedstaticstatebeyonditspurefunctions",
@@ -43861,25 +43861,25 @@
             "callee": "ReadAllText",
             "receiver_type": "File",
             "lang": "csharp",
-            "line": "L116"
+            "line": "L113"
           },
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L120"
+            "line": "L117"
           },
           {
             "callee": "EqualTo",
             "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L120"
+            "line": "L117"
           }
         ]
       },
       "norm_label": ".drivercontrollerhasnosharedstaticstatebeyonditspurefunctions()",
       "source_file": "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs",
-      "source_location": "L113"
+      "source_location": "L110"
     },
     {
       "id": "assets_roadrage_tests_editmode_story52basicairoutefollowingandrecoverytests_roadrage_tests_editmode_story52basicairoutefollowingandrecoverytests_drivercontrollerreusesexistingrolloverandvoidheightpredicatesunmodified",
@@ -43987,7 +43987,7 @@
       },
       "norm_label": ".occurrences()",
       "source_file": "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs",
-      "source_location": "L136"
+      "source_location": "L133"
     },
     {
       "id": "assets_roadrage_tests_editmode_story52basicairoutefollowingandrecoverytests_roadrage_tests_editmode_story52basicairoutefollowingandrecoverytests_routewaypointsnearestindexpicksclosestplanarwaypointforeachvehiclestart",
@@ -126035,7 +126035,7 @@
         "title": "Story 5.2 : suivi de route IA basique et recuperation",
         "type": "feature",
         "created": "2026-09-14",
-        "status": "in-review",
+        "status": "in-progress",
         "review_loop_iteration": "0",
         "baseline_commit": "3abf7e1f2bec946b444d1e4f52e69557d69e13f8"
       },
@@ -126078,7 +126078,7 @@
       "node_kind": "heading",
       "norm_label": "design notes",
       "source_file": "_bmad-output/implementation-artifacts/spec-5-2-basic-ai-route-following-and-recovery.md",
-      "source_location": "L94"
+      "source_location": "L79"
     },
     {
       "id": "bmad_output_implementation_artifacts_spec_5_2_basic_ai_route_following_and_recovery_i_o_edge_case_matrix",
@@ -126138,7 +126138,7 @@
       "node_kind": "heading",
       "norm_label": "verification",
       "source_file": "_bmad-output/implementation-artifacts/spec-5-2-basic-ai-route-following-and-recovery.md",
-      "source_location": "L103"
+      "source_location": "L83"
     },
     {
       "id": "bmad_output_specs_spec_road_rage_simulator_course_correction_2026_09_13",
@@ -163477,7 +163477,7 @@
         "ref_token": "Test"
       },
       "source_file": "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs",
-      "source_location": "L126",
+      "source_location": "L123",
       "weight": 1.0
     },
     {
@@ -163492,7 +163492,7 @@
         "ref_token": "Test"
       },
       "source_file": "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs",
-      "source_location": "L113",
+      "source_location": "L110",
       "weight": 1.0
     },
     {
@@ -178651,7 +178651,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L226",
+      "source_location": "L220",
       "weight": 1.0
     },
     {
@@ -184951,7 +184951,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs",
-      "source_location": "L120",
+      "source_location": "L117",
       "weight": 1.0
     },
     {
@@ -205887,7 +205887,7 @@
         "ref_token": "NetworkTransform"
       },
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L267",
+      "source_location": "L261",
       "weight": 1.0
     },
     {
@@ -205932,7 +205932,7 @@
         "ref_token": "NetworkedAIVehicleState"
       },
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L257",
+      "source_location": "L251",
       "weight": 1.0
     },
     {
@@ -208542,7 +208542,7 @@
         "ref_token": "Rigidbody"
       },
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L262",
+      "source_location": "L256",
       "weight": 1.0
     },
     {
@@ -223574,7 +223574,7 @@
         "ref_token": "Vector3"
       },
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L224",
+      "source_location": "L218",
       "weight": 1.0
     },
     {
@@ -225937,7 +225937,7 @@
         "ref_token": "Quaternion"
       },
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L242",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -279756,17 +279756,6 @@
     },
     {
       "source": "bmad_output_implementation_artifacts_spec_5_2_basic_ai_route_following_and_recovery",
-      "target": "bmad_output_implementation_artifacts_spec_5_2_basic_ai_route_following_and_recovery_verification",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "_bmad-output/implementation-artifacts/spec-5-2-basic-ai-route-following-and-recovery.md",
-      "source_location": "L103",
-      "weight": 1.0
-    },
-    {
-      "source": "bmad_output_implementation_artifacts_spec_5_2_basic_ai_route_following_and_recovery",
       "target": "bmad_output_implementation_artifacts_spec_5_2_basic_ai_route_following_and_recovery_intent",
       "relation": "contains",
       "_origin": "ast",
@@ -279839,7 +279828,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/implementation-artifacts/spec-5-2-basic-ai-route-following-and-recovery.md",
-      "source_location": "L94",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "bmad_output_implementation_artifacts_spec_5_2_basic_ai_route_following_and_recovery",
+      "target": "bmad_output_implementation_artifacts_spec_5_2_basic_ai_route_following_and_recovery_verification",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "_bmad-output/implementation-artifacts/spec-5-2-basic-ai-route-following-and-recovery.md",
+      "source_location": "L83",
       "weight": 1.0
     },
     {
@@ -318988,7 +318988,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L224",
+      "source_location": "L218",
       "weight": 1.0
     },
     {
@@ -318999,7 +318999,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L242",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -319010,7 +319010,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs",
-      "source_location": "L253",
+      "source_location": "L247",
       "weight": 1.0
     },
     {
@@ -325555,7 +325555,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs",
-      "source_location": "L113",
+      "source_location": "L110",
       "weight": 1.0
     },
     {
@@ -325566,7 +325566,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs",
-      "source_location": "L126",
+      "source_location": "L123",
       "weight": 1.0
     },
     {
@@ -325577,7 +325577,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs",
-      "source_location": "L136",
+      "source_location": "L133",
       "weight": 1.0
     },
     {

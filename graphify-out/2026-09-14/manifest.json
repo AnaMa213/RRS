@@ -396,15 +396,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/NetworkedVehicleSeatService.cs": {
-    "mtime": 1789223546.9252157,
-    "seen": 1789223650.6857839,
-    "ast_hash": "8e397c840babafa2a5bc720558230b97",
+    "mtime": 1789335459.889531,
+    "seen": 1789335682.2975447,
+    "ast_hash": "c5054f47a549c95f3a5ea8467a905634",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/RunFlowController.cs": {
-    "mtime": 1789332601.3565402,
-    "seen": 1789332676.9591396,
-    "ast_hash": "0b62e0cbcc11209b267d8c47e0b0d947",
+    "mtime": 1789335392.8853948,
+    "seen": 1789335682.297548,
+    "ast_hash": "c979a253fd3e3779fc14d164c82f79bf",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Services/AppSceneRouter.cs": {
@@ -648,27 +648,27 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleState.cs": {
-    "mtime": 1788462097.4908705,
-    "seen": 1789154390.8673844,
-    "ast_hash": "2a047b932c4fdc998ffc0818853f9e69",
+    "mtime": 1789376230.4572444,
+    "seen": 1789381976.6277757,
+    "ast_hash": "f4bf03094d0ac76d1002fe4a70a4487a",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDamageVfxController.cs": {
-    "mtime": 1789063420.6618247,
-    "seen": 1789154390.867385,
-    "ast_hash": "8db39f82eb8a6a08201208a3249899c8",
+    "mtime": 1789336160.7463179,
+    "seen": 1789373445.55148,
+    "ast_hash": "bf82740da49cd5b4ea55f651cf759601",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs": {
-    "mtime": 1789220016.8607745,
-    "seen": 1789220094.5710907,
-    "ast_hash": "0b6a27ddc176559c2119002d38dcc934",
+    "mtime": 1789335392.884384,
+    "seen": 1789335682.3097246,
+    "ast_hash": "2edbc33d7bd1f0a876df0e38fe23ceb0",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedVehicleState.cs": {
-    "mtime": 1788990925.7115998,
-    "seen": 1789154390.8673859,
-    "ast_hash": "3659f1c3add3c2556f5a42435233f35d",
+    "mtime": 1789336160.7448137,
+    "seen": 1789373445.5514815,
+    "ast_hash": "ce36c6c72a36045a77cce378f83583bc",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/VehicleDriveIntent.cs": {
@@ -846,9 +846,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story33SeatEntryExitAndPassengerPresenceTests.cs": {
-    "mtime": 1789219962.5431273,
-    "seen": 1789220094.571113,
-    "ast_hash": "1b1ead4f8b2ff5a9baf6f33d7d40aa24",
+    "mtime": 1789335493.599518,
+    "seen": 1789335682.3190632,
+    "ast_hash": "63d5d031ce0aba0dd397218354b39f49",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story34SimpleRouteCollisionAndVehicleRecoveryTests.cs": {
@@ -858,9 +858,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story35VehicleDamageHookAndTeamWipeContractStubTests.cs": {
-    "mtime": 1789063553.402901,
-    "seen": 1789154390.8674035,
-    "ast_hash": "12f6133c028c4478fc4f53dfa718bc2c",
+    "mtime": 1789337201.7104666,
+    "seen": 1789373445.5515063,
+    "ast_hash": "523ab58432f86459fa468cb83d647b0f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story36Epic3DrivingPlayableCheckpointTests.cs": {
@@ -3852,9 +3852,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789330971.7326982,
-    "seen": 1789331764.3840537,
-    "ast_hash": "c65be99d88f7369ab8cf7c01bc066ae2",
+    "mtime": 1789376025.8227773,
+    "seen": 1789381976.687142,
+    "ast_hash": "3df6f425fd1589cbd7803302032489c2",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -4693,8 +4693,8 @@
   },
   ".vscode/mcp.json": {
     "mtime": 1789293397.8698504,
-    "seen": 1789334681.6327589,
-    "ast_hash": "45d5d1e5f72188de071136d8dade9a5e",
+    "seen": 1789373445.5514252,
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -5625,6 +5625,36 @@
     "mtime": 1789330971.763723,
     "seen": 1789331764.3840501,
     "ast_hash": "9deec75a6dd6739cdb781589babd04ba",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-online-vehicle-parity.md": {
+    "mtime": 1789336042.5512264,
+    "seen": 1789373445.5519826,
+    "ast_hash": "6627d888ddee0496568339fd8fdde530",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs": {
+    "mtime": 1789381662.927744,
+    "seen": 1789381976.627774,
+    "ast_hash": "ed19af7aa63525305af343d337989b11",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/RouteWaypoints.cs": {
+    "mtime": 1789381810.202092,
+    "seen": 1789381976.628025,
+    "ast_hash": "ff125fe7c11fd46081df5ed0b770bcbf",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs": {
+    "mtime": 1789381676.0234778,
+    "seen": 1789381976.631794,
+    "ast_hash": "02d70d50a6eba770aa4a71983a6d03d7",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-5-2-basic-ai-route-following-and-recovery.md": {
+    "mtime": 1789376012.5962856,
+    "seen": 1789381976.68673,
+    "ast_hash": "beee22f8dbc2cf090c44216657c69d60",
     "semantic_hash": ""
   }
 }
