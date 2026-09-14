@@ -115,10 +115,11 @@ namespace RoadRage.Tests.EditMode
         {
             var source = File.ReadAllText(DriverControllerSourcePath);
 
-            // Seules les 3 fonctions de decision (Story 5.2) sont statiques : aucune collection/etat
-            // partage entre vehicules IA, chaque instance ne lit/ecrit que ses propres champs.
-            Assert.That(Occurrences(source, "static "), Is.EqualTo(3),
-                "Seuls ComputeSeekIntent/HasArrivedAtWaypoint/IsStuck doivent etre statiques -- toute autre occurrence signale un etat partage entre vehicules IA.");
+            // Seules les fonctions de decision sont statiques (Story 5.2 : ComputeSeekIntent,
+            // HasArrivedAtWaypoint, IsStuck ; Story 5.4 : ResolveCruiseSpeedMultiplier) : aucune
+            // collection/etat partage entre vehicules IA, chaque instance ne lit/ecrit que ses champs.
+            Assert.That(Occurrences(source, "static "), Is.EqualTo(4),
+                "Seuls ComputeSeekIntent/HasArrivedAtWaypoint/IsStuck/ResolveCruiseSpeedMultiplier doivent etre statiques -- toute autre occurrence signale un etat partage entre vehicules IA.");
             Assert.That(source, Does.Not.Contain("FindObjectsOfType"),
                 "La recuperation ne doit jamais inspecter/muter d'autres vehicules IA.");
         }

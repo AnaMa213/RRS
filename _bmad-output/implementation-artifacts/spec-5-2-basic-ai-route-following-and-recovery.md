@@ -34,7 +34,7 @@ context:
 
 **Never:**
 
-- Etats pilotes par la rage, controleur de trafic complet, archetypes finaux, boss, evenement Rage Road -- reserves 5.3/5.4.
+- Etats pilotes par la rage, controleur de trafic complet, archetypes finaux, boss, evenement Rage Road -- reserves 5.4/5.6.
 - Nouvelle RPC/intention validee pour le mouvement IA, ou modification de `NetworkedVehicleDriverController` au-dela de lire ses predicats statiques.
 
 ## I/O & Edge-Case Matrix

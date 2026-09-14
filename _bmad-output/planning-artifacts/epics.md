@@ -1033,7 +1033,28 @@ So that passenger chaos produces visible road behavior.
 **And** one AI vehicle changing state does not force all other AI vehicles into the same state
 **And** behavior transitions are host-authoritative
 
-### Story 5.5: Rage Road Event Trigger
+### Story 5.5: Networked AI Rage Targeting
+
+**Implements:** FR7, FR8, FR24, FR25, FR27, NFR4, NFR5
+
+As a player,
+I want to lock and change a valid AI vehicle target for rage/fear actions,
+So that my actions affect the intended vehicle in solo and co-op play.
+
+**Acceptance Criteria:**
+
+**Given** rage/fear-compatible AI vehicles are present in the run
+**When** a player presses `T`
+**Then** the closest eligible AI vehicle is locked for that player, and the local camera follows that vehicle rather than a spawn point, invisible object, or decor target
+**And** only spawned AI vehicles carrying the required networked AI and rage/fear state are eligible
+**And** `Y` selects the next eligible AI deterministically; if none exists, the current lock and camera remain stable
+**And** a lock remains the exclusive target for rage/fear actions until that player explicitly replaces or clears it; a closer vehicle never silently replaces it
+**And** if the locked target is outside an action's authored maximum range, that action affects no replacement target
+**And** without a lock, an action selects only the nearest eligible AI within its own maximum range for that one action and does not create a persistent lock
+**And** Host and Clients maintain independent locks while the host validates target type, spawned state, range, actor, and action before synchronized rage/fear mutation
+**And** the mechanism is reusable by horn, provocations, and future rage/fear actions rather than coupled to a single action
+
+### Story 5.6: Rage Road Event Trigger
 
 **Implements:** FR11, FR24, FR25, FR27, NFR4
 
@@ -1051,7 +1072,7 @@ So that the road chaos can move toward a confrontation loop.
 **And** duplicate triggers are prevented for the same active event
 **And** the event state is stored in host-owned runtime state
 
-### Story 5.6: AI Traffic Networking and Client Presentation
+### Story 5.7: AI Traffic Networking and Client Presentation
 
 **Implements:** FR6, FR7, FR8, FR11, FR24, FR25, FR27, NFR4, NFR5, NFR6
 
@@ -1068,7 +1089,7 @@ So that online play remains understandable.
 **And** late-joining clients receive the current relevant traffic and event state
 **And** network traffic remains suitable for MVP tests with up to four players and three AI vehicles
 
-### Story 5.7: Epic 5 AI Traffic Playable Checkpoint
+### Story 5.8: Epic 5 AI Traffic Playable Checkpoint
 
 **Implements:** FR6, FR7, FR8, FR11, FR24, FR25, FR27
 

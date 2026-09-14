@@ -87,7 +87,9 @@ namespace RoadRage.Tests.PlayMode
             var roomCodeLabel = (TMP_Text)GetPrivateField(screen, "roomCodeLabel");
             var createLabel = (TMP_Text)GetPrivateField(screen, "createLobbyButtonLabel");
 
-            Assert.That(roomCodeLabel.text, Does.Contain(bootstrap.LobbyRoom.JoinCode.ToString()), "le code affiche doit correspondre au JoinCode ouvert");
+            // Story 5.3 : la room affiche desormais DisplayJoinCode, le code court partageable (5
+            // caracteres) -- JoinCode brut (l'id du lobby Steam) n'est plus jamais montre au joueur.
+            Assert.That(roomCodeLabel.text, Does.Contain(bootstrap.LobbyRoom.DisplayJoinCode), "le code affiche doit correspondre au DisplayJoinCode ouvert");
             Assert.That(createLabel.text, Is.EqualTo("Close Room"));
         }
 

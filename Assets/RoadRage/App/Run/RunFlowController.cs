@@ -32,6 +32,8 @@ namespace RoadRage.App.Run
 
         private const int MinimumMvpRageTargetCount = 3;
 
+        private const int MinimumMvpDriveableRageVehicleCount = 2;
+
         [SerializeField]
         private RunCompositionRoot compositionRoot;
 
@@ -549,6 +551,11 @@ namespace RoadRage.App.Run
         /// donc en plus des vehicules repliques par le host il instanciait ses propres doublons non
         /// reseautes -- d'ou des positions differentes entre solo/host et host/client. Seul le host (ou
         /// l'absence de session reseau, cas solo) peut creer ces vehicules, comme IsAuthoritativeForDamage.
+        ///
+        /// Bug fix (hors Story 5.4, regression report du 2026-09-14) : depuis que les IA de route
+        /// (Story 5.4) portent leur propre NetworkedRageState, elles suffisent seules a atteindre
+        /// MinimumMvpRageTargetCount sans jamais etre pilotables -- le premier repli tombait alors a
+        /// zero vehicule de secours pilotable. Les deux minimums sont donc verifies independamment.
         /// </summary>
         private void EnsureMinimumMvpRageTargets()
         {
@@ -562,6 +569,26 @@ namespace RoadRage.App.Run
             {
                 CreateDevVehicle("MVP_RageTargetVehicle_" + i, new Vector3(6f + (i * 4f), 0f, -44f), Quaternion.identity, true);
             }
+
+            var driveableRageVehicleCount = CountDriveableRageVehicles(FindRageTargets());
+            for (var i = driveableRageVehicleCount; i < MinimumMvpDriveableRageVehicleCount; i++)
+            {
+                CreateDevVehicle("MVP_DriveableRageTargetVehicle_" + i, new Vector3(6f + ((MinimumMvpRageTargetCount + i) * 4f), 0f, -44f), Quaternion.identity, true);
+            }
+        }
+
+        private static int CountDriveableRageVehicles(NetworkedRageState[] targets)
+        {
+            var count = 0;
+            for (var i = 0; i < targets.Length; i++)
+            {
+                if (targets[i].GetComponent<NetworkedVehicleDriverController>() != null)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private bool TryFindDevVehicleSpawnPose(out Vector3 position, out Quaternion rotation)

@@ -195,3 +195,27 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-2-basic-ai-route-following-and-recovery.md`
   summary: La recuperation « blocage » teleporte le vehicule sur le waypoint courant, qui peut etre precisement le lieu du blocage lorsque plusieurs IA partagent la meme route -- boucle possible de teleportations toutes les N secondes avec interpenetration.
   evidence: Constat de la revue de la Story 5.2. Les trois instances de `MVP_Run` referencent la meme `RouteWaypoints` ; si une IA se retrouve bloquee a proximite du waypoint qu'elle vise (poussee par le joueur contre une autre IA arretee), `RecoverAtWaypoint` la repositionne exactement sur ce waypoint, donc potentiellement dans le collider de l'autre vehicule, et remet `stuckElapsedSeconds` a zero. Non corrige dans cette story : « reinitialisation au waypoint courant » est le comportement inscrit dans la matrice I/O figee de la spec, et tout degagement plus malin (decalage lateral, saut au waypoint suivant, evitement mutuel) releve du controleur de trafic de la Story 5.3 / de la densite reseau de la 5.5. Risque reel faible en l'etat : les trois IA partent equidistantes, a vitesse identique et dans le meme sens, donc elles ne se rattrapent pas sans intervention du joueur.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-rage-driven-ai-behavior-states.md`
+  summary: Corriger le ciblage des vehicules IA pour les actions rage/peur : locks individuels T/Y, camera, selection temporaire dans la portee et validation Host–Client.
+  evidence: Scinde a la demande humaine apres que la specification combinee comportements IA + ciblage ait atteint 3177 tokens. Le ciblage est un livrable autonome : il modifie l'intention joueur, la camera et la validation reseau, alors que les comportements 5.4 ne touchent que l'etat et la conduite IA. Les lier dans une seule story rendrait les deux changements difficiles a verifier et revoir separement.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-rage-driven-ai-behavior-states.md`
+  summary: Résolu par planification : le ciblage IA Rage/Fear est désormais la Story 5.5 « Networked AI Rage Targeting ».
+  evidence: Décision explicite de Kenan le 2026-09-14. La story est inscrite dans `epics.md`, suivie dans `sprint-status.yaml`, et les stories précédemment 5.5–5.7 sont décalées en 5.6–5.8. Cette entrée append-only préserve la trace du report initial sans le laisser comme dette non planifiée.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-rage-driven-ai-behavior-states.md`
+  summary: `AIVehicleBehaviorDebugView` (label dev) vit dans l'assembly de production `RoadRage.Features.Vehicles` et lui fait referencer `Unity.TextMeshPro` -- exactement la meme dette que celle deja consignee pour `RageStateDebugView` dans `RoadRage.Features.Rage` (Story 4.1).
+  evidence: Le chemin `Assets/RoadRage/Features/Vehicles/AIVehicleBehaviorDebugView.cs` est impose par la liste de taches de la spec 5.4, donc suivi tel quel. `RoadRage.DevTools` reference deja `RoadRage.Features.Vehicles` et aurait pu heberger la vue sans coupler la feature a un package UI. Impact fonctionnel nul (composant de presentation locale, lecture seule) ; a traiter en une seule fois avec la dette 4.1 si le nettoyage architectural est decide.
+
+- source_spec: none
+  summary: Cloture append-only des entrees VCS/.blend de Stories 0.1, 0.2 et 0.5 : le depot est initialise, une `.gitignore` Unity est presente, et les brouillons `Blender/*.blend` / `*.blend1` sont ignores.
+  evidence: Cette entree neutralise explicitement les constats initiaux d'absence de VCS, de `.gitignore` Unity et de decision pour `Blender/Untitled.blend`. La documentation d'onboarding peut encore etre amelioree si un nouveau contributeur arrive, mais ce n'est plus une dette de configuration du workspace courant.
+
+- source_spec: none
+  summary: Cloture append-only de l'entree de frontiere Story 4.4 : `RoadRage.Features.UI` ne reference plus `RoadRage.Features.PassengerActions`.
+  evidence: `Assets/RoadRage/Features/UI/RoadRage.Features.UI.asmdef` ne liste que Shared, Netcode, UI et TextMeshPro, et `RunCheckpointHudScreen.cs` ne comporte plus d'import PassengerActions. Le constat historique est conserve append-only, mais la garde d'assemblies ne porte plus cette violation.
+
+- source_spec: none
+  summary: Effectuer un audit dedie des warnings Unity et des API/methodes depreciees ou obsoletes avant le prochain checkpoint Epic.
+  evidence: Aucune liste de reference ni regle de tri ne distingue aujourd'hui les warnings introduits par le travail courant, les warnings historiques benins et les usages d'API a migrer. L'audit doit partir de la Console Unity et des sorties de test/build, inventorier chaque occurrence avec son origine, puis corriger ou documenter uniquement les cas reels ; ne pas lancer une migration globale speculative.

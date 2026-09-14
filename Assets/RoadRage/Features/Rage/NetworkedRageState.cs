@@ -11,7 +11,7 @@ namespace RoadRage.Features.Rage
     /// cible, pas d'une collection interne.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class NetworkedRageState : HostOwnedNetworkStateBehaviour
+    public sealed class NetworkedRageState : HostOwnedNetworkStateBehaviour, IRageDispositionSource
     {
         public NetworkVariable<RageDisposition> Disposition = new NetworkVariable<RageDisposition>(
             RageDisposition.Calm,
@@ -27,6 +27,16 @@ namespace RoadRage.Features.Rage
             0f,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
+
+        /// <summary>
+        /// Implementation de <see cref="IRageDispositionSource"/> (Story 5.4) : lecture seule de la
+        /// disposition synchronisee, pour les consommateurs qui ne peuvent pas dependre de
+        /// Features/Rage (Features/Vehicles). Aucun setter : la rage n'est mutee que par cette feature.
+        /// </summary>
+        public RageDisposition CurrentDisposition
+        {
+            get { return Disposition.Value; }
+        }
 
         /// <summary>
         /// Applique un delta de rage, clampe RageValue dans [0, tuning.MaxRageValue], puis recalcule

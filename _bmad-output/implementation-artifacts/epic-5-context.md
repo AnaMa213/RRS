@@ -4,7 +4,7 @@
 
 ## Goal
 
-Epic 5 doit etablir la reponse NPC configurable (Rage et Fear par cible, pilotee par des donnees), unifier le demarrage de session solo et en ligne sur un seul chemin host-authoritative, puis rendre testable la premiere brique de circulation IA: trois vehicules qui suivent une route simple, changent d'etat de comportement quand leur rage evolue, et peuvent declencher un evenement Rage Road. L'unification du demarrage de session (Story 5.3) a ete inseree par la correction de trajectoire du 2026-09-14: elle corrige une divergence structurelle presente depuis Epic 1 (le solo ne demarrait jamais de session Netcode), et conditionne la verifiabilite en solo de toutes les stories suivantes de l'epic. L'epic reste un bac a sable de fondations validables isolement: il ne doit introduire ni controleur de trafic complet, ni boss, ni liste finale d'archetypes, ni comportement propre a un niveau. Il prepare l'assemblage MVP 2 (ville/autoroute, checkpoints, confrontation) sans le verrouiller et sans dependre de l'economie d'Epic 6.
+Epic 5 doit etablir la reponse NPC configurable (Rage et Fear par cible, pilotee par des donnees), unifier le demarrage de session solo et en ligne sur un seul chemin host-authoritative, puis rendre testable la premiere brique de circulation IA: trois vehicules qui suivent une route simple, peuvent etre cibles individuellement pour les actions rage/peur, changent d'etat de comportement quand leur rage evolue, et peuvent declencher un evenement Rage Road. L'unification du demarrage de session (Story 5.3) a ete inseree par la correction de trajectoire du 2026-09-14: elle corrige une divergence structurelle presente depuis Epic 1 (le solo ne demarrait jamais de session Netcode), et conditionne la verifiabilite en solo de toutes les stories suivantes de l'epic. L'epic reste un bac a sable de fondations validables isolement: il ne doit introduire ni controleur de trafic complet, ni boss, ni liste finale d'archetypes, ni comportement propre a un niveau. Il prepare l'assemblage MVP 2 (ville/autoroute, checkpoints, confrontation) sans le verrouiller et sans dependre de l'economie d'Epic 6.
 
 ## Stories
 
@@ -12,9 +12,10 @@ Epic 5 doit etablir la reponse NPC configurable (Rage et Fear par cible, pilotee
 - Story 5.2: Basic AI Route Following and Recovery
 - Story 5.3: Unified Solo and Online Session Start
 - Story 5.4: Rage-Driven AI Behavior States
-- Story 5.5: Rage Road Event Trigger
-- Story 5.6: AI Traffic Networking and Client Presentation
-- Story 5.7: Epic 5 AI Traffic Playable Checkpoint
+- Story 5.5: Networked AI Rage Targeting
+- Story 5.6: Rage Road Event Trigger
+- Story 5.7: AI Traffic Networking and Client Presentation
+- Story 5.8: Epic 5 AI Traffic Playable Checkpoint
 
 ## Requirements & Constraints
 
@@ -22,6 +23,7 @@ Epic 5 doit etablir la reponse NPC configurable (Rage et Fear par cible, pilotee
 - Un vehicule IA qui change d'etat ne doit pas forcer les autres: chaque cible reste independante (pas de jauge globale, pas d'etat partage cache).
 - Trafic IA minimal: trois vehicules suivant waypoints ou marqueurs de voie a des vitesses testables, capables de se recuperer ou de se reinitialiser s'ils sont bloques, retournes ou hors de la zone jouable. Le mouvement doit etre suffisamment deterministe pour des tests reseau host-authoritative, et le trafic doit pouvoir etre desactive ou isole dans une sandbox de developpement.
 - Demarrage de session unifie: "Start Game" doit heberger un lobby Steam prive avec le joueur comme host, exactement comme "Create Lobby", et demarrer le reseau (StartHost) avant le chargement de MVP_Run, via le meme chemin LobbyFlowController. Un second joueur doit pouvoir rejoindre ce lobby par code en cours de partie. Toute fonctionnalite pilotee par NetworkBehaviour (trafic IA, rage, actions passager, degats) doit se comporter identiquement, que le lobby vienne de "Start Game" ou de "Create Lobby". Les methodes `LocalSolo*` de `RunFlowController` sont supprimees une fois le chemin unifie verifie, sans introduire de nouvelle branche solo/online dupliquee ailleurs. Toutes les fixtures PlayMode qui chargent MainMenuLobby ou MVP_Run en solo depuis Epic 1 doivent etre rejouees et passer sous le chemin unifie, sans etre reecrites pour masquer une regression.
+- Ciblage IA rage/peur: seuls les vehicules IA spawnes portant les etats reseau IA et rage/peur sont eligibles. `T` verrouille le plus proche, `Y` passe au suivant dans un ordre deterministe; lock, camera et actions restent locaux a chaque joueur. Avec lock, une action ne vise jamais de remplacement et hors portee elle ne mute rien; sans lock, elle choisit temporairement le plus proche dans la portee authored. Le host valide l'acteur, la reference, l'eligibilite et la portee avant toute mutation synchronisee de rage/peur.
 - Changements d'etat visibles: mouvement, labels UI/debug ou marqueurs de feedback; les etats et erreurs ne doivent pas reposer uniquement sur la couleur.
 - Declenchement Rage Road: un seul evenement a la fois, avec cible identifiee et retour joueur visible; les tentatives simultanees sont arbitrees cote host par une regle documentee (premier declenchement, priorite configuree ou file d'evenements); pas de doublon pour un evenement actif. La suite (resolution, recompense) appartient a Epic 6.
 - Reseau: positions, etats de comportement, labels de rage et etat de l'evenement sont synchronises depuis l'etat host-owned; un client ne peut pas forcer un changement de comportement; les clients qui rejoignent tardivement recoivent l'etat courant. La charge reseau doit rester tenable pour quatre joueurs et trois vehicules IA.
@@ -45,6 +47,7 @@ Epic 5 doit etablir la reponse NPC configurable (Rage et Fear par cible, pilotee
 ## UX & Interaction Patterns
 
 - Le joueur doit percevoir pourquoi un vehicule IA change de comportement: label d'etat lisible (le HUD de rage ancre en haut a droite de `MVP_Run` et les vues de debug existantes servent de support) en plus du mouvement.
+- Le joueur doit pouvoir identifier sa cible rage/peur : `T` verrouille l'IA eligible la plus proche et oriente sa camera locale vers elle; `Y` change explicitement de cible. Le verrouillage ne depend ni d'un point fixe ni d'une couleur et reste propre a chaque joueur.
 - Le declenchement d'un evenement Rage Road doit etre signale par un feedback visible et textuel, sans dependre de la couleur seule.
 - L'unification du demarrage de session (5.3) n'introduit aucun changement d'ecran: les boutons "Start Game" et "Create Lobby" restent visibles au meme endroit (Story 1.2); seul leur mecanisme partage sous-jacent change.
 - Cet epic n'introduit aucun nouvel ecran de menu; la presentation reste en greybox et remplacable.
@@ -52,7 +55,7 @@ Epic 5 doit etablir la reponse NPC configurable (Rage et Fear par cible, pilotee
 ## Cross-Story Dependencies
 
 - 5.1 etend la fondation Rage d'Epic 4 (Stories 4.1 a 4.4, revue passee; Epic 4 est marque termine dans le suivi) et doit rester compatible avec les appels existants, sans les reecrire.
-- 5.3 a ete inseree apres 5.2: 5.2 a revele que le trafic IA ne tournait qu'en ligne, car le solo ne demarrait jamais de session Netcode. 5.4 a 5.7 ne peuvent pas etre verifiees en solo tant que 5.3 n'a pas unifie le demarrage de session; retarder cette correction aurait fait payer la dette une seconde fois a chaque story suivante.
-- Ordre interne: 5.2 et (independamment) 5.3 dependent de 5.1; 5.4 depend de 5.2 et de 5.3 (verification solo et online); 5.5 depend de 5.4 (au moins un vehicule capable d'atteindre un etat declencheur de confrontation); 5.6 depend de 5.3 a 5.5 et de la chaine reseau existante; 5.7 valide l'ensemble en local et en ligne.
+- 5.3 a ete inseree apres 5.2: 5.2 a revele que le trafic IA ne tournait qu'en ligne, car le solo ne demarrait jamais de session Netcode. 5.4 a 5.8 ne peuvent pas etre verifiees en solo tant que 5.3 n'a pas unifie le demarrage de session; retarder cette correction aurait fait payer la dette une seconde fois a chaque story suivante.
+- Ordre interne: 5.2 et (independamment) 5.3 dependent de 5.1; 5.4 depend de 5.2 et de 5.3; 5.5 depend de la fondation rage/peur, des actions passager et du chemin de session unifie; 5.6 depend de 5.4 (un vehicule capable d'atteindre un etat declencheur); 5.7 depend de 5.3 a 5.6 et de la chaine reseau existante; 5.8 valide l'ensemble en local et en ligne.
 - Amont: conduite, sieges et degats d'Epic 3, actions passager host-validees d'Epic 4.
 - Aval: Epic 6 consomme l'evenement Rage Road (resolution, confrontation, recompense economique) et le tuning valide ici; Epic 6 et Epic 7 heritent aussi du chemin de demarrage de session desormais unifie, sans renumerotation necessaire de leur cote. Epic 5 doit livrer l'etat d'evenement et l'arbitrage de declenchement sans implementer la resolution, et sans exiger ville, autoroute, boss ni checkpoint.

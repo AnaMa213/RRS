@@ -576,9 +576,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Rage/NetworkedRageState.cs": {
-    "mtime": 1789330971.666092,
-    "seen": 1789331764.3835437,
-    "ast_hash": "251a95f537cf31ccbc1cf8bf9a14ae7b",
+    "mtime": 1789410478.7548711,
+    "seen": 1789410986.0906365,
+    "ast_hash": "98ddebe277d96e7b3c9c07ee43016ee1",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Rage/RageStateDebugView.cs": {
@@ -648,9 +648,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleState.cs": {
-    "mtime": 1789376230.4572444,
-    "seen": 1789381976.6277757,
-    "ast_hash": "f4bf03094d0ac76d1002fe4a70a4487a",
+    "mtime": 1789410491.365024,
+    "seen": 1789410986.0916648,
+    "ast_hash": "6544737ab8c8500083bfacc466eb4589",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDamageVfxController.cs": {
@@ -1158,9 +1158,9 @@
     "semantic_hash": ""
   },
   "ProjectSettings/Packages/com.unity.ai.assistant/Settings.json": {
-    "mtime": 1788371873.34618,
-    "seen": 1789154390.867432,
-    "ast_hash": "4f9c21d5609f1a76712f4f1619c9291d",
+    "mtime": 1789400098.7241952,
+    "seen": 1789400506.2994325,
+    "ast_hash": "48991ff28a42215e99a89971c967f58d",
     "semantic_hash": ""
   },
   "ProjectSettings/Packages/com.unity.services.core/Settings.json": {
@@ -3606,9 +3606,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/deferred-work.md": {
-    "mtime": 1789394766.4593837,
-    "seen": 1789395344.873253,
-    "ast_hash": "5960352fa92acb9b8905b1276075ce99",
+    "mtime": 1789410891.656861,
+    "seen": 1789410986.150555,
+    "ast_hash": "eea102933aa35ab58e55083dbe42aba1",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/epic-0-context.md": {
@@ -3852,9 +3852,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789387209.5984123,
-    "seen": 1789389155.4114804,
-    "ast_hash": "ae6dc281f9c2b23e13c47287ac15d774",
+    "mtime": 1789410176.1597455,
+    "seen": 1789410986.1558354,
+    "ast_hash": "8688d642c5782904d399091ce65b935d",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -3948,9 +3948,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/epics.md": {
-    "mtime": 1789385509.7965062,
-    "seen": 1789385568.051316,
-    "ast_hash": "00c45faa624c52150005797e138be551",
+    "mtime": 1789407925.2164283,
+    "seen": 1789410986.1572678,
+    "ast_hash": "8e4bbe85c627e91c9ca4690924bd98b7",
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-02.md": {
@@ -4693,7 +4693,7 @@
   },
   ".vscode/mcp.json": {
     "mtime": 1789293397.8698504,
-    "seen": 1789385063.6642318,
+    "seen": 1789400506.2993054,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -5604,9 +5604,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/epic-5-context.md": {
-    "mtime": 1789386105.7427719,
-    "seen": 1789389155.4066741,
-    "ast_hash": "76e9cf35ce5d96c8fbb158a2edcb72d3",
+    "mtime": 1789407960.1957722,
+    "seen": 1789410986.1512232,
+    "ast_hash": "ac4a9ea788c2cc5fcbae8f2e62fcdfcb",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Shared/Domain/NpcReactionEffect.cs": {
@@ -5634,9 +5634,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs": {
-    "mtime": 1789384590.0572398,
-    "seen": 1789384650.0764241,
-    "ast_hash": "c4410873fc45cb2cd8f10ab5156daa62",
+    "mtime": 1789410546.5795074,
+    "seen": 1789410986.0916638,
+    "ast_hash": "974bacc17d05f9f35fc337eae8682d0a",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/RouteWaypoints.cs": {
@@ -5646,15 +5646,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs": {
-    "mtime": 1789384607.1936274,
-    "seen": 1789384650.0805068,
-    "ast_hash": "c17f811b5a15b7664cebb7a52de6f597",
+    "mtime": 1789410642.1121764,
+    "seen": 1789410986.0960445,
+    "ast_hash": "9c6e5cedf0f9bf7beb2c7df10057ab8a",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-5-2-basic-ai-route-following-and-recovery.md": {
-    "mtime": 1789385034.1902328,
-    "seen": 1789385063.664797,
-    "ast_hash": "04a07969ebcbf3a0767627d3385888f8",
+    "mtime": 1789407925.2189345,
+    "seen": 1789410986.1553674,
+    "ast_hash": "830888dbcb685ad976c6fb61bed18958",
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-14.md": {
@@ -5664,9 +5664,39 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-5-3-unified-solo-and-online-session-start.md": {
-    "mtime": 1789396127.5744662,
-    "seen": 1789397009.6575413,
-    "ast_hash": "503871617be411faab83f72445ff554e",
+    "mtime": 1789407925.2189345,
+    "seen": 1789410986.1553686,
+    "ast_hash": "81cb9242976d9526681ceebee74cab21",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/AIVehicleBehaviorDebugView.cs": {
+    "mtime": 1789410842.0344026,
+    "seen": 1789410986.0915759,
+    "ast_hash": "a751191d0e6cd53b2b1f37355daef593",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Shared/Domain/IRageDispositionSource.cs": {
+    "mtime": 1789410468.479095,
+    "seen": 1789410986.0923724,
+    "ast_hash": "7c37806afaecda69e36fae8260a1290b",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story54RageDrivenAiBehaviorStatesTests.cs": {
+    "mtime": 1789410791.9140916,
+    "seen": 1789410986.0960457,
+    "ast_hash": "b1c7a781311f08df17f85ede5a037594",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-5-4-rage-driven-ai-behavior-states.md": {
+    "mtime": 1789410910.1853516,
+    "seen": 1789410986.1553698,
+    "ast_hash": "1eb16e4457e9406f735b5616eadb1bf9",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-14-ai-targeting.md": {
+    "mtime": 1789407960.196777,
+    "seen": 1789410986.1575258,
+    "ast_hash": "2051e90cac5f5d2b535c88fd4354bc09",
     "semantic_hash": ""
   }
 }

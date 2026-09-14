@@ -1,3 +1,4 @@
+using RoadRage.Shared.Domain;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
@@ -17,6 +18,13 @@ namespace RoadRage.Features.Vehicles
     /// Desactivation/isolation (AC epic 5) : ce comportement passe entierement par FixedUpdate, donc
     /// decocher le composant (ou son GameObject) dans MVP_Run suffit a arreter le vehicule IA sans
     /// toucher au vehicule joueur -- pas de toggle applicatif dedie necessaire.
+    ///
+    /// Story 5.4 : l'hote derive le comportement du vehicule depuis sa propre rage
+    /// (<see cref="IRageDispositionSource"/> sur le meme GameObject, jamais celle d'un autre vehicule
+    /// ni une jauge globale), le publie dans <see cref="NetworkedAIVehicleState.Behavior"/> et applique
+    /// le profil de conduite correspondant (<see cref="ResolveCruiseSpeedMultiplier"/>). Le profil
+    /// reste local a ce controleur : seuls la vitesse et l'immobilisation changent, aucune cible,
+    /// aucune collision offensive et aucun evenement Rage Road ne sont introduits ici.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
@@ -66,6 +74,7 @@ namespace RoadRage.Features.Vehicles
         private NetworkedAIVehicleState state;
         private Rigidbody body;
         private NetworkTransform networkTransform;
+        private IRageDispositionSource rageSource;
         private float rolloverElapsedSeconds;
         private float stuckElapsedSeconds;
 
@@ -93,12 +102,26 @@ namespace RoadRage.Features.Vehicles
 
         private void FixedUpdate()
         {
-            if (!IsServer || body == null || state == null || route == null || route.Count <= 0)
+            if (!IsServer || body == null || state == null)
+            {
+                return;
+            }
+
+            // Derivation host-only (Story 5.4) : la rage propre au vehicule devient son comportement
+            // publie. Ecriture seulement sur changement, pour ne pas re-emettre a chaque tick.
+            var behavior = ResolveBehavior();
+            if (state.Behavior.Value != behavior)
+            {
+                state.Behavior.Value = behavior;
+            }
+
+            if (route == null || route.Count <= 0)
             {
                 return;
             }
 
             var fixedDeltaTime = Time.fixedDeltaTime;
+            var speedMultiplier = ResolveCruiseSpeedMultiplier(behavior);
             var waypointIndex = state.WaypointIndex.Value;
             var waypointPosition = route.GetPosition(waypointIndex);
 
@@ -120,6 +143,16 @@ namespace RoadRage.Features.Vehicles
             else
             {
                 rolloverElapsedSeconds = 0f;
+            }
+
+            // Block / ConfrontationCapable : le vehicule cesse de poursuivre la route. Place apres les
+            // recuperations retournement/hors-zone (qui restent des garde-fous) mais avant la detection
+            // de blocage : une immobilisation voulue ne doit pas declencher une teleportation "stuck".
+            if (speedMultiplier <= 0f)
+            {
+                stuckElapsedSeconds = 0f;
+                ApplyMovement(VehicleDriveIntent.Idle, fixedDeltaTime, speedMultiplier);
+                return;
             }
 
             var planarSpeed = Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up).magnitude;
@@ -145,7 +178,42 @@ namespace RoadRage.Features.Vehicles
             }
 
             var intent = ComputeSeekIntent(transform.position, transform.forward, waypointPosition, arrivalRadius, steerFullLockDegrees);
-            ApplyMovement(intent, fixedDeltaTime);
+            ApplyMovement(intent, fixedDeltaTime, speedMultiplier);
+        }
+
+        /// <summary>
+        /// Comportement courant : la disposition de rage de CE vehicule, Calm par repli quand aucun
+        /// <see cref="IRageDispositionSource"/> n'est present (composant absent ou objet non spawne).
+        /// </summary>
+        private RageDisposition ResolveBehavior()
+        {
+            return rageSource == null ? RageDisposition.Calm : rageSource.CurrentDisposition;
+        }
+
+        /// <summary>
+        /// Predicat pur (Story 5.4) : profil de conduite du comportement, exprime comme multiplicateur
+        /// de <c>cruiseSpeed</c> -- 0 signifie "cesse de poursuivre la route" (immobilisation). Les
+        /// paliers de rage restent authored dans RageTuningDef ; ce qui est fige ici est seulement
+        /// l'escalade de conduite Calm &lt; Irritated &lt; Flee &lt; Ram, calibrable en bloc via le
+        /// champ serialise cruiseSpeed. Ram est un profil visible, pas encore une attaque ciblee.
+        /// </summary>
+        public static float ResolveCruiseSpeedMultiplier(RageDisposition behavior)
+        {
+            switch (behavior)
+            {
+                case RageDisposition.Irritated:
+                    return 1.25f;
+                case RageDisposition.Flee:
+                    return 1.6f;
+                case RageDisposition.Block:
+                    return 0f;
+                case RageDisposition.Ram:
+                    return 1.9f;
+                case RageDisposition.ConfrontationCapable:
+                    return 0f;
+                default:
+                    return 1f;
+            }
         }
 
         /// <summary>
@@ -194,7 +262,7 @@ namespace RoadRage.Features.Vehicles
             return planarSpeed <= stuckSpeedThreshold;
         }
 
-        private void ApplyMovement(VehicleDriveIntent intent, float fixedDeltaTime)
+        private void ApplyMovement(VehicleDriveIntent intent, float fixedDeltaTime, float speedMultiplier)
         {
             // La composante verticale est preservee comme dans NetworkedVehicleDriverController : la
             // conduite IA ne pilote que le plan horizontal. L'ecraser annulerait la gravite -- le
@@ -213,7 +281,7 @@ namespace RoadRage.Features.Vehicles
             body.MoveRotation(rotation);
 
             var forward = rotation * Vector3.forward;
-            body.linearVelocity = (forward * cruiseSpeed * intent.Throttle) + verticalVelocity;
+            body.linearVelocity = (forward * cruiseSpeed * speedMultiplier * intent.Throttle) + verticalVelocity;
         }
 
         /// <summary>
@@ -265,6 +333,13 @@ namespace RoadRage.Features.Vehicles
             if (networkTransform == null)
             {
                 networkTransform = GetComponent<NetworkTransform>();
+            }
+
+            // Sa propre rage uniquement : GetComponent sur ce GameObject, jamais une recherche de
+            // scene. Absente (composant non ajoute a ce vehicule) => repli Calm, sans exception.
+            if (rageSource == null)
+            {
+                rageSource = GetComponent<IRageDispositionSource>();
             }
         }
     }

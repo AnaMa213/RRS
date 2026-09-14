@@ -112,7 +112,7 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
   que `RoadRageBootstrap.ConfigureNetworkManager` construit en code (seul `NetworkedPlayerRoot` l'est), donc
   l'invite ignore le `GlobalObjectIdHash` du spawn recu. Defaut pre-existant confirme (aucun des fichiers en
   cause n'apparait dans le diff de cette story ; il cassait deja via Create Lobby, mais aucun invite n'atteignait
-  jamais le run pour s'en apercevoir). Hors perimetre gele a l'origine -- la Story 5.6 « AI Traffic Networking and
+  jamais le run pour s'en apercevoir). Hors perimetre gele a l'origine -- la Story 5.7 « AI Traffic Networking and
   Client Presentation » en etait la proprietaire naturelle -- mais l'humain a tranche le 2026-09-14 de le corriger
   ici pour que la coop soit reellement jouable des cette story.
 

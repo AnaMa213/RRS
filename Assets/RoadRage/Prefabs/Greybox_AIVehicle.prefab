@@ -16,6 +16,9 @@ GameObject:
   - component: {fileID: 3913111863879254452}
   - component: {fileID: 4221434676684656085}
   - component: {fileID: 9123456789012345672}
+  - component: {fileID: 9123456789012345673}
+  - component: {fileID: 9123456789012345674}
+  - component: {fileID: 9123456789012345675}
   m_Layer: 0
   m_Name: Greybox_AIVehicle
   m_TagString: Untagged
@@ -203,6 +206,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d78752f6ba3357f40b90e9a95ef14f11, type: 3}
   m_Name:
   m_EditorClassIdentifier: RoadRage.Features.Vehicles::RoadRage.Features.Vehicles.NetworkedAIVehicleDriverController
+--- !u!114 &9123456789012345673
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6514829079454662262}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1faed247d15e87428410c519f8a592e, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: RoadRage.Features.Rage::RoadRage.Features.Rage.NetworkedRageState
+--- !u!114 &9123456789012345674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6514829079454662262}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f8b21c6d0e94a5f9c7e2b48a15d6e03, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: RoadRage.Features.Vehicles::RoadRage.Features.Vehicles.AIVehicleBehaviorDebugView
+  target: {fileID: 9123456789012345671}
+  label: {fileID: 0}
+  labelOffset: {x: 0, y: 2.6, z: 0}
+--- !u!114 &9123456789012345675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6514829079454662262}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a442abde46dd8a40b0ae7437558c836, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: RoadRage.Features.Rage::RoadRage.Features.Rage.RageStateDebugView
+  target: {fileID: 9123456789012345673}
+  label: {fileID: 0}
+  testTuning: {fileID: 11400000, guid: b8c83454773ea076bdde2c773576a1d9, type: 2}
+  testDelta: 25
+  testReactionChannel: 3
 --- !u!1001 &3288993798940312889
 PrefabInstance:
   m_ObjectHideFlags: 0
