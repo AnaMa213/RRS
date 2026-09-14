@@ -415,19 +415,19 @@ namespace RoadRage.Features.Vehicles
         /// <summary>Moteur endommage (Story 3.5) : vitesse max reduite -- lu, jamais ecrit, depuis NetworkedVehicleState.</summary>
         private float ResolveEffectiveMaxForwardSpeed()
         {
-            return state != null && state.EngineDamaged.Value ? maxForwardSpeed * EngineDamageSpeedMultiplier : maxForwardSpeed;
+            return state != null && state.IsEngineDamaged ? maxForwardSpeed * EngineDamageSpeedMultiplier : maxForwardSpeed;
         }
 
         /// <summary>Roue endommagee (Story 3.5) : maniabilite reduite.</summary>
         private float ResolveEffectiveSteerDegreesPerSecond()
         {
-            return state != null && state.WheelDamaged.Value ? steerDegreesPerSecond * WheelDamageSteerMultiplier : steerDegreesPerSecond;
+            return state != null && state.IsWheelDamaged ? steerDegreesPerSecond * WheelDamageSteerMultiplier : steerDegreesPerSecond;
         }
 
         /// <summary>Freins endommages (Story 3.5) : deceleration de freinage reduite.</summary>
         private float ResolveEffectiveBrakeDeceleration()
         {
-            return state != null && state.BrakeDamaged.Value ? brakeDeceleration * BrakeDamageDecelerationMultiplier : brakeDeceleration;
+            return state != null && state.IsBrakeDamaged ? brakeDeceleration * BrakeDamageDecelerationMultiplier : brakeDeceleration;
         }
 
         private void SubmitDriveIntent(VehicleDriveIntent intent, ulong localClientId)

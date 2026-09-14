@@ -901,11 +901,11 @@ namespace RoadRage.App.Run
             }
 
             checkpointHud.SetVehicleDamageStatus(
-                vehicleState.Hp.Value,
+                vehicleState.CurrentHp,
                 NetworkedVehicleState.DefaultMaxHp,
-                vehicleState.WheelDamaged.Value,
-                vehicleState.EngineDamaged.Value,
-                vehicleState.BrakeDamaged.Value);
+                vehicleState.IsWheelDamaged,
+                vehicleState.IsEngineDamaged,
+                vehicleState.IsBrakeDamaged);
         }
 
         private NetworkedVehicleState ResolveObservedVehicleState()

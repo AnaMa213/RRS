@@ -114,11 +114,26 @@ namespace RoadRage.Features.Vehicles
             NetworkVariableWritePermission.Server);
 
         private bool damageStateInitialized;
+        private int localHp = DefaultMaxHp;
+        private bool localWheelDamaged;
+        private bool localEngineDamaged;
+        private bool localBrakeDamaged;
+        private int localDamageOrderSlot0 = (int)VehicleDamageType.Wheel;
+        private int localDamageOrderSlot1 = (int)VehicleDamageType.Engine;
+        private int localDamageOrderSlot2 = (int)VehicleDamageType.Brake;
+        private int localDamageThresholdsCrossed;
+
+        public int CurrentHp { get { return IsSpawned ? Hp.Value : localHp; } }
+        public bool IsWheelDamaged { get { return IsSpawned ? WheelDamaged.Value : localWheelDamaged; } }
+        public bool IsEngineDamaged { get { return IsSpawned ? EngineDamaged.Value : localEngineDamaged; } }
+        public bool IsBrakeDamaged { get { return IsSpawned ? BrakeDamaged.Value : localBrakeDamaged; } }
+
+        public event System.Action LocalDamageStateChanged;
 
         /// <summary>Voiture inconduisible (Story 3.5) : tous les occupants doivent etre ejectes (NetworkedVehicleSeatService).</summary>
         public bool IsInoperable()
         {
-            return Hp.Value <= 0;
+            return CurrentHp <= 0;
         }
 
         /// <summary>
@@ -148,16 +163,16 @@ namespace RoadRage.Features.Vehicles
         /// </summary>
         public void ResetDamageState()
         {
-            Hp.Value = DefaultMaxHp;
-            WheelDamaged.Value = false;
-            EngineDamaged.Value = false;
-            BrakeDamaged.Value = false;
-            DamageThresholdsCrossed.Value = 0;
+            SetHp(DefaultMaxHp);
+            SetWheelDamaged(false);
+            SetEngineDamaged(false);
+            SetBrakeDamaged(false);
+            SetDamageThresholdsCrossed(0);
 
             var order = ShuffleDamageTypeOrder(UnityEngine.Random.Range);
-            DamageOrderSlot0.Value = order[0];
-            DamageOrderSlot1.Value = order[1];
-            DamageOrderSlot2.Value = order[2];
+            SetDamageOrderSlot0(order[0]);
+            SetDamageOrderSlot1(order[1]);
+            SetDamageOrderSlot2(order[2]);
         }
 
         /// <summary>
@@ -166,14 +181,14 @@ namespace RoadRage.Features.Vehicles
         /// </summary>
         public void ApplyDamage(int amount)
         {
-            if (amount <= 0 || Hp.Value <= 0)
+            if (amount <= 0 || CurrentHp <= 0)
             {
                 return;
             }
 
-            var previousHp = Hp.Value;
+            var previousHp = CurrentHp;
             var nextHp = Mathf.Max(0, previousHp - amount);
-            Hp.Value = nextHp;
+            SetHp(nextHp);
 
             var previousThresholds = ComputeThresholdsCrossed(previousHp, DefaultMaxHp);
             var nextThresholds = ComputeThresholdsCrossed(nextHp, DefaultMaxHp);
@@ -214,7 +229,7 @@ namespace RoadRage.Features.Vehicles
 
         private void ApplyDamageTypeAtSlot(int slot)
         {
-            if (slot < 0 || slot >= MaxDamageTypeCount || DamageThresholdsCrossed.Value > slot)
+            if (slot < 0 || slot >= MaxDamageTypeCount || CurrentDamageThresholdsCrossed > slot)
             {
                 return;
             }
@@ -222,17 +237,17 @@ namespace RoadRage.Features.Vehicles
             switch (ResolveDamageOrderSlot(slot))
             {
                 case (int)VehicleDamageType.Wheel:
-                    WheelDamaged.Value = true;
+                    SetWheelDamaged(true);
                     break;
                 case (int)VehicleDamageType.Engine:
-                    EngineDamaged.Value = true;
+                    SetEngineDamaged(true);
                     break;
                 case (int)VehicleDamageType.Brake:
-                    BrakeDamaged.Value = true;
+                    SetBrakeDamaged(true);
                     break;
             }
 
-            DamageThresholdsCrossed.Value = slot + 1;
+            SetDamageThresholdsCrossed(slot + 1);
         }
 
         private int ResolveDamageOrderSlot(int slot)
@@ -240,12 +255,28 @@ namespace RoadRage.Features.Vehicles
             switch (slot)
             {
                 case 0:
-                    return DamageOrderSlot0.Value;
+                    return IsSpawned ? DamageOrderSlot0.Value : localDamageOrderSlot0;
                 case 1:
-                    return DamageOrderSlot1.Value;
+                    return IsSpawned ? DamageOrderSlot1.Value : localDamageOrderSlot1;
                 default:
-                    return DamageOrderSlot2.Value;
+                    return IsSpawned ? DamageOrderSlot2.Value : localDamageOrderSlot2;
             }
+        }
+
+        private int CurrentDamageThresholdsCrossed { get { return IsSpawned ? DamageThresholdsCrossed.Value : localDamageThresholdsCrossed; } }
+
+        private void SetHp(int value) { if (IsSpawned) { Hp.Value = value; } else { localHp = value; NotifyLocalDamageStateChanged(); } }
+        private void SetWheelDamaged(bool value) { if (IsSpawned) { WheelDamaged.Value = value; } else { localWheelDamaged = value; NotifyLocalDamageStateChanged(); } }
+        private void SetEngineDamaged(bool value) { if (IsSpawned) { EngineDamaged.Value = value; } else { localEngineDamaged = value; NotifyLocalDamageStateChanged(); } }
+        private void SetBrakeDamaged(bool value) { if (IsSpawned) { BrakeDamaged.Value = value; } else { localBrakeDamaged = value; NotifyLocalDamageStateChanged(); } }
+        private void SetDamageThresholdsCrossed(int value) { if (IsSpawned) { DamageThresholdsCrossed.Value = value; } else { localDamageThresholdsCrossed = value; } }
+        private void SetDamageOrderSlot0(int value) { if (IsSpawned) { DamageOrderSlot0.Value = value; } else { localDamageOrderSlot0 = value; } }
+        private void SetDamageOrderSlot1(int value) { if (IsSpawned) { DamageOrderSlot1.Value = value; } else { localDamageOrderSlot1 = value; } }
+        private void SetDamageOrderSlot2(int value) { if (IsSpawned) { DamageOrderSlot2.Value = value; } else { localDamageOrderSlot2 = value; } }
+
+        private void NotifyLocalDamageStateChanged()
+        {
+            LocalDamageStateChanged?.Invoke();
         }
 
         public bool IsDriver(ulong clientId)

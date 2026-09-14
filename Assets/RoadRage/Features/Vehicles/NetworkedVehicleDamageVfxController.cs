@@ -64,7 +64,7 @@ namespace RoadRage.Features.Vehicles
 
         private void Update()
         {
-            if (state == null || wheelWobbleRoot == null || !state.WheelDamaged.Value)
+            if (state == null || wheelWobbleRoot == null || !state.IsWheelDamaged)
             {
                 return;
             }
@@ -80,10 +80,10 @@ namespace RoadRage.Features.Vehicles
                 return;
             }
 
-            SetParticleEffectActive(engineSmokeEffect, state.EngineDamaged.Value);
-            SetParticleEffectActive(brakeSparkEffect, state.BrakeDamaged.Value);
+            SetParticleEffectActive(engineSmokeEffect, state.IsEngineDamaged);
+            SetParticleEffectActive(brakeSparkEffect, state.IsBrakeDamaged);
 
-            if (!state.WheelDamaged.Value)
+            if (!state.IsWheelDamaged)
             {
                 RestoreWheelWobbleRotation();
             }
@@ -99,6 +99,7 @@ namespace RoadRage.Features.Vehicles
             state.WheelDamaged.OnValueChanged += HandleWheelDamagedChanged;
             state.EngineDamaged.OnValueChanged += HandleEngineDamagedChanged;
             state.BrakeDamaged.OnValueChanged += HandleBrakeDamagedChanged;
+            state.LocalDamageStateChanged += RefreshDamageEffects;
         }
 
         private void UnsubscribeFromDamageFlags()
@@ -111,6 +112,7 @@ namespace RoadRage.Features.Vehicles
             state.WheelDamaged.OnValueChanged -= HandleWheelDamagedChanged;
             state.EngineDamaged.OnValueChanged -= HandleEngineDamagedChanged;
             state.BrakeDamaged.OnValueChanged -= HandleBrakeDamagedChanged;
+            state.LocalDamageStateChanged -= RefreshDamageEffects;
         }
 
         private void HandleWheelDamagedChanged(bool previousValue, bool newValue)

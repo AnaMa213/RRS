@@ -122,6 +122,10 @@ namespace RoadRage.Tests.EditMode
             var serviceSource = File.ReadAllText(SeatServiceSourcePath);
             Assert.That(serviceSource, Does.Contain("PlayerMode.Driver : PlayerMode.Passenger"));
             Assert.That(serviceSource, Does.Contain("ShouldReleaseOccupant"));
+            Assert.That(serviceSource, Does.Contain("TryResolveNearestVehicle"));
+            Assert.That(serviceSource, Does.Contain("TryResolveOccupiedVehicle"));
+            Assert.That(serviceSource, Does.Not.Contain("FindAnyObjectByType<NetworkedVehicleState>()"),
+                "Le service reseau ne doit plus fixer arbitrairement une seule voiture.");
 
             var poseReporterSource = File.ReadAllText(PoseReporterSourcePath);
             Assert.That(poseReporterSource, Does.Contain("IsVehicleSeatMode(targetState)"),

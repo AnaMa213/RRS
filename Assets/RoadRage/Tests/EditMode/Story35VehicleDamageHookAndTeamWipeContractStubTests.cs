@@ -91,33 +91,26 @@ namespace RoadRage.Tests.EditMode
                 root.AddComponent<NetworkObject>();
                 var state = root.AddComponent<NetworkedVehicleState>();
 
-                // Ordre fixe et connu pour rendre le test deterministe : slot0 -> Wheel, slot1 -> Engine, slot2 -> Brake.
-                state.DamageOrderSlot0.Value = (int)VehicleDamageType.Wheel;
-                state.DamageOrderSlot1.Value = (int)VehicleDamageType.Engine;
-                state.DamageOrderSlot2.Value = (int)VehicleDamageType.Brake;
-                state.Hp.Value = NetworkedVehicleState.DefaultMaxHp;
-                state.DamageThresholdsCrossed.Value = 0;
-
                 Assert.That(state.IsInoperable(), Is.False);
 
                 state.ApplyDamage(40);
-                Assert.That(state.Hp.Value, Is.EqualTo(60));
-                Assert.That(state.WheelDamaged.Value, Is.True);
-                Assert.That(state.EngineDamaged.Value, Is.False);
-                Assert.That(state.BrakeDamaged.Value, Is.False);
+                Assert.That(state.CurrentHp, Is.EqualTo(60));
+                Assert.That(state.IsWheelDamaged, Is.True);
+                Assert.That(state.IsEngineDamaged, Is.False);
+                Assert.That(state.IsBrakeDamaged, Is.False);
 
                 state.ApplyDamage(40);
-                Assert.That(state.Hp.Value, Is.EqualTo(20));
-                Assert.That(state.EngineDamaged.Value, Is.True, "deuxieme seuil franchi -> deuxieme type de l'ordre, sans repeter le premier.");
-                Assert.That(state.BrakeDamaged.Value, Is.False);
+                Assert.That(state.CurrentHp, Is.EqualTo(20));
+                Assert.That(state.IsEngineDamaged, Is.True, "deuxieme seuil franchi -> deuxieme type de l'ordre, sans repeter le premier.");
+                Assert.That(state.IsBrakeDamaged, Is.False);
 
                 state.ApplyDamage(50);
-                Assert.That(state.Hp.Value, Is.EqualTo(0), "Hp clampe a 0, jamais negatif.");
-                Assert.That(state.BrakeDamaged.Value, Is.True);
+                Assert.That(state.CurrentHp, Is.EqualTo(0), "Hp clampe a 0, jamais negatif.");
+                Assert.That(state.IsBrakeDamaged, Is.True);
                 Assert.That(state.IsInoperable(), Is.True);
 
                 state.ApplyDamage(10);
-                Assert.That(state.Hp.Value, Is.EqualTo(0), "aucun degat supplementaire une fois inoperable.");
+                Assert.That(state.CurrentHp, Is.EqualTo(0), "aucun degat supplementaire une fois inoperable.");
             }
             finally
             {
@@ -176,9 +169,9 @@ namespace RoadRage.Tests.EditMode
             Assert.That(source, Does.Contain("ResolveEffectiveMaxForwardSpeed()"));
             Assert.That(source, Does.Contain("ResolveEffectiveSteerDegreesPerSecond()"));
             Assert.That(source, Does.Contain("ResolveEffectiveBrakeDeceleration()"));
-            Assert.That(source, Does.Contain("state.EngineDamaged.Value"));
-            Assert.That(source, Does.Contain("state.WheelDamaged.Value"));
-            Assert.That(source, Does.Contain("state.BrakeDamaged.Value"));
+            Assert.That(source, Does.Contain("state.IsEngineDamaged"));
+            Assert.That(source, Does.Contain("state.IsWheelDamaged"));
+            Assert.That(source, Does.Contain("state.IsBrakeDamaged"));
         }
 
         [Test]
@@ -225,6 +218,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(source, Does.Contain("state.WheelDamaged.OnValueChanged += HandleWheelDamagedChanged"));
             Assert.That(source, Does.Contain("state.EngineDamaged.OnValueChanged += HandleEngineDamagedChanged"));
             Assert.That(source, Does.Contain("state.BrakeDamaged.OnValueChanged += HandleBrakeDamagedChanged"));
+            Assert.That(source, Does.Contain("state.LocalDamageStateChanged += RefreshDamageEffects"));
             Assert.That(source, Does.Contain("CreateDefaultEffect(\"Damage_EngineSmoke\""));
             Assert.That(source, Does.Contain("CreateDefaultEffect(\"Damage_BrakeSparks\""));
             Assert.That(source, Does.Not.Contain("WheelDamaged.Value ="));

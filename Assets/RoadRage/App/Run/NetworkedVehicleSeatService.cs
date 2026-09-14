@@ -42,13 +42,9 @@ namespace RoadRage.App.Run
         private RunCheckpointHudScreen checkpointHud;
 
         [SerializeField]
-        private NetworkedVehicleState vehicleState;
-
-        [SerializeField]
         [Min(0f)]
         private float entryRadius = DefaultEntryRadius;
 
-        private NetworkedVehicleDriverController driverController;
         private bool isActiveHost;
 
         private void Awake()
@@ -93,7 +89,7 @@ namespace RoadRage.App.Run
             }
 
             CacheReferences();
-            if (vehicleState == null || spawnService == null)
+            if (spawnService == null)
             {
                 return;
             }
@@ -125,12 +121,6 @@ namespace RoadRage.App.Run
             }
 
             CacheReferences();
-            if (vehicleState == null)
-            {
-                Report(VehicleUnavailableMessage, true);
-                return;
-            }
-
             if (!TryResolvePlayer(clientId, out var playerState))
             {
                 Report(PlayerUnavailableMessage, true);
@@ -139,17 +129,31 @@ namespace RoadRage.App.Run
 
             if (playerState.SeatIndex.Value != NetworkedVehicleState.NoSeatIndex || IsSeatedMode(playerState.Mode.Value))
             {
-                TryExitSeat(clientId, playerState);
+                if (TryResolveOccupiedVehicle(clientId, out var occupiedVehicle))
+                {
+                    TryExitSeat(occupiedVehicle, clientId, playerState);
+                }
+                else
+                {
+                    Report(NotSeatedMessage, true);
+                }
+
                 return;
             }
 
-            TryEnterSeat(clientId, playerState, preferPassenger);
+            if (!TryResolveNearestVehicle(playerState.WorldPosition.Value, out var nearbyVehicle))
+            {
+                Report(VehicleUnavailableMessage, true);
+                return;
+            }
+
+            TryEnterSeat(nearbyVehicle, clientId, playerState, preferPassenger);
         }
 
         /// <summary>
         /// Touche G (hors story, 2026-09-12) : cycle vers le prochain siege libre sans repasser par
-        /// une sortie/entree complete. Meme flux host-authoritative que RequestEnterOrExit ; reste
-        /// borne a la voiture partagee unique de ce service (limite pre-existante Story 3.3).
+        /// une sortie/entree complete. Meme flux host-authoritative que RequestEnterOrExit, sur la
+        /// voiture qui contient deja le client demandeur.
         /// </summary>
         public void RequestSwitchSeat(ulong clientId)
         {
@@ -159,13 +163,13 @@ namespace RoadRage.App.Run
             }
 
             CacheReferences();
-            if (vehicleState == null)
+            if (!TryResolvePlayer(clientId, out var playerState) || !IsSeatedMode(playerState.Mode.Value))
             {
-                Report(VehicleUnavailableMessage, true);
+                Report(NotSeatedMessage, true);
                 return;
             }
 
-            if (!TryResolvePlayer(clientId, out var playerState) || !IsSeatedMode(playerState.Mode.Value))
+            if (!TryResolveOccupiedVehicle(clientId, out var vehicleState))
             {
                 Report(NotSeatedMessage, true);
                 return;
@@ -186,14 +190,14 @@ namespace RoadRage.App.Run
                     continue;
                 }
 
-                ReleaseVehicleSeat(currentSeatIndex, clientId);
+                ReleaseVehicleSeat(vehicleState, currentSeatIndex, clientId);
                 if (!vehicleState.TryAssignSeat(candidateSeatIndex, clientId))
                 {
                     Report(NoSeatAvailableMessage, true);
                     return;
                 }
 
-                ApplySeatedState(playerState, candidateSeatIndex);
+                ApplySeatedState(vehicleState, playerState, candidateSeatIndex);
                 Report(candidateSeatIndex == NetworkedVehicleState.DriverSeatIndex ? "Siege conducteur occupe." : "Siege passager " + candidateSeatIndex + " occupe.", false);
                 return;
             }
@@ -228,7 +232,7 @@ namespace RoadRage.App.Run
             return lifecycle == PlayerLifecycle.Dead || lifecycle == PlayerLifecycle.Disconnected || lifecycle == PlayerLifecycle.Downed;
         }
 
-        private void TryEnterSeat(ulong clientId, NetworkedPlayerState playerState, bool preferPassenger)
+        private void TryEnterSeat(NetworkedVehicleState vehicleState, ulong clientId, NetworkedPlayerState playerState, bool preferPassenger)
         {
             if (vehicleState.IsInoperable())
             {
@@ -239,7 +243,7 @@ namespace RoadRage.App.Run
             var distanceToVehicle = Vector3.Distance(playerState.WorldPosition.Value, vehicleState.transform.position);
             if (!CanEnterSeat(playerState.Mode.Value, playerState.Lifecycle.Value, playerState.SeatIndex.Value, distanceToVehicle, entryRadius))
             {
-                Report(ResolveEntryRefusalMessage(playerState, distanceToVehicle), true);
+                Report(ResolveEntryRefusalMessage(vehicleState, playerState, distanceToVehicle), true);
                 return;
             }
 
@@ -249,11 +253,11 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            ApplySeatedState(playerState, seatIndex);
+            ApplySeatedState(vehicleState, playerState, seatIndex);
             Report(seatIndex == NetworkedVehicleState.DriverSeatIndex ? "Siege conducteur occupe." : "Siege passager " + seatIndex + " occupe.", false);
         }
 
-        private void TryExitSeat(ulong clientId, NetworkedPlayerState playerState)
+        private void TryExitSeat(NetworkedVehicleState vehicleState, ulong clientId, NetworkedPlayerState playerState)
         {
             var seatIndex = playerState.SeatIndex.Value;
             if (!NetworkedVehicleState.IsValidSeatIndex(seatIndex)
@@ -266,7 +270,7 @@ namespace RoadRage.App.Run
             var exitPosition = vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveExitLocalOffset(seatIndex));
             var exitYaw = NormalizeYaw(vehicleState.transform.eulerAngles.y);
 
-            ReleaseVehicleSeat(seatIndex, clientId);
+            ReleaseVehicleSeat(vehicleState, seatIndex, clientId);
             playerState.WorldPosition.Value = exitPosition;
             playerState.YawDegrees.Value = exitYaw;
             playerState.SeatIndex.Value = NetworkedVehicleState.NoSeatIndex;
@@ -282,51 +286,56 @@ namespace RoadRage.App.Run
         /// </summary>
         private void ReleaseInvalidOccupants()
         {
-            var vehicleInoperable = vehicleState.IsInoperable();
-
-            for (var seatIndex = NetworkedVehicleState.DriverSeatIndex; seatIndex < NetworkedVehicleState.SeatCount; seatIndex++)
+            foreach (var vehicleState in FindVehicles())
             {
-                if (!vehicleState.TryGetSeatOccupant(seatIndex, out var clientId) || clientId == NetworkedVehicleState.UnoccupiedSeatClientId)
+                var vehicleInoperable = vehicleState.IsInoperable();
+                for (var seatIndex = NetworkedVehicleState.DriverSeatIndex; seatIndex < NetworkedVehicleState.SeatCount; seatIndex++)
                 {
-                    continue;
+                    if (!vehicleState.TryGetSeatOccupant(seatIndex, out var clientId) || clientId == NetworkedVehicleState.UnoccupiedSeatClientId)
+                    {
+                        continue;
+                    }
+
+                    var resolvedPlayer = TryResolvePlayer(clientId, out var playerState);
+                    var shouldRelease = vehicleInoperable || !resolvedPlayer || ShouldReleaseOccupant(playerState.Lifecycle.Value);
+                    if (!shouldRelease)
+                    {
+                        continue;
+                    }
+
+                    ReleaseVehicleSeat(vehicleState, seatIndex, clientId);
+
+                    if (playerState != null)
+                    {
+                        playerState.WorldPosition.Value = vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveExitLocalOffset(seatIndex));
+                        playerState.YawDegrees.Value = NormalizeYaw(vehicleState.transform.eulerAngles.y);
+                        playerState.SeatIndex.Value = NetworkedVehicleState.NoSeatIndex;
+                        playerState.Mode.Value = PlayerMode.OnFoot;
+                    }
+
+                    Report(vehicleInoperable
+                        ? "Siege libere : voiture hors d'usage (client " + clientId + ")."
+                        : "Siege libere pour le client " + clientId + ".", true);
                 }
-
-                var resolvedPlayer = TryResolvePlayer(clientId, out var playerState);
-                var shouldRelease = vehicleInoperable || !resolvedPlayer || ShouldReleaseOccupant(playerState.Lifecycle.Value);
-                if (!shouldRelease)
-                {
-                    continue;
-                }
-
-                ReleaseVehicleSeat(seatIndex, clientId);
-
-                if (playerState != null)
-                {
-                    playerState.WorldPosition.Value = vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveExitLocalOffset(seatIndex));
-                    playerState.YawDegrees.Value = NormalizeYaw(vehicleState.transform.eulerAngles.y);
-                    playerState.SeatIndex.Value = NetworkedVehicleState.NoSeatIndex;
-                    playerState.Mode.Value = PlayerMode.OnFoot;
-                }
-
-                Report(vehicleInoperable
-                    ? "Siege libere : voiture hors d'usage (client " + clientId + ")."
-                    : "Siege libere pour le client " + clientId + ".", true);
             }
         }
 
         private void SynchronizeSeatedPlayerPoses()
         {
-            for (var seatIndex = NetworkedVehicleState.DriverSeatIndex; seatIndex < NetworkedVehicleState.SeatCount; seatIndex++)
+            foreach (var vehicleState in FindVehicles())
             {
-                if (!vehicleState.TryGetSeatOccupant(seatIndex, out var clientId)
-                    || clientId == NetworkedVehicleState.UnoccupiedSeatClientId
-                    || !TryResolvePlayer(clientId, out var playerState))
+                for (var seatIndex = NetworkedVehicleState.DriverSeatIndex; seatIndex < NetworkedVehicleState.SeatCount; seatIndex++)
                 {
-                    continue;
-                }
+                    if (!vehicleState.TryGetSeatOccupant(seatIndex, out var clientId)
+                        || clientId == NetworkedVehicleState.UnoccupiedSeatClientId
+                        || !TryResolvePlayer(clientId, out var playerState))
+                    {
+                        continue;
+                    }
 
-                playerState.WorldPosition.Value = vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveSeatLocalOffset(seatIndex));
-                playerState.YawDegrees.Value = NormalizeYaw(vehicleState.transform.eulerAngles.y);
+                    playerState.WorldPosition.Value = vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveSeatLocalOffset(seatIndex));
+                    playerState.YawDegrees.Value = NormalizeYaw(vehicleState.transform.eulerAngles.y);
+                }
             }
         }
 
@@ -352,7 +361,7 @@ namespace RoadRage.App.Run
             return false;
         }
 
-        private string ResolveEntryRefusalMessage(NetworkedPlayerState playerState, float distanceToVehicle)
+        private string ResolveEntryRefusalMessage(NetworkedVehicleState vehicleState, NetworkedPlayerState playerState, float distanceToVehicle)
         {
             if (vehicleState != null && vehicleState.IsInoperable())
             {
@@ -377,11 +386,11 @@ namespace RoadRage.App.Run
             return NoSeatAvailableMessage;
         }
 
-        private void ReleaseVehicleSeat(int seatIndex, ulong clientId)
+        private static void ReleaseVehicleSeat(NetworkedVehicleState vehicleState, int seatIndex, ulong clientId)
         {
             if (seatIndex == NetworkedVehicleState.DriverSeatIndex)
             {
-                CacheDriverController();
+                var driverController = vehicleState.GetComponent<NetworkedVehicleDriverController>();
                 if (driverController != null)
                 {
                     driverController.ClearServerDriverIfClient(clientId);
@@ -396,7 +405,7 @@ namespace RoadRage.App.Run
 
         private void HandleClientDisconnected(ulong clientId)
         {
-            if (!isActiveHost || vehicleState == null)
+            if (!isActiveHost || !TryResolveOccupiedVehicle(clientId, out var vehicleState))
             {
                 return;
             }
@@ -407,16 +416,53 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            ReleaseVehicleSeat(seatIndex, clientId);
+            ReleaseVehicleSeat(vehicleState, seatIndex, clientId);
             Report("Siege libere apres deconnexion du client " + clientId + ".", true);
         }
 
-        private void ApplySeatedState(NetworkedPlayerState playerState, int seatIndex)
+        private static void ApplySeatedState(NetworkedVehicleState vehicleState, NetworkedPlayerState playerState, int seatIndex)
         {
             playerState.WorldPosition.Value = vehicleState.transform.TransformPoint(NetworkedVehicleState.ResolveSeatLocalOffset(seatIndex));
             playerState.YawDegrees.Value = NormalizeYaw(vehicleState.transform.eulerAngles.y);
             playerState.SeatIndex.Value = seatIndex;
             playerState.Mode.Value = seatIndex == NetworkedVehicleState.DriverSeatIndex ? PlayerMode.Driver : PlayerMode.Passenger;
+        }
+
+        private bool TryResolveNearestVehicle(Vector3 playerPosition, out NetworkedVehicleState vehicleState)
+        {
+            vehicleState = null;
+            var closestDistance = float.PositiveInfinity;
+            foreach (var candidate in FindVehicles())
+            {
+                var distance = Vector3.Distance(playerPosition, candidate.transform.position);
+                if (distance < closestDistance)
+                {
+                    vehicleState = candidate;
+                    closestDistance = distance;
+                }
+            }
+
+            return vehicleState != null;
+        }
+
+        private bool TryResolveOccupiedVehicle(ulong clientId, out NetworkedVehicleState vehicleState)
+        {
+            foreach (var candidate in FindVehicles())
+            {
+                if (candidate.FindSeatIndex(clientId) != NetworkedVehicleState.NoSeatIndex)
+                {
+                    vehicleState = candidate;
+                    return true;
+                }
+            }
+
+            vehicleState = null;
+            return false;
+        }
+
+        private static NetworkedVehicleState[] FindVehicles()
+        {
+            return FindObjectsByType<NetworkedVehicleState>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         }
 
         private void CacheReferences()
@@ -426,20 +472,6 @@ namespace RoadRage.App.Run
                 spawnService = FindAnyObjectByType<NetworkedPlayerSpawnService>();
             }
 
-            if (vehicleState == null)
-            {
-                vehicleState = FindAnyObjectByType<NetworkedVehicleState>();
-            }
-
-            CacheDriverController();
-        }
-
-        private void CacheDriverController()
-        {
-            if (driverController == null && vehicleState != null)
-            {
-                driverController = vehicleState.GetComponent<NetworkedVehicleDriverController>();
-            }
         }
 
         private void Report(string message, bool warning)
