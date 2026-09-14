@@ -3606,9 +3606,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/deferred-work.md": {
-    "mtime": 1789313578.7712278,
-    "seen": 1789314750.0581162,
-    "ast_hash": "cd7ae9e70f7ef458cc68c28ab6d995ed",
+    "mtime": 1789384628.00541,
+    "seen": 1789384650.1330152,
+    "ast_hash": "1b6871da0f1b04538b3bde4082476711",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/epic-0-context.md": {
@@ -5634,9 +5634,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs": {
-    "mtime": 1789381662.927744,
-    "seen": 1789381976.627774,
-    "ast_hash": "ed19af7aa63525305af343d337989b11",
+    "mtime": 1789384590.0572398,
+    "seen": 1789384650.0764241,
+    "ast_hash": "c4410873fc45cb2cd8f10ab5156daa62",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/RouteWaypoints.cs": {
@@ -5646,15 +5646,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs": {
-    "mtime": 1789381676.0234778,
-    "seen": 1789381976.631794,
-    "ast_hash": "02d70d50a6eba770aa4a71983a6d03d7",
+    "mtime": 1789384607.1936274,
+    "seen": 1789384650.0805068,
+    "ast_hash": "c17f811b5a15b7664cebb7a52de6f597",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-5-2-basic-ai-route-following-and-recovery.md": {
-    "mtime": 1789376012.5962856,
-    "seen": 1789381976.68673,
-    "ast_hash": "beee22f8dbc2cf090c44216657c69d60",
+    "mtime": 1789384628.0301898,
+    "seen": 1789384650.137317,
+    "ast_hash": "8297b3b015496c60232693492c4a6ce9",
     "semantic_hash": ""
   }
 }

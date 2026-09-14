@@ -990,7 +990,33 @@ So that driving around traffic is testable before complex behaviors are added.
 **And** movement is deterministic enough for host-authoritative networking tests
 **And** AI traffic can be disabled or isolated in a development sandbox
 
-### Story 5.3: Rage-Driven AI Behavior States
+### Story 5.3: Unified Solo and Online Session Start
+
+**Implements:** AD-26, NFR2, NFR4
+
+As a player,
+I want Start Game to host a private lobby exactly like Create Lobby,
+So that solo and multiplayer runs share one session-bootstrap path and every networked feature works identically in both.
+
+**Acceptance Criteria:**
+
+**Given** the player presses Start Game from the main menu
+**When** the run begins
+**Then** a private Steam lobby is created with the player as host, exactly as Create Lobby does
+**And** networking starts (StartHost) before MVP_Run loads, via the same LobbyFlowController path Create Lobby already uses
+**And** a second player can join that lobby by code while the run is in progress
+**And** all NetworkBehaviour-driven features (AI traffic, rage, passenger actions, damage) behave identically whether the lobby was opened via Start Game or Create Lobby
+
+**Given** the LocalSolo* duplicate code path in RunFlowController
+**When** the unified session start is verified working
+**Then** the LocalSolo* methods are removed and replaced by the single host-authoritative path
+**And** no new duplicate solo/online branch is introduced elsewhere to compensate
+
+**Given** every PlayMode fixture that loads MainMenuLobby or MVP_Run in solo mode across Epics 1-5
+**When** this story is verified
+**Then** those fixtures are re-run and pass under the unified path (no fixture rewritten to hide a regression)
+
+### Story 5.4: Rage-Driven AI Behavior States
 
 **Implements:** FR7, FR8, FR24, FR25, FR27, NFR4
 
@@ -1007,7 +1033,7 @@ So that passenger chaos produces visible road behavior.
 **And** one AI vehicle changing state does not force all other AI vehicles into the same state
 **And** behavior transitions are host-authoritative
 
-### Story 5.4: Rage Road Event Trigger
+### Story 5.5: Rage Road Event Trigger
 
 **Implements:** FR11, FR24, FR25, FR27, NFR4
 
@@ -1025,7 +1051,7 @@ So that the road chaos can move toward a confrontation loop.
 **And** duplicate triggers are prevented for the same active event
 **And** the event state is stored in host-owned runtime state
 
-### Story 5.5: AI Traffic Networking and Client Presentation
+### Story 5.6: AI Traffic Networking and Client Presentation
 
 **Implements:** FR6, FR7, FR8, FR11, FR24, FR25, FR27, NFR4, NFR5, NFR6
 
@@ -1042,7 +1068,7 @@ So that online play remains understandable.
 **And** late-joining clients receive the current relevant traffic and event state
 **And** network traffic remains suitable for MVP tests with up to four players and three AI vehicles
 
-### Story 5.6: Epic 5 AI Traffic Playable Checkpoint
+### Story 5.7: Epic 5 AI Traffic Playable Checkpoint
 
 **Implements:** FR6, FR7, FR8, FR11, FR24, FR25, FR27
 
