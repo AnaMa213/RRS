@@ -12,8 +12,19 @@ namespace RoadRage.Features.Online
     {
         Task<LobbyCreateOutcome> CreateLobbyAsync(int maxMembers);
 
+        /// <summary>Publie le code court affichable sur le lobby courant.</summary>
+        void SetLobbyJoinCode(string joinCode)
+        {
+        }
+
         /// <summary>Tente de rejoindre un lobby Steam existant par son identifiant (Story 2.3).</summary>
         Task<LobbyJoinOutcome> JoinLobbyAsync(ulong lobbyId);
+
+        /// <summary>Resout puis rejoint un lobby par son code court affichable.</summary>
+        Task<LobbyJoinOutcome> JoinLobbyByCodeAsync(string joinCode)
+        {
+            return Task.FromResult(LobbyJoinOutcome.Failed);
+        }
 
         void LeaveCurrentLobby();
 
@@ -63,15 +74,18 @@ namespace RoadRage.Features.Online
     {
         public static readonly LobbyJoinOutcome Failed = new LobbyJoinOutcome(false, LobbyJoinFailureReason.Failed);
 
-        public LobbyJoinOutcome(bool success, LobbyJoinFailureReason reason)
+        public LobbyJoinOutcome(bool success, LobbyJoinFailureReason reason, ulong lobbyId = 0)
         {
             Success = success;
             Reason = reason;
+            LobbyId = lobbyId;
         }
 
         public bool Success { get; }
 
         public LobbyJoinFailureReason Reason { get; }
+
+        public ulong LobbyId { get; }
     }
 
     /// <summary>Membre du lobby courant avec son etat pret, sans exposer de type Steamworks (Story 2.4).</summary>

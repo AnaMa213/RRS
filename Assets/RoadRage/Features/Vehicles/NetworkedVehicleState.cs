@@ -138,7 +138,7 @@ namespace RoadRage.Features.Vehicles
 
         /// <summary>
         /// Tire l'ordre aleatoire de degat une seule fois (au premier appel), depuis
-        /// NetworkedVehicleDriverController.OnNetworkSpawn (IsServer) ou SetLocalSoloDriverActive --
+        /// NetworkedVehicleDriverController.OnNetworkSpawn (IsServer) --
         /// jamais depuis Awake() : ecrire un NetworkVariable.Value avant que le NetworkObject ne soit
         /// spawn declenche l'avertissement Netcode "doesn't know its NetworkBehaviour yet". Les
         /// valeurs par defaut des NetworkVariable (Hp/flags/compteur) sont deja correctes sans appel ;

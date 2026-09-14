@@ -184,7 +184,8 @@ namespace RoadRage.Tests.EditMode
             Assert.That(source, Does.Contain("IsAuthoritativeForDamage"));
             Assert.That(source, Does.Contain("NetworkedPlayerLifecycleService.PlayerCollisionDamage"));
             Assert.That(source, Does.Contain("subscribedVehicleState.ApplyDamage(vehicleDamage)"));
-            Assert.That(source, Does.Contain("localSoloVehicleState.ApplyDamage(vehicleDamage)"));
+            Assert.That(source, Does.Not.Contain("localSoloVehicleState"),
+                "Story 5.3 : le solo est toujours host-authoritative, les degats vehicule passent uniquement par ApplyNetworkedCollisionDamage/subscribedVehicleState.");
             Assert.That(source, Does.Contain("localOnFootController.IsDowned = true;"));
             Assert.That(source, Does.Contain("checkpointHud.ShowPlayerDownedMessage();"));
             Assert.That(source, Does.Contain("checkpointHud.ShowVehicleInoperableMessage();"));

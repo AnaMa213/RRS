@@ -19,8 +19,8 @@ namespace RoadRage.Features.Vehicles
     /// NetworkedPlayerLifecycleIntent.RequestRespawn/RequestRespawnRpc (Story 2.7), necessaire ici
     /// aussi car le NetworkObject de la voiture reste host-owned.
     /// Story 3.4 ajoute la detection retournement/hors-zone et la recuperation vehicule : toujours
-    /// calculees et appliquees cote host (ou cote solo via <see cref="localSoloDriverActive"/>, meme
-    /// garde d'autorite que le reste du fichier), jamais cote client reseau. Les collisions et
+    /// calculees et appliquees cote host uniquement (Story 5.3 : le solo est desormais toujours
+    /// host-authoritative, meme garde d'autorite que le reste du fichier), jamais cote client reseau. Les collisions et
     /// recuperations sont exposees en evenements C# purs (aucune reference UI ici) pour rester
     /// consommables uniquement depuis App/Run, conformement a la frontiere du module Vehicules.
     /// </summary>
@@ -92,7 +92,6 @@ namespace RoadRage.Features.Vehicles
         private Rigidbody body;
         private NetworkTransform networkTransform;
         private VehicleDriveIntent latestIntent = VehicleDriveIntent.Idle;
-        private bool localSoloDriverActive;
         private float rolloverElapsedSeconds;
         private Vector3 fallbackRecoveryPosition;
         private Quaternion fallbackRecoveryRotation;
@@ -153,12 +152,6 @@ namespace RoadRage.Features.Vehicles
 
         private void Update()
         {
-            if (localSoloDriverActive)
-            {
-                latestIntent = ReadLocalDriveIntent();
-                return;
-            }
-
             if (!IsSpawned || state == null)
             {
                 return;
@@ -188,7 +181,7 @@ namespace RoadRage.Features.Vehicles
 
         private void FixedUpdate()
         {
-            if ((!IsServer && !localSoloDriverActive) || body == null || state == null)
+            if (!IsServer || body == null || state == null)
             {
                 return;
             }
@@ -201,7 +194,7 @@ namespace RoadRage.Features.Vehicles
                 return;
             }
 
-            if (!localSoloDriverActive && state.DriverClientId.Value == NetworkedVehicleState.UnclaimedDriverClientId)
+            if (state.DriverClientId.Value == NetworkedVehicleState.UnclaimedDriverClientId)
             {
                 return;
             }
@@ -294,7 +287,7 @@ namespace RoadRage.Features.Vehicles
         /// </summary>
         public void RecoverVehicle(Vector3 position, Quaternion rotation)
         {
-            if ((!IsServer && !localSoloDriverActive) || body == null)
+            if (!IsServer || body == null)
             {
                 return;
             }
@@ -323,7 +316,7 @@ namespace RoadRage.Features.Vehicles
         /// </summary>
         private void OnCollisionEnter(Collision collision)
         {
-            if (!IsServer && !localSoloDriverActive)
+            if (!IsServer)
             {
                 return;
             }
@@ -517,24 +510,6 @@ namespace RoadRage.Features.Vehicles
 
             state.DriverClientId.Value = NetworkedVehicleState.UnclaimedDriverClientId;
             latestIntent = VehicleDriveIntent.Idle;
-        }
-
-        public void SetLocalSoloDriverActive(bool active)
-        {
-            CacheComponents();
-            localSoloDriverActive = active && (state == null || !state.IsInoperable());
-            latestIntent = VehicleDriveIntent.Idle;
-
-            if (body != null)
-            {
-                ConfigureArcadeBody();
-                body.isKinematic = false;
-            }
-
-            if (state != null)
-            {
-                state.EnsureDamageStateInitialized();
-            }
         }
 
         private float ResolveTargetSpeed(VehicleDriveIntent intent, float longitudinalSpeed)

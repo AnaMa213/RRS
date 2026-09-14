@@ -1,4 +1,5 @@
 using Netcode.Transports.Facepunch;
+using System.Linq;
 using RoadRage.App.Run;
 using RoadRage.App.Services;
 using RoadRage.Features.Online;
@@ -124,15 +125,16 @@ namespace RoadRage.App
 
         /// <summary>
         /// Garantit l'existence du NetworkManager avec le transport Steamworks Networking Sockets
-        /// (Story 2.5), construit en code comme le reste des services de ce bootstrap : aucune scene ni
-        /// prefab a authorer, meme AppID de test que OnlineServices. Volontairement paresseux (appele
-        /// par LobbyFlowController juste avant StartHost/StartClient, jamais depuis Awake) : le
+        /// (Story 2.5), construit en code comme le reste des services de ce bootstrap. La liste de
+        /// prefabs partagee est fournie explicitement par LobbyFlowController, point d'entree commun
+        /// aux hotes et clients. Volontairement paresseux (appele juste avant StartHost/StartClient,
+        /// jamais depuis Awake) : le
         /// transport Facepunch pompe Steamworks a chaque frame des qu'il existe (OnEarlyUpdate), y
         /// compris hors session reseau, ce qui casserait le solo et toute scene/test sans client Steam
         /// si le NetworkManager existait en permanence. NetworkManager gere sa propre survie au
         /// changement de scene une fois cree (DontDestroyOnLoad interne a son Awake).
         /// </summary>
-        public static void EnsureNetworkManager()
+        public static void EnsureNetworkManager(NetworkPrefabsList networkPrefabs)
         {
             var manager = NetworkManager.Singleton;
             if (manager == null)
@@ -146,10 +148,10 @@ namespace RoadRage.App
                 }
             }
 
-            ConfigureNetworkManager(manager);
+            ConfigureNetworkManager(manager, networkPrefabs);
         }
 
-        private static void ConfigureNetworkManager(NetworkManager manager)
+        private static void ConfigureNetworkManager(NetworkManager manager, NetworkPrefabsList networkPrefabs)
         {
             if (manager.NetworkConfig == null)
             {
@@ -175,10 +177,18 @@ namespace RoadRage.App
                 manager.NetworkConfig.Prefabs = new NetworkPrefabs();
             }
 
+            if (networkPrefabs != null &&
+                !manager.NetworkConfig.Prefabs.NetworkPrefabsLists.Contains(networkPrefabs))
+            {
+                manager.NetworkConfig.Prefabs.NetworkPrefabsLists.Add(networkPrefabs);
+            }
+
             var playerRootPrefab = Resources.Load<GameObject>(NetworkedPlayerSpawnService.PlayerRootResourceName);
             if (playerRootPrefab != null)
             {
-                if (!manager.NetworkConfig.Prefabs.Contains(playerRootPrefab))
+                var playerRootIsInDefaultList = networkPrefabs != null &&
+                                                networkPrefabs.PrefabList.Any(entry => entry.Prefab == playerRootPrefab);
+                if (!playerRootIsInDefaultList && !manager.NetworkConfig.Prefabs.Contains(playerRootPrefab))
                 {
                     manager.AddNetworkPrefab(playerRootPrefab);
                 }

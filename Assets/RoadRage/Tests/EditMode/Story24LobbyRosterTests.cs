@@ -169,6 +169,107 @@ namespace RoadRage.Tests.EditMode
             Assert.That(lobbyPlatform.LastDifficulty, Is.EqualTo(Difficulty.Hard));
         }
 
+        /// <summary>
+        /// Story 5.3 (AD-26), bug de regression : sans ce champ compare, un invite deja rejoint ne
+        /// recevait jamais RosterChanged quand seul RunLaunchRequested changeait (roster autrement
+        /// identique), donc ne demarrait jamais son propre StartClient() -- symptome rapporte : un
+        /// second joueur rejoint le lobby par code mais n'entre jamais dans la partie que l'hote lance.
+        /// </summary>
+        [Test]
+        public void TickRaisesEventWhenOnlyRunLaunchRequestedChanges()
+        {
+            var roster = BuildService(out var lobbyPlatform, out var lobbyRoom, out _);
+            lobbyPlatform.NextCreateOutcome = new LobbyCreateOutcome(true, 1UL);
+            lobbyRoom.CreateRoomAsync().GetAwaiter().GetResult();
+
+            lobbyPlatform.NextRoster = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new[]
+            {
+                new LobbyMemberSnapshot(1UL, "Hote", "char_rookie", true)
+            }, runLaunchRequested: false);
+            roster.Tick();
+
+            var raiseCount = 0;
+            LobbyRosterSnapshot? raised = null;
+            roster.RosterChanged += snapshot =>
+            {
+                raiseCount++;
+                raised = snapshot;
+            };
+
+            lobbyPlatform.NextRoster = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new[]
+            {
+                new LobbyMemberSnapshot(1UL, "Hote", "char_rookie", true)
+            }, runLaunchRequested: true);
+            roster.Tick();
+
+            Assert.That(raiseCount, Is.EqualTo(1), "le seul changement de RunLaunchRequested doit republier le roster.");
+            Assert.That(raised, Is.Not.Null);
+            Assert.That(raised.Value.RunLaunchRequested, Is.True);
+        }
+
+        /// <summary>
+        /// Story 5.3 (AD-26), AC2 "un second joueur rejoint la partie EN COURS" : quand l'invite
+        /// rejoint APRES le lancement, il n'observe aucune transition du signal -- son tout premier
+        /// instantane porte deja RunLaunchRequested = true. Current doit donc refleter ce signal des
+        /// le premier Tick suivant le join, y compris si un roster identique avait deja ete memorise
+        /// lors d'une session precedente (sinon SnapshotsEqual l'avale et l'invite reste bloque dans
+        /// le lobby).
+        /// </summary>
+        [Test]
+        public void JoiningAfterTheHostLaunchedExposesRunLaunchRequestedOnTheFirstTick()
+        {
+            var roster = BuildService(out var lobbyPlatform, out _, out var lobbyJoin);
+
+            var launchedRoster = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new[]
+            {
+                new LobbyMemberSnapshot(1UL, "Hote", "char_rookie", false),
+                new LobbyMemberSnapshot(2UL, "Invite", "char_rookie", false)
+            }, runLaunchRequested: true);
+
+            // Etat perime d'une session precedente, strictement identique a celui du lobby rejoint.
+            lobbyPlatform.NextJoinOutcome = new LobbyJoinOutcome(true, LobbyJoinFailureReason.None);
+            lobbyPlatform.NextRoster = launchedRoster;
+            lobbyJoin.JoinByCodeAsync("AB123").GetAwaiter().GetResult();
+            roster.Tick();
+            Assert.That(roster.Current.RunLaunchRequested, Is.True, "premier join : le signal doit deja etre visible.");
+
+            roster.Tick();
+
+            Assert.That(roster.Current.RunLaunchRequested, Is.True,
+                "l'invite qui rejoint une partie deja lancee doit voir RunLaunchRequested sur son etat courant, sans dependre d'une transition.");
+            Assert.That(roster.Current.OwnerId, Is.EqualTo(1UL), "l'hote a rejoindre doit rester resolu pour StartClient.");
+        }
+
+        [Test]
+        public void PublishRunLaunchRequestedOnlyCallsPlatformWhenRoomIsOpen()
+        {
+            var roster = BuildService(out var lobbyPlatform, out var lobbyRoom, out _);
+
+            roster.PublishRunLaunchRequested(true);
+            Assert.That(lobbyPlatform.SetLobbyRunLaunchRequestedCallCount, Is.EqualTo(0), "sans room hote ouverte, aucune publication du signal de lancement");
+
+            lobbyPlatform.NextCreateOutcome = new LobbyCreateOutcome(true, 1UL);
+            lobbyRoom.CreateRoomAsync().GetAwaiter().GetResult();
+            var callCountAfterRoomOpen = lobbyPlatform.SetLobbyRunLaunchRequestedCallCount;
+
+            roster.PublishRunLaunchRequested(true);
+            Assert.That(lobbyPlatform.SetLobbyRunLaunchRequestedCallCount, Is.EqualTo(callCountAfterRoomOpen + 1));
+            Assert.That(lobbyPlatform.LastLaunchRequested, Is.True);
+        }
+
+        [Test]
+        public void RoomOpeningResetsRunLaunchRequestedToFalse()
+        {
+            var roster = BuildService(out var lobbyPlatform, out var lobbyRoom, out _);
+
+            lobbyPlatform.NextCreateOutcome = new LobbyCreateOutcome(true, 1UL);
+            lobbyRoom.CreateRoomAsync().GetAwaiter().GetResult();
+
+            Assert.That(lobbyPlatform.SetLobbyRunLaunchRequestedCallCount, Is.GreaterThanOrEqualTo(1),
+                "une room fraichement ouverte doit remettre a zero un signal de lancement perime d'une session precedente.");
+            Assert.That(lobbyPlatform.LastLaunchRequested, Is.False);
+        }
+
         [Test]
         public void PublishLocalProfileCallsPlatformWhenRoomOpenOrJoinedButNotOtherwise()
         {
@@ -191,7 +292,7 @@ namespace RoadRage.Tests.EditMode
         {
             var roster = BuildService(out var lobbyPlatform, out _, out var lobbyJoin);
             lobbyPlatform.NextJoinOutcome = new LobbyJoinOutcome(true, LobbyJoinFailureReason.None);
-            lobbyJoin.JoinByCodeAsync("123456").GetAwaiter().GetResult();
+            lobbyJoin.JoinByCodeAsync("AB123").GetAwaiter().GetResult();
 
             var profiles = new PlayerProfileStore();
             profiles.Set(new PlayerProfile("Invite", new DefinitionId("char_veteran")));
@@ -281,6 +382,11 @@ namespace RoadRage.Tests.EditMode
             public Task<LobbyJoinOutcome> JoinLobbyAsync(ulong lobbyId)
             {
                 return Task.FromResult(NextJoinOutcome);
+            }
+
+            public Task<LobbyJoinOutcome> JoinLobbyByCodeAsync(string joinCode)
+            {
+                return Task.FromResult(new LobbyJoinOutcome(NextJoinOutcome.Success, NextJoinOutcome.Reason, 1UL));
             }
 
             public void LeaveCurrentLobby()

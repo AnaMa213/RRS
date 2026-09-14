@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace RoadRage.Features.Online
@@ -37,6 +38,9 @@ namespace RoadRage.Features.Online
         public LobbyRoomStatus Status { get; private set; }
 
         public ulong JoinCode { get; private set; }
+
+        /// <summary>Code partageable, exactement cinq caracteres alphanumeriques majuscules.</summary>
+        public string DisplayJoinCode { get; private set; } = string.Empty;
 
         public event Action<LobbyRoomStatus> StatusChanged;
 
@@ -78,6 +82,8 @@ namespace RoadRage.Features.Online
             }
 
             JoinCode = outcome.LobbyId;
+            DisplayJoinCode = CreateDisplayJoinCode();
+            platform.SetLobbyJoinCode(DisplayJoinCode);
             SetStatus(LobbyRoomStatus.Open);
         }
 
@@ -91,7 +97,21 @@ namespace RoadRage.Features.Online
 
             platform.LeaveCurrentLobby();
             JoinCode = 0;
+            DisplayJoinCode = string.Empty;
             SetStatus(LobbyRoomStatus.Closed);
+        }
+
+        private static string CreateDisplayJoinCode()
+        {
+            const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var characters = new char[5];
+            for (var i = 0; i < characters.Length; i++)
+            {
+                characters[i] = alphabet[RandomNumberGenerator.GetInt32(alphabet.Length)];
+            }
+
+            // ponytail: 36^5 codes; add collision retry only if concurrent lobby volume makes it observable.
+            return new string(characters);
         }
 
         private void SetStatus(LobbyRoomStatus status)

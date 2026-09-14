@@ -488,6 +488,7 @@ MonoBehaviour:
   screen: {fileID: 2097947415}
   lobbyRosterScreen: {fileID: 635093934}
   catalog: {fileID: 11400000, guid: 090dcb6cd5516654e99a45174314c148, type: 2}
+  defaultNetworkPrefabs: {fileID: 11400000, guid: 84da7a27ce5bf1540ac19f27ffb55411, type: 2}
 --- !u!4 &95202419
 Transform:
   m_ObjectHideFlags: 0

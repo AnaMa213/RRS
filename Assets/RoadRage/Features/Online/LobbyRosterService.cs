@@ -126,6 +126,24 @@ namespace RoadRage.Features.Online
             platform.SetLobbyDifficulty(difficulty);
         }
 
+        /// <summary>
+        /// Story 5.3 (AD-26) : signal explicite du lancement de la partie, ecrit dans les donnees de
+        /// lobby Steam par l'hote des que StartHost() reussit, pour que chaque invite deja rejoint
+        /// (LobbyJoinStatus.Joined) declenche automatiquement son propre StartClient() au prochain
+        /// Tick() -- sans ce signal, un invite ne peut jamais rejoindre une partie en cours (il n'a
+        /// aucun autre moyen de savoir que l'hote a demarre le reseau). Sans effet hors room hote
+        /// ouverte ; reserve a l'hote par l'appelant, comme PublishDifficulty.
+        /// </summary>
+        public void PublishRunLaunchRequested(bool launchRequested)
+        {
+            if (lobbyRoom.Status != LobbyRoomStatus.Open)
+            {
+                return;
+            }
+
+            platform.SetLobbyRunLaunchRequested(launchRequested);
+        }
+
         /// <summary>Publie le nom affiche et le personnage choisi du joueur local, pour hote et invite. Sans effet hors lobby actif.</summary>
         public void PublishLocalProfile(string displayName, string characterId)
         {
@@ -147,6 +165,7 @@ namespace RoadRage.Features.Online
             {
                 LocalReady = false;
                 platform.SetLocalMemberReady(false);
+                platform.SetLobbyRunLaunchRequested(false);
             }
             else if (current.HasLobby)
             {
@@ -162,6 +181,13 @@ namespace RoadRage.Features.Online
         {
             if (status == LobbyJoinStatus.Joined)
             {
+                // Story 5.3 (AD-26), bug de regression : un join repart d'un roster vierge. Sans cette
+                // remise a zero, un instantane identique a celui deja memorise (meme lobby rejoint une
+                // seconde fois, ou roster identique a la session precedente) est avale par
+                // SnapshotsEqual : Current reste perime, donc le client ne voit jamais le
+                // RunLaunchRequested du lobby qu'il vient de rejoindre et ne rejoint jamais la partie
+                // en cours.
+                current = LobbyRosterSnapshot.Empty;
                 LocalReady = false;
                 platform.SetLocalMemberReady(false);
             }
@@ -184,7 +210,8 @@ namespace RoadRage.Features.Online
 
         private static bool SnapshotsEqual(LobbyRosterSnapshot a, LobbyRosterSnapshot b)
         {
-            if (a.HasLobby != b.HasLobby || a.OwnerId != b.OwnerId || a.Difficulty != b.Difficulty)
+            if (a.HasLobby != b.HasLobby || a.OwnerId != b.OwnerId || a.Difficulty != b.Difficulty
+                || a.RunLaunchRequested != b.RunLaunchRequested)
             {
                 return false;
             }

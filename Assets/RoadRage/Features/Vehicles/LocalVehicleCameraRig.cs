@@ -12,7 +12,11 @@ namespace RoadRage.Features.Vehicles
     /// selon le siege occupe par le client local. Aucune donnee de camera n'est repliquee sur le
     /// reseau. Extension (2026-09-12, hors story, demande de test manuel) : un slot camera par siege
     /// passager en plus du siege conducteur -- si un slot passager n'est pas cable dans le prefab, on
-    /// retombe sur la camera conducteur plutot que de laisser le joueur sans aucune vue.
+    /// retombe sur la camera conducteur plutot que de laisser le joueur sans aucune vue. Depuis la
+    /// Story 5.3, le solo est toujours host-authoritative comme l'en ligne : l'activation reseau
+    /// (RefreshActivation via NetworkedVehicleState.FindSeatIndex) couvre desormais tous les cas de
+    /// jeu reels ; SetManualCameraActive ne reste qu'un hook de test EditMode pur (ThirdPersonCameraTests)
+    /// pour forcer une camera sans NetworkManager.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkedVehicleState))]
@@ -25,8 +29,8 @@ namespace RoadRage.Features.Vehicles
         private CinemachineCamera[] passengerSeatCameras = new CinemachineCamera[NetworkedVehicleState.PassengerSeatCount];
 
         private NetworkedVehicleState state;
-        private bool localSoloCameraActive;
-        private int localSoloSeatIndex = NetworkedVehicleState.DriverSeatIndex;
+        private bool manualCameraActive;
+        private int manualCameraSeatIndex = NetworkedVehicleState.DriverSeatIndex;
         private bool suppressNetworkCameraUntilReleased;
         private CinemachineCamera activeCamera;
         private readonly Dictionary<CinemachineCamera, Transform> defaultLookAtBySeatCamera = new Dictionary<CinemachineCamera, Transform>();
@@ -81,9 +85,9 @@ namespace RoadRage.Features.Vehicles
                 return;
             }
 
-            if (localSoloCameraActive)
+            if (manualCameraActive)
             {
-                ActivateCamera(ResolveCameraForSeat(localSoloSeatIndex));
+                ActivateCamera(ResolveCameraForSeat(manualCameraSeatIndex));
                 return;
             }
 
@@ -112,15 +116,20 @@ namespace RoadRage.Features.Vehicles
             ActivateCamera(localSeatIndex == NetworkedVehicleState.NoSeatIndex ? null : ResolveCameraForSeat(localSeatIndex));
         }
 
-        public void SetLocalSoloCameraActive(bool active)
+        /// <summary>
+        /// Hook de test EditMode pur (ThirdPersonCameraTests) : force une camera de siege sans passer
+        /// par un NetworkManager. Aucun appelant gameplay depuis la Story 5.3 (le solo est toujours
+        /// host-authoritative, l'activation reseau normale de RefreshActivation suffit).
+        /// </summary>
+        public void SetManualCameraActive(bool active)
         {
-            SetLocalSoloCameraActive(active, NetworkedVehicleState.DriverSeatIndex);
+            SetManualCameraActive(active, NetworkedVehicleState.DriverSeatIndex);
         }
 
-        public void SetLocalSoloCameraActive(bool active, int seatIndex)
+        public void SetManualCameraActive(bool active, int seatIndex)
         {
-            localSoloCameraActive = active;
-            localSoloSeatIndex = seatIndex;
+            manualCameraActive = active;
+            manualCameraSeatIndex = seatIndex;
             ActivateCamera(active ? ResolveCameraForSeat(seatIndex) : null);
         }
 

@@ -36,6 +36,8 @@ namespace RoadRage.Features.Online
 
         private const string RunLaunchRequestedDataKey = "runLaunchRequested";
 
+        private const string JoinCodeDataKey = "joinCode";
+
         private Lobby? currentLobby;
 
         public async Task<LobbyCreateOutcome> CreateLobbyAsync(int maxMembers)
@@ -61,7 +63,39 @@ namespace RoadRage.Features.Online
             }
 
             currentLobby = lobby;
-            return new LobbyJoinOutcome(true, LobbyJoinFailureReason.None);
+            return new LobbyJoinOutcome(true, LobbyJoinFailureReason.None, lobbyId);
+        }
+
+        public async Task<LobbyJoinOutcome> JoinLobbyByCodeAsync(string joinCode)
+        {
+            var lobbies = await SteamMatchmaking.LobbyList
+                .FilterDistanceWorldwide()
+                .WithKeyValue(JoinCodeDataKey, joinCode)
+                .WithMaxResults(1)
+                .RequestAsync();
+
+            if (lobbies == null || lobbies.Length == 0)
+            {
+                return new LobbyJoinOutcome(false, LobbyJoinFailureReason.Expired);
+            }
+
+            var lobby = lobbies[0];
+            var enter = await lobby.Join();
+            if (enter != RoomEnter.Success)
+            {
+                return new LobbyJoinOutcome(false, MapFailureReason(enter));
+            }
+
+            currentLobby = lobby;
+            return new LobbyJoinOutcome(true, LobbyJoinFailureReason.None, lobby.Id);
+        }
+
+        public void SetLobbyJoinCode(string joinCode)
+        {
+            if (currentLobby.HasValue)
+            {
+                currentLobby.Value.SetData(JoinCodeDataKey, joinCode ?? string.Empty);
+            }
         }
 
         public void LeaveCurrentLobby()

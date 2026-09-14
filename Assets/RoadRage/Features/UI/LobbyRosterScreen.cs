@@ -2,6 +2,7 @@ using System;
 using RoadRage.Shared.Domain;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace RoadRage.Features.UI
@@ -150,6 +151,13 @@ namespace RoadRage.Features.UI
             if (roomCodeLabel != null)
             {
                 roomCodeLabel.text = "Code : " + code;
+                var clipboard = roomCodeLabel.GetComponent<LobbyCodeClipboard>();
+                if (clipboard == null)
+                {
+                    clipboard = roomCodeLabel.gameObject.AddComponent<LobbyCodeClipboard>();
+                }
+
+                clipboard.SetCode(code);
             }
         }
 
@@ -193,6 +201,20 @@ namespace RoadRage.Features.UI
             if (soloTestExceptionButtonLabel != null)
             {
                 soloTestExceptionButtonLabel.text = "Ignorer \"tous prets\" (test solo) : " + (enabled ? "ON" : "OFF");
+            }
+        }
+
+        /// <summary>
+        /// Seul l'hote peut lancer la session reseau (Story 5.3, AD-26) ; un invite le recoit desactive,
+        /// meme motif que SetDifficultyEditable -- le clic reste possible cote hote uniquement, un invite
+        /// qui cliquerait quand meme sur un bouton actif obtiendrait de toute facon un refus explicite
+        /// (StartRefusedWaitingForHostMessage), ce controle en est le reflet visuel.
+        /// </summary>
+        public void SetStartGameInteractable(bool interactable)
+        {
+            if (startGameButton != null)
+            {
+                startGameButton.interactable = interactable;
             }
         }
 
@@ -258,6 +280,54 @@ namespace RoadRage.Features.UI
         private void RaiseCloseRoomRequested()
         {
             CloseRoomRequested?.Invoke();
+        }
+    }
+
+    /// <summary>Rend le code de salon existant cliquable sans ajouter de surface UI.</summary>
+    public sealed class LobbyCodeClipboard : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
+    {
+        private TMP_Text label;
+
+        private string code;
+
+        private Color normalColor;
+
+        private void Awake()
+        {
+            label = GetComponent<TMP_Text>();
+            if (label != null)
+            {
+                normalColor = label.color;
+            }
+        }
+
+        public void SetCode(string value)
+        {
+            code = value ?? string.Empty;
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (!string.IsNullOrEmpty(code))
+            {
+                GUIUtility.systemCopyBuffer = code;
+            }
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (label != null && !string.IsNullOrEmpty(code))
+            {
+                label.color = Color.cyan;
+            }
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (label != null)
+            {
+                label.color = normalColor;
+            }
         }
     }
 

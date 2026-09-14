@@ -16,6 +16,31 @@ namespace RoadRage.Tests.PlayMode
 {
     public sealed class Story42PassengerActionMvpRunPlayModeTests
     {
+        /// <summary>
+        /// Dev_RageSandbox demarre son propre hote (RageSandboxAutoStart.StartHost()) des qu'aucun
+        /// NetworkManager n'ecoute deja. NetworkManager gere sa propre survie (DontDestroyOnLoad)
+        /// independamment de la scene : sans arret explicite ici, cet hote reste actif et pollue les
+        /// fixtures suivantes qui verifient desormais l'etat reseau (Story 5.3, meme risque que
+        /// Story15EmptyMapEntryPlayModeTests) -- par exemple "Start Game ignore : session reseau deja
+        /// demarree" dans une fixture lancee juste apres celle-ci.
+        /// </summary>
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            var manager = NetworkManager.Singleton;
+            if (manager != null)
+            {
+                if (manager.IsListening)
+                {
+                    manager.Shutdown();
+                }
+
+                Object.Destroy(manager.gameObject);
+            }
+
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator DevRageSandboxAcceptsAllThreePassengerSlots()
         {

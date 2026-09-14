@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using TMPro;
 using NUnit.Framework;
@@ -8,6 +9,8 @@ using RoadRage.Features.Players;
 using RoadRage.Features.UI;
 using RoadRage.Shared.Domain;
 using Unity.Netcode;
+using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace RoadRage.Tests.EditMode
@@ -112,10 +115,11 @@ namespace RoadRage.Tests.EditMode
         public void EnsureNetworkManagerCreatesConfiguredRuntimeManager()
         {
             DestroyNetworkManagers();
+            var networkPrefabs = AssetDatabase.LoadAssetAtPath<NetworkPrefabsList>("Assets/DefaultNetworkPrefabs.asset");
 
-            RoadRageBootstrap.EnsureNetworkManager();
+            RoadRageBootstrap.EnsureNetworkManager(networkPrefabs);
 
-            AssertConfiguredNetworkManager(NetworkManager.Singleton);
+            AssertConfiguredNetworkManager(NetworkManager.Singleton, networkPrefabs);
         }
 
         [Test]
@@ -126,11 +130,12 @@ namespace RoadRage.Tests.EditMode
             var manager = gameObject.AddComponent<NetworkManager>();
             manager.SetSingleton();
             manager.NetworkConfig = null;
+            var networkPrefabs = AssetDatabase.LoadAssetAtPath<NetworkPrefabsList>("Assets/DefaultNetworkPrefabs.asset");
 
-            RoadRageBootstrap.EnsureNetworkManager();
+            RoadRageBootstrap.EnsureNetworkManager(networkPrefabs);
 
             Assert.That(NetworkManager.Singleton, Is.SameAs(manager));
-            AssertConfiguredNetworkManager(manager);
+            AssertConfiguredNetworkManager(manager, networkPrefabs);
         }
 
         [Test]
@@ -142,6 +147,33 @@ namespace RoadRage.Tests.EditMode
             var networkObject = playerRootPrefab.GetComponent<NetworkObject>();
             Assert.That(networkObject, Is.Not.Null, "NetworkedPlayerRoot doit porter un NetworkObject.");
             Assert.That(networkObject.InScenePlaced, Is.False, "un prefab spawne a runtime ne doit pas etre marque in-scene placed.");
+        }
+
+        [Test]
+        public void RuntimeVehiclePrefabsAreRegisteredByLobbyEntryPoint()
+        {
+            var prefabs = AssetDatabase.LoadAssetAtPath<NetworkPrefabsList>("Assets/DefaultNetworkPrefabs.asset");
+            var playerCar = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/RoadRage/Prefabs/Greybox_PlayerCar.prefab");
+            var aiVehicle = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/RoadRage/Prefabs/Greybox_AIVehicle.prefab");
+
+            Assert.That(prefabs, Is.Not.Null);
+            Assert.That(prefabs.PrefabList.Select(entry => entry.Prefab), Does.Contain(playerCar));
+            Assert.That(prefabs.PrefabList.Select(entry => entry.Prefab), Does.Contain(aiVehicle));
+
+            var scene = EditorSceneManager.OpenScene("Assets/RoadRage/App/Scenes/MainMenuLobby.unity", OpenSceneMode.Additive);
+            try
+            {
+                var lobbyFlow = scene.GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<RoadRage.App.Lobby.LobbyFlowController>(true))
+                    .Single();
+                var serializedLobbyFlow = new SerializedObject(lobbyFlow);
+
+                Assert.That(serializedLobbyFlow.FindProperty("defaultNetworkPrefabs").objectReferenceValue, Is.SameAs(prefabs));
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
         }
 
         [Test]
@@ -290,7 +322,7 @@ namespace RoadRage.Tests.EditMode
             }
         }
 
-        private static void AssertConfiguredNetworkManager(NetworkManager manager)
+        private static void AssertConfiguredNetworkManager(NetworkManager manager, NetworkPrefabsList networkPrefabs)
         {
             Assert.That(manager, Is.Not.Null);
             Assert.That(manager.NetworkConfig, Is.Not.Null);
@@ -299,10 +331,12 @@ namespace RoadRage.Tests.EditMode
             Assert.That(manager.NetworkConfig.ConnectionApproval, Is.True);
             Assert.That(manager.NetworkConfig.EnableSceneManagement, Is.True);
             Assert.That(manager.NetworkConfig.PlayerPrefab, Is.Null);
+            Assert.That(manager.NetworkConfig.Prefabs.NetworkPrefabsLists.Count(list => list == networkPrefabs), Is.EqualTo(1));
 
             var playerRootPrefab = Resources.Load<GameObject>(NetworkedPlayerSpawnService.PlayerRootResourceName);
             Assert.That(playerRootPrefab, Is.Not.Null, "NetworkedPlayerRoot doit rester chargeable depuis Resources.");
-            Assert.That(manager.NetworkConfig.Prefabs.Contains(playerRootPrefab), Is.True);
+            Assert.That(networkPrefabs.PrefabList.Count(entry => entry.Prefab == playerRootPrefab), Is.EqualTo(1),
+                "NetworkedPlayerRoot doit etre enregistre une seule fois dans la liste partagee.");
         }
 
         private static void DestroyNetworkManagers()

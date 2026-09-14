@@ -455,9 +455,11 @@ namespace RoadRage.Tests.EditMode
 
             Assert.That(source, Does.Contain("localOnFootController.MovementEnabled = false;"));
             Assert.That(source, Does.Contain("localOnFootController.Teleport(spawnPosition, spawnRotation);"));
-            Assert.That(source, Does.Contain("localOnFootController.MovementEnabled = true;"),
+            Assert.That(source, Does.Contain("localOnFootController.MovementEnabled = canReactivateBody;"),
                 "sans ce reveil/teleport du rig local reel, il continue de tomber et NetworkedLocalPlayerPoseReporter " +
-                "re-ecrase la position que le host vient de remettre.");
+                "re-ecrase la position que le host vient de remettre. Story 5.3 : cette assertion verifiait par " +
+                "coincidence une correspondance textuelle non liee (RunFlowController.LocalSolo*, supprimee) -- " +
+                "reecrite pour verifier le veritable chemin reseau (HandleLifecycleChanged).");
         }
 
         private static TextMeshProUGUI AddLabel(GameObject root, string name)

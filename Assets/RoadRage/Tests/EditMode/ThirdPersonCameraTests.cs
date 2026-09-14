@@ -18,7 +18,7 @@ namespace RoadRage.Tests.EditMode
             var vehicle = Object.Instantiate(prefab);
             try
             {
-                vehicle.GetComponent<LocalVehicleCameraRig>().SetLocalSoloCameraActive(true);
+                vehicle.GetComponent<LocalVehicleCameraRig>().SetManualCameraActive(true);
                 var orbit = vehicle.GetComponentInChildren<CinemachineOrbitalFollow>();
                 var input = orbit.GetComponent<CinemachineInputAxisController>();
                 var action = input.Controllers[0].Input.InputAction.action;
@@ -128,7 +128,7 @@ namespace RoadRage.Tests.EditMode
                 }
                 for (var seat = 0; seat < 4; seat++)
                 {
-                    rig.SetLocalSoloCameraActive(true, seat);
+                    rig.SetManualCameraActive(true, seat);
                     var active = vehicle.GetComponentsInChildren<CinemachineCamera>();
                     Assert.That(active.Length, Is.EqualTo(1));
                     Assert.That(otherVehicle.GetComponentsInChildren<CinemachineCamera>(), Is.Empty);
@@ -137,7 +137,7 @@ namespace RoadRage.Tests.EditMode
                     rig.SetRageTargetLookOverride(null);
                     Assert.That(active[0].LookAt, Is.EqualTo(vehicle.transform));
                 }
-                rig.SetLocalSoloCameraActive(false);
+                rig.SetManualCameraActive(false);
                 Assert.That(vehicle.GetComponentsInChildren<CinemachineCamera>(), Is.Empty);
             }
             finally

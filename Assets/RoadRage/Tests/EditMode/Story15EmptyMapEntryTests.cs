@@ -35,8 +35,23 @@ namespace RoadRage.Tests.EditMode
             var source = File.ReadAllText("Assets/RoadRage/App/Lobby/LobbyFlowController.cs");
 
             Assert.That(source, Does.Contain("Profiles.HasProfile"));
-            Assert.That(source, Does.Contain("LoadMvpRun()"));
             Assert.That(LobbyFlowController.MissingProfileStartGameMessage, Does.Contain("profil joueur"));
+        }
+
+        /// <summary>
+        /// Story 5.3 (AD-26) : Start Game sans lobby ouvert suit desormais exactement le meme chemin
+        /// que Create Lobby (creation du lobby prive puis StartNetworkedRun) -- plus de chargement de
+        /// scene local direct via AppSceneRouter.LoadMvpRun.
+        /// </summary>
+        [Test]
+        public void LobbyStartGameWithoutAnOpenRoomCreatesAHostLobbyInsteadOfLoadingTheSceneDirectly()
+        {
+            var source = File.ReadAllText("Assets/RoadRage/App/Lobby/LobbyFlowController.cs");
+
+            Assert.That(source, Does.Not.Contain("bootstrap.Router.LoadMvpRun()"),
+                "Start Game ne doit plus contourner la creation de lobby et le demarrage reseau.");
+            Assert.That(source, Does.Contain("await lobbyRoom.CreateRoomAsync();"));
+            Assert.That(source, Does.Contain("StartNetworkedRun(true);"));
         }
 
         [Test]

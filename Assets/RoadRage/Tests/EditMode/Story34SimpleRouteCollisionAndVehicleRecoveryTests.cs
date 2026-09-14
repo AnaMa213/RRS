@@ -59,11 +59,13 @@ namespace RoadRage.Tests.EditMode
             Assert.That(source, Does.Contain("private void OnCollisionEnter(Collision collision)"));
             Assert.That(source, Does.Contain("private void UpdateRecoveryDetection(float fixedDeltaTime)"));
 
-            // Detection/recuperation et collision restent calculees cote host ou solo uniquement (jamais client reseau).
-            Assert.That(Occurrences(source, "if ((!IsServer && !localSoloDriverActive)"), Is.GreaterThanOrEqualTo(2),
-                "RecoverVehicle et FixedUpdate doivent partager la meme garde d'autorite host/solo.");
-            Assert.That(source, Does.Contain("if (!IsServer && !localSoloDriverActive)"),
+            // Story 5.3 : le solo est toujours host-authoritative, la garde d'autorite se reduit a IsServer.
+            Assert.That(Occurrences(source, "if (!IsServer || body == null"), Is.GreaterThanOrEqualTo(2),
+                "RecoverVehicle et FixedUpdate doivent partager la meme garde d'autorite host.");
+            Assert.That(source, Does.Contain("if (!IsServer)"),
                 "OnCollisionEnter doit aussi refuser le chemin client reseau.");
+            Assert.That(source, Does.Not.Contain("localSoloDriverActive"),
+                "Story 5.3 : plus de bascule locale sans session Netcode, le solo est toujours host.");
 
             // Repli sur la position initiale (Dev_VehicleSandbox sans repere explicite) plutot qu'un no-op silencieux.
             Assert.That(source, Does.Contain("CaptureFallbackRecoveryPose"));
@@ -94,16 +96,21 @@ namespace RoadRage.Tests.EditMode
             Assert.That(source, Does.Contain("driverController.RecoverAtRecoveryPoint()"));
         }
 
+        /// <summary>
+        /// Story 5.3 (AD-26) : la touche R de recuperation manuelle n'est plus geree par RunFlowController
+        /// (HandleLocalSoloVehicleRecoveryInteraction, supprimee) mais entierement par
+        /// NetworkedVehicleRecoveryIntent (client -> host RPC, deja verifie par
+        /// RecoveryIntentMirrorsSeatIntentClientToHostRpcPattern), exercee identiquement en solo (host)
+        /// et en ligne. RunFlowController ne fait plus que relayer collision/recuperation vers le HUD.
+        /// </summary>
         [Test]
-        public void RunFlowBridgesSoloRecoveryKeyAndNetworkVehicleEventsToHud()
+        public void RunFlowBridgesNetworkVehicleEventsToHudWithoutAnyLocalSoloRecoveryPath()
         {
             var source = File.ReadAllText(RunFlowSourcePath);
 
-            Assert.That(source, Does.Contain("HandleLocalSoloVehicleRecoveryInteraction"));
-            Assert.That(source, Does.Contain("keyboard.rKey.wasPressedThisFrame"));
-            Assert.That(source, Does.Contain("driverController.RecoverAtRecoveryPoint();"));
-            Assert.That(source, Does.Contain("!localSoloVehicleSeated || !IsDriverSeat(localSoloSeatIndex)"),
-                "La recuperation manuelle solo reste reservee au siege conducteur, comme en reseau.");
+            Assert.That(source, Does.Not.Contain("HandleLocalSoloVehicleRecoveryInteraction"),
+                "Story 5.3 : la recuperation manuelle passe entierement par NetworkedVehicleRecoveryIntent.");
+            Assert.That(source, Does.Not.Contain("LocalSolo"));
 
             Assert.That(source, Does.Contain("EnsureVehicleEventBridge"));
             Assert.That(source, Does.Contain("driverController.VehicleCollided += HandleVehicleCollided;"));

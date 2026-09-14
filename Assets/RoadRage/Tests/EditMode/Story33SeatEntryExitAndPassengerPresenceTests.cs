@@ -116,8 +116,8 @@ namespace RoadRage.Tests.EditMode
             var driverSource = File.ReadAllText(DriverControllerSourcePath);
             Assert.That(driverSource, Does.Contain("state.DriverClientId.Value != localClientId"));
             Assert.That(driverSource, Does.Contain("ClearServerDriverIfClient"));
-            Assert.That(driverSource, Does.Contain("SetLocalSoloDriverActive"),
-                "Le mode solo doit pouvoir activer localement le meme controleur voiture sans session Netcode.");
+            Assert.That(driverSource, Does.Not.Contain("SetLocalSoloDriverActive"),
+                "Story 5.3 : le solo est toujours host-authoritative, plus de bascule locale sans session Netcode.");
 
             var serviceSource = File.ReadAllText(SeatServiceSourcePath);
             Assert.That(serviceSource, Does.Contain("PlayerMode.Driver : PlayerMode.Passenger"));
@@ -152,8 +152,15 @@ namespace RoadRage.Tests.EditMode
             Assert.That(source, Does.Contain("activeLocalPlayerVisual.SetActive(active)"));
         }
 
+        /// <summary>
+        /// Story 5.3 (AD-26) : solo et en ligne partagent desormais le meme chemin host-authoritative
+        /// unique -- il n'existe plus de branche RunFlowController.LocalSolo* separee a maintenir en
+        /// parite avec l'intent reseau. L'entree/sortie/switch de siege passe entierement par
+        /// NetworkedVehicleSeatIntent (client -> host RPC), deja exercee en solo comme en ligne des
+        /// que Start Game heberge toujours un lobby prive avant de charger MVP_Run.
+        /// </summary>
         [Test]
-        public void SoloAndNetworkRunFlowsShareGameplayAndRestoreOnFootCameraOnExit()
+        public void NetworkSeatIntentIsTheOnlySeatEntryPathAndRunFlowRestoresOnFootCameraOnExit()
         {
             var runFlowSource = File.ReadAllText(RunFlowSourcePath);
             var seatIntentSource = File.ReadAllText(SeatIntentSourcePath);
@@ -163,27 +170,17 @@ namespace RoadRage.Tests.EditMode
             Assert.That(seatIntentSource, Does.Contain("service.RequestEnterOrExit(clientId, preferPassenger)"));
             Assert.That(seatIntentSource, Does.Contain("keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed"));
 
-            Assert.That(runFlowSource, Does.Contain("HandleLocalSoloVehicleInteraction"));
-            Assert.That(runFlowSource, Does.Contain("TryEnterLocalSoloVehicle(preferPassenger)"));
-            Assert.That(runFlowSource, Does.Contain("ExitLocalSoloVehicle"));
-            Assert.That(runFlowSource, Does.Contain("ResolveLocalSoloSeatIndex(preferPassenger)"));
-            Assert.That(runFlowSource, Does.Contain("NetworkedVehicleState.FirstPassengerSeatIndex"));
-            Assert.That(runFlowSource, Does.Contain("localSoloVehicleDriver.SetLocalSoloDriverActive(IsDriverSeat(localSoloSeatIndex))"));
-            // Extension (2026-09-12, hors story) : chaque siege passager a desormais sa propre camera
-            // (demande explicite de test manuel), donc l'appel porte le siege plutot qu'un simple bool
-            // driver/passager -- le contrat conserve reste "une camera locale est explicitement activee
-            // a l'entree du vehicule solo".
-            Assert.That(runFlowSource, Does.Contain("localSoloVehicleCameraRig.SetLocalSoloCameraActive(true, localSoloSeatIndex)"));
-            Assert.That(runFlowSource, Does.Contain("RefreshLocalSoloDeathRecovery"));
-            Assert.That(runFlowSource, Does.Contain("localVoidRespawnController.IsDead"));
-            Assert.That(runFlowSource, Does.Contain("RestoreLocalSoloOnFootControl(false, false)"));
+            Assert.That(runFlowSource, Does.Not.Contain("LocalSolo"),
+                "Story 5.3 : plus aucune branche RunFlowController.LocalSolo* -- le seul chemin d'entree/sortie de siege est l'intent reseau.");
             Assert.That(runFlowSource, Does.Contain("RestoreOnFootCamera(localOnFootController)"),
-                "La sortie vehicule doit rattacher explicitement la camera au rig a pied.");
-            Assert.That(runFlowSource, Does.Contain("Le ressenti gameplay doit rester le meme en solo et en reseau"));
+                "La sortie vehicule (reseau) doit rattacher explicitement la camera au rig a pied.");
+            Assert.That(runFlowSource, Does.Contain("RefreshLocalSeatMode"),
+                "L'equivalent reseau generique de la restauration a pied doit rester en place.");
 
             var cameraRigSource = File.ReadAllText(CameraRigSourcePath);
-            Assert.That(cameraRigSource, Does.Contain("SetLocalSoloCameraActive"));
-            Assert.That(cameraRigSource, Does.Contain("localSoloCameraActive"));
+            Assert.That(cameraRigSource, Does.Not.Contain("SetLocalSoloCameraActive"));
+            Assert.That(cameraRigSource, Does.Contain("SetManualCameraActive"),
+                "Le hook de test EditMode pur (ThirdPersonCameraTests) reste disponible, renomme hors du vocabulaire solo.");
             Assert.That(cameraRigSource, Does.Contain("SuppressNetworkCameraUntilReleased"));
             Assert.That(cameraRigSource, Does.Contain("suppressNetworkCameraUntilReleased"));
         }

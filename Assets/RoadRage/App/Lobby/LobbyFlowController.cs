@@ -90,6 +90,9 @@ namespace RoadRage.App.Lobby
         [SerializeField]
         private CharacterCatalog catalog;
 
+        [SerializeField]
+        private NetworkPrefabsList defaultNetworkPrefabs;
+
         private RoadRageBootstrap bootstrap;
 
         private OnlineServicesBootstrapService onlineServices;
@@ -101,6 +104,8 @@ namespace RoadRage.App.Lobby
         private LobbyRosterService lobbyRoster;
 
         private bool soloTestExceptionEnabled;
+
+        private bool clientRunStartRequested;
 
         public MatchSettings Settings { get; private set; }
 
@@ -198,12 +203,12 @@ namespace RoadRage.App.Lobby
 
             if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open)
             {
-                screen.ShowRoomCreated(lobbyRoom.JoinCode.ToString());
+                screen.ShowRoomCreated(lobbyRoom.DisplayJoinCode);
                 screen.Hide();
 
                 if (lobbyRosterScreen != null)
                 {
-                    lobbyRosterScreen.ShowRoomCode(lobbyRoom.JoinCode.ToString());
+                    lobbyRosterScreen.ShowRoomCode(lobbyRoom.DisplayJoinCode);
                     lobbyRosterScreen.Show();
                 }
             }
@@ -212,6 +217,32 @@ namespace RoadRage.App.Lobby
                 screen.ShowRoomClosed();
                 screen.Show();
             }
+        }
+
+        /// <summary>
+        /// Story 5.3 (AD-26) : un invite ne clique jamais lui-meme Start Game (HandleStartGameRequested
+        /// le refuse), donc son entree dans la partie depend entierement du signal de lancement publie
+        /// par l'hote dans les donnees de lobby (RunLaunchRequested). Cette condition est evaluee sur
+        /// l'ETAT courant du roster a chaque frame, jamais sur un evenement de changement : un invite
+        /// qui rejoint APRES le lancement voit un lobby ou le signal est deja vrai, sans transition a
+        /// observer -- un declencheur sur front (RosterChanged) le manquerait des que l'instantane
+        /// n'est pas reconnu comme "change". Le drapeau local garantit un seul StartClient() par
+        /// session, sans spammer la garde "session reseau deja demarree" de StartNetworkedRun.
+        /// </summary>
+        private void Update()
+        {
+            if (clientRunStartRequested
+                || lobbyRoster == null
+                || (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open)
+                || !lobbyRoster.Current.HasLobby
+                || !lobbyRoster.Current.RunLaunchRequested)
+            {
+                return;
+            }
+
+            clientRunStartRequested = true;
+            Debug.Log("[Lobby] Signal de lancement hote detecte : connexion du client a la partie en cours.");
+            StartNetworkedRun(false);
         }
 
         private void OnDestroy()
@@ -323,11 +354,13 @@ namespace RoadRage.App.Lobby
 
         /// <summary>
         /// Le gate roster/pret/settings (Story 2.4) ne s'applique que quand une room hote est ouverte.
-        /// Hors lobby, Start Game reste local au seul profil joueur (Story 1.2/1.5). En tant qu'invite
-        /// ayant rejoint par code, le bouton attend le lancement hote et ne demarre jamais StartClient()
-        /// localement.
+        /// Hors lobby (Story 5.3, AD-26) : Start Game suit desormais exactement le meme chemin que
+        /// Create Lobby -- creation du lobby prive Steam avec le joueur comme host, puis
+        /// StartNetworkedRun(true) -- plus jamais de chargement de scene local direct. Un lobby a un
+        /// seul membre n'est pas un mode hors-ligne distinct. En tant qu'invite ayant rejoint par
+        /// code, le bouton attend le lancement hote et ne demarre jamais StartClient() localement.
         /// </summary>
-        private void HandleStartGameRequested()
+        private async void HandleStartGameRequested()
         {
             if (bootstrap == null || bootstrap.Profiles == null || !bootstrap.Profiles.HasProfile)
             {
@@ -370,8 +403,23 @@ namespace RoadRage.App.Lobby
                 return;
             }
 
-            Debug.Log("[Lobby] Start Game demande : entree locale dans MVP_Run.");
-            bootstrap.Router.LoadMvpRun();
+            if (lobbyRoom == null)
+            {
+                Debug.LogWarning("[Lobby] Start Game refuse sans service de room disponible.");
+                PublishUnavailable(RoomCreationFailedMessage);
+                return;
+            }
+
+            Debug.Log("[Lobby] Start Game demande : creation du lobby prive hote (meme chemin que Create Lobby) puis demarrage reseau.");
+            await lobbyRoom.CreateRoomAsync();
+
+            if (lobbyRoom.Status != LobbyRoomStatus.Open)
+            {
+                Debug.LogWarning("[Lobby] Start Game refuse : creation du lobby impossible (voir la notice publiee par LobbyRoomService).");
+                return;
+            }
+
+            StartNetworkedRun(true);
         }
 
         /// <summary>
@@ -385,7 +433,7 @@ namespace RoadRage.App.Lobby
         /// </summary>
         private void StartNetworkedRun(bool asHost)
         {
-            RoadRageBootstrap.EnsureNetworkManager();
+            RoadRageBootstrap.EnsureNetworkManager(defaultNetworkPrefabs);
 
             var manager = NetworkManager.Singleton;
             if (manager == null)
@@ -433,6 +481,12 @@ namespace RoadRage.App.Lobby
                     PublishUnavailable(NetworkStartFailedMessage);
                     return;
                 }
+
+                // Story 5.3 (AD-26) : signale aux invites -- deja rejoints ou qui rejoindront plus tard
+                // en cours de partie -- qu'ils doivent demarrer leur propre StartClient() (voir Update).
+                // Le signal reste ecrit dans les donnees du lobby, donc un invite tardif le lit sur son
+                // tout premier instantane de roster ; sans lui, personne ne rejoint la partie en cours.
+                lobbyRoster?.PublishRunLaunchRequested(true);
 
                 if (manager.SceneManager == null)
                 {
@@ -672,6 +726,7 @@ namespace RoadRage.App.Lobby
                     lobbyRosterScreen.ShowSettingsSummary(Settings.Difficulty);
                 }
             }
+
         }
 
         /// <summary>
@@ -748,15 +803,16 @@ namespace RoadRage.App.Lobby
 
                     if (screen != null)
                     {
-                        screen.ShowRoomCreated(lobbyRoom.JoinCode.ToString());
+                        screen.ShowRoomCreated(lobbyRoom.DisplayJoinCode);
                         screen.Hide();
                     }
 
                     if (lobbyRosterScreen != null)
                     {
-                        lobbyRosterScreen.ShowRoomCode(lobbyRoom.JoinCode.ToString());
+                        lobbyRosterScreen.ShowRoomCode(lobbyRoom.DisplayJoinCode);
                         lobbyRosterScreen.SetDifficultyEditable(true);
                         lobbyRosterScreen.SetCloseRoomVisible(true);
+                        lobbyRosterScreen.SetStartGameInteractable(true);
                         lobbyRosterScreen.ShowReadyState(false);
                         lobbyRosterScreen.Show();
                     }
@@ -820,15 +876,16 @@ namespace RoadRage.App.Lobby
 
                     if (screen != null)
                     {
-                        screen.ShowJoinedRoom(lobbyJoin.JoinedLobbyId.ToString());
+                        screen.ShowJoinedRoom(lobbyJoin.JoinedJoinCode);
                         screen.Hide();
                     }
 
                     if (lobbyRosterScreen != null)
                     {
-                        lobbyRosterScreen.ShowRoomCode(lobbyJoin.JoinedLobbyId.ToString());
+                        lobbyRosterScreen.ShowRoomCode(lobbyJoin.JoinedJoinCode);
                         lobbyRosterScreen.SetDifficultyEditable(false);
                         lobbyRosterScreen.SetCloseRoomVisible(false);
+                        lobbyRosterScreen.SetStartGameInteractable(false);
                         lobbyRosterScreen.ShowReadyState(false);
                         lobbyRosterScreen.Show();
                     }

@@ -38,11 +38,11 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public async Task JoinByCodeAsyncRejectsNonNumericCode()
+        public async Task JoinByCodeAsyncRejectsCodeThatIsNotExactlyFiveAlphanumericCharacters()
         {
             var service = BuildService(online: true, out var lobbyPlatform);
 
-            await service.JoinByCodeAsync("abc123");
+            await service.JoinByCodeAsync("AB-12");
 
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.InvalidCode));
             Assert.That(lobbyPlatform.JoinLobbyCallCount, Is.EqualTo(0));
@@ -57,13 +57,14 @@ namespace RoadRage.Tests.EditMode
             LobbyJoinStatus? raised = null;
             service.StatusChanged += status => raised = status;
 
-            await service.JoinByCodeAsync("  123456  ");
+            await service.JoinByCodeAsync("  ab12z  ");
 
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.Joined));
             Assert.That(service.JoinedLobbyId, Is.EqualTo(123456UL));
+            Assert.That(service.JoinedJoinCode, Is.EqualTo("AB12Z"));
             Assert.That(raised, Is.EqualTo(LobbyJoinStatus.Joined));
             Assert.That(lobbyPlatform.JoinLobbyCallCount, Is.EqualTo(1));
-            Assert.That(lobbyPlatform.LastLobbyId, Is.EqualTo(123456UL));
+            Assert.That(lobbyPlatform.LastJoinCode, Is.EqualTo("AB12Z"));
         }
 
         [Test]
@@ -71,7 +72,7 @@ namespace RoadRage.Tests.EditMode
         {
             var service = BuildService(online: false, out var lobbyPlatform);
 
-            await service.JoinByCodeAsync("123456");
+            await service.JoinByCodeAsync("AB123");
 
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.ServicesUnavailable));
             Assert.That(lobbyPlatform.JoinLobbyCallCount, Is.EqualTo(0), "aucune tentative de join Steam si les services ne sont pas Online");
@@ -83,7 +84,7 @@ namespace RoadRage.Tests.EditMode
             var service = BuildService(online: true, out var lobbyPlatform);
             lobbyPlatform.NextOutcome = new LobbyJoinOutcome(false, LobbyJoinFailureReason.Full);
 
-            await service.JoinByCodeAsync("123456");
+            await service.JoinByCodeAsync("AB123");
 
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.RoomFull));
             Assert.That(service.JoinedLobbyId, Is.EqualTo(0UL));
@@ -95,7 +96,7 @@ namespace RoadRage.Tests.EditMode
             var service = BuildService(online: true, out var lobbyPlatform);
             lobbyPlatform.NextOutcome = new LobbyJoinOutcome(false, LobbyJoinFailureReason.Expired);
 
-            await service.JoinByCodeAsync("123456");
+            await service.JoinByCodeAsync("AB123");
 
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.SessionExpired));
         }
@@ -106,7 +107,7 @@ namespace RoadRage.Tests.EditMode
             var service = BuildService(online: true, out var lobbyPlatform);
             lobbyPlatform.NextOutcome = LobbyJoinOutcome.Failed;
 
-            await service.JoinByCodeAsync("123456");
+            await service.JoinByCodeAsync("AB123");
 
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.JoinFailed));
         }
@@ -117,7 +118,7 @@ namespace RoadRage.Tests.EditMode
             var service = BuildService(online: true, out var lobbyPlatform);
             lobbyPlatform.ThrowOnJoin = new InvalidOperationException("Networking Sockets indisponible");
 
-            await service.JoinByCodeAsync("123456");
+            await service.JoinByCodeAsync("AB123");
 
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.JoinFailed));
         }
@@ -127,13 +128,13 @@ namespace RoadRage.Tests.EditMode
         {
             var service = BuildService(online: true, out var lobbyPlatform);
             lobbyPlatform.NextOutcome = new LobbyJoinOutcome(true, LobbyJoinFailureReason.None);
-            await service.JoinByCodeAsync("111111");
+            await service.JoinByCodeAsync("AAAAA");
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.Joined));
 
-            await service.JoinByCodeAsync("222222");
+            await service.JoinByCodeAsync("BBBBB");
 
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.Joined));
-            Assert.That(service.JoinedLobbyId, Is.EqualTo(111111UL), "un lobby deja rejoint ne doit jamais etre remplace sans leave explicite");
+            Assert.That(service.JoinedJoinCode, Is.EqualTo("AAAAA"), "un lobby deja rejoint ne doit jamais etre remplace sans leave explicite");
             Assert.That(lobbyPlatform.JoinLobbyCallCount, Is.EqualTo(1), "aucune seconde tentative de join tant que le premier lobby n'est pas quitte");
         }
 
@@ -144,10 +145,10 @@ namespace RoadRage.Tests.EditMode
             var gate = new TaskCompletionSource<LobbyJoinOutcome>();
             lobbyPlatform.NextTask = gate.Task;
 
-            var firstJoin = service.JoinByCodeAsync("111111");
+            var firstJoin = service.JoinByCodeAsync("AAAAA");
             Assert.That(service.Status, Is.EqualTo(LobbyJoinStatus.Joining));
 
-            var secondJoin = service.JoinByCodeAsync("222222");
+            var secondJoin = service.JoinByCodeAsync("BBBBB");
 
             Assert.That(lobbyPlatform.JoinLobbyCallCount, Is.EqualTo(1), "un double-clic ne doit jamais declencher un second join concurrent");
 
@@ -155,7 +156,7 @@ namespace RoadRage.Tests.EditMode
             firstJoin.GetAwaiter().GetResult();
             secondJoin.GetAwaiter().GetResult();
 
-            Assert.That(service.JoinedLobbyId, Is.EqualTo(111111UL), "la premiere tentative en cours ne doit jamais etre remplacee par le second code");
+            Assert.That(service.JoinedJoinCode, Is.EqualTo("AAAAA"), "la premiere tentative en cours ne doit jamais etre remplacee par le second code");
         }
 
         [Test]
@@ -213,6 +214,8 @@ namespace RoadRage.Tests.EditMode
 
             public ulong LastLobbyId { get; private set; }
 
+            public string LastJoinCode { get; private set; }
+
             public Task<LobbyCreateOutcome> CreateLobbyAsync(int maxMembers)
             {
                 return Task.FromResult(LobbyCreateOutcome.Failed);
@@ -229,6 +232,24 @@ namespace RoadRage.Tests.EditMode
                 }
 
                 return NextTask ?? Task.FromResult(NextOutcome);
+            }
+
+            public Task<LobbyJoinOutcome> JoinLobbyByCodeAsync(string joinCode)
+            {
+                JoinLobbyCallCount++;
+                LastJoinCode = joinCode;
+
+                if (ThrowOnJoin != null)
+                {
+                    throw ThrowOnJoin;
+                }
+
+                if (NextTask != null)
+                {
+                    return NextTask;
+                }
+
+                return Task.FromResult(new LobbyJoinOutcome(NextOutcome.Success, NextOutcome.Reason, 123456UL));
             }
 
             public void LeaveCurrentLobby()

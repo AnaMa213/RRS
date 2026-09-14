@@ -62,6 +62,17 @@ namespace RoadRage.Tests.EditMode
             Assert.That(result.Reason, Is.EqualTo(LobbyFlowController.ApprovalRejectedRoomFullReason));
         }
 
+        /// <summary>
+        /// Story 5.3 (AD-26), correction post-implementation d'un bug de regression rapporte : un
+        /// invite deja rejoint ne doit jamais demarrer StartClient() depuis son propre clic sur Start
+        /// Game (HandleStartGameRequested continue de refuser et de publier
+        /// StartRefusedWaitingForHostMessage), mais DOIT le demarrer automatiquement une fois que
+        /// l'hote a publie son signal de lancement (snapshot.RunLaunchRequested, via
+        /// HandleRosterChanged) -- sans quoi un second joueur qui rejoint par code une partie deja
+        /// demarree par Start Game n'entre jamais dans le jeu. L'ancienne assertion "jamais
+        /// StartNetworkedRun(false) nulle part dans le fichier" etait trop large : elle pinnait
+        /// l'absence totale du mecanisme plutot que son emplacement correct.
+        /// </summary>
         [Test]
         public void JoinedClientStartButtonWaitsForHostInsteadOfStartingClient()
         {
@@ -69,8 +80,17 @@ namespace RoadRage.Tests.EditMode
 
             Assert.That(source, Does.Contain("lobbyJoin.Status == LobbyJoinStatus.Joined"));
             Assert.That(source, Does.Contain("StartRefusedWaitingForHostMessage"));
-            Assert.That(source, Does.Not.Contain("StartNetworkedRun(false)"),
+
+            var startGameRequestedStart = source.IndexOf("private async void HandleStartGameRequested()", StringComparison.Ordinal);
+            var startNetworkedRunStart = source.IndexOf("private void StartNetworkedRun(bool asHost)", StringComparison.Ordinal);
+            Assert.That(startGameRequestedStart, Is.GreaterThanOrEqualTo(0), "HandleStartGameRequested introuvable.");
+            Assert.That(startNetworkedRunStart, Is.GreaterThan(startGameRequestedStart), "StartNetworkedRun doit rester defini apres HandleStartGameRequested.");
+            var startGameRequestedBody = source.Substring(startGameRequestedStart, startNetworkedRunStart - startGameRequestedStart);
+
+            Assert.That(startGameRequestedBody, Does.Not.Contain("StartNetworkedRun(false)"),
                 "un invite ne doit jamais demarrer StartClient depuis le bouton Start avant le signal hote.");
+            Assert.That(source, Does.Contain("lobbyRoster.Current.RunLaunchRequested"),
+                "le signal de lancement publie par l'hote doit declencher StartNetworkedRun(false) cote invite, evalue sur l'etat courant du roster (et non sur un front RosterChanged) pour couvrir aussi l'invite qui rejoint APRES le lancement.");
         }
 
         [Test]

@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Threading.Tasks;
 
 namespace RoadRage.Features.Online
@@ -38,6 +37,8 @@ namespace RoadRage.Features.Online
 
         public ulong JoinedLobbyId { get; private set; }
 
+        public string JoinedJoinCode { get; private set; } = string.Empty;
+
         public event Action<LobbyJoinStatus> StatusChanged;
 
         /// <summary>
@@ -55,7 +56,7 @@ namespace RoadRage.Features.Online
                 return;
             }
 
-            if (!TryNormalizeCode(rawCode, out var lobbyId))
+            if (!TryNormalizeCode(rawCode, out var joinCode))
             {
                 SetStatus(LobbyJoinStatus.InvalidCode);
                 return;
@@ -72,7 +73,7 @@ namespace RoadRage.Features.Online
             LobbyJoinOutcome outcome;
             try
             {
-                outcome = await platform.JoinLobbyAsync(lobbyId);
+                outcome = await platform.JoinLobbyByCodeAsync(joinCode);
             }
             catch (Exception)
             {
@@ -81,7 +82,8 @@ namespace RoadRage.Features.Online
 
             if (outcome.Success)
             {
-                JoinedLobbyId = lobbyId;
+                JoinedLobbyId = outcome.LobbyId;
+                JoinedJoinCode = joinCode;
                 SetStatus(LobbyJoinStatus.Joined);
                 return;
             }
@@ -101,21 +103,35 @@ namespace RoadRage.Features.Online
         }
 
         /// <summary>
-        /// Nettoie (trim) et valide le code saisi : doit rester non vide apres trim et purement numerique.
-        /// Rejette silencieusement tout caractere non numerique (espaces internes, lettres, ponctuation)
-        /// plutot que de tenter un appel Steam voue a l'echec.
+        /// Nettoie (trim), normalise en majuscules et valide le code partageable : exactement cinq
+        /// caracteres alphanumeriques ASCII. Tout autre format est rejete avant l'appel Steam.
         /// </summary>
-        private static bool TryNormalizeCode(string rawCode, out ulong lobbyId)
+        private static bool TryNormalizeCode(string rawCode, out string joinCode)
         {
-            lobbyId = 0;
+            joinCode = string.Empty;
 
             if (string.IsNullOrWhiteSpace(rawCode))
             {
                 return false;
             }
 
-            var trimmed = rawCode.Trim();
-            return ulong.TryParse(trimmed, NumberStyles.None, CultureInfo.InvariantCulture, out lobbyId) && lobbyId != 0;
+            var trimmed = rawCode.Trim().ToUpperInvariant();
+            if (trimmed.Length != 5)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < trimmed.Length; i++)
+            {
+                var character = trimmed[i];
+                if ((character < 'A' || character > 'Z') && (character < '0' || character > '9'))
+                {
+                    return false;
+                }
+            }
+
+            joinCode = trimmed;
+            return true;
         }
 
         private void SetStatus(LobbyJoinStatus status)

@@ -28,6 +28,7 @@ namespace RoadRage.Tests.EditMode
 
             Assert.That(service.Status, Is.EqualTo(LobbyRoomStatus.Open));
             Assert.That(service.JoinCode, Is.EqualTo(123456789UL));
+            Assert.That(service.DisplayJoinCode, Does.Match("^[A-Z0-9]{5}$"));
             Assert.That(raised, Is.EqualTo(LobbyRoomStatus.Open));
             Assert.That(lobbyPlatform.CreateLobbyCallCount, Is.EqualTo(1));
             Assert.That(lobbyPlatform.LastMaxMembers, Is.EqualTo(LobbyRoomService.MaxMembers));

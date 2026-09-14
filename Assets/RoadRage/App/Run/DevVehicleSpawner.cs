@@ -15,6 +15,13 @@ namespace RoadRage.App.Run
     {
         public static GameObject Create(GameObject prefab, string objectName, Vector3 position, Quaternion rotation, bool rageTarget)
         {
+            var manager = NetworkManager.Singleton;
+            if (prefab == null && manager != null && manager.IsListening)
+            {
+                Debug.LogError("[Run] Impossible de spawner un vehicule de secours pendant une session reseau : aucun prefab reseau n'est disponible.");
+                return null;
+            }
+
             var vehicle = prefab == null
                 ? GameObject.CreatePrimitive(PrimitiveType.Cube)
                 : Object.Instantiate(prefab);
@@ -56,7 +63,6 @@ namespace RoadRage.App.Run
                 vehicle.AddComponent<NetworkedRageState>();
             }
 
-            var manager = NetworkManager.Singleton;
             if (manager != null && manager.IsListening && manager.IsServer && !networkObject.IsSpawned)
             {
                 networkObject.Spawn();
