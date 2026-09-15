@@ -1,15 +1,16 @@
 # Graph Report - RRS  (2026-09-15)
 
 ## Corpus Check
-- cluster-only mode — file stats not available
+- 919 files · ~992,290 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
 - 11454 nodes · 15994 edges · 865 communities (712 shown, 125 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 403 edges (avg confidence: 0.82)
-- Token cost: 847,842 input · 15,803 output
+- Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `107ba81c`
+- Built from commit: `288a5a13`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -3730,7 +3731,7 @@ Cohesion: 0.22
 Nodes (8): Boundaries & Constraints, Code Map, Design Notes, I/O & Edge-Case Matrix, Intent, Suggested Review Order, Tasks & Acceptance, Verification
 
 ## Knowledge Gaps
-- **5378 isolated node(s):** `AsmdefManifest`, `AssemblyDefinition`, `AssemblyDefinition`, `VertexAnim`, `AssemblyDefinition` (+5373 more)
+- **5378 isolated node(s):** `Goal`, `Stories`, `Requirements & Constraints`, `Technical Decisions`, `UX & Interaction Patterns` (+5373 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 6921 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **125 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -3738,12 +3739,12 @@ Nodes (8): Boundaries & Constraints, Code Map, Design Notes, I/O & Edge-Case Mat
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `RunFlowController` connect `Run Flow Controller` to `Passenger Action Play Mode Tests`, `Greybox Asset Seed Metadata`, `Story 1.6 Epic 1 Checkpoint Tests`, `Run Checkpoint HUD`, `On-Foot Player Controller`, `Story 3.6 Driving Checkpoint Tests`, `Networked Player And Vehicle Intents`, `Profile Freeze Spawn Tests`, `Vehicle Driver Networking`, `In-Game HUD Tests`, `Story43PassengerActionOneChangesRageTests`, `AI Rage Target Resolution`, `Player Pose Networking`, `Rage Tuning Catalog`, `Empty Map Entry Tests`, `NetworkedVehicleState`, `Rage Road Event Lifecycle`, `Networked Player Spawn Service`, `Runtime Sprite Atlas Loader`, `Main Menu Profile Flow`, `Lobby Entry PlayMode Tests`, `Rage Road Event Flow Controller`, `Passenger Action Networking`?**
-  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
 - **Why does `LobbyFlowController` connect `Lobby Flow Controller` to `Difficulty Setting UI`, `Network Player Connection Payload`, `Lobby Roster Screen UI`, `Greybox Asset Seed Metadata`, `Lobby Room Service`, `Story 1.6 Epic 1 Checkpoint Tests`, `Steam Platform Bootstrap`, `Core Flow Controllers And Tests`, `Runtime Sprite Atlas Loader`, `Story 1.2 Lobby Shell Tests`, `Lobby Shell Screen UI`, `Lobby Shell Tests`, `Lobby Join Service`, `Steam Lobby Platform Methods`, `Main Menu Profile Flow`?**
-  _High betweenness centrality (0.011) - this node is a cross-community bridge._
-- **Why does `NetworkedVehicleDriverController` connect `Vehicle Driver Networking` to `AI Rage Target Resolution`, `Passenger Action Play Mode Tests`, `Vehicle Recovery Intent RPC`, `Networked Player Revive`, `Run Flow Controller`, `Driver Control & Camera Tests`, `NetworkedVehicleState`, `Story 3.6 Driving Checkpoint Tests`, `Passenger Action Networking`, `Networked Player And Vehicle Intents`, `Vehicle Seat Networking`, `Vehicle Honk Networked RPCs`, `NPC Rage Reaction Debug View`, `Vehicle Drive Intent RPC`?**
+  _High betweenness centrality (0.012) - this node is a cross-community bridge._
+- **Why does `LocalOnFootController` connect `On-Foot Player Controller` to `Local Void Respawn Controller`, `Vehicle Camera Rig`, `Vehicle Damage Contract Tests`, `Lobby Entry PlayMode Tests`, `Run Flow Controller`, `Story 1.6 Epic 1 Checkpoint Tests`, `Core Flow Controllers And Tests`, `Player Lifecycle Tests`, `Runtime Sprite Atlas Loader`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **What connects `AsmdefManifest`, `AssemblyDefinition`, `AssemblyDefinition` to the rest of the system?**
+- **What connects `Goal`, `Stories`, `Requirements & Constraints` to the rest of the system?**
   _5378 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Player Profile Persistence` be split into smaller, more focused modules?**
   _Cohesion score 0.09061224489795919 - nodes in this community are weakly interconnected._

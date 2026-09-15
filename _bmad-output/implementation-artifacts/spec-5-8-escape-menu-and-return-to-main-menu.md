@@ -5,7 +5,8 @@ created: "2026-09-15"
 status: "done"
 review_loop_iteration: 0
 baseline_commit: "288a5a133a609ecd75ab45e746d7aa7693a4c74f"
-context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md"]
+context:
+  ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md"]
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
@@ -19,6 +20,7 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 ## Boundaries & Constraints
 
 **Always:**
+
 - Une seule implementation du teardown : `NetworkedRunSessionMonitor` reste l'unique proprietaire de `Shutdown()` + `LoadMainMenu()`; le quit volontaire l'appelle, il ne le reecrit pas.
 - L'ecran vit dans `RoadRage.Features.UI` et n'emet que des intentions (`ResumeRequested`, `QuitToMainMenuRequested`) : jamais `SceneManager.LoadScene`, `Application.Quit` ni `MatchSettings`, et aucune reference a `RoadRage.App` (gardes `Story11MainMenuLaunchTests.cs:120-134`, `Story12LobbyShellTests.cs:98-111`).
 - La touche Echap se lit dans `RoadRage.App` : `Features.UI` ne reference pas `Unity.InputSystem` (`RoadRage.Features.UI.asmdef`).
@@ -26,9 +28,11 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 - Le menu ne mute aucune `NetworkVariable` et n'emet aucune intention reseau : tout etat partage reste host-authoritative.
 
 **Ask First:**
+
 - Introduire `LocalInputGate` (statique, `RoadRage.Shared`) comme point de blocage unique des lecteurs d'entree disperses dans quatre features. Si ce partage d'etat statique est juge contraire aux conventions d'architecture, s'arreter et demander avant de l'introduire.
 
 **Never:**
+
 - Ne pas fermer la room Steam au depart de l'hote, ni ajouter un leave invite dans `Features/Online` (hors scope Story 2.3), ni de migration d'hote.
 - Pas d'ecran de pause general, de menu de parametres ni de dialogue de confirmation : Echap, Resume, Quit to Main Menu suffisent.
 - Ne pas modifier `RunCheckpointHudScreen` : le nouveau panneau est un enfant frere du HUD sous le meme Canvas, jamais une extension de l'ecran existant.
@@ -36,26 +40,28 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 
 ## I/O & Edge-Case Matrix
 
-| Scenario | Input / State | Expected Output / Behavior | Error Handling |
-|----------|--------------|---------------------------|----------------|
-| Ouvrir | Echap, menu ferme | panneau visible, entrees locales bloquees, curseur libere et visible | N/A |
-| Fermer | Echap ou Resume, menu ouvert | panneau masque, entrees rendues, curseur restaure a l'etat capture a l'ouverture | N/A |
-| Echap sans clavier | `Keyboard.current == null` | aucun changement, aucune exception | garde de nullite |
-| Quitter en hote | Quit to Main Menu | retour `MainMenuLobby` sans notice d'erreur; clients restants traites par Story 2.7 | N/A |
-| Quitter en client | Quit to Main Menu | retour `MainMenuLobby`; hote et autres clients continuent; aucune re-entree automatique | N/A |
-| Quitter deux fois | quit deja en cours | second appel ignore | garde `isReturningToLobby` |
-| Scene dechargee menu ouvert | teardown | entrees rendues et curseur restaure | `OnDestroy` |
+| Scenario                    | Input / State                | Expected Output / Behavior                                                              | Error Handling             |
+| --------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- | -------------------------- |
+| Ouvrir                      | Echap, menu ferme            | panneau visible, entrees locales bloquees, curseur libere et visible                    | N/A                        |
+| Fermer                      | Echap ou Resume, menu ouvert | panneau masque, entrees rendues, curseur restaure a l'etat capture a l'ouverture        | N/A                        |
+| Echap sans clavier          | `Keyboard.current == null`   | aucun changement, aucune exception                                                      | garde de nullite           |
+| Quitter en hote             | Quit to Main Menu            | retour `MainMenuLobby` sans notice d'erreur; clients restants traites par Story 2.7     | N/A                        |
+| Quitter en client           | Quit to Main Menu            | retour `MainMenuLobby`; hote et autres clients continuent; aucune re-entree automatique | N/A                        |
+| Quitter deux fois           | quit deja en cours           | second appel ignore                                                                     | garde `isReturningToLobby` |
+| Scene dechargee menu ouvert | teardown                     | entrees rendues et curseur restaure                                                     | `OnDestroy`                |
 
 </frozen-after-approval>
 
 ## Code Map
 
 **Creer**
+
 - `Shared/Input/LocalInputGate.cs` -- portail statique (bloque/rend, remise a zero), seul point de blocage des entrees locales.
 - `Features/UI/RunEscapeMenuScreen.cs` -- ecran d'intention porte par son propre panneau. Modele : `MainMenuScreen.cs` (evenements `:52-59`, raiseurs `:209-232`, `SetPanelActive` `:234-239`) et `RunCheckpointHudScreen.cs:259-275` (toggle de panneau).
 - `App/Run/RunEscapeMenuFlowController.cs` -- Echap, curseur, portail, routage du quit. Objet de scene sur `RunRoot`, comme `RunFlowController` (`MVP_Run.unity:4001`).
 
 **Modifier**
+
 - `App/Run/NetworkedRunSessionMonitor.cs` -- `ReturnClientToLobby` (`:84-111`) prend une notice optionnelle; les declencheurs perdus (`:45`, `:56`) gardent la notice d'erreur; ajouter l'entree publique volontaire idempotente.
 - `App/Bootstrap/RoadRageBootstrap.cs` -- drapeau `SessionExitRequested` + marquage/levee, a cote des services (`:60-95`).
 - `App/Lobby/LobbyFlowController.cs` -- `Update()` (`:230-248`) consulte le drapeau; creation, join et Start Game le levent.
@@ -63,12 +69,14 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 - `App/Scenes/MVP_Run.unity` -- panneau `EscapeMenuPanel` dernier enfant de `RunCheckpointHud` (`:4659`), portant `RunEscapeMenuScreen` et ses boutons, plus un `EventSystem` et un `InputSystemUIInputModule` (absents aujourd'hui, requis pour cliquer).
 
 **Verification existante a imiter**
+
 - Gardes de source : `Story57AiTrafficClientPresentationTests.cs:289` (`CodeOnly`), ouverture de scene `:224-233`.
 - PlayMode : `Story43PassengerActionOneMvpRunPlayModeTests.cs:19-20` (chargement direct), teardown obligatoire `Story57AiTrafficClientPresentationPlayModeTests.cs:52-55`.
 
 ## Tasks & Acceptance
 
 **Execution:**
+
 - [x] `Shared/Input/LocalInputGate.cs` -- creer le portail statique -- bloque en un point des lecteurs repartis dans quatre assemblies de feature.
 - [x] `App/Bootstrap/RoadRageBootstrap.cs` -- drapeau de sortie volontaire -- survit au changement de scene et reste lisible par le lobby.
 - [x] `App/Run/NetworkedRunSessionMonitor.cs` -- notice parametree + entree volontaire -- un seul teardown, deux declencheurs.
@@ -82,6 +90,7 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 - [x] `docs/setup/story-5-8-escape-menu-notes.md` -- note de verification -- preuve et ecarts.
 
 **Acceptance Criteria:**
+
 - Given un joueur dans `MVP_Run`, when il presse Echap, then le menu apparait avec Resume et Quit to Main Menu, les entrees de conduite et d'action (y compris le deplacement a pied) sont bloquees, et le curseur est libere et visible.
 - Given le menu ouvert, when le joueur presse Echap a nouveau ou choisit Resume, then le menu se ferme, les entrees sont rendues et le curseur retrouve l'etat capture a l'ouverture.
 - Given une session hebergee avec plusieurs joueurs, when un joueur ouvre le menu, then la simulation host-authoritative continue (`Time.timeScale` inchange) et aucun `NetworkVariable` n'est modifie.
@@ -103,9 +112,11 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 ## Verification
 
 **Commands:**
+
 - Aucune commande CLI : verification par le Test Runner Unity, checkpoint humain comme aux Stories 5.5 a 5.7.
 
 **Manual checks (if no CLI):**
+
 - Filtre `Story58EscapeMenuTests` dans `RoadRage.Tests.EditMode`, puis suite complete verte.
 - Filtre `Story58EscapeMenuPlayModeTests` dans `RoadRage.Tests.PlayMode`.
 - `MVP_Run` en Play Mode : Echap ouvre et ferme le menu, le curseur est libere puis restaure, la voiture ne repond plus pendant l'ouverture, la simulation continue.

@@ -128645,7 +128645,7 @@
       "node_kind": "heading",
       "norm_label": "cross-story dependencies",
       "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
-      "source_location": "L48"
+      "source_location": "L67"
     },
     {
       "id": "bmad_output_implementation_artifacts_epic_5_context_epic_5_context_npc_response_foundation_and_future_traffic",
@@ -128681,7 +128681,7 @@
       "node_kind": "heading",
       "norm_label": "requirements & constraints",
       "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
-      "source_location": "L20"
+      "source_location": "L30"
     },
     {
       "id": "bmad_output_implementation_artifacts_epic_5_context_stories",
@@ -128705,7 +128705,7 @@
       "node_kind": "heading",
       "norm_label": "technical decisions",
       "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
-      "source_location": "L31"
+      "source_location": "L48"
     },
     {
       "id": "bmad_output_implementation_artifacts_epic_5_context_ux_interaction_patterns",
@@ -128717,7 +128717,7 @@
       "node_kind": "heading",
       "norm_label": "ux & interaction patterns",
       "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
-      "source_location": "L41"
+      "source_location": "L59"
     },
     {
       "id": "bmad_output_implementation_artifacts_spec_fix_ui_assembly_and_camera_input_tests",
@@ -291603,34 +291603,12 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
-      "source_location": "L20",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
       "source": "bmad_output_implementation_artifacts_epic_5_context_epic_5_context_npc_response_foundation_and_future_traffic",
       "target": "bmad_output_implementation_artifacts_epic_5_context_technical_decisions",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
-      "source_location": "L31",
-      "weight": 1.0
-    },
-    {
-      "source": "bmad_output_implementation_artifacts_epic_5_context_epic_5_context_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_implementation_artifacts_epic_5_context_ux_interaction_patterns",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
-      "source_location": "L41",
-      "weight": 1.0
-    },
-    {
-      "source": "bmad_output_implementation_artifacts_epic_5_context_epic_5_context_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_implementation_artifacts_epic_5_context_cross_story_dependencies",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -291648,6 +291626,28 @@
       "confidence_score": 1.0,
       "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "bmad_output_implementation_artifacts_epic_5_context_epic_5_context_npc_response_foundation_and_future_traffic",
+      "target": "bmad_output_implementation_artifacts_epic_5_context_ux_interaction_patterns",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "bmad_output_implementation_artifacts_epic_5_context_epic_5_context_npc_response_foundation_and_future_traffic",
+      "target": "bmad_output_implementation_artifacts_epic_5_context_cross_story_dependencies",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "_bmad-output/implementation-artifacts/epic-5-context.md",
+      "source_location": "L67",
       "weight": 1.0
     },
     {
@@ -356908,5 +356908,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "107ba81cfa37fdc652e0586ff75b983af15718d3"
+  "built_at_commit": "288a5a133a609ecd75ab45e746d7aa7693a4c74f"
 }
