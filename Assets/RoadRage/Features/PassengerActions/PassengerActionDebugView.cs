@@ -1,4 +1,5 @@
 using System;
+using RoadRage.Shared.Input;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -36,7 +37,7 @@ namespace RoadRage.Features.PassengerActions
 
         private void Update()
         {
-            if (!allowNumericKeys || Keyboard.current == null)
+            if (!allowNumericKeys || Keyboard.current == null || LocalInputGate.IsBlocked)
             {
                 return;
             }

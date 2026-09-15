@@ -1,4 +1,5 @@
 using System;
+using RoadRage.Shared.Input;
 using RoadRage.Shared.Presentation;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -113,6 +114,17 @@ namespace RoadRage.Features.OnFoot
         private void Update()
         {
             var deltaTime = Time.deltaTime;
+
+            if (LocalInputGate.IsBlocked)
+            {
+                // Menu d'echappement ouvert (Story 5.8) : meme chemin de gel que MovementEnabled -- ni
+                // lecture d'input, ni gravite accumulee, tout en laissant la stamina se regenerer.
+                // Branche distincte volontairement : le garde-fou MovementEnabled reste la premiere
+                // forme litterale epinglee par la Story 2.7 (Story27PlayerLifecycleTests).
+                UpdateStamina(false, false, deltaTime);
+                return;
+            }
+
             if (!MovementEnabled)
             {
                 UpdateStamina(false, false, deltaTime);

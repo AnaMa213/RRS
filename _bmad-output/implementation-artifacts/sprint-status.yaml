@@ -110,7 +110,7 @@ development_status:
   5-5-networked-ai-rage-targeting: review
   5-6-rage-road-event-trigger: review
   5-7-ai-traffic-networking-and-client-presentation: review
-  5-8-escape-menu-and-return-to-main-menu: backlog
+  5-8-escape-menu-and-return-to-main-menu: review
   5-9-parameterized-driver-model: backlog
   5-10-lane-graph-greybox-district-and-routed-traffic: backlog
   5-11-intersection-rules-and-deadlock-prevention: backlog

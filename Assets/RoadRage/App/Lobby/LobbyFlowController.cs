@@ -228,11 +228,16 @@ namespace RoadRage.App.Lobby
         /// observer -- un declencheur sur front (RosterChanged) le manquerait des que l'instantane
         /// n'est pas reconnu comme "change". Le drapeau local garantit un seul StartClient() par
         /// session, sans spammer la garde "session reseau deja demarree" de StartNetworkedRun.
+        ///
+        /// Story 5.8 : le drapeau de sortie volontaire suspend cette re-entree automatique. Un client
+        /// qui a quitte la run garde son statut de lobby et un RunLaunchRequested toujours vrai ;
+        /// sans ce filtre il serait relance dans la run des le premier Update() de son retour au menu.
         /// </summary>
         private void Update()
         {
             if (clientRunStartRequested
                 || lobbyRoster == null
+                || IsSessionExitRequested()
                 || (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open)
                 || !lobbyRoster.Current.HasLobby
                 || !lobbyRoster.Current.RunLaunchRequested)
@@ -243,6 +248,31 @@ namespace RoadRage.App.Lobby
             clientRunStartRequested = true;
             Debug.Log("[Lobby] Signal de lancement hote detecte : connexion du client a la partie en cours.");
             StartNetworkedRun(false);
+        }
+
+        /// <summary>
+        /// Vrai tant que le joueur est revenu au menu par une sortie volontaire (Story 5.8). Le
+        /// drapeau vit sur le bootstrap persistant, donc il survit au changement de scene ; il ne
+        /// bloque jamais une entree explicite, seulement la re-entree automatique.
+        /// </summary>
+        private bool IsSessionExitRequested()
+        {
+            return bootstrap != null && bootstrap.SessionExitRequested;
+        }
+
+        /// <summary>
+        /// Leve le drapeau de sortie volontaire (Story 5.8), appele uniquement par les chemins qui
+        /// declenchent reellement une entree dans une session (creation de room, join par code, Start
+        /// Game), jamais par un chemin refuse : un clic refuse ne doit pas rendre au client revenu au
+        /// menu l'auto-rejoindre qu'il vient de suspendre. L'auto-rejoindre legitime de la Story 5.3
+        /// est ainsi rendu au joueur des qu'il redemande explicitement une partie.
+        /// </summary>
+        private void ClearSessionExitRequest()
+        {
+            if (bootstrap != null)
+            {
+                bootstrap.SessionExitRequested = false;
+            }
         }
 
         private void OnDestroy()
@@ -323,6 +353,7 @@ namespace RoadRage.App.Lobby
                 return;
             }
 
+            ClearSessionExitRequest();
             Debug.Log("[Lobby] Create Lobby demande : creation d'une room Steam privee.");
             await lobbyRoom.CreateRoomAsync();
         }
@@ -349,6 +380,7 @@ namespace RoadRage.App.Lobby
             }
 
             Debug.Log("[Lobby] Join By Code demande.");
+            ClearSessionExitRequest();
             await lobbyJoin.JoinByCodeAsync(rawCode);
         }
 
@@ -392,6 +424,7 @@ namespace RoadRage.App.Lobby
                     return;
                 }
 
+                ClearSessionExitRequest();
                 StartNetworkedRun(true);
                 return;
             }
@@ -419,6 +452,7 @@ namespace RoadRage.App.Lobby
                 return;
             }
 
+            ClearSessionExitRequest();
             StartNetworkedRun(true);
         }
 

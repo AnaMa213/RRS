@@ -8,6 +8,7 @@ using RoadRage.Features.Run;
 using RoadRage.Features.UI;
 using RoadRage.Features.Vehicles;
 using RoadRage.Shared.Domain;
+using RoadRage.Shared.Input;
 using RoadRage.Shared.Presentation;
 using Unity.Netcode;
 using UnityEngine;
@@ -430,7 +431,7 @@ namespace RoadRage.App.Run
             }
 
             var keyboard = Keyboard.current;
-            if (keyboard == null)
+            if (keyboard == null || LocalInputGate.IsBlocked)
             {
                 return;
             }
@@ -452,7 +453,7 @@ namespace RoadRage.App.Run
         private void HandleRageTargetLockControls()
         {
             var keyboard = Keyboard.current;
-            if (keyboard == null)
+            if (keyboard == null || LocalInputGate.IsBlocked)
             {
                 return;
             }
@@ -1172,7 +1173,7 @@ namespace RoadRage.App.Run
         private void HandleVehicleHornInteraction()
         {
             var keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard.hKey.wasPressedThisFrame)
+            if (keyboard == null || LocalInputGate.IsBlocked || !keyboard.hKey.wasPressedThisFrame)
             {
                 return;
             }

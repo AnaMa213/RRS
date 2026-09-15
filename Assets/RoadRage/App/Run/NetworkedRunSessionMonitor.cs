@@ -50,7 +50,7 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            StartCoroutine(ReturnClientToLobby(manager));
+            StartCoroutine(ReturnClientToLobby(manager, HostDisconnectedNotice));
         }
 
         private void HandleTransportFailure()
@@ -61,7 +61,47 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            StartCoroutine(ReturnClientToLobby(manager));
+            StartCoroutine(ReturnClientToLobby(manager, HostDisconnectedNotice));
+        }
+
+        /// <summary>Notice d'erreur publiee uniquement sur les declencheurs subis (perte de session, panne de transport).</summary>
+        private static UserNotice HostDisconnectedNotice
+        {
+            get { return new UserNotice(UserNoticeSeverity.Error, HostDisconnectedMessage); }
+        }
+
+        /// <summary>
+        /// Sortie volontaire vers le menu principal (Story 5.8), second declencheur du meme teardown :
+        /// quitter n'est pas un echec, donc aucune notice n'est publiee. Idempotent -- un second appel
+        /// pendant qu'un retour est deja en cours est ignore (garde isReturningToLobby), ce qui garantit
+        /// un seul Shutdown() suivi d'un seul LoadMainMenu(). Le drapeau de sortie volontaire du
+        /// bootstrap est leve pour que le lobby ne re-embarque pas le client revenu au menu.
+        /// </summary>
+        public bool RequestVoluntaryExitToMainMenu()
+        {
+            var manager = NetworkManager.Singleton;
+            if (manager == null)
+            {
+                // Distinct du double quit : ici il n'y a plus de session du tout, donc rien a arreter.
+                // Le silence ferait passer une session deja perdue pour un bouton casse.
+                Debug.LogWarning("[Run] Sortie volontaire ignoree : aucune session reseau active.");
+                return false;
+            }
+
+            if (isReturningToLobby)
+            {
+                // Retour deja en cours : cas nominal du double quit, ignore sans bruit.
+                return false;
+            }
+
+            var bootstrap = RoadRageBootstrap.EnsureInstance();
+            if (bootstrap != null)
+            {
+                bootstrap.SessionExitRequested = true;
+            }
+
+            StartCoroutine(ReturnClientToLobby(manager, null));
+            return true;
         }
 
         public static bool ShouldReturnClientToLobby(bool wasClientOnlySession, ulong disconnectedClientId, ulong localClientId)
@@ -81,16 +121,29 @@ namespace RoadRage.App.Run
             return !isReturningToLobby;
         }
 
-        private IEnumerator ReturnClientToLobby(NetworkManager manager)
+        /// <summary>
+        /// Teardown unique de la session en cours. Story 5.8 : la notice est un parametre -- nulle pour
+        /// une sortie volontaire (aucun echec a signaler), l'erreur d'hote perdu pour les declencheurs
+        /// subis -- plutot qu'un second chemin parallele de Shutdown() + LoadMainMenu().
+        /// </summary>
+        private IEnumerator ReturnClientToLobby(NetworkManager manager, UserNotice? notice)
         {
             isReturningToLobby = true;
 
-            Debug.LogWarning("[Run] " + HostDisconnectedMessage);
-
             var bootstrap = RoadRageBootstrap.EnsureInstance();
-            if (bootstrap != null && bootstrap.Notices != null)
+
+            if (notice.HasValue)
             {
-                bootstrap.Notices.Publish(new UserNotice(UserNoticeSeverity.Error, HostDisconnectedMessage));
+                Debug.LogWarning("[Run] " + notice.Value.Message);
+
+                if (bootstrap != null && bootstrap.Notices != null)
+                {
+                    bootstrap.Notices.Publish(notice.Value);
+                }
+            }
+            else
+            {
+                Debug.Log("[Run] Sortie volontaire : retour au menu principal sans notice d'erreur.");
             }
 
             if (manager != null && manager.IsListening)

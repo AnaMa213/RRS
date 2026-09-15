@@ -1,0 +1,51 @@
+# Story 5.8 - Notes de verification du menu d'echappement
+
+Date: 2026-09-15
+
+## Preuves executees
+
+- **Verification par le Test Runner de l'Editeur**, lancee manuellement par l'utilisateur (aucune commande CLI : le mode batch refuse de s'executer tant que l'Editeur detient le verrou du projet, meme contrainte qu'aux Stories 5.5 a 5.7) :
+  - filtre `Story58EscapeMenuPlayModeTests` (4 tests) : vert ;
+  - filtre `Story58EscapeMenuTests` (18 tests EditMode) : vert ;
+  - garde existante `Story27PlayerLifecycleTests.LocalOnFootControllerUpdateGuardsOnMovementEnabledBeforeReadingInputOrGravity` : vert ;
+  - suites completes EditMode et PlayMode : vertes.
+- **Relance complete apres les correctifs de revue** (voir la section Revue ci-dessous, qui a modifie deux fichiers de production et un fichier de test) : memes filtres, garde Story 2.7 et suites completes, toutes vertes.
+- **Cablage de scene verifie par Unity MCP dans un Editeur reel et non en Play Mode** : `MVP_Run` porte bien un `EscapeMenuPanel` plein ecran (anchors 0,0 -> 1,1, sizeDelta 0, fond `r 0.05 g 0.05 b 0.08 a 0.85`), dernier enfant du Canvas `RunCheckpointHud` donc dessine au-dessus de `DeathOverlayPanel` ; les deux boutons `EscapeResumeButton` (220x56, libelle "Resume") et `EscapeQuitButton` (320x56, libelle "Quit to Main Menu") utilisent la police LiberationSans SDF deja employee par les libelles du HUD, avec `m_TargetGraphic` correctement pose ; un `EventSystem` racine porte `InputSystemUIInputModule` ; `RunEscapeMenuFlowController` est sur `RunRoot`.
+- **Les trois references serialisees ont ete relues depuis l'Editeur apres rechargement de la scene** (`resumeButton`, `quitToMainMenuButton`, `screen`) : toutes resolues vers les objets attendus, et non laissees a `fileID: 0`.
+
+## Ecarts et corrections pendant la verification
+
+- **Garde de la Story 2.7 cassee, puis restauree.** La premiere implementation bloquait le deplacement a pied en etendant la condition existante (`if (!MovementEnabled || LocalInputGate.IsBlocked)`), ce qui detruisait la forme litterale `if (!MovementEnabled)` epinglee par `Story27PlayerLifecycleTests`. Le blocage du menu est desormais une branche distincte placee AVANT ce garde-fou : le contrat de la Story 2.7 reste vrai au caractere pres.
+- **Assertion d'idempotence de curseur corrigee.** Le test EditMode exigeait qu'un second `Open()` ramene le curseur a `None`. C'est faux et hors matrice : un `Open()` deja ouvert ne retouche pas le curseur vivant. L'assertion porte maintenant sur l'etat CAPTURE (`capturedCursorLockMode`, `capturedCursorVisible`), et la restauration a l'etat de la premiere ouverture reste verifiee par le `Close()` qui suit.
+- **Test de teardown deplace vers PlayMode.** Unity n'appelle ni `Awake` ni `OnDestroy` pour un composant ajoute a la volee hors Play Mode : le test EditMode qui detruisait le proprietaire menu ouvert ne pouvait pas passer, et laissait de surcroit le portail statique bloque pour les autres tests. Il est devenu une garde de source en EditMode, et son execution reelle est verifiee par `TearingDownTheOwnerWithTheMenuOpenReleasesInputAndRestoresTheCursor` en PlayMode.
+
+## Couverture des lignes de la matrice d'E/S
+
+| Ligne | Test qui la couvre |
+|---|---|
+| Ouvrir | `OpenAndCloseToggleThePanelAndTheSharedInputGate`, `DirectMvpRunLoadHidesTheAuthoredPanelAndResumeRendersInput` |
+| Fermer | memes tests, plus `OpenAndCloseReleaseAndRestoreTheCursorStateCapturedAtOpen` |
+| Echap sans clavier | `EscapeIsReadInTheAppLayerBehindANullKeyboardGuard` (garde de source, deterministe) |
+| Quitter en hote | `HostQuitReturnsToTheLobbyWithoutAnErrorNoticeAndReleasesTheOpenMenu` |
+| Quitter en client | **Aucun test automatise possible** : le Test Runner n'ouvre qu'un `NetworkManager` par processus (meme contrainte que la Story 5.7). Le mecanisme propre au client -- la suspension de la re-entree automatique -- est couvert par `TheLobbyFlowSuspendsTheAutomaticRejoinWhileTheExitFlagIsSet` et `ExplicitLobbyEntryLiftsTheVoluntaryExitFlag` ; le parcours reel a deux pairs reste une verification manuelle, voir ci-dessous. |
+| Quitter deux fois | `AVoluntaryExitIsIgnoredWhileAReturnIsAlreadyInProgress`, `HostQuitReturnsToTheLobbyWithoutAnErrorNoticeAndReleasesTheOpenMenu` |
+| Scene dechargee menu ouvert | `TearingDownTheOwnerWithTheMenuOpenReleasesInputAndRestoresTheCursor` (PlayMode) + garde de source EditMode |
+
+## Verification manuelle restante
+
+- **Parcours a deux pairs Steam, non execute ici** : un client qui choisit *Quit to Main Menu* doit revenir a `MainMenuLobby` sans que l'hote ni les autres clients ne soient interrompus, et sans repartir tout seul dans la run ; puis un reboot de l'hote doit reproduire exactement le cas host-quit de la Story 2.7 (notice d'erreur visible et retour au lobby pour les clients restants). Ce point reutilise la procedure deja documentee pour la Story 2.7 et reste le seul element de la matrice qui ne peut pas etre automatise dans un seul processus.
+- **Parcours visuel `MVP_Run`** : Echap ouvre et referme le menu, le curseur est libere puis restaure, la voiture ne repond plus pendant l'ouverture, et la simulation continue de tourner. Les assertions automatisees couvrent l'etat du panneau, du portail et du curseur, mais pas le ressenti visuel.
+
+## Revue et correctifs
+
+Revue adversariale du diff complete, menee proportionnellement a la portee du changement. Trois constats reels, aucun ne declenchant de boucle sur la spec :
+
+- **Lecteur d'entree oublie (corrige).** `LocalVoidRespawnController.cs` lit `R` pour le respawn de la partie solo hors-ligne ; c'est le seul lecteur d'entree local qui ne consultait pas le portail. Consequence : menu ouvert, un joueur mort en solo respawnait derriere le panneau, et la meme touche se comportait differemment en solo et en reseau. Le fichier avait ete oublie par la liste `LocalInputReaderSourcePaths` de la garde `EveryLocalInputReaderConsultsTheSharedGate`, qui se lisait donc comme exhaustive alors qu'elle ne l'etait pas : la garde a ete etendue en meme temps que le correctif, pour qu'une omission future echoue.
+- **Refus de quit silencieux (corrige).** `RequestQuitToMainMenu()` ignorait le retour booleen du moniteur. Sur une `MVP_Run` chargee sans session reseau (scene jouee seule, fixture de test), le bouton ne produisait qu'un log console : rien a l'ecran, et le joueur pouvait croire le bouton casse. Le refus publie desormais une notice par le canal persistant habituel, et le cas « plus de NetworkManager » est logue distinctement du double-quit, qui reste silencieux a dessein (cas nominal de la matrice). Aucun repli de routage n'a ete ajoute : le moniteur reste l'unique proprietaire de `Shutdown()` + `LoadMainMenu()`.
+- **Residu accepte : instance de materiau sur un libelle HUD preexistant.** `FutureHudLabel` reference desormais une copie embarquee du materiau `LiberationSans SDF` au lieu du materiau partage de la police. Cause : la lecture du composant TMP par l'outillage de scene instancie le materiau (`fontMaterial`), et la sauvegarde de scene qui a suivi l'a serialise. Impact : **aucun** — rendu identique, et la scene contenait deja deux instances de ce type avant cette story (2 a la baseline, 3 maintenant), donc l'etat reste coherent avec le reste de `MVP_Run`. Non corrige volontairement : la seule correction sure demanderait un outil de scene sur une scene dont l'integrite est deja validee par les suites, pour un ecart cosmetique nul.
+
+## Notes de conception a retenir
+
+- Le quit volontaire n'emet **aucune notice** : quitter n'est pas un echec. La perte de session conserve `HostDisconnectedMessage`. Les deux declencheurs partagent la meme coroutine de teardown, avec la notice en parametre.
+- Le drapeau de sortie volontaire vit sur `RoadRageBootstrap` (`DontDestroyOnLoad`) et n'est leve que par une entree explicite (creation de room, join par code, Start Game), jamais par un chemin refuse : un clic refuse ne doit pas rendre au joueur l'auto-rejoindre qu'il vient de suspendre.
+- `LocalInputGate` est un portail statique : c'est le seul moyen d'atteindre des lecteurs d'entree repartis dans quatre assemblies de feature qui n'ont pas le droit de referencer `RoadRage.App`. Il est remis a zero par `RunEscapeMenuFlowController.OnDestroy`, et par le `TearDown` des deux fixtures de test pour ne jamais laisser le jeu muet apres un test rouge.

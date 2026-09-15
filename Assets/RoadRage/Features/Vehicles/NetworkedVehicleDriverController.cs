@@ -1,5 +1,6 @@
 using System;
 using RoadRage.Shared.Domain;
+using RoadRage.Shared.Input;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
@@ -188,6 +189,15 @@ namespace RoadRage.Features.Vehicles
             if (state.IsInoperable())
             {
                 latestIntent = VehicleDriveIntent.Idle;
+                return;
+            }
+
+            if (LocalInputGate.IsBlocked)
+            {
+                // Menu d'echappement ouvert (Story 5.8) : l'intention doit continuer d'etre soumise a
+                // zero, sinon le host conserve la derniere intention recue (plein gaz) et la voiture
+                // continuerait d'accelerer pendant que le joueur a son menu ouvert.
+                SubmitDriveIntent(VehicleDriveIntent.Idle, localClientId);
                 return;
             }
 

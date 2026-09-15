@@ -1,6 +1,7 @@
 using RoadRage.Features.Players;
 using RoadRage.Features.Vehicles;
 using RoadRage.Shared.Domain;
+using RoadRage.Shared.Input;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -42,7 +43,7 @@ namespace RoadRage.App.Run
             }
 
             var keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard[recoveryKey].wasPressedThisFrame)
+            if (keyboard == null || LocalInputGate.IsBlocked || !keyboard[recoveryKey].wasPressedThisFrame)
             {
                 return;
             }

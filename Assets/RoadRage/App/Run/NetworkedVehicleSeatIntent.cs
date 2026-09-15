@@ -1,4 +1,5 @@
 using RoadRage.Features.Players;
+using RoadRage.Shared.Input;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -41,7 +42,7 @@ namespace RoadRage.App.Run
             }
 
             var keyboard = Keyboard.current;
-            if (keyboard == null)
+            if (keyboard == null || LocalInputGate.IsBlocked)
             {
                 return;
             }

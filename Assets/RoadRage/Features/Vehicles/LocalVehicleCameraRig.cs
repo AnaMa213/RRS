@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using RoadRage.Shared.Input;
 using Unity.Cinemachine;
 using Unity.Netcode;
 using UnityEngine;
@@ -65,6 +66,13 @@ namespace RoadRage.Features.Vehicles
             if (input != null)
                 input.ReadControlValueOverride = (action, hint, context, read) =>
                 {
+                    // Menu d'echappement ouvert (Story 5.8) : l'orbite s'arrete net, sans changer de
+                    // camera -- le joueur garde sa vue, mais la souris ne la fait plus tourner.
+                    if (LocalInputGate.IsBlocked)
+                    {
+                        return 0f;
+                    }
+
                     var value = read(action, hint, context, null);
                     // CancelDeltaTime is appropriate for mouse delta; sticks express a rate.
                     return action.activeControl != null && action.activeControl.device is Gamepad

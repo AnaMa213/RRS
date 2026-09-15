@@ -83,6 +83,16 @@ namespace RoadRage.App
         public NetworkPlayerRegistry NetworkPlayers { get; private set; }
 
         /// <summary>
+        /// Sortie volontaire d'une session en cours (Story 5.8). Porte par cet objet persistant pour
+        /// survivre au changement de scene : un client qui quitte la run garde son statut de lobby
+        /// Steam (fermer la room ou envoyer un leave invite reste hors scope de la Story 2.3), donc
+        /// sans ce drapeau la condition de lancement hote lue par LobbyFlowController.Update() le
+        /// relancerait immediatement dans la run. Marque par NetworkedRunSessionMonitor au quit
+        /// volontaire, leve des qu'une entree explicite (creation, join, Start Game) est demandee.
+        /// </summary>
+        public bool SessionExitRequested { get; set; }
+
+        /// <summary>
         /// Garantit l'existence de l'instance persistante. Depuis Bootstrap rien n'est cree ;
         /// en entree directe (ex. MainMenuLobby jouee seule dans l'Editor) l'instance nait a la volee.
         /// </summary>

@@ -1,6 +1,7 @@
 using RoadRage.Features.OnFoot;
 using RoadRage.Features.Players;
 using RoadRage.Features.UI;
+using RoadRage.Shared.Input;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -76,7 +77,7 @@ namespace RoadRage.App.Run
             }
 
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
+            if (keyboard != null && !LocalInputGate.IsBlocked && keyboard.rKey.wasPressedThisFrame)
             {
                 Respawn();
             }
