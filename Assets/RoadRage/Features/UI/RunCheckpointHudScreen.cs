@@ -1,4 +1,5 @@
 using System.Text;
+using RoadRage.Shared.Domain;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -30,6 +31,12 @@ namespace RoadRage.Features.UI
 
         public const string VehicleInoperableMessage = "Voiture hors d'usage.";
 
+        /// <summary>Story 5.6 : ligne Rage Road au repos (aucun evenement publie par l'hote).</summary>
+        public const string NoRageRoadEventState = "Rage Road : aucun evenement";
+
+        /// <summary>Story 5.6 : l'evenement est actif mais sa cible ne se resout plus (textuel, jamais une couleur).</summary>
+        public const string RageRoadEventTargetLostState = "cible perdue (detruite ou despawnee)";
+
         private const string PlaceholderValue = "-";
 
         [SerializeField]
@@ -59,6 +66,8 @@ namespace RoadRage.Features.UI
 
         private TMP_Text incidentLabel;
 
+        private TMP_Text rageRoadEventLabel;
+
         [SerializeField]
         private GameObject deathOverlayPanel;
 
@@ -73,6 +82,7 @@ namespace RoadRage.Features.UI
         {
             EnsureRageLabel();
             EnsureIncidentLabel();
+            EnsureRageRoadEventLabel();
             ShowAwaitingProfile();
         }
 
@@ -114,6 +124,7 @@ namespace RoadRage.Features.UI
             SetText(playerCountLabel, "Joueurs : " + PlaceholderValue);
             SetText(moneyLabel, "Argent : " + PlaceholderValue);
             ShowRageStatus(null, 0f, null);
+            ShowRageRoadEventStatus(RageRoadEventState.Idle, null, false);
         }
 
         public void ShowSpawnIssue(string message)
@@ -223,6 +234,26 @@ namespace RoadRage.Features.UI
 
             SetText(rageLabel, SafeText(targetName) + " | Rage " + Mathf.RoundToInt(rageValue)
                 + " | Peur " + Mathf.RoundToInt(fearValue) + " | " + SafeText(disposition));
+        }
+
+        /// <summary>
+        /// Story 5.6 : etat de l'unique evenement Rage Road, tel que publie par l'hote -- l'etat ET le nom
+        /// de la cible sont rendus en texte (jamais une couleur seule), et une cible disparue est
+        /// signalee explicitement sans que l'etat affiche ne change. Lit uniquement des valeurs
+        /// synchronisees : le HUD n'ecrit jamais dans une NetworkVariable.
+        /// </summary>
+        public void ShowRageRoadEventStatus(RageRoadEventState state, string targetName, bool targetLost)
+        {
+            EnsureRageRoadEventLabel();
+
+            if (state == RageRoadEventState.Idle)
+            {
+                SetText(rageRoadEventLabel, NoRageRoadEventState);
+                return;
+            }
+
+            SetText(rageRoadEventLabel, "Rage Road : " + state + " | Cible : "
+                + (targetLost ? RageRoadEventTargetLostState : SafeText(targetName)));
         }
 
         public void ShowDeathOverlay()
@@ -341,6 +372,36 @@ namespace RoadRage.Features.UI
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.raycastTarget = false;
             incidentLabel = label;
+        }
+
+        /// <summary>
+        /// Story 5.6 : meme patron qu'EnsureIncidentLabel -- le libelle Rage Road est cree a l'execution
+        /// sous la ligne incident (RageStatusLabel : -24, incident : -66, Rage Road : -108), donc aucune
+        /// edition de scene n'est requise pour rendre l'evenement visible.
+        /// </summary>
+        private void EnsureRageRoadEventLabel()
+        {
+            if (rageRoadEventLabel != null)
+            {
+                return;
+            }
+
+            var labelObject = new GameObject("RageRoadEventStatusLabel", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            labelObject.transform.SetParent(transform, false);
+
+            var rect = labelObject.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(1f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-24f, -108f);
+            rect.sizeDelta = new Vector2(520f, 42f);
+
+            var label = labelObject.GetComponent<TextMeshProUGUI>();
+            label.alignment = TextAlignmentOptions.TopRight;
+            label.fontSize = 24f;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.raycastTarget = false;
+            rageRoadEventLabel = label;
         }
 
         private static string SafeText(string value)

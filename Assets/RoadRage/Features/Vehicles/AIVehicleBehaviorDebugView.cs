@@ -33,6 +33,7 @@ namespace RoadRage.Features.Vehicles
         private bool hasRageSource;
         private Camera billboardCamera;
         private bool localRageTargetLock;
+        private bool rageRoadEventTarget;
 
         /// <summary>
         /// Story 5.5 (correctif feel, 2026-09-15) : marque ce vehicule comme cible verrouillee du
@@ -45,6 +46,17 @@ namespace RoadRage.Features.Vehicles
         public void SetLocalRageTargetLock(bool locked)
         {
             localRageTargetLock = locked;
+        }
+
+        /// <summary>
+        /// Story 5.6 : marque ce vehicule comme cible de l'evenement Rage Road synchronise. Comme le lock
+        /// de Story 5.5, le drapeau est purement local et jamais replique -- il est re-derive par chaque
+        /// pair depuis <c>NetworkedRunState</c>, ce qui permet d'identifier la cible meme quand elle sort
+        /// du cone de visee, par du texte et non par une couleur.
+        /// </summary>
+        public void SetRageRoadEventTarget(bool isEventTarget)
+        {
+            rageRoadEventTarget = isEventTarget;
         }
 
         private void Awake()
@@ -93,6 +105,11 @@ namespace RoadRage.Features.Vehicles
             if (!hasRageSource)
             {
                 text += " (rage absente)";
+            }
+
+            if (rageRoadEventTarget)
+            {
+                text = "[RAGE ROAD] " + text;
             }
 
             return localRageTargetLock ? "[CIBLE] " + text : text;

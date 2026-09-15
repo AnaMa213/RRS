@@ -3996,6 +3996,7 @@ GameObject:
   - component: {fileID: 1414698253}
   - component: {fileID: 1414698256}
   - component: {fileID: 1414698257}
+  - component: {fileID: 1887456320}
   m_Layer: 0
   m_Name: RunRoot
   m_TagString: Untagged
@@ -4089,6 +4090,18 @@ MonoBehaviour:
   compositionRoot: {fileID: 1414698254}
   spawnService: {fileID: 1414698256}
   voidHeightThreshold: -10
+--- !u!114 &1887456320
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1414698252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9f3c6d81e4b42d7b05a3c9e7f2d6148, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: RoadRage.App::RoadRage.App.Run.RageRoadEventFlowController
 --- !u!134 &1442099220
 PhysicsMaterial:
   m_ObjectHideFlags: 0
