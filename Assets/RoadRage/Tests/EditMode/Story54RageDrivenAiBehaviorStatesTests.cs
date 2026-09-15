@@ -34,6 +34,24 @@ namespace RoadRage.Tests.EditMode
             RageDisposition.ConfrontationCapable
         };
 
+        /// <summary>
+        /// Profil authore de reference (valeurs de DriverProfileDef_Default.asset) : la Story 5.9 a
+        /// remplace le multiplicateur de vitesse par une modulation du profil, donc les proprietes de
+        /// la Story 5.4 se verifient desormais sur le profil effectif.
+        /// </summary>
+        private static readonly DriverProfile BaselineProfile = new DriverProfile(
+            desiredSpeed: 8f,
+            timeHeadway: 1.5f,
+            minimumGap: 2f,
+            maxAcceleration: 1.5f,
+            comfortableDeceleration: 2f,
+            politeness: 0.25f,
+            laneChangeThreshold: 0.2f,
+            safeBrakingLimit: 4f,
+            reactionTime: 0.3f,
+            laneChangeEvaluationInterval: 1f,
+            consistency: 0.8f);
+
         private readonly List<Object> spawned = new List<Object>();
 
         [TearDown]
@@ -57,24 +75,43 @@ namespace RoadRage.Tests.EditMode
         {
             foreach (var disposition in AllDispositions)
             {
-                var multiplier = NetworkedAIVehicleDriverController.ResolveCruiseSpeedMultiplier(disposition);
-                Assert.That(float.IsFinite(multiplier), Is.True, disposition.ToString());
-                Assert.That(multiplier, Is.GreaterThanOrEqualTo(0f), disposition.ToString());
+                var effective = DriverModel.ResolveEffectiveProfile(BaselineProfile, disposition);
+
+                Assert.That(float.IsFinite(effective.DesiredSpeed), Is.True, disposition.ToString());
+                Assert.That(effective.DesiredSpeed, Is.GreaterThanOrEqualTo(0f), disposition.ToString());
+                Assert.That(float.IsFinite(effective.TimeHeadway), Is.True, disposition.ToString());
+                Assert.That(float.IsFinite(effective.MinimumGap), Is.True, disposition.ToString());
+                Assert.That(effective.MaxAcceleration, Is.GreaterThan(0f), disposition.ToString());
+                Assert.That(effective.ComfortableDeceleration, Is.GreaterThan(0f), disposition.ToString());
+                Assert.That(float.IsFinite(effective.Politeness), Is.True, disposition.ToString());
+                Assert.That(float.IsFinite(effective.LaneChangeThreshold), Is.True, disposition.ToString());
+                Assert.That(float.IsFinite(effective.SafeBrakingLimit), Is.True, disposition.ToString());
             }
         }
 
         [Test]
         public void RouteFollowingProfilesEscalateWithRage()
         {
-            var calm = NetworkedAIVehicleDriverController.ResolveCruiseSpeedMultiplier(RageDisposition.Calm);
-            var irritated = NetworkedAIVehicleDriverController.ResolveCruiseSpeedMultiplier(RageDisposition.Irritated);
-            var flee = NetworkedAIVehicleDriverController.ResolveCruiseSpeedMultiplier(RageDisposition.Flee);
-            var ram = NetworkedAIVehicleDriverController.ResolveCruiseSpeedMultiplier(RageDisposition.Ram);
+            var calm = DriverModel.ResolveEffectiveProfile(BaselineProfile, RageDisposition.Calm);
+            var irritated = DriverModel.ResolveEffectiveProfile(BaselineProfile, RageDisposition.Irritated);
+            var flee = DriverModel.ResolveEffectiveProfile(BaselineProfile, RageDisposition.Flee);
+            var ram = DriverModel.ResolveEffectiveProfile(BaselineProfile, RageDisposition.Ram);
 
-            Assert.That(calm, Is.EqualTo(1f), "Calm est le profil de reference : cruiseSpeed non modifiee.");
-            Assert.That(irritated, Is.GreaterThan(calm));
-            Assert.That(flee, Is.GreaterThan(irritated));
-            Assert.That(ram, Is.GreaterThan(flee), "L'escalade doit rester lisible au mouvement seul.");
+            Assert.That(calm.DesiredSpeed, Is.EqualTo(BaselineProfile.DesiredSpeed).Within(0.0001f),
+                "Calm est le profil de reference : le profil authore n'est pas modifie.");
+            Assert.That(irritated.DesiredSpeed, Is.GreaterThan(calm.DesiredSpeed));
+            Assert.That(flee.DesiredSpeed, Is.GreaterThan(irritated.DesiredSpeed));
+            Assert.That(ram.DesiredSpeed, Is.GreaterThan(flee.DesiredSpeed), "L'escalade doit rester lisible au mouvement seul.");
+
+            // Story 5.9 : l'escalade ne se resume plus a la vitesse -- la rage change aussi la
+            // maniere de conduire (carte des leviers de la recherche).
+            Assert.That(ram.TimeHeadway, Is.LessThan(calm.TimeHeadway), "Rage : colle au pare-chocs.");
+            Assert.That(ram.MinimumGap, Is.LessThan(calm.MinimumGap));
+            Assert.That(ram.MaxAcceleration, Is.GreaterThan(calm.MaxAcceleration));
+            Assert.That(ram.ComfortableDeceleration, Is.GreaterThan(calm.ComfortableDeceleration));
+            Assert.That(ram.Politeness, Is.LessThan(calm.Politeness));
+            Assert.That(ram.LaneChangeThreshold, Is.LessThan(calm.LaneChangeThreshold));
+            Assert.That(ram.SafeBrakingLimit, Is.GreaterThan(calm.SafeBrakingLimit));
         }
 
         [Test]
@@ -85,7 +122,7 @@ namespace RoadRage.Tests.EditMode
             // pas la vitesse -- aucune cible ni confrontation n'est introduite par cette story.
             foreach (var disposition in AllDispositions)
             {
-                var stops = NetworkedAIVehicleDriverController.ResolveCruiseSpeedMultiplier(disposition) <= 0f;
+                var stops = DriverModel.ResolveEffectiveProfile(BaselineProfile, disposition).DesiredSpeed <= 0f;
                 var expected = disposition == RageDisposition.Block || disposition == RageDisposition.ConfrontationCapable;
                 Assert.That(stops, Is.EqualTo(expected), disposition + " : seuls Block et ConfrontationCapable immobilisent.");
             }
@@ -138,8 +175,8 @@ namespace RoadRage.Tests.EditMode
                 "Pas de jauge globale : la rage d'un vehicule ne deplace pas celle d'un autre.");
             Assert.That(second.Rage.RageValue.Value, Is.EqualTo(0f));
             Assert.That(
-                NetworkedAIVehicleDriverController.ResolveCruiseSpeedMultiplier(first.State.Behavior.Value),
-                Is.Not.EqualTo(NetworkedAIVehicleDriverController.ResolveCruiseSpeedMultiplier(second.State.Behavior.Value)),
+                DriverModel.ResolveEffectiveProfile(BaselineProfile, first.State.Behavior.Value).DesiredSpeed,
+                Is.Not.EqualTo(DriverModel.ResolveEffectiveProfile(BaselineProfile, second.State.Behavior.Value).DesiredSpeed),
                 "Deux comportements distincts doivent produire deux profils de conduite distincts.");
         }
 
@@ -158,7 +195,9 @@ namespace RoadRage.Tests.EditMode
             var source = File.ReadAllText(DriverControllerSourcePath);
             Assert.That(source, Does.Contain("rageSource == null ? RageDisposition.Calm : rageSource.CurrentDisposition"),
                 "Composant de rage absent : repli Calm, sans exception.");
-            Assert.That(NetworkedAIVehicleDriverController.ResolveCruiseSpeedMultiplier(RageDisposition.Calm), Is.EqualTo(1f),
+            Assert.That(
+                DriverModel.ResolveEffectiveProfile(BaselineProfile, RageDisposition.Calm).DesiredSpeed,
+                Is.EqualTo(BaselineProfile.DesiredSpeed).Within(0.0001f),
                 "Le repli laisse le vehicule suivre sa route normalement.");
         }
 

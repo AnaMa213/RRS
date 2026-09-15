@@ -206,6 +206,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d78752f6ba3357f40b90e9a95ef14f11, type: 3}
   m_Name:
   m_EditorClassIdentifier: RoadRage.Features.Vehicles::RoadRage.Features.Vehicles.NetworkedAIVehicleDriverController
+  driverProfile: {fileID: 11400000, guid: 3d40142a3caa467eb0efa0030a8b71d6, type: 2}
 --- !u!114 &9123456789012345673
 MonoBehaviour:
   m_ObjectHideFlags: 0
