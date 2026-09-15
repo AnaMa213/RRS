@@ -456,9 +456,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Online/FacepunchSteamLobbyPlatform.cs": {
-    "mtime": 1789397657.597267,
-    "seen": 1789397777.3953693,
-    "ast_hash": "58f152f1593bb7b6d673695724a975f4",
+    "mtime": 1789464582.0746624,
+    "seen": 1789466045.641395,
+    "ast_hash": "488e8a3391cf891f07546b95b3135219",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Online/FacepunchSteamPlatform.cs": {
@@ -3852,9 +3852,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789461945.955898,
-    "seen": 1789463958.9439373,
-    "ast_hash": "fb6689c7fab1f02d7f181a7ac451e794",
+    "mtime": 1789466015.2297275,
+    "seen": 1789466045.7180183,
+    "ast_hash": "29880734e71228637789f62a83441e48",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -4693,8 +4693,8 @@
   },
   ".vscode/mcp.json": {
     "mtime": 1789293397.8698504,
-    "seen": 1789461545.074663,
-    "ast_hash": "",
+    "seen": 1789466069.4857113,
+    "ast_hash": "45d5d1e5f72188de071136d8dade9a5e",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -5664,9 +5664,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-5-3-unified-solo-and-online-session-start.md": {
-    "mtime": 1789463935.3194275,
-    "seen": 1789463958.9431279,
-    "ast_hash": "574cf53cc069049662ed20f0a3b582ee",
+    "mtime": 1789466010.625216,
+    "seen": 1789466045.7173357,
+    "ast_hash": "afd6c1fc2f2bacb7f90e9f9cd8b41b7f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/AIVehicleBehaviorDebugView.cs": {

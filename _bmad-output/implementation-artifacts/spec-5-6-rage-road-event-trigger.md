@@ -1,11 +1,12 @@
 ---
-title: 'Story 5.6 : declenchement de l''evenement Rage Road'
-type: 'feature'
-created: '2026-09-15'
-status: 'done'
+title: "Story 5.6 : declenchement de l'evenement Rage Road"
+type: "feature"
+created: "2026-09-15"
+status: "done"
 review_loop_iteration: 0
-baseline_commit: '1025851ce1580b192fa34b2b23c75ed3272e66db'
-context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md"]
+baseline_commit: "1025851ce1580b192fa34b2b23c75ed3272e66db"
+context:
+  ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md"]
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
@@ -26,14 +27,14 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 
 ## I/O & Edge-Case Matrix
 
-| Scenario | Input / State | Expected Output / Behavior | Error Handling |
-|----------|--------------|---------------------------|----------------|
-| Declenchement | Une IA eligible atteint `ConfrontationCapable`, etat `Idle` | Etat passe a `Triggered`, cible = cette IA, HUD texte + libelle `[RAGE ROAD]` | Aucune IA qualifiee : etat inchange, aucun message d'erreur |
-| Deux IA au meme tick | Deux IA eligibles franchissent la condition la meme frame | La premiere par `NetworkObjectId` gagne ; un seul evenement | La seconde est ignoree, la cible d'origine reste |
-| Declenchement duplique | La meme IA reste `ConfrontationCapable` apres `Triggered` | Aucun nouvel evenement, cible et etat inchanges | N/A (empeche par l'etat, pas par un drapeau par vehicule) |
-| Cible perdue | Cible detruite ou despawnee pendant `Triggered` | Etat reste `Triggered`, le retour signale la cible perdue | Aucun reset automatique, aucun retargeting |
-| Pair client | L'hote declenche l'evenement | Le client affiche le meme etat et la meme cible depuis les NetworkVariables | Aucune ecriture cote client |
-| Aucune cible eligible | Aucune IA portant a la fois `NetworkedAIVehicleState` et une source rage/peur spawnee | Etat reste `Idle` | N/A |
+| Scenario               | Input / State                                                                         | Expected Output / Behavior                                                    | Error Handling                                              |
+| ---------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Declenchement          | Une IA eligible atteint `ConfrontationCapable`, etat `Idle`                           | Etat passe a `Triggered`, cible = cette IA, HUD texte + libelle `[RAGE ROAD]` | Aucune IA qualifiee : etat inchange, aucun message d'erreur |
+| Deux IA au meme tick   | Deux IA eligibles franchissent la condition la meme frame                             | La premiere par `NetworkObjectId` gagne ; un seul evenement                   | La seconde est ignoree, la cible d'origine reste            |
+| Declenchement duplique | La meme IA reste `ConfrontationCapable` apres `Triggered`                             | Aucun nouvel evenement, cible et etat inchanges                               | N/A (empeche par l'etat, pas par un drapeau par vehicule)   |
+| Cible perdue           | Cible detruite ou despawnee pendant `Triggered`                                       | Etat reste `Triggered`, le retour signale la cible perdue                     | Aucun reset automatique, aucun retargeting                  |
+| Pair client            | L'hote declenche l'evenement                                                          | Le client affiche le meme etat et la meme cible depuis les NetworkVariables   | Aucune ecriture cote client                                 |
+| Aucune cible eligible  | Aucune IA portant a la fois `NetworkedAIVehicleState` et une source rage/peur spawnee | Etat reste `Idle`                                                             | N/A                                                         |
 
 </frozen-after-approval>
 
@@ -54,6 +55,7 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 ## Tasks & Acceptance
 
 **Execution:**
+
 - [x] `Assets/RoadRage/Shared/Domain/RageRoadEventState.cs` (nouveau) -- enum `Idle / Triggered / Confrontation / Resolved / RewardGranted` (AD-22) -- vocabulaire unique partage par Run, UI et tests.
 - [x] `Assets/RoadRage/Features/Run/RageRoadEventLifecycle.cs` (nouveau) -- `IsEventActive`, `CanAdvance` (avance d'un seul cran, table AD-22), `IsTriggerConditionMet(RageDisposition)` et `ResolveFirstTriggerIndex(etatCourant, dispositionsOrdonnees)` -- logique pure sans Netcode, arbitrage et anti-doublon en un point unique.
 - [x] `Assets/RoadRage/Features/Run/NetworkedRunState.cs` -- ajouter `RageRoadEvent` (defaut `Idle`) et la `NetworkObjectReference` de cible, toutes deux serveur-ecriture -- etat host-owned exige par l'AC.
@@ -65,6 +67,7 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 - [x] `.meta` pour chaque fichier `.cs` ajoute (`fileFormatVersion: 2` + `guid:`).
 
 **Acceptance Criteria:**
+
 - Given une IA eligible dont la rage atteint `ConfrontationCapable` et un evenement `Idle`, when l'hote evalue, then `NetworkedRunState` passe a `Triggered` avec cette IA comme cible, et l'etat comme le nom de la cible sont visibles en texte (HUD et prefixe `[RAGE ROAD]` du vehicule).
 - Given un evenement actif (`Triggered` ou `Confrontation`), when une autre IA franchit la meme condition, then aucun second evenement n'est cree, la cible d'origine est conservee, et la demande refusee est journalisee cote hote (regle documentee : premier-arrive-gagne, un seul evenement actif).
 - Given un evenement `Triggered`, when la meme IA reste au-dessus de la condition, then aucun nouvel evenement n'est produit.
@@ -83,9 +86,11 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 ## Verification
 
 **Commands:**
+
 - Aucune commande CLI : verification par le Test Runner Unity (checkpoint humain).
 
 **Manual checks (if no CLI):**
+
 - `RoadRage.Tests.EditMode` filtre `Story56RageRoadEventTriggerTests`, puis suite complete verte (dont `RoadRageScaffoldTests`, qui valide les permissions des nouvelles NetworkVariables).
 - `MVP_Run` en Play Mode, host + client : monter une IA a `ConfrontationCapable` (4 provocations passager a +25, ou klaxons a +15) et verifier l'etat `Triggered`, le nom de la cible sur le HUD, le prefixe `[RAGE ROAD]`, et l'etat identique cote client ; faire franchir la condition a une seconde IA et verifier qu'aucun second evenement n'apparait ; detruire ou despawner la cible et verifier que l'etat reste `Triggered` avec signalement de cible perdue.
 
