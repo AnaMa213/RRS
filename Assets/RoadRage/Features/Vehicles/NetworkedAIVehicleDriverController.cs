@@ -13,7 +13,7 @@ namespace RoadRage.Features.Vehicles
     /// <see cref="NetworkedVehicleDriverController"/> (IsRolledOver / IsBelowVoidHeightThreshold) et
     /// applique la meme detection "soutenue N secondes" pour le blocage (vitesse quasi nulle). Toute
     /// recuperation (retournement, hors-zone ou blocage) reinitialise le vehicule au waypoint courant
-    /// -- jamais a RouteIndex/WaypointIndex d'un autre vehicule : chaque instance ne porte que son
+    /// -- jamais au WaypointIndex d'un autre vehicule : chaque instance ne porte que son
     /// propre etat (aucune collection statique/partagee), donc independante par construction.
     /// Desactivation/isolation (AC epic 5) : ce comportement passe entierement par FixedUpdate, donc
     /// decocher le composant (ou son GameObject) dans MVP_Run suffit a arreter le vehicule IA sans
