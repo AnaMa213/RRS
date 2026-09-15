@@ -77621,88 +77621,88 @@
       "source_location": "L955"
     },
     {
-      "id": "bmad_output_planning_artifacts_epics_story_5_10_intersection_rules_and_deadlock_prevention",
-      "label": "Story 5.10: Intersection Rules and Deadlock Prevention",
+      "id": "bmad_output_planning_artifacts_epics_story_5_10_lane_graph_greybox_district_and_routed_source_sink_traffic",
+      "label": "Story 5.10: Lane Graph, Greybox District, and Routed Source/Sink Traffic",
       "_origin": "ast",
       "community": 187,
       "community_name": "Epic 5: NPC Response Foundation and Future Traffic",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "story 5.10: intersection rules and deadlock prevention",
+      "norm_label": "story 5.10: lane graph, greybox district, and routed source/sink traffic",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
       "source_location": "L1152"
     },
     {
-      "id": "bmad_output_planning_artifacts_epics_story_5_11_wider_perception_and_progressive_unblocking",
-      "label": "Story 5.11: Wider Perception and Progressive Unblocking",
+      "id": "bmad_output_planning_artifacts_epics_story_5_11_intersection_rules_and_deadlock_prevention",
+      "label": "Story 5.11: Intersection Rules and Deadlock Prevention",
       "_origin": "ast",
       "community": 187,
       "community_name": "Epic 5: NPC Response Foundation and Future Traffic",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "story 5.11: wider perception and progressive unblocking",
+      "norm_label": "story 5.11: intersection rules and deadlock prevention",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1179"
+      "source_location": "L1182"
     },
     {
-      "id": "bmad_output_planning_artifacts_epics_story_5_12_rage_and_fear_as_driving_model_modulation",
-      "label": "Story 5.12: Rage and Fear as Driving Model Modulation",
+      "id": "bmad_output_planning_artifacts_epics_story_5_12_wider_perception_and_progressive_unblocking",
+      "label": "Story 5.12: Wider Perception and Progressive Unblocking",
       "_origin": "ast",
       "community": 187,
       "community_name": "Epic 5: NPC Response Foundation and Future Traffic",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "story 5.12: rage and fear as driving model modulation",
+      "norm_label": "story 5.12: wider perception and progressive unblocking",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1202"
+      "source_location": "L1209"
     },
     {
-      "id": "bmad_output_planning_artifacts_epics_story_5_13_player_targeted_rage_ladder_and_rage_road_trigger",
-      "label": "Story 5.13: Player-Targeted Rage Ladder and Rage Road Trigger",
+      "id": "bmad_output_planning_artifacts_epics_story_5_13_rage_and_fear_as_driving_model_modulation",
+      "label": "Story 5.13: Rage and Fear as Driving Model Modulation",
       "_origin": "ast",
       "community": 187,
       "community_name": "Epic 5: NPC Response Foundation and Future Traffic",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "story 5.13: player-targeted rage ladder and rage road trigger",
+      "norm_label": "story 5.13: rage and fear as driving model modulation",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1233"
+      "source_location": "L1232"
     },
     {
-      "id": "bmad_output_planning_artifacts_epics_story_5_14_thrown_litter_foundation_and_attribution",
-      "label": "Story 5.14: Thrown Litter Foundation and Attribution",
+      "id": "bmad_output_planning_artifacts_epics_story_5_14_player_targeted_rage_ladder_and_rage_road_trigger",
+      "label": "Story 5.14: Player-Targeted Rage Ladder and Rage Road Trigger",
       "_origin": "ast",
       "community": 187,
       "community_name": "Epic 5: NPC Response Foundation and Future Traffic",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "story 5.14: thrown litter foundation and attribution",
+      "norm_label": "story 5.14: player-targeted rage ladder and rage road trigger",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1266"
+      "source_location": "L1263"
     },
     {
-      "id": "bmad_output_planning_artifacts_epics_story_5_15_lobby_configurable_traffic_settings",
-      "label": "Story 5.15: Lobby-Configurable Traffic Settings",
+      "id": "bmad_output_planning_artifacts_epics_story_5_15_thrown_litter_foundation_and_attribution",
+      "label": "Story 5.15: Thrown Litter Foundation and Attribution",
       "_origin": "ast",
       "community": 187,
       "community_name": "Epic 5: NPC Response Foundation and Future Traffic",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "story 5.15: lobby-configurable traffic settings",
+      "norm_label": "story 5.15: thrown litter foundation and attribution",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1302"
+      "source_location": "L1296"
     },
     {
-      "id": "bmad_output_planning_artifacts_epics_story_5_16_escape_menu_and_return_to_main_menu",
-      "label": "Story 5.16: Escape Menu and Return to Main Menu",
+      "id": "bmad_output_planning_artifacts_epics_story_5_16_lobby_configurable_traffic_settings",
+      "label": "Story 5.16: Lobby-Configurable Traffic Settings",
       "_origin": "ast",
       "community": 187,
       "community_name": "Epic 5: NPC Response Foundation and Future Traffic",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "story 5.16: escape menu and return to main menu",
+      "norm_label": "story 5.16: lobby-configurable traffic settings",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1335"
+      "source_location": "L1332"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_5_17_scale_validation_and_network_budget",
@@ -77714,7 +77714,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.17: scale validation and network budget",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1363"
+      "source_location": "L1365"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_5_18_epic_5_ai_traffic_playable_checkpoint",
@@ -77726,7 +77726,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.18: epic 5 ai traffic playable checkpoint",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1389"
+      "source_location": "L1391"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_5_1_configurable_npc_rage_fear_foundation",
@@ -77813,28 +77813,28 @@
       "source_location": "L1077"
     },
     {
-      "id": "bmad_output_planning_artifacts_epics_story_5_8_parameterized_driver_model",
-      "label": "Story 5.8: Parameterized Driver Model",
+      "id": "bmad_output_planning_artifacts_epics_story_5_8_escape_menu_and_return_to_main_menu",
+      "label": "Story 5.8: Escape Menu and Return to Main Menu",
       "_origin": "ast",
       "community": 187,
       "community_name": "Epic 5: NPC Response Foundation and Future Traffic",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "story 5.8: parameterized driver model",
+      "norm_label": "story 5.8: escape menu and return to main menu",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
       "source_location": "L1096"
     },
     {
-      "id": "bmad_output_planning_artifacts_epics_story_5_9_lane_graph_greybox_district_and_routed_source_sink_traffic",
-      "label": "Story 5.9: Lane Graph, Greybox District, and Routed Source/Sink Traffic",
+      "id": "bmad_output_planning_artifacts_epics_story_5_9_parameterized_driver_model",
+      "label": "Story 5.9: Parameterized Driver Model",
       "_origin": "ast",
       "community": 187,
       "community_name": "Epic 5: NPC Response Foundation and Future Traffic",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "story 5.9: lane graph, greybox district, and routed source/sink traffic",
+      "norm_label": "story 5.9: parameterized driver model",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1122"
+      "source_location": "L1126"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_epic_7_mvp_2_run_level_boss_and_checkpoint_assembly",
@@ -77846,7 +77846,7 @@
       "node_kind": "heading",
       "norm_label": "epic 7: mvp 2 run, level, boss, and checkpoint assembly",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1623"
+      "source_location": "L1625"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_7_1_integrated_mvp_run_state_machine",
@@ -77858,7 +77858,7 @@
       "node_kind": "heading",
       "norm_label": "story 7.1: integrated mvp run state machine",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1629"
+      "source_location": "L1631"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_7_2_simple_boss_endpoint",
@@ -77870,7 +77870,7 @@
       "node_kind": "heading",
       "norm_label": "story 7.2: simple boss endpoint",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1646"
+      "source_location": "L1648"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_7_3_boss_kill_victory_flow",
@@ -77882,7 +77882,7 @@
       "node_kind": "heading",
       "norm_label": "story 7.3: boss-kill victory flow",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1663"
+      "source_location": "L1665"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_7_4_team_wipe_restart_from_beginning",
@@ -77894,7 +77894,7 @@
       "node_kind": "heading",
       "norm_label": "story 7.4: team-wipe restart from beginning",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1681"
+      "source_location": "L1683"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_7_5_complete_mvp_loop_integration",
@@ -77906,7 +77906,7 @@
       "node_kind": "heading",
       "norm_label": "story 7.5: complete mvp loop integration",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1699"
+      "source_location": "L1701"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_7_6_mvp_stabilization_build_and_handoff_notes",
@@ -77918,7 +77918,7 @@
       "node_kind": "heading",
       "norm_label": "story 7.6: mvp stabilization, build, and handoff notes",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1716"
+      "source_location": "L1718"
     },
     {
       "id": "claude_skills_graphify_references_github_and_merge",
@@ -103294,7 +103294,7 @@
       "node_kind": "heading",
       "norm_label": "1. resume du probleme",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L16"
+      "source_location": "L18"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_2_1_impact_epic_checklist_section_2",
@@ -103306,7 +103306,7 @@
       "node_kind": "heading",
       "norm_label": "2.1 impact epic (checklist section 2)",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L49"
+      "source_location": "L51"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_2_2_impact_story",
@@ -103318,7 +103318,7 @@
       "node_kind": "heading",
       "norm_label": "2.2 impact story",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L59"
+      "source_location": "L61"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_2_3_conflits_d_artefacts_checklist_section_3",
@@ -103330,7 +103330,7 @@
       "node_kind": "heading",
       "norm_label": "2.3 conflits d'artefacts (checklist section 3)",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L74"
+      "source_location": "L76"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_2_4_impact_technique",
@@ -103342,7 +103342,7 @@
       "node_kind": "heading",
       "norm_label": "2.4 impact technique",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L94"
+      "source_location": "L96"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_2_5_point_de_cadrage_mvp_resolution",
@@ -103354,7 +103354,7 @@
       "node_kind": "heading",
       "norm_label": "2.5 point de cadrage mvp \u2014 resolution",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L104"
+      "source_location": "L106"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_2_analyse_d_impact",
@@ -103366,7 +103366,7 @@
       "node_kind": "heading",
       "norm_label": "2. analyse d'impact",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L47"
+      "source_location": "L49"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_3_approche_recommandee",
@@ -103378,7 +103378,7 @@
       "node_kind": "heading",
       "norm_label": "3. approche recommandee",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L114"
+      "source_location": "L116"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_4_1_nouvelles_decisions_d_architecture",
@@ -103390,7 +103390,7 @@
       "node_kind": "heading",
       "norm_label": "4.1 nouvelles decisions d'architecture",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L138"
+      "source_location": "L140"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_4_2_modification_des_exigences_fonctionnelles",
@@ -103402,7 +103402,7 @@
       "node_kind": "heading",
       "norm_label": "4.2 modification des exigences fonctionnelles",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L177"
+      "source_location": "L179"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_4_3_reconciliation_du_tableau_perime_d_epics_md",
@@ -103414,7 +103414,7 @@
       "node_kind": "heading",
       "norm_label": "4.3 reconciliation du tableau perime d'`epics.md`",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L212"
+      "source_location": "L214"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_4_4_nouvelles_stories_epic_5",
@@ -103426,7 +103426,7 @@
       "node_kind": "heading",
       "norm_label": "4.4 nouvelles stories epic 5",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L232"
+      "source_location": "L234"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_4_5_registre_d_adoption",
@@ -103438,7 +103438,7 @@
       "node_kind": "heading",
       "norm_label": "4.5 registre d'adoption",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L592"
+      "source_location": "L612"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_4_6_changements_epic_6",
@@ -103450,7 +103450,7 @@
       "node_kind": "heading",
       "norm_label": "4.6 changements epic 6",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L610"
+      "source_location": "L630"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_4_7_note_d_impact_ux",
@@ -103462,7 +103462,7 @@
       "node_kind": "heading",
       "norm_label": "4.7 note d'impact ux",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L648"
+      "source_location": "L668"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_4_8_sprint_status_yaml",
@@ -103474,7 +103474,7 @@
       "node_kind": "heading",
       "norm_label": "4.8 sprint-status.yaml",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L656"
+      "source_location": "L676"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_4_propositions_de_changement_detaillees",
@@ -103486,7 +103486,7 @@
       "node_kind": "heading",
       "norm_label": "4. propositions de changement detaillees",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L136"
+      "source_location": "L138"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_5_handoff_d_implementation",
@@ -103498,7 +103498,7 @@
       "node_kind": "heading",
       "norm_label": "5. handoff d'implementation",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L707"
+      "source_location": "L735"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_criteres_de_succes",
@@ -103510,7 +103510,7 @@
       "node_kind": "heading",
       "norm_label": "criteres de succes",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L743"
+      "source_location": "L773"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_declencheur",
@@ -103522,7 +103522,7 @@
       "node_kind": "heading",
       "norm_label": "declencheur",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L18"
+      "source_location": "L20"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_impact_calendrier",
@@ -103534,7 +103534,7 @@
       "node_kind": "heading",
       "norm_label": "impact calendrier",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L130"
+      "source_location": "L132"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_justification",
@@ -103546,7 +103546,7 @@
       "node_kind": "heading",
       "norm_label": "justification",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L124"
+      "source_location": "L126"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_nature_du_probleme",
@@ -103558,7 +103558,7 @@
       "node_kind": "heading",
       "norm_label": "nature du probleme",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L22"
+      "source_location": "L24"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_preuves",
@@ -103570,7 +103570,7 @@
       "node_kind": "heading",
       "norm_label": "preuves",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L38"
+      "source_location": "L40"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_risques_residuels",
@@ -103582,7 +103582,7 @@
       "node_kind": "heading",
       "norm_label": "risques residuels",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L754"
+      "source_location": "L784"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_sequencement_et_dependances",
@@ -103594,7 +103594,7 @@
       "node_kind": "heading",
       "norm_label": "sequencement et dependances",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L717"
+      "source_location": "L745"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_sprint_change_proposal_2026_09_15",
@@ -103618,7 +103618,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.10 : regles d'intersection et prevention d'interblocage",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L298"
+      "source_location": "L318"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_11_perception_elargie_et_deblocage_progressif",
@@ -103630,7 +103630,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.11 : perception elargie et deblocage progressif",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L327"
+      "source_location": "L347"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_12_rage_et_peur_comme_modulation_du_modele_de_conduite",
@@ -103642,7 +103642,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.12 : rage et peur comme modulation du modele de conduite",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L352"
+      "source_location": "L372"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_13_echelle_de_rage_ciblee_sur_le_joueur_et_declenchement_rage_road",
@@ -103654,7 +103654,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.13 : echelle de rage ciblee sur le joueur et declenchement rage road",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L385"
+      "source_location": "L405"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_14_fondation_dechets_jetes_et_attribution",
@@ -103666,7 +103666,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.14 : fondation dechets jetes et attribution",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L420"
+      "source_location": "L440"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_15_parametres_de_trafic_configurables_depuis_le_lobby",
@@ -103678,7 +103678,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.15 : parametres de trafic configurables depuis le lobby",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L458"
+      "source_location": "L478"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_16_menu_d_echappement_et_retour_au_menu_principal",
@@ -103690,7 +103690,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.16 : menu d'echappement et retour au menu principal",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L493"
+      "source_location": "L513"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_17_validation_d_echelle_et_budget_reseau",
@@ -103702,7 +103702,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.17 : validation d'echelle et budget reseau",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L523"
+      "source_location": "L543"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_18_checkpoint_jouable_epic_5",
@@ -103714,7 +103714,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.18 : checkpoint jouable epic 5",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L551"
+      "source_location": "L571"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_8_modele_de_conducteur_parametre",
@@ -103726,7 +103726,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.8 : modele de conducteur parametre",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L238"
+      "source_location": "L258"
     },
     {
       "id": "bmad_output_planning_artifacts_sprint_change_proposal_2026_09_15_story_5_9_graphe_de_voies_quartier_greybox_et_trafic_source_sink_route",
@@ -103738,7 +103738,7 @@
       "node_kind": "heading",
       "norm_label": "story 5.9 : graphe de voies, quartier greybox et trafic source/sink route",
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L266"
+      "source_location": "L286"
     },
     {
       "id": "claude_skills_bmad_review_references_lens_verification_gap",
@@ -127262,7 +127262,7 @@
       "node_kind": "heading",
       "norm_label": "epic 6: individual economy foundation and future on-foot assembly",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1413"
+      "source_location": "L1415"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_10_litter_recovery_loop",
@@ -127274,7 +127274,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.10: litter recovery loop",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1580"
+      "source_location": "L1582"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_11_epic_6_economy_loop_playable_checkpoint",
@@ -127286,7 +127286,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.11: epic 6 economy loop playable checkpoint",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1603"
+      "source_location": "L1605"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_1_inventory_bar_and_fist_melee_action",
@@ -127298,7 +127298,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.1: inventory bar and fist melee action",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1419"
+      "source_location": "L1421"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_2_dev_npc_dismount_and_test_mannequin",
@@ -127310,7 +127310,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.2: dev npc dismount and test mannequin",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1439"
+      "source_location": "L1441"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_3_on_foot_transition_for_confrontation_and_sandbox_stops",
@@ -127322,7 +127322,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.3: on-foot transition for confrontation and sandbox stops",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1457"
+      "source_location": "L1459"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_4_compact_rage_road_confrontation_resolution",
@@ -127334,7 +127334,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.4: compact rage road confrontation resolution",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1476"
+      "source_location": "L1478"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_5_individual_wallet_authority",
@@ -127346,7 +127346,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.5: individual wallet authority",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1494"
+      "source_location": "L1496"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_6_compact_sandbox_stop_with_happenings",
@@ -127358,7 +127358,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.6: compact sandbox stop with happenings",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1511"
+      "source_location": "L1513"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_7_one_upgrade_purchase",
@@ -127370,7 +127370,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.7: one upgrade purchase",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1528"
+      "source_location": "L1530"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_8_upgrade_effect_on_the_next_driving_loop",
@@ -127382,7 +127382,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.8: upgrade effect on the next driving loop",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1546"
+      "source_location": "L1548"
     },
     {
       "id": "bmad_output_planning_artifacts_epics_story_6_9_economy_confrontation_and_stop_ui_feedback",
@@ -127394,7 +127394,7 @@
       "node_kind": "heading",
       "norm_label": "story 6.9: economy, confrontation, and stop ui feedback",
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1563"
+      "source_location": "L1565"
     },
     {
       "id": "agents_skills_manage_sprite_atlas_resources_handlelatebinding",
@@ -298164,7 +298164,7 @@
     },
     {
       "source": "bmad_output_planning_artifacts_epics_epic_5_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_planning_artifacts_epics_story_5_8_parameterized_driver_model",
+      "target": "bmad_output_planning_artifacts_epics_story_5_8_escape_menu_and_return_to_main_menu",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -298175,18 +298175,18 @@
     },
     {
       "source": "bmad_output_planning_artifacts_epics_epic_5_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_planning_artifacts_epics_story_5_9_lane_graph_greybox_district_and_routed_source_sink_traffic",
+      "target": "bmad_output_planning_artifacts_epics_story_5_9_parameterized_driver_model",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1122",
+      "source_location": "L1126",
       "weight": 1.0
     },
     {
       "source": "bmad_output_planning_artifacts_epics_epic_5_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_planning_artifacts_epics_story_5_10_intersection_rules_and_deadlock_prevention",
+      "target": "bmad_output_planning_artifacts_epics_story_5_10_lane_graph_greybox_district_and_routed_source_sink_traffic",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -298197,68 +298197,68 @@
     },
     {
       "source": "bmad_output_planning_artifacts_epics_epic_5_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_planning_artifacts_epics_story_5_11_wider_perception_and_progressive_unblocking",
+      "target": "bmad_output_planning_artifacts_epics_story_5_11_intersection_rules_and_deadlock_prevention",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1179",
+      "source_location": "L1182",
       "weight": 1.0
     },
     {
       "source": "bmad_output_planning_artifacts_epics_epic_5_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_planning_artifacts_epics_story_5_12_rage_and_fear_as_driving_model_modulation",
+      "target": "bmad_output_planning_artifacts_epics_story_5_12_wider_perception_and_progressive_unblocking",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1202",
+      "source_location": "L1209",
       "weight": 1.0
     },
     {
       "source": "bmad_output_planning_artifacts_epics_epic_5_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_planning_artifacts_epics_story_5_13_player_targeted_rage_ladder_and_rage_road_trigger",
+      "target": "bmad_output_planning_artifacts_epics_story_5_13_rage_and_fear_as_driving_model_modulation",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1233",
+      "source_location": "L1232",
       "weight": 1.0
     },
     {
       "source": "bmad_output_planning_artifacts_epics_epic_5_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_planning_artifacts_epics_story_5_14_thrown_litter_foundation_and_attribution",
+      "target": "bmad_output_planning_artifacts_epics_story_5_14_player_targeted_rage_ladder_and_rage_road_trigger",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1266",
+      "source_location": "L1263",
       "weight": 1.0
     },
     {
       "source": "bmad_output_planning_artifacts_epics_epic_5_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_planning_artifacts_epics_story_5_15_lobby_configurable_traffic_settings",
+      "target": "bmad_output_planning_artifacts_epics_story_5_15_thrown_litter_foundation_and_attribution",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1302",
+      "source_location": "L1296",
       "weight": 1.0
     },
     {
       "source": "bmad_output_planning_artifacts_epics_epic_5_npc_response_foundation_and_future_traffic",
-      "target": "bmad_output_planning_artifacts_epics_story_5_16_escape_menu_and_return_to_main_menu",
+      "target": "bmad_output_planning_artifacts_epics_story_5_16_lobby_configurable_traffic_settings",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1335",
+      "source_location": "L1332",
       "weight": 1.0
     },
     {
@@ -298269,7 +298269,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1363",
+      "source_location": "L1365",
       "weight": 1.0
     },
     {
@@ -298280,7 +298280,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1389",
+      "source_location": "L1391",
       "weight": 1.0
     },
     {
@@ -298324,7 +298324,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1419",
+      "source_location": "L1421",
       "weight": 1.0
     },
     {
@@ -298335,7 +298335,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1439",
+      "source_location": "L1441",
       "weight": 1.0
     },
     {
@@ -298346,7 +298346,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1457",
+      "source_location": "L1459",
       "weight": 1.0
     },
     {
@@ -298357,7 +298357,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1476",
+      "source_location": "L1478",
       "weight": 1.0
     },
     {
@@ -298368,7 +298368,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1494",
+      "source_location": "L1496",
       "weight": 1.0
     },
     {
@@ -298379,7 +298379,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1511",
+      "source_location": "L1513",
       "weight": 1.0
     },
     {
@@ -298390,7 +298390,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1528",
+      "source_location": "L1530",
       "weight": 1.0
     },
     {
@@ -298401,7 +298401,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1546",
+      "source_location": "L1548",
       "weight": 1.0
     },
     {
@@ -298412,7 +298412,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1563",
+      "source_location": "L1565",
       "weight": 1.0
     },
     {
@@ -298423,7 +298423,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1580",
+      "source_location": "L1582",
       "weight": 1.0
     },
     {
@@ -298434,7 +298434,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1603",
+      "source_location": "L1605",
       "weight": 1.0
     },
     {
@@ -298445,7 +298445,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1629",
+      "source_location": "L1631",
       "weight": 1.0
     },
     {
@@ -298456,7 +298456,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1646",
+      "source_location": "L1648",
       "weight": 1.0
     },
     {
@@ -298467,7 +298467,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1663",
+      "source_location": "L1665",
       "weight": 1.0
     },
     {
@@ -298478,7 +298478,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1681",
+      "source_location": "L1683",
       "weight": 1.0
     },
     {
@@ -298489,7 +298489,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1699",
+      "source_location": "L1701",
       "weight": 1.0
     },
     {
@@ -298500,7 +298500,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1716",
+      "source_location": "L1718",
       "weight": 1.0
     },
     {
@@ -298643,7 +298643,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1413",
+      "source_location": "L1415",
       "weight": 1.0
     },
     {
@@ -298654,7 +298654,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/epics.md",
-      "source_location": "L1623",
+      "source_location": "L1625",
       "weight": 1.0
     },
     {
@@ -300469,7 +300469,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L18",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -300480,7 +300480,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L22",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -300491,7 +300491,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L38",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -300502,7 +300502,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L104",
+      "source_location": "L106",
       "weight": 1.0
     },
     {
@@ -300513,7 +300513,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L49",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -300524,7 +300524,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L59",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -300535,7 +300535,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L74",
+      "source_location": "L76",
       "weight": 1.0
     },
     {
@@ -300546,7 +300546,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L94",
+      "source_location": "L96",
       "weight": 1.0
     },
     {
@@ -300557,7 +300557,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L124",
+      "source_location": "L126",
       "weight": 1.0
     },
     {
@@ -300568,7 +300568,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L130",
+      "source_location": "L132",
       "weight": 1.0
     },
     {
@@ -300579,7 +300579,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L238",
+      "source_location": "L258",
       "weight": 1.0
     },
     {
@@ -300590,7 +300590,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L266",
+      "source_location": "L286",
       "weight": 1.0
     },
     {
@@ -300601,7 +300601,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L298",
+      "source_location": "L318",
       "weight": 1.0
     },
     {
@@ -300612,7 +300612,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L327",
+      "source_location": "L347",
       "weight": 1.0
     },
     {
@@ -300623,7 +300623,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L352",
+      "source_location": "L372",
       "weight": 1.0
     },
     {
@@ -300634,7 +300634,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L385",
+      "source_location": "L405",
       "weight": 1.0
     },
     {
@@ -300645,7 +300645,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L420",
+      "source_location": "L440",
       "weight": 1.0
     },
     {
@@ -300656,7 +300656,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L458",
+      "source_location": "L478",
       "weight": 1.0
     },
     {
@@ -300667,7 +300667,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L493",
+      "source_location": "L513",
       "weight": 1.0
     },
     {
@@ -300678,7 +300678,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L523",
+      "source_location": "L543",
       "weight": 1.0
     },
     {
@@ -300689,7 +300689,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L551",
+      "source_location": "L571",
       "weight": 1.0
     },
     {
@@ -300700,7 +300700,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L138",
+      "source_location": "L140",
       "weight": 1.0
     },
     {
@@ -300711,7 +300711,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L177",
+      "source_location": "L179",
       "weight": 1.0
     },
     {
@@ -300722,7 +300722,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L212",
+      "source_location": "L214",
       "weight": 1.0
     },
     {
@@ -300733,7 +300733,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L232",
+      "source_location": "L234",
       "weight": 1.0
     },
     {
@@ -300744,7 +300744,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L592",
+      "source_location": "L612",
       "weight": 1.0
     },
     {
@@ -300755,7 +300755,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L610",
+      "source_location": "L630",
       "weight": 1.0
     },
     {
@@ -300766,7 +300766,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L648",
+      "source_location": "L668",
       "weight": 1.0
     },
     {
@@ -300777,7 +300777,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L656",
+      "source_location": "L676",
       "weight": 1.0
     },
     {
@@ -300788,7 +300788,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L717",
+      "source_location": "L745",
       "weight": 1.0
     },
     {
@@ -300799,7 +300799,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L743",
+      "source_location": "L773",
       "weight": 1.0
     },
     {
@@ -300810,7 +300810,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L754",
+      "source_location": "L784",
       "weight": 1.0
     },
     {
@@ -300821,7 +300821,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L114",
+      "source_location": "L116",
       "weight": 1.0
     },
     {
@@ -300832,7 +300832,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L136",
+      "source_location": "L138",
       "weight": 1.0
     },
     {
@@ -300843,7 +300843,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L16",
+      "source_location": "L18",
       "weight": 1.0
     },
     {
@@ -300854,7 +300854,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L47",
+      "source_location": "L49",
       "weight": 1.0
     },
     {
@@ -300865,7 +300865,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md",
-      "source_location": "L707",
+      "source_location": "L735",
       "weight": 1.0
     },
     {

@@ -1,7 +1,7 @@
 # Graph Report - RRS  (2026-09-15)
 
 ## Corpus Check
-- 919 files · ~990,840 words
+- 919 files · ~991,500 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -1628,7 +1628,7 @@ Nodes (7): Epic 4: Passenger Chaos, Rage Sandbox & Profile Correction, Story 4.1
 
 ### Community 187 - "Epic 5: NPC Response Foundation and Future Traffic"
 Cohesion: 0.11
-Nodes (19): Epic 5: NPC Response Foundation and Future Traffic, Story 5.10: Intersection Rules and Deadlock Prevention, Story 5.11: Wider Perception and Progressive Unblocking, Story 5.12: Rage and Fear as Driving Model Modulation, Story 5.13: Player-Targeted Rage Ladder and Rage Road Trigger, Story 5.14: Thrown Litter Foundation and Attribution, Story 5.15: Lobby-Configurable Traffic Settings, Story 5.16: Escape Menu and Return to Main Menu (+11 more)
+Nodes (19): Epic 5: NPC Response Foundation and Future Traffic, Story 5.10: Lane Graph, Greybox District, and Routed Source/Sink Traffic, Story 5.11: Intersection Rules and Deadlock Prevention, Story 5.12: Wider Perception and Progressive Unblocking, Story 5.13: Rage and Fear as Driving Model Modulation, Story 5.14: Player-Targeted Rage Ladder and Rage Road Trigger, Story 5.15: Thrown Litter Foundation and Attribution, Story 5.16: Lobby-Configurable Traffic Settings (+11 more)
 
 ### Community 188 - "Epic 7: MVP 2 Run, Level, Boss, and Checkpoint Assembly"
 Cohesion: 0.29
