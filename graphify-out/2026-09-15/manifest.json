@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Run/NetworkedRunState.cs": {
-    "mtime": 1788462097.489866,
-    "seen": 1789154390.8673792,
-    "ast_hash": "6306713be28002b67b4b61974900c0e0",
+    "mtime": 1789475222.2362416,
+    "seen": 1789475954.5743186,
+    "ast_hash": "6e942f76fd2b934bff725f88eb37474a",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Run/RunCompositionRoot.cs": {
@@ -636,9 +636,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/UI/RunCheckpointHudScreen.cs": {
-    "mtime": 1789332601.358049,
-    "seen": 1789332676.9633734,
-    "ast_hash": "717c190677e725f71f684ccc31a0fbf2",
+    "mtime": 1789475222.242325,
+    "seen": 1789475954.5743241,
+    "ast_hash": "2f73179dc24ac88694f95c8a1d0aa117",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/LocalVehicleCameraRig.cs": {
@@ -648,9 +648,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleState.cs": {
-    "mtime": 1789410491.365024,
-    "seen": 1789410986.0916648,
-    "ast_hash": "6544737ab8c8500083bfacc466eb4589",
+    "mtime": 1789481168.1316042,
+    "seen": 1789487678.7294948,
+    "ast_hash": "5519e9e1c3c00feac4f6e7f6611f840f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDamageVfxController.cs": {
@@ -3852,9 +3852,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789466015.2297275,
-    "seen": 1789466045.7180183,
-    "ast_hash": "29880734e71228637789f62a83441e48",
+    "mtime": 1789487627.1677554,
+    "seen": 1789487678.7939565,
+    "ast_hash": "b4b4ced00709ee5c5782345667e77bfa",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -3912,9 +3912,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/architecture/architecture-RoadRage_Simulator-2026-09-02/ARCHITECTURE-SPINE.md": {
-    "mtime": 1789385488.562321,
-    "seen": 1789385568.0513113,
-    "ast_hash": "4aff3be46eb4aacedfd33ff832955026",
+    "mtime": 1789487556.3169532,
+    "seen": 1789487678.7947648,
+    "ast_hash": "0740c6de1be69b5e2ef73fc53607c0cc",
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/architecture/architecture-RoadRage_Simulator-2026-09-02/beginner-architecture-guide.md": {
@@ -3948,9 +3948,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/epics.md": {
-    "mtime": 1789407925.2164283,
-    "seen": 1789410986.1572678,
-    "ast_hash": "8e4bbe85c627e91c9ca4690924bd98b7",
+    "mtime": 1789487616.5472777,
+    "seen": 1789487678.7952192,
+    "ast_hash": "4d02112e98b444625de32e713c899471",
     "semantic_hash": ""
   },
   "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-02.md": {
@@ -4020,9 +4020,9 @@
     "semantic_hash": ""
   },
   "docs/setup/addon-adoption-register.md": {
-    "mtime": 1788859820.8521574,
-    "seen": 1789154390.867755,
-    "ast_hash": "245c39f6f918c46081feed79ae1da48e",
+    "mtime": 1789487638.0735402,
+    "seen": 1789487678.7971919,
+    "ast_hash": "b7e8c1edfbe258ef88f9eef177a15a91",
     "semantic_hash": ""
   },
   "docs/setup/epic-0-readiness-checklist.md": {
@@ -4693,8 +4693,8 @@
   },
   ".vscode/mcp.json": {
     "mtime": 1789293397.8698504,
-    "seen": 1789466069.4857113,
-    "ast_hash": "45d5d1e5f72188de071136d8dade9a5e",
+    "seen": 1789480881.763311,
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -5634,9 +5634,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs": {
-    "mtime": 1789410546.5795074,
-    "seen": 1789410986.0916638,
-    "ast_hash": "974bacc17d05f9f35fc337eae8682d0a",
+    "mtime": 1789481168.1331131,
+    "seen": 1789487678.729493,
+    "ast_hash": "2121e24d1c6d74b9bed2c3d1de7dc7eb",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/RouteWaypoints.cs": {
@@ -5670,9 +5670,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/AIVehicleBehaviorDebugView.cs": {
-    "mtime": 1789459404.2855918,
-    "seen": 1789459619.8093376,
-    "ast_hash": "f4c8a4307d9df06e3bfcb925555bf7b8",
+    "mtime": 1789475222.2382712,
+    "seen": 1789475954.5743256,
+    "ast_hash": "626431263a916935966e1300d3740681",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Shared/Domain/IRageDispositionSource.cs": {
@@ -5727,6 +5727,114 @@
     "mtime": 1789421949.696407,
     "seen": 1789459619.878471,
     "ast_hash": "3c2b9b3bd1bbb67c3502883332352510",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/App/Run/RageRoadEventFlowController.cs": {
+    "mtime": 1789475222.2392893,
+    "seen": 1789475954.5742853,
+    "ast_hash": "75ec029d4fa6208f46cc3ed3d6a21cda",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Run/RageRoadEventLifecycle.cs": {
+    "mtime": 1789475222.2382712,
+    "seen": 1789475954.5743194,
+    "ast_hash": "0feed93b1b725c9f52e03ce69779e84f",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Shared/Domain/RageRoadEventState.cs": {
+    "mtime": 1789475222.2347367,
+    "seen": 1789475954.5743387,
+    "ast_hash": "02b5cb2a560323b35934546c328c8cb7",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story56RageRoadEventTriggerTests.cs": {
+    "mtime": 1789475222.242325,
+    "seen": 1789475954.5743668,
+    "ast_hash": "37fd64ea4529af246138cbd9b18f362b",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-5-6-rage-road-event-trigger.md": {
+    "mtime": 1789475222.2644734,
+    "seen": 1789475954.5748541,
+    "ast_hash": "b44641a77bea0490944319b6450c7fb6",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story57AiTrafficClientPresentationTests.cs": {
+    "mtime": 1789481168.1356308,
+    "seen": 1789487678.7342858,
+    "ast_hash": "1cd02597058a9abfb519399e5b82fdfe",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/PlayMode/Story57AiTrafficClientPresentationPlayModeTests.cs": {
+    "mtime": 1789481168.137632,
+    "seen": 1789487678.7353482,
+    "ast_hash": "3de266a326b322f05e3b5fa71553d249",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/spec-5-7-ai-traffic-networking-and-client-presentation.md": {
+    "mtime": 1789481168.2997003,
+    "seen": 1789487678.7934275,
+    "ast_hash": "e9bacc46abe5077798d9cd6e72476d12",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/research/technical-trafic-ia-vehicules-unity-6-2026-09-15/.memlog.md": {
+    "mtime": 1789484180.6117063,
+    "seen": 1789487678.7952204,
+    "ast_hash": "ef918fdf61625f5154379a0e78da5dd9",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/research/technical-trafic-ia-vehicules-unity-6-2026-09-15/digests/candidates-r1-1.md": {
+    "mtime": 1789483671.668429,
+    "seen": 1789487678.7952216,
+    "ast_hash": "72eafa8d1cee2b528ec174da0a51a566",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/research/technical-trafic-ia-vehicules-unity-6-2026-09-15/digests/cost-lockin-r1-1.md": {
+    "mtime": 1789483695.4359026,
+    "seen": 1789487678.7952223,
+    "ast_hash": "ba7fb2ab5793c387b6a0d21c0d51cc85",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/research/technical-trafic-ia-vehicules-unity-6-2026-09-15/digests/extensibility-r1-1.md": {
+    "mtime": 1789483672.33415,
+    "seen": 1789487678.7952232,
+    "ast_hash": "2e2b7a231382dec10a9cb018ff8a4fa1",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/research/technical-trafic-ia-vehicules-unity-6-2026-09-15/digests/gley-seams-r2-1.md": {
+    "mtime": 1789483881.315176,
+    "seen": 1789487678.795224,
+    "ast_hash": "7c17cbb3678a53937cf03e44408af623",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/research/technical-trafic-ia-vehicules-unity-6-2026-09-15/digests/netcode-scale-r1-1.md": {
+    "mtime": 1789483698.7637503,
+    "seen": 1789487678.7952251,
+    "ast_hash": "da6b1afc8e26596169d1774acefcaebd",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/research/technical-trafic-ia-vehicules-unity-6-2026-09-15/digests/reference-impl-r2-1.md": {
+    "mtime": 1789483852.6837692,
+    "seen": 1789487678.7952256,
+    "ast_hash": "1065a3457706af40095066948ae24987",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/research/technical-trafic-ia-vehicules-unity-6-2026-09-15/digests/routed-traffic-r1-1.md": {
+    "mtime": 1789483685.8548427,
+    "seen": 1789487678.795226,
+    "ast_hash": "01b055850ef274d2ac06919ff26771f7",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/research/technical-trafic-ia-vehicules-unity-6-2026-09-15/research.md": {
+    "mtime": 1789484176.7550824,
+    "seen": 1789487678.795227,
+    "ast_hash": "a2d49ed6475e144000367fecb547e3b2",
+    "semantic_hash": ""
+  },
+  "_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-15.md": {
+    "mtime": 1789487650.8063653,
+    "seen": 1789487678.79591,
+    "ast_hash": "88c613eb1090ca742f0b796bb4d1057b",
     "semantic_hash": ""
   }
 }

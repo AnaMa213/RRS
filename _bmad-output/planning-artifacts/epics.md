@@ -22,12 +22,14 @@ inputDocuments:
 
 | Order | Story | Scope | Status |
 | --- | --- | --- | --- |
-| 0 | Review 4.1–4.4 | Final code reviews and resolve Story 4.4's `review`/`done` document discrepancy. | required gate |
-| 1 | 4.5 Persistent Steam Profile and Main Menu Character Selection | Auto-created Steam profile, Rookie default, persisted Rookie/Veteran cosmetic selection, inspectable menu preview; no nickname or profile page. | backlog |
-| 2 | 4.6 Profile Freeze, Session Payload, and Selected-Character Spawn | Freeze selection at lobby entry; preserve existing payload → host resolution → spawn → presentation chain in solo and multiplayer. | backlog |
-| 3 | 5.1 Configurable NPC Rage/Fear Foundation | Extend current Rage foundation with minimal Fear and data-driven tendencies; no traffic, boss, or final archetype catalog. | backlog |
+| 0 | Epics 0–4 | Setup gate, game shell, online lobby, vehicle sandbox, passenger actions and rage module, persistent profile and character selection. | done |
+| 1 | 5.1 – 5.7 | NPC Rage/Fear foundation, AI route following, unified session start, rage-driven states, networked rage targeting, Rage Road trigger, client presentation. | implemented, in review |
+| 2 | 5.8 – 5.17 | Traffic rework: parameterized driving model, lane graph and greybox district, intersection rules, wider perception, rage/fear modulation, player-targeted rage ladder, litter foundation, lobby traffic settings, escape menu, scale measurement. See `sprint-change-proposal-2026-09-15.md`. | backlog |
+| 3 | 5.18 | Epic 5 playable checkpoint, rewritten. Last story of the epic. | backlog |
 | 4 | 6.5 Individual Wallet Authority | Establish host-authoritative per-player wallet before reward, purchase, or inventory economy work. | backlog |
-| later | MVP 2 assembly | Levels, litter loop, encounters, bosses, run/checkpoint flow, balance, final integration. | deferred |
+| later | MVP 2 assembly | Levels, litter recovery loop, encounters, bosses, run/checkpoint flow, balance, final integration. | deferred |
+
+> **Superseded roadmap note — 2026-09-15.** The previous version of this table listed only Story 5.1 before deferring everything else to MVP 2, while Stories 5.2–5.7 had in fact been implemented. It has been reconciled with `implementation-artifacts/sprint-status.yaml`. Where this table and sprint-status disagree, sprint-status wins.
 
 ## Overview
 
@@ -47,11 +49,11 @@ FR4: Joining players can enter a room through the shared code and connect throug
 
 FR5: Players can use one shared player car on one route in the MVP.
 
-FR6: The MVP includes three AI vehicles on the same route.
+FR6: The MVP includes a routed urban traffic population of AI vehicles sharing a lane graph, with its size configured from the lobby and validated at approximately thirty simultaneous vehicles. Vehicles enter and leave only through authored portals.
 
 FR7: Each AI vehicle tracks and expresses its own rage state independently from other AI vehicles.
 
-FR8: AI vehicles can remain calm, become irritated, flee, block, ram, or trigger a confrontation based on their own rage.
+FR8: AI vehicles express calm, irritation, flight, blocking, ramming and confrontation as modulations of one parameterized driving model driven by their own rage and fear, targeting the player who provoked them.
 
 FR9: Passengers have three MVP actions that actively create or amplify chaos.
 
@@ -87,7 +89,7 @@ FR24: Gameplay functionality is organized as independently testable modules that
 
 FR25: Independently tested modules compose into one integrated `MVP_Run` without duplicating shared runtime truth.
 
-FR26: The player can see lobby, run state, money, rage, actions, failure, and victory through UI that reads shared state and sends player intent.
+FR26: The player can see lobby, run state, money, rage, actions, failure, and victory through UI that reads shared state and sends player intent, and the in-run UI includes an escape menu that returns the player to the main menu through the existing session-exit path.
 
 FR27: Each gameplay epic after the technical readiness gate must leave the game in a launchable and testable state with at least one new playable in-game capability.
 
@@ -214,11 +216,11 @@ FR4: Epic 2 - code-based room join through Steamworks Networking Sockets.
 
 FR5: Epic 3 - shared player car and route driving module.
 
-FR6: Epic 5 - three AI vehicles on the route.
+FR6: Epic 5 - lobby-configured routed urban AI traffic, validated at approximately thirty vehicles.
 
 FR7: Epic 4 and Epic 5 - rage module first, traffic integration second.
 
-FR8: Epic 5 - AI vehicle rage-driven behavior states.
+FR8: Epic 5 - rage/fear modulating one parameterized AI driving model, targeting the provoking player.
 
 FR9: Epic 4 - three MVP passenger actions.
 
@@ -254,7 +256,7 @@ FR24: Epic 0 through Epic 7 - each module is independently testable.
 
 FR25: Epic 3 through Epic 7 - modules compose into `MVP_Run` through shared runtime truth.
 
-FR26: Epic 1, Epic 2, Epic 4, Epic 6, and Epic 7 - UI grows from menu/lobby into HUD, rage/action, economy, failure, and victory feedback.
+FR26: Epic 1, Epic 2, Epic 4, Epic 5, Epic 6, and Epic 7 - UI grows from menu/lobby into HUD, rage/action, lobby traffic settings, in-run escape menu, economy, failure, and victory feedback.
 
 FR27: Epic 1 through Epic 7 - every gameplay epic leaves the game launchable and testable.
 
@@ -1089,26 +1091,330 @@ So that online play remains understandable.
 **And** late-joining clients receive the current relevant traffic and event state
 **And** network traffic remains suitable for MVP tests with up to four players and three AI vehicles
 
-### Story 5.8: Epic 5 AI Traffic Playable Checkpoint
+> **Epic 5 scope expansion — 2026-09-15.** Stories 5.8–5.17 below were added by `planning-artifacts/sprint-change-proposal-2026-09-15.md`, and the epic checkpoint moved from 5.8 to 5.18 so it sits last in its own epic. Stories within 5.8–5.17 were reordered the same day so the numbering increments naturally along the dependency chain (see the sequencing note in `sprint-change-proposal-2026-09-15.md`): Story 5.16 (Escape Menu) had no dependency on the traffic work and moved to 5.8 for early, independent delivery, and every other story shifted down by one accordingly. Stories 5.2 and 5.4 remain valid historical milestones, but their mechanisms — waypoint-loop following with teleport recovery, and rage as a cruise-speed multiplier — are superseded by Stories 5.9–5.12. Binding decisions: AD-32 (configurable headcounts), AD-33 (parameterized driving and emotional modulation), AD-34 (source/sink traffic and street object lifecycle).
 
-**Implements:** FR6, FR7, FR8, FR11, FR24, FR25, FR27
+### Story 5.8: Escape Menu and Return to Main Menu
+
+> Renumbered from Story 5.16 on 2026-09-15: it has no dependency on the traffic work below, so it moved first for early, independent delivery — it also makes every later story in this epic easier to test, since a long traffic run can then be left cleanly.
+
+**Implements:** FR26, FR27, AD-26, UX-DR3, NFR11, NFR12
+
+As a player,
+I want to press Escape and get back to the main menu,
+So that I can leave a test run without killing the process.
+
+**Acceptance Criteria:**
+
+**Given** a player is in `MVP_Run`
+**When** they press Escape
+**Then** an escape menu appears with at least Resume and Quit to Main Menu
+**And** opening the menu **does not pause the host-authoritative simulation** — a multiplayer session does not freeze because one player opened a menu
+**And** cursor capture and cursor mode are restored cleanly on open and on close
+**And** the player's driving and action inputs are suppressed while the menu is open
+
+**Given** the menu is open
+**When** the player presses Escape again or chooses Resume
+**Then** the menu closes and game control is returned in the state they left it
+
+**Given** a player chooses to quit to the main menu
+**When** the action is confirmed
+**Then** they return to `MainMenuLobby` **through the existing session-exit path from Story 2.7**, without a second teardown path being introduced
+**And** if that player is the host, remaining clients are handled exactly as the host-quit case already specified by Story 2.7
+**And** if that player is a client, the host and other clients continue the run uninterrupted
+**And** the return respects AD-26: no scene-load path bypasses lobby creation and host networking
+
+### Story 5.9: Parameterized Driver Model
+
+**Implements:** FR6, FR8, FR24, FR25, FR27, AD-33, NFR4
+
+As a player,
+I want AI drivers to have a real driving style rather than a speed setting,
+So that rage and fear can later change how they drive and not just how fast.
+
+**Acceptance Criteria:**
+
+**Given** AI vehicles exist in the scene
+**When** the driving model runs host-side
+**Then** each vehicle's driving style is carried by a parameter struct authored in a `Def` ScriptableObject — time headway, minimum gap, maximum acceleration, comfortable deceleration, desired speed, lane-change politeness, change threshold, acceptable imposed braking — and none of these values is hard-coded in a controller
+**And** longitudinal acceleration is computed by a pure function taking the gap to the leading vehicle and the projected closing speed
+**And** the lane-change decision is computed by a pure function layered over that same acceleration function, and includes a safety criterion that vetoes the change independently of any gain
+**And** lane-change evaluation is gated to roughly once per second with per-vehicle de-phased timers, so its cost is not paid every frame
+
+**Given** Story 5.4 expressed rage tiers as cruise-speed multipliers
+**When** this model is in place
+**Then** `ResolveCruiseSpeedMultiplier` is removed and the behaviours it produced are re-expressed through the parameter struct
+**And** no code path retains a driving setting expressed only as speed
+
+**Given** the decision functions are pure
+**When** tests run
+**Then** they are covered in EditMode without a scene or networking, including the edge cases of a stopped leader and a zero gap
+
+### Story 5.10: Lane Graph, Greybox District, and Routed Source/Sink Traffic
+
+**Implements:** FR6, FR24, FR25, FR27, AD-30, AD-32, AD-34, NFR2, NFR18
+
+As a player,
+I want traffic to come from outside the city, cross it by varying routes and leave,
+So that the world reads as a living district rather than a visible loop.
+
+**Acceptance Criteria:**
+
+**Given** `MVP_Run` must host the traffic
+**When** the test district is authored
+**Then** it contains at least two two-way roads, at least two intersections, and at least two tunnel-style portals, greyboxed per AD-14 and AD-27
+**And** sidewalks are **excluded from the vehicle agent's area mask**, not merely given a high cost
+**And** the district is documented as a foundation proving ground, explicitly not the MVP 2 Level 1 city
+
+**Given** the lane graph and portals exist
+**When** traffic simulation starts
+**Then** vehicles spawn only at portals and despawn only at portals
+**And** each vehicle picks its turn at every junction by a random draw weighted by turn ratios authored on that junction
+**And** a vehicle whose route exceeds an authored edge budget is redirected to the nearest exit rather than wandering indefinitely
+**And** a portal can be configured as an exit, or as an exit that reuses the original entry
+
+**Given** traffic is running
+**When** vehicles leave the area
+**Then** new vehicles spawn at portals to converge on a **target headcount resolved at runtime**, never on a hard-coded constant
+**And** the target headcount comes from session settings (Story 5.16), falling back to the authored default value while those settings do not yet exist
+**And** no vehicle is removed anywhere other than at a portal, for any reason — blockage, congestion, distance to player, or route failure
+**And** an insertion that fails because a portal is crowded queues the vehicle rather than dropping it
+
+### Story 5.11: Intersection Rules and Deadlock Prevention
+
+**Implements:** FR6, FR24, FR25, FR27, NFR4
+
+As a player,
+I want AI vehicles to respect simple traffic rules at intersections,
+So that the city reads as ordered before rage makes it chaotic.
+
+**Acceptance Criteria:**
+
+**Given** intersections exist in the lane graph
+**When** they are authored
+**Then** each stream's priority is decided at authoring time — priority road, priority to the right, stop — and is not recomputed every frame
+**And** a stop sign requires a full halt and then a minimum accepted gap before crossing
+
+**Given** a vehicle approaches an intersection
+**When** it evaluates whether to enter
+**Then** it does not enter if its exit lane has no room to receive it
+**And** this check precedes the application of the priority rule
+
+**Given** a blockage forms despite the rules
+**When** a vehicle's wait persists
+**Then** a progressive authored rule-bending ladder applies: first entering an intersection it would normally keep clear, then driving around a blocker
+**And** every tier is authored and enabled; none is disabled by default
+**And** **no removal, teleport, or reinsertion-elsewhere tier exists**
+**And** a detected deadlock is logged in development builds with the vehicles involved
+
+### Story 5.12: Wider Perception and Progressive Unblocking
+
+**Implements:** FR6, FR8, FR24, FR25, FR27, NFR4
+
+As a player,
+I want AI drivers to notice what is around them and react rather than freeze,
+So that they still behave sensibly when players and enraged AI make the road chaotic.
+
+**Acceptance Criteria:**
+
+**Given** an AI vehicle is driving
+**When** it evaluates its situation
+**Then** it perceives several vehicles and players within an authored radius and arc, not only the vehicle directly ahead
+**And** this perception feeds both leader selection for the driving model and intersection arbitration
+**And** perception cost is bounded by a spatial index or a reduced update rate, never by scanning every vehicle every frame
+
+**Given** a vehicle's path is blocked
+**When** the blockage is detected
+**Then** replanning starts immediately and continues, with no prior waiting period
+**And** visible escalation is progressive: a horn after a short authored delay of roughly two to four seconds, then an overtake attempt as soon as a gap is acceptable
+**And** a blocked vehicle is never teleported, reinserted elsewhere, or removed to resolve the blockage
+**And** a clearing manoeuvre does not put the vehicle up on a sidewalk
+
+### Story 5.13: Rage and Fear as Driving Model Modulation
+
+**Implements:** FR7, FR8, FR24, FR25, FR27, AD-31, AD-33, NFR4, NFR6
+
+As a player,
+I want rage and fear to change how an AI drives rather than replace its driving,
+So that an enraged driver still behaves like a driver.
+
+**Acceptance Criteria:**
+
+**Given** a vehicle carries its own rage and fear meters (Story 5.1)
+**When** either meter changes
+**Then** effective driving parameters are obtained by modulating the base parameters as a function of rage and fear
+**And** no code branch replaces the driving model with alternative logic based on emotional state
+**And** one vehicle's state never influences another vehicle's parameters
+
+**Given** the meters evolve over time
+**When** no source is feeding them
+**Then** each meter decays at an authored rate, one percent per second by default
+**And** entering a new rage tier freezes the meter for an authored duration, ten seconds by default, before decay resumes
+**And** at one hundred percent rage the meter stops decaying until the associated Rage Road event leaves the `Triggered` and `Confrontation` states
+**And** a meter can still rise during a freeze
+
+**Given** rage and fear coexist
+**When** arbitration applies
+**Then** fear at one hundred percent overrides rage at any level
+**And** fear greater than or equal to fifty percent and strictly greater than rage produces escape behaviour, which ends only once fear falls back to thirty percent or less
+**And** while fear is neither at one hundred percent nor above rage, rage governs behaviour
+**And** every threshold in this arbitration is authored, not hard-coded
+**And** all these transitions are host-authoritative
+
+### Story 5.14: Player-Targeted Rage Ladder and Rage Road Trigger
+
+**Implements:** FR7, FR8, FR11, FR24, FR25, FR27, AD-22, NFR4, NFR5
+
+As a player,
+I want an AI I provoked to escalate against me specifically,
+So that road rage feels personal and leads somewhere.
+
+**Acceptance Criteria:**
+
+**Given** an AI vehicle has a target resolved by the Story 5.5 targeting mechanism
+**When** its rage crosses the tiers
+**Then** between twenty and forty percent it honks at that target
+**And** between forty and eighty percent it follows that target, and when it draws alongside it insults the target and throws litter at them
+**And** between eighty and ninety-nine percent it attempts to ram that target
+**And** at one hundred percent it pursues that target until the target stops, then requests the Rage Road event trigger
+**And** the bounds of these tiers are authored, not hard-coded
+
+**Given** litter thrown by an enraged vehicle hits a player
+**When** the impact resolves
+**Then** the player's health loss is applied host-side through a validated intent, never by the client
+**And** the effect is authored as a definition, not hard-coded per caller
+
+**Given** a vehicle's fear reaches one hundred percent
+**When** that vehicle is still circulating
+**Then** it takes the shortest path to the nearest exit portal at high speed, then despawns there
+**And** it despawns nowhere else
+
+**Given** the Rage Road event already exists (Story 5.6)
+**When** the pursuit succeeds
+**Then** the trigger request goes through the existing `Idle -> Triggered -> Confrontation` lifecycle without introducing a second one
+**And** confrontation resolution stays out of this story's scope
+
+### Story 5.15: Thrown Litter Foundation and Attribution
+
+**Implements:** FR17, FR24, FR25, FR27, AD-13, AD-20, AD-32, AD-34, NFR13, NFR18
+
+As a player,
+I want some AI drivers to throw litter out of their window,
+So that the road accumulates evidence of who behaved badly.
+
+**Acceptance Criteria:**
+
+**Given** traffic is circulating
+**When** littering vehicles are selected
+**Then** the number of vehicles allowed to throw litter at the same time is **resolved at runtime from session settings** (Story 5.16), never from a constant
+**And** the default value and bounds are authored, with five litterers by default
+**And** each littering vehicle throws at most an authored number of pieces, three by default, between its spawn and its despawn
+
+**Given** a vehicle throws a piece of litter
+**When** the object is created
+**Then** it is a host-owned NetworkObject with light-object physics
+**And** it references the throwing vehicle through `NetworkObjectReference`, never through an authored id or an index
+**And** the greybox litter asset has passed the Blender intake gate per AD-13
+
+**Given** litter accumulates over a session
+**When** the configured global live-litter cap is reached
+**Then** the oldest piece is recycled
+**And** a piece whose throwing vehicle has despawned stays valid but loses its return target
+
+**Given** a piece of litter can be returned to its throwing vehicle
+**When** that return resolves host-side
+**Then** that vehicle is marked to head for the nearest exit portal and stops being able to throw litter
+**And** this marking reuses the same navigation mode as the fear flight of Story 5.14
+
+**Given** the player recovery loop belongs to Epic 6
+**When** this story ships
+**Then** picking up, binning, and throwing back **are not implemented here**; only the host-side intent that will receive them is exposed
+
+### Story 5.16: Lobby-Configurable Traffic Settings
+
+**Implements:** FR3, FR6, FR26, FR27, AD-12, AD-25, AD-32, NFR4
+
+As a host player,
+I want to set how many cars populate the city and how many of them throw litter before the run starts,
+So that I can tune test conditions without touching code or scenes.
+
+**Acceptance Criteria:**
+
+**Given** `MatchSettings` already carries a reserved slot for expandable match parameters (Story 1.2)
+**When** the traffic parameters are added
+**Then** they extend `MatchSettings` and **no second match-settings object is created**
+**And** default values and minimum/maximum bounds are authored in a `Def` ScriptableObject, while the value chosen for the session lives in `MatchSettings`, per the existing rule that runtime session values never live inside a ScriptableObject asset
+
+**Given** the host is in the lobby
+**When** they open the match settings
+**Then** they can set the maximum number of AI vehicles in the city and the number of litter-throwing vehicles
+**And** each value is bounded by the authored limits, and an out-of-bounds entry is refused with visible feedback
+**And** the number of litterers cannot exceed the total number of vehicles
+**And** only the host can edit these values, as with the existing difficulty setting
+
+**Given** clients are connected to the lobby
+**When** the host starts the run
+**Then** clients receive these values before the game world loads, through the settings synchronization path already delivered by Story 2.4
+**And** no second synchronization path is introduced
+
+**Given** the run starts
+**When** the host composes the traffic
+**Then** the target headcount and the litterer count come from the resolved settings
+**And** no controller, prefab, or scene carries a headcount constant
+**And** changing these values between two runs takes effect without recompiling or editing a scene
+
+### Story 5.17: Scale Validation and Network Budget
+
+**Implements:** FR24, FR27, AD-28, AD-32, NFR2, NFR5
 
 As a solo developer,
-I want a playable AI traffic and Rage Road trigger checkpoint,
+I want measured numbers rather than estimates before I commit to a traffic scale,
+So that the production target is chosen on evidence.
+
+**Acceptance Criteria:**
+
+**Given** traffic settings are configurable (Story 5.16)
+**When** a host-plus-one-client session is measured with the Multiplayer Tools network profiler
+**Then** measurement covers at least three distinct headcounts, one of them approximately thirty vehicles, driven purely by changing the lobby setting
+**And** per-object and total bandwidth are recorded in the validation log for each headcount
+**And** host CPU cost of the driving, perception, and pathfinding layers is recorded separately
+
+**Given** the documented reduction levers exist
+**When** `NetworkTransform` is configured on AI vehicles
+**Then** unnecessary axes are disabled, rotation compression and half-precision position are evaluated, and thresholds are tuned
+**And** the effect of each retained lever is measured, not assumed
+
+**Given** a larger production scale is being considered
+**When** this story completes
+**Then** a ceiling-and-headroom statement is produced to support the fifty-or-one-hundred vehicle decision
+**And** no production scale decision is taken without this measurement
+
+### Story 5.18: Epic 5 AI Traffic Playable Checkpoint
+
+> Replaces the former Story 5.8. Its sprint-status key was renumbered from `5-8-…` to `5-18-…`; the story was in `backlog`, so no work was attached to it.
+
+**Implements:** FR6, FR7, FR8, FR11, FR17, FR24, FR25, FR26, FR27
+
+As a solo developer,
+I want a playable urban traffic and Rage Road checkpoint,
 So that I can test the escalation path before building confrontation resolution.
 
 **Acceptance Criteria:**
 
-**Given** AI traffic, rage behavior states, and the Rage Road trigger exist
-**When** the game is tested in `MVP_Run` or `Dev_RageSandbox`
-**Then** players can drive near three AI vehicles, trigger rage changes through passenger actions, and create one Rage Road event
-**And** the event remains visible and stable until resolved or reset
-**And** local and online smoke tests confirm host-authoritative state updates
-**And** the checkpoint notes list tuning assumptions for Epic 6 confrontation design
+**Given** Stories 5.8 through 5.17 are delivered
+**When** the game is tested in `MVP_Run`
+**Then** the host sets the number of vehicles and litterers from the lobby, and the run respects those values
+**And** vehicles circulate in the greybox district, entering and leaving through portals, with none disappearing mid-road
+**And** vehicles respect priorities and stops, merge at intersections without lasting deadlock, and react to players and obstacles
+**And** a player can provoke a vehicle and observe the full escalation — horn, pursuit, ramming attempt, then Rage Road trigger
+**And** a vehicle whose fear saturates reaches a portal and despawns there
+**And** thrown litter is visible, physical, and attributed to the vehicle that threw it
+**And** a player can leave the run through the escape menu and return to the main menu, in solo and online alike
+**And** a local smoke test and a two-player online smoke test confirm that all of these states are host-authoritative and consistent on clients
+**And** the Story 5.17 measurements are recorded and the tuning assumptions for the Epic 6 confrontation are listed
 
 ## Epic 6: Individual Economy Foundation and Future On-Foot Assembly
 
-MVP 1 may validate individual wallet, inventory, interactions, and on-foot bricks independently. The legacy shared-money confrontation/upgrade loop and its integrated assembly are deferred to MVP 2.
+MVP 1 may validate individual wallet, inventory, interactions, on-foot bricks, and the litter recovery loop independently. The legacy shared-money confrontation/upgrade loop and its integrated assembly are deferred to MVP 2.
 
 **Requirements covered:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27, FR29, NFR1, NFR2, NFR4, NFR5, NFR6, NFR13, NFR14, NFR15, NFR20, NFR21, UX-DR4, UX-DR8
 
@@ -1167,6 +1473,7 @@ So that road events can briefly become a different playable module.
 **And** the on-foot module can run in `Dev_OnFootSandbox` without requiring the full MVP run
 **And** the transition preserves player lifecycle and network ownership rules
 **And** a targeted AI vehicle whose rage reaches the confrontation-triggering state can dismount its occupant as a host-owned on-foot AI NPC combatant through the same on-foot spawn/transition system used for players
+**And** the AI-triggered confrontation entry comes from the maximum-rage pursuit state of Story 5.14, and the meter freeze of Story 5.13 holds that vehicle at maximum rage until the Rage Road event leaves the `Triggered` and `Confrontation` states
 
 ### Story 6.4: Compact Rage Road Confrontation Resolution
 
@@ -1272,7 +1579,32 @@ So that the expanded loop remains understandable.
 **And** failed purchases, failed interactions, and unavailable actions are visibly explained
 **And** UI remains usable for one to four connected players
 
-### Story 6.10: Epic 6 Economy Loop Playable Checkpoint
+### Story 6.10: Litter Recovery Loop
+
+**Implements:** FR17, FR24, FR25, FR27, AD-34
+
+As a player,
+I want to pick up the litter an AI threw and either bin it or throw it back,
+So that bad behaviour on the road has a consequence I can deliver myself.
+
+**Acceptance Criteria:**
+
+**Given** attributed litter exists in the world (Story 5.15)
+**When** an on-foot player approaches a piece
+**Then** they can pick it up, and the carried piece occupies a slot in their inventory (Story 6.1)
+
+**Given** a player is carrying a piece of litter
+**When** they drop it in a bin
+**Then** the host removes the piece from the world and the player receives visible feedback
+
+**Given** a player is carrying a piece of litter whose throwing vehicle is still circulating
+**When** they throw it back into that vehicle
+**Then** the host-side intent exposed by Story 5.15 is invoked, and that vehicle heads for the nearest exit portal and stops throwing litter
+**And** a return aimed at a vehicle whose thrower has despawned fails cleanly with player feedback
+
+### Story 6.11: Epic 6 Economy Loop Playable Checkpoint
+
+> Renumbered from Story 6.10 on 2026-09-15 so the epic checkpoint sits last in its own epic, matching the Story 5.18 correction. The story was in `backlog`, so no work was attached to the renumbered key.
 
 **Implements:** FR12, FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR24, FR25, FR26, FR27
 
@@ -1286,6 +1618,7 @@ So that I can test the MVP reward loop before boss and final integration.
 **When** the game is tested from driving into a Rage Road event
 **Then** players can trigger an event, leave the car, resolve a confrontation, receive money, buy one upgrade, return to driving, and see the upgrade affect gameplay
 **And** the fist melee action and dev NPC-dismount/mannequin harness from Stories 6.1-6.2 are confirmed working against the real on-foot AI dismount from Story 6.3
+**And** a player can pick up litter thrown by an AI vehicle and either bin it or throw it back into its source vehicle, sending that vehicle to an exit portal (Story 6.10)
 **And** all key state changes are host-authoritative and visible in UI
 **And** the checkpoint notes identify what remains for final failure, victory, and full-run polish in Epic 7
 

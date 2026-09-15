@@ -177,7 +177,7 @@ flowchart TD
 
 - **Binds:** CAP-1, CAP-3, CAP-4, CAP-5, CAP-6, CAP-7
 - **Prevents:** duplicated truth across feature-owned NetworkBehaviours that cannot reset, display, or synchronize consistently.
-- **Rule:** Runtime truth is split across named host-owned NetworkBehaviours: `NetworkedRunState` owns run phase, session seed, registries, active Rage Road event id, restart, and victory transitions; `NetworkedPlayerState` owns player lifecycle, mode, seat, and health; `NetworkedAIVehicleState` owns AI vehicle route/movement state; `NetworkedRageState` owns per-enemy rage; `NetworkedCrewEconomyState` owns wallet and purchased upgrades; `NetworkedBossState` owns the simple boss endpoint.
+- **Rule:** Runtime truth is split across named host-owned NetworkBehaviours: `NetworkedRunState` owns run phase, session seed, registries, active Rage Road event id, restart, and victory transitions; `NetworkedPlayerState` owns player lifecycle, mode, seat, and health; `NetworkedAIVehicleState` owns AI vehicle route/movement state; `NetworkedRageState` owns per-enemy rage; `NetworkedCrewEconomyState` owns wallet and purchased upgrades; `NetworkedBossState` owns the simple boss endpoint; `NetworkedLitterState` owns the thrown-litter registry, per-piece source attribution, and the configured live-litter cap.
 
 ### AD-18 - Netcode Ownership And Intent Pipeline
 
@@ -200,7 +200,7 @@ flowchart TD
 ### AD-21 - Host-Simulated Vehicle Movement
 
 - **Binds:** CAP-1, CAP-3, CAP-4
-- **Prevents:** client prediction, host physics, AI spline progress, collisions, and rage triggers diverging by feature.
+- **Prevents:** client prediction, host physics, AI route progress on the authored lane graph, collisions, and rage triggers diverging by feature.
 - **Rule:** For MVP, the host simulates the player car Rigidbody, AI route progress, collisions, block/ram contacts, and rage trigger timing. Clients send driver input intent and receive replicated/smoothed transforms. Local prediction is presentation-only until a later vehicle-feel AD allows it.
 
 ### AD-22 - Rage Road Event Lifecycle
@@ -256,6 +256,7 @@ flowchart TD
 - **Binds:** roadmap, Run, Boss, SandboxStops, Economy, AI traffic.
 - **Prevents:** city/highway levels, boss flow, checkpoint logic, and final run state being built around unvalidated foundations.
 - **Rule:** MVP 1 uses isolated development sandboxes and small greybox integrations to validate reusable systems. MVP 2 alone composes them into roguelite levels, normal level transitions, inter-level checkpoint restart, bosses, balancing, and presentation. Exact reset requirements for mandatory assets after restart remain deferred.
+- **Clarification 2026-09-15:** the greybox urban district delivered by Epic 5 is a *small greybox integration* under this rule — a proving ground for traffic, driving, and rage/fear reactions. It is not the MVP 2 Level 1 city: it carries no shops, equipment, boss, vehicle access, or litter recovery, and no run/level/checkpoint contract is introduced with it.
 
 ### AD-31 - Individual Economy and Configurable NPC Response [ADOPTED]
 
@@ -263,9 +264,30 @@ flowchart TD
 - **Prevents:** shared wallet ownership, Rage/Fear hard-coded inside one vehicle controller, and level-specific behavior leaking into reusable features.
 - **Rule:** Every runtime wallet, owned item, and temporary resource belongs to one player and is mutated by the host. `NetworkedCrewEconomyState` is superseded before real economy work. NPC response state supports data-defined Rage and Fear tendencies; effects may change one or both meters, while vehicle movement and archetype behavior consume the resulting response through narrow feature boundaries.
 
+### AD-32 - Configurable Traffic Headcounts And Validation Scale [ADOPTED]
+
+- **Binds:** Vehicles, Run, Lobby, AI traffic, Epic 5 scope.
+- **Supersedes:** the "three spawned enemy vehicles" clause of AD-16, which remains historical.
+- **Prevents:** the original MVP cardinality blocking urban traffic; headcounts hard-coded inside a controller; and, symmetrically, an unmeasured scale ambition being written down as a contract.
+- **Rule:** Traffic headcounts - the maximum number of circulating AI vehicles and the number of vehicles allowed to throw litter - are **configurable and never hard-coded**. Default values and minimum/maximum bounds are authored in a `Def` ScriptableObject (AD-12, AD-25); the value chosen for a session lives in `MatchSettings` and travels its existing synchronization path (Stories 1.2 and 2.4), never inside a ScriptableObject asset. Epic 5's validation target is approximately **30 simultaneous AI vehicles**. Any larger production scale is an **empirical decision** taken after the Story 5.17 measurement, and is never written into architecture before that measurement. AD-16's other cardinalities (one route, one player car, four players) are unchanged.
+
+### AD-33 - Parameterized Driving And Emotional Modulation [ADOPTED]
+
+- **Binds:** Vehicles, Rage, AI traffic, any future driver archetype.
+- **Prevents:** rage and fear being implemented as parallel driving states, speed multipliers, or extra branches bolted onto a monolithic state machine.
+- **Rule:** An AI vehicle's driving style is an **authored parameter struct** (time headway, minimum gap, acceleration, comfortable deceleration, desired speed, lane-change politeness, change threshold, acceptable imposed braking), carried by a `Def` ScriptableObject. Longitudinal acceleration and the lane-change decision are computed by pure functions from that struct. Rage and fear produce **effective** parameters by modulation - `effective = base x f(rage, fear)` - and **never replace the driving logic**. `com.unity.ai.navigation` is used **only as a path provider**: `updatePosition` and `updateRotation` stay `false` and the host Rigidbody drives (AD-21 unchanged). A vehicle never carries `NavMeshAgent` and `NavMeshObstacle` at the same time, and carving is never active on a moving vehicle.
+
+### AD-34 - Source/Sink Traffic And Street Object Lifecycle [ADOPTED]
+
+- **Binds:** Vehicles, Run, AI traffic, litter, future level content.
+- **Prevents:** vehicles appearing or vanishing mid-road, and thrown objects accumulating without bound.
+- **Rule:** AI vehicles **spawn and despawn exclusively at authored entry/exit portals**. No mechanism - blockage, congestion, distance to player, or route failure - may remove a vehicle anywhere else. Route variation comes from a **per-junction turn draw** with authored ratios, not from a per-vehicle authored itinerary. A vehicle whose route exceeds an authored edge budget is redirected to the nearest exit. Objects thrown onto the street are host-owned NetworkObjects, reference their thrower through `NetworkObjectReference` (AD-20), and are bounded by a configured global cap with oldest-first recycling.
+
 ### Course-correction supersessions
 
-AD-5, AD-6, AD-8, AD-15, AD-16, AD-17, AD-22, AD-24, and AD-26 remain historical design context only where they prescribe one integrated MVP route, team-wipe restart from the beginning, crew wallet, fixed Rage Road/boss cardinality, or transient profile state. AD-29 through AD-31 are the current binding interpretation; host authority, ScriptableObject authored data, local camera/input, prefab stability, and Steam networking remain unchanged.
+AD-5, AD-6, AD-8, AD-15, AD-16, AD-17, AD-22, AD-24, and AD-26 remain historical design context only where they prescribe one integrated MVP route, team-wipe restart from the beginning, crew wallet, fixed Rage Road/boss cardinality, or transient profile state. AD-29 through AD-34 are the current binding interpretation; host authority, ScriptableObject authored data, local camera/input, prefab stability, and Steam networking remain unchanged.
+
+*2026-09-15 course correction (`planning-artifacts/sprint-change-proposal-2026-09-15.md`):* AD-16's "three spawned enemy vehicles" clause is superseded by AD-32. AD-33 and AD-34 bind AI traffic behaviour and vehicle lifecycle; where earlier text implies waypoint-loop traffic, rage expressed as a speed multiplier, or removal of a blocked vehicle, AD-33 and AD-34 win.
 
 ## Consistency Conventions
 

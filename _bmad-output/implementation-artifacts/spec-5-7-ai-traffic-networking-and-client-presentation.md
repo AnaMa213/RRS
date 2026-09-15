@@ -27,13 +27,13 @@ context:
 
 ## I/O & Edge-Case Matrix
 
-| Scenario                   | Input / State                                                          | Expected Output / Behavior                                                                   | Error Handling                                                     |
-| -------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Observation client         | Session active, 3 IA dans `AITraffic`                                   | Position, `Behavior`, rage et etat Rage Road identiques a l'hote, tous rendus en texte        | Aucune valeur locale de secours                                     |
-| Ecriture client refusee    | Un pair non-hote ecrit `Behavior.Value` ou `WaypointIndex.Value`         | Permission serveur refuse l'ecriture ; l'etat replique reste celui de l'hote                  | Pas d'exception remontee, pas de desynchronisation                   |
-| Arrivant tardif            | Client rejoignant `MVP_Run` apres demarrage                              | Il lit les NetworkVariables courantes ; ses vues se remplissent au premier tick               | HUD en placeholder jusque-la, sans erreur                            |
-| Aucune IA en scene         | Scene sans trafic (`Dev_RageSandbox`)                                    | Les vues ne trouvent aucune cible et n'affichent rien                                         | Pas de `NullReferenceException` (`AIVehicleBehaviorDebugView.cs:101`) |
-| NetworkVariable sans lecteur | Une NV IA existe mais n'est ni ecrite ni lue                            | Elle est consideree comme du cout mort et retiree                                             | N/A                                                                |
+| Scenario                     | Input / State                                                    | Expected Output / Behavior                                                             | Error Handling                                                        |
+| ---------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Observation client           | Session active, 3 IA dans `AITraffic`                            | Position, `Behavior`, rage et etat Rage Road identiques a l'hote, tous rendus en texte | Aucune valeur locale de secours                                       |
+| Ecriture client refusee      | Un pair non-hote ecrit `Behavior.Value` ou `WaypointIndex.Value` | Permission serveur refuse l'ecriture ; l'etat replique reste celui de l'hote           | Pas d'exception remontee, pas de desynchronisation                    |
+| Arrivant tardif              | Client rejoignant `MVP_Run` apres demarrage                      | Il lit les NetworkVariables courantes ; ses vues se remplissent au premier tick        | HUD en placeholder jusque-la, sans erreur                             |
+| Aucune IA en scene           | Scene sans trafic (`Dev_RageSandbox`)                            | Les vues ne trouvent aucune cible et n'affichent rien                                  | Pas de `NullReferenceException` (`AIVehicleBehaviorDebugView.cs:101`) |
+| NetworkVariable sans lecteur | Une NV IA existe mais n'est ni ecrite ni lue                     | Elle est consideree comme du cout mort et retiree                                      | N/A                                                                   |
 
 </frozen-after-approval>
 
@@ -157,4 +157,3 @@ context:
 
 - Arret obligatoire du `NetworkManager` et du bootstrap, sinon pollution des fixtures suivantes.
   [`Story57AiTrafficClientPresentationPlayModeTests.cs:57`](../../Assets/RoadRage/Tests/PlayMode/Story57AiTrafficClientPresentationPlayModeTests.cs#L57)
-
