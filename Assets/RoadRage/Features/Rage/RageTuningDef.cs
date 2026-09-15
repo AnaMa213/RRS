@@ -67,6 +67,19 @@ namespace RoadRage.Features.Rage
         [Tooltip("Paliers tries par seuil strictement ascendant. Invariante d'authoring validee par RageTuningCatalog.TryValidate, pas recalculee a l'execution (cf. Design Notes).")]
         private RageThreshold[] thresholds = Array.Empty<RageThreshold>();
 
+        [SerializeField]
+        [Min(0.01f)]
+        [Tooltip("Story 5.5 : portee du klaxon (conducteur) pour la resolution de cible partagee (AiRageTargetResolution).")]
+        private float honkRange = 15f;
+
+        [SerializeField]
+        [Tooltip("Story 5.5 : magnitude de l'effet applique par le klaxon a la cible unique resolue.")]
+        private float honkMagnitude = 15f;
+
+        [SerializeField]
+        [Tooltip("Story 5.5 : canal(aux) affecte(s) par le klaxon.")]
+        private ReactionChannel honkChannel = ReactionChannel.Rage;
+
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
         {
@@ -106,6 +119,24 @@ namespace RoadRage.Features.Rage
             get { return thresholds ?? Array.Empty<RageThreshold>(); }
         }
 
+        /// <summary>Story 5.5 : portee authoree du klaxon, consommee par NetworkedVehicleDriverController via AiRageTargetResolution.</summary>
+        public float HonkRange
+        {
+            get { return honkRange; }
+        }
+
+        /// <summary>Story 5.5 : magnitude authoree de l'effet klaxon (NpcReactionEffect), avant sensibilites de la cible.</summary>
+        public float HonkMagnitude
+        {
+            get { return honkMagnitude; }
+        }
+
+        /// <summary>Story 5.5 : canal(aux) authore(s) de l'effet klaxon.</summary>
+        public ReactionChannel HonkChannel
+        {
+            get { return honkChannel; }
+        }
+
         public bool TryValidate(out string error)
         {
             if (string.IsNullOrWhiteSpace(RawId) || RawId != RawId.Trim() || RawId != RawId.ToLowerInvariant())
@@ -137,6 +168,24 @@ namespace RoadRage.Features.Rage
             if (!float.IsFinite(fearSensitivity) || fearSensitivity < 0f)
             {
                 error = "FearSensitivity invalide : 'fearSensitivity' doit etre fini et superieur ou egal a 0.";
+                return false;
+            }
+
+            if (!float.IsFinite(honkRange) || honkRange <= 0f)
+            {
+                error = "HonkRange invalide : 'honkRange' doit etre fini et strictement positif.";
+                return false;
+            }
+
+            if (!float.IsFinite(honkMagnitude))
+            {
+                error = "HonkMagnitude invalide : 'honkMagnitude' doit etre fini.";
+                return false;
+            }
+
+            if (honkChannel == ReactionChannel.None || ((int)honkChannel & ~(int)ReactionChannel.Both) != 0)
+            {
+                error = "HonkChannel invalide : 'honkChannel' doit se limiter a Rage, Fear ou Both.";
                 return false;
             }
 

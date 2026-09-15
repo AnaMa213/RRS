@@ -219,3 +219,7 @@
 - source_spec: none
   summary: Effectuer un audit dedie des warnings Unity et des API/methodes depreciees ou obsoletes avant le prochain checkpoint Epic.
   evidence: Aucune liste de reference ni regle de tri ne distingue aujourd'hui les warnings introduits par le travail courant, les warnings historiques benins et les usages d'API a migrer. L'audit doit partir de la Console Unity et des sorties de test/build, inventorier chaque occurrence avec son origine, puis corriger ou documenter uniquement les cas reels ; ne pas lancer une migration globale speculative.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-networked-ai-rage-targeting.md`
+  summary: Le feel de la camera de lock rage/peur (soft lock conique, `LocalVehicleCameraRig.ResolveRageTargetLookPoint`) reste a retravailler -- retour utilisateur direct : "horrible" en l'etat.
+  evidence: Ajoute en reaction a un bug report utilisateur (verrouillage IA rendant la conduite illisible sur les cotes/derriere) ; le cone +/-40 deg avec maintien au bord et hysteresis arriere corrige le probleme signale (teste, EditMode vert) mais le ressenti manette-en-main reste insatisfaisant pour l'utilisateur. Necessite un reglage/redesign ulterieur avec test manuel en Play Mode (angle du cone, courbe de suivi, vitesse de recentrage) plutot qu'un ajustement mecanique sans jugement humain sur le feel.

@@ -34,7 +34,14 @@ namespace RoadRage.Features.Vehicles
         private bool suppressNetworkCameraUntilReleased;
         private CinemachineCamera activeCamera;
         private readonly Dictionary<CinemachineCamera, Transform> defaultLookAtBySeatCamera = new Dictionary<CinemachineCamera, Transform>();
+        [SerializeField]
+        [Tooltip("Angle maximal (degres) entre l'axe de conduite et le regard quand une cible est verrouillee. Knob de feel : monter pour suivre la cible plus loin sur les cotes, baisser pour privilegier la lisibilite de la route.")]
+        [Range(0f, 90f)]
+        private float rageTargetMaxLookAngle = 40f;
+
         private Transform rageTargetLookOverride;
+        private Transform rageTargetLookProxy;
+        private float rageTargetLookSide = 1f;
 
         private void Awake()
         {
@@ -73,6 +80,11 @@ namespace RoadRage.Features.Vehicles
         private void Update()
         {
             RefreshActivation();
+        }
+
+        private void LateUpdate()
+        {
+            RefreshRageTargetLookProxy();
         }
 
         private void RefreshActivation()
@@ -141,19 +153,102 @@ namespace RoadRage.Features.Vehicles
 
         /// <summary>
         /// Ajout hors story (2026-09-12) : verrouillage camera sur une rage target, demande passager
-        /// ET conducteur. Passer null retablit le LookAt d'origine du siege. Reapplique en continu via
-        /// ActivateCamera/RefreshActivation, donc si la cible bouge encore, la camera continue de la
-        /// suivre sans action supplementaire du joueur.
+        /// ET conducteur. Passer null retablit le LookAt d'origine du siege.
+        ///
+        /// Story 5.5 (correctif feel, 2026-09-15) : le lock ne vise plus la cible en dur. Viser la
+        /// cible sans limite faisait pivoter la vue hors de la route des que la cible passait sur le
+        /// cote ou derriere -- conduite illisible. La camera vise desormais un point relais
+        /// (<see cref="rageTargetLookProxy"/>) place par <see cref="ResolveRageTargetLookPoint"/> :
+        /// suivi exact tant que la cible reste dans le cone de conduite, puis maintien au bord du cone
+        /// du cote de la cible (soft lock facon Mad Max / World of Tanks plutot que ball-cam Rocket
+        /// League). L'identification de la cible hors cone est portee par le libelle monde
+        /// (<see cref="AIVehicleBehaviorDebugView"/>) et le HUD rage, pas par la rotation de la vue.
         /// </summary>
         public void SetRageTargetLookOverride(Transform target)
         {
             rageTargetLookOverride = target;
+            rageTargetLookSide = 1f;
+            RefreshRageTargetLookProxy();
             ApplyLookAt(activeCamera);
         }
 
         public bool HasRageTargetLookOverride
         {
             get { return rageTargetLookOverride != null; }
+        }
+
+        /// <summary>
+        /// Angle au-dela duquel le cote du cone est fige : sans cette hysteresis, une cible pile
+        /// derriere le joueur fait osciller le lacet entre +180 et -180 degres, donc la vue claque de
+        /// gauche a droite a chaque embardee de la cible.
+        /// </summary>
+        private const float RearSideHoldAngle = 150f;
+
+        /// <summary>
+        /// Point vise par la camera en lock. Dans le cone (+/- maxAngleDegrees autour de l'axe de
+        /// conduite) : la cible exacte. Hors cone : un point a la meme distance, ramene au bord du
+        /// cone du cote de la cible -- la vue penche vers la cible sans jamais quitter la route.
+        /// Fonction pure (testee en EditMode) : anchorRotation doit deja etre aplatie en lacet par
+        /// l'appelant pour qu'un vehicule sur le toit ne fasse pas rouler le cone.
+        /// </summary>
+        public static Vector3 ResolveRageTargetLookPoint(
+            Vector3 anchorPosition,
+            Quaternion anchorRotation,
+            Vector3 targetPosition,
+            float maxAngleDegrees,
+            ref float previousSide)
+        {
+            var local = Quaternion.Inverse(anchorRotation) * (targetPosition - anchorPosition);
+            var planarDistance = new Vector2(local.x, local.z).magnitude;
+            if (planarDistance < 0.01f)
+            {
+                return targetPosition;
+            }
+
+            var yaw = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
+            if (Mathf.Abs(yaw) <= maxAngleDegrees)
+            {
+                previousSide = yaw >= 0f ? 1f : -1f;
+                return targetPosition;
+            }
+
+            var side = Mathf.Abs(yaw) > RearSideHoldAngle ? previousSide : Mathf.Sign(yaw);
+            previousSide = side;
+            var clampedYaw = side * maxAngleDegrees * Mathf.Deg2Rad;
+            var clamped = new Vector3(
+                Mathf.Sin(clampedYaw) * planarDistance,
+                local.y,
+                Mathf.Cos(clampedYaw) * planarDistance);
+            return anchorPosition + (anchorRotation * clamped);
+        }
+
+        /// <summary>Repositionne le relais de visee : la cible bougeant seule, la camera continue de la suivre sans action du joueur.</summary>
+        private void RefreshRageTargetLookProxy()
+        {
+            if (rageTargetLookOverride == null)
+            {
+                return;
+            }
+
+            if (rageTargetLookProxy == null)
+            {
+                rageTargetLookProxy = new GameObject("RageTargetLookProxy").transform;
+                rageTargetLookProxy.SetParent(transform, false);
+            }
+
+            rageTargetLookProxy.position = ResolveRageTargetLookPoint(
+                transform.position,
+                ResolveDrivingYawRotation(),
+                rageTargetLookOverride.position,
+                rageTargetMaxLookAngle,
+                ref rageTargetLookSide);
+        }
+
+        /// <summary>Axe de conduite aplati : un vehicule incline ou retourne ne doit pas faire rouler le cone de visee.</summary>
+        private Quaternion ResolveDrivingYawRotation()
+        {
+            var forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            return forward.sqrMagnitude < 0.0001f ? transform.rotation : Quaternion.LookRotation(forward, Vector3.up);
         }
 
         private CinemachineCamera ResolveCameraForSeat(int seatIndex)
@@ -211,8 +306,8 @@ namespace RoadRage.Features.Vehicles
                 return;
             }
 
-            camera.LookAt = rageTargetLookOverride != null
-                ? rageTargetLookOverride
+            camera.LookAt = rageTargetLookOverride != null && rageTargetLookProxy != null
+                ? rageTargetLookProxy
                 : defaultLookAtBySeatCamera.TryGetValue(camera, out var original) ? original : null;
         }
 

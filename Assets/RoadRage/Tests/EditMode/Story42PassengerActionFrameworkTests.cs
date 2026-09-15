@@ -5,6 +5,7 @@ using NUnit.Framework;
 using RoadRage.App.Run;
 using RoadRage.Features.PassengerActions;
 using RoadRage.Features.Rage;
+using RoadRage.Features.Vehicles;
 using RoadRage.Shared.Domain;
 using Unity.Netcode;
 using UnityEditor;
@@ -103,6 +104,7 @@ namespace RoadRage.Tests.EditMode
             var component = actor.AddComponent<NetworkedPassengerActionIntent>();
             var targetObject = NewObject("Target");
             targetObject.AddComponent<NetworkObject>();
+            targetObject.AddComponent<NetworkedAIVehicleState>();
             var target = targetObject.AddComponent<NetworkedRageState>();
             var accepted = 0;
             var lastCode = PassengerActionVerdictCode.Accepted;
@@ -160,7 +162,14 @@ namespace RoadRage.Tests.EditMode
 
         private static PassengerActionIntent NewIntent(PassengerActionDef action, PassengerActionCatalog catalog)
         {
-            return new PassengerActionIntent(action.Slot, action.RawId, catalog.Version, action.Version, 1UL, default);
+            return new PassengerActionIntent(
+                action.Slot,
+                action.RawId,
+                catalog.Version,
+                action.Version,
+                1UL,
+                new NetworkObjectReference((NetworkObject)null),
+                false);
         }
 
         private static PassengerActionValidationContext Context(

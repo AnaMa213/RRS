@@ -1,4 +1,5 @@
 using System;
+using RoadRage.Shared.Domain;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
@@ -97,6 +98,13 @@ namespace RoadRage.Features.Vehicles
         private Quaternion fallbackRecoveryRotation;
         private bool fallbackRecoveryCaptured;
 
+        /// <summary>Story 5.5 : portee/magnitude/canal authores du klaxon, pousses par App/Run (donnee de tuning de rage) via <see cref="ConfigureHonkReaction"/> -- inertes tant qu'ils ne sont pas configures.</summary>
+        private float honkRange;
+
+        private float honkMagnitude;
+
+        private ReactionChannel honkChannel = ReactionChannel.None;
+
         private const float InputEpsilon = 0.0001f;
         private const float DirectionEpsilon = 0.05f;
 
@@ -125,8 +133,15 @@ namespace RoadRage.Features.Vehicles
         /// <summary>Recuperation appliquee (auto retournement/vide ou manuelle) -- meme evenement pour host et solo.</summary>
         public event Action VehicleRecovered;
 
-        /// <summary>Klaxon (ajout hors story, 2026-09-12) : evenement purement presentation, aucun etat mute.</summary>
+        /// <summary>Klaxon : evenement purement presentation, aucun etat mute -- toujours leve, meme sans cible resolue.</summary>
         public event Action VehicleHonked;
+
+        /// <summary>
+        /// Story 5.5 : cible unique resolue par le klaxon (host-authoritative), avec l'effet rage/peur
+        /// authore a lui appliquer. Features/Vehicles ne mute jamais la rage directement (Epic 5,
+        /// Technical Decisions) : App/Run s'abonne et effectue lui-meme la mutation cote host.
+        /// </summary>
+        public event Action<NetworkedAIVehicleState, NpcReactionEffect> HonkTargetResolved;
 
         private void Awake()
         {
@@ -361,12 +376,32 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
-        /// Klaxon (ajout hors story) : declenchable par le conducteur local, host ou solo comme le
-        /// reste du fichier. Purement cosmetique (aucun NetworkVariable mute) donc relaye via un seul
-        /// Rpc unifie SendTo.Everyone plutot que de dupliquer le couple attribut Server puis NotServer
-        /// deja fige a 2 occurrences par le test de regression Collision/Recuperation de Story 3.4.
+        /// Story 5.5 : pousse les valeurs authorees du klaxon depuis App/Run. Inertes tant qu'aucun
+        /// appel n'a eu lieu (honkChannel = None), donc sans effet plutot que de deviner une portee --
+        /// meme convention de repli silencieux que le reste du systeme de reaction rage/peur.
+        /// </summary>
+        public void ConfigureHonkReaction(float range, float magnitude, ReactionChannel channel)
+        {
+            honkRange = range;
+            honkMagnitude = magnitude;
+            honkChannel = channel;
+        }
+
+        /// <summary>
+        /// Klaxon : declenchable par le conducteur local, host ou solo comme le reste du fichier.
+        /// Toujours purement cosmetique pour la presentation (HonkRpc, SendTo.Everyone, inchange
+        /// depuis Story 3.4/regression Collision-Recuperation). Story 5.5 ajoute la resolution
+        /// host-authoritative de la cible unique (lock du joueur si fourni, sinon plus proche eligible
+        /// dans la portee klaxon), via le meme point de resolution partage que les provocations
+        /// passager (AiRageTargetResolution.ResolveTarget) -- jamais applique directement ici
+        /// (Features/Vehicles ne mute jamais la rage), seulement leve en evenement pour App/Run.
         /// </summary>
         public void RequestHonk()
+        {
+            RequestHonk(null, false);
+        }
+
+        public void RequestHonk(NetworkedAIVehicleState lockedTarget, bool lockSpecified)
         {
             if (!IsSpawned)
             {
@@ -375,12 +410,71 @@ namespace RoadRage.Features.Vehicles
             }
 
             HonkRpc();
+
+            var lockedReference = lockSpecified
+                ? ResolveHonkTargetReference(lockedTarget)
+                : new NetworkObjectReference((NetworkObject)null);
+            if (IsServer)
+            {
+                ApplyHonkTarget(lockedReference, lockSpecified, NetworkManager.Singleton == null ? 0UL : NetworkManager.Singleton.LocalClientId);
+            }
+            else
+            {
+                SubmitHonkTargetRpc(lockedReference, lockSpecified);
+            }
         }
 
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Everyone)]
         private void HonkRpc()
         {
             VehicleHonked?.Invoke();
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void SubmitHonkTargetRpc(NetworkObjectReference lockedTargetReference, bool lockSpecified, RpcParams rpcParams = default)
+        {
+            ApplyHonkTarget(lockedTargetReference, lockSpecified, rpcParams.Receive.SenderClientId);
+        }
+
+        /// <summary>
+        /// Host-authoritative (Story 5.5) : revalide l'acteur (conducteur courant, klaxon reste
+        /// conducteur-only), resout la cible unique via le point de resolution partage puis leve
+        /// HonkTargetResolved -- aucune mutation ici, App/Run effectue la mutation cote host.
+        /// </summary>
+        private void ApplyHonkTarget(NetworkObjectReference lockedTargetReference, bool lockSpecified, ulong senderClientId)
+        {
+            if (!IsServer || state == null || state.DriverClientId.Value != senderClientId)
+            {
+                return;
+            }
+
+            NetworkedAIVehicleState lockedCandidate = null;
+            if (lockSpecified
+                && lockedTargetReference.TryGet(out var lockedObject)
+                && lockedObject != null
+                && lockedObject.IsSpawned)
+            {
+                lockedCandidate = lockedObject.GetComponent<NetworkedAIVehicleState>();
+            }
+
+            var candidates = AiRageTargetResolution.FindEligibleCandidates();
+            var resolved = AiRageTargetResolution.ResolveTarget(transform.position, lockSpecified, lockedCandidate, candidates, honkRange, true);
+            if (resolved == null)
+            {
+                return;
+            }
+
+            HonkTargetResolved?.Invoke(resolved, new NpcReactionEffect(honkChannel, honkMagnitude));
+        }
+
+        private static NetworkObjectReference ResolveHonkTargetReference(NetworkedAIVehicleState lockedTarget)
+        {
+            if (lockedTarget == null || lockedTarget.NetworkObject == null || !lockedTarget.IsSpawned)
+            {
+                return new NetworkObjectReference((NetworkObject)null);
+            }
+
+            return new NetworkObjectReference(lockedTarget.NetworkObject);
         }
 
         /// <summary>

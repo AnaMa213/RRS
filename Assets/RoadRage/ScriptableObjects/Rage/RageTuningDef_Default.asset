@@ -25,3 +25,6 @@ MonoBehaviour:
     minValue: 80
   - disposition: 5
     minValue: 95
+  honkRange: 15
+  honkMagnitude: 15
+  honkChannel: 1

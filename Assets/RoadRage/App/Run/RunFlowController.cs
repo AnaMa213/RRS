@@ -28,8 +28,6 @@ namespace RoadRage.App.Run
 
         private const float PassengerActionOneRageDelta = 25f;
 
-        private const float DevReactionEffectMagnitude = 25f;
-
         private const int MinimumMvpRageTargetCount = 3;
 
         private const int MinimumMvpDriveableRageVehicleCount = 2;
@@ -51,9 +49,6 @@ namespace RoadRage.App.Run
 
         [SerializeField]
         private PassengerActionCatalog passengerActionCatalog;
-
-        [SerializeField]
-        private NetworkedRageState passengerActionTarget;
 
         [SerializeField]
         private RageTuningDef passengerActionRageTuning;
@@ -81,7 +76,17 @@ namespace RoadRage.App.Run
 
         private readonly HashSet<NetworkedPassengerActionIntent> authoritativePassengerActionIntents = new HashSet<NetworkedPassengerActionIntent>();
 
-        private int focusedRageTargetIndex;
+        /// <summary>
+        /// Story 5.5 : lock rage/peur client-local pour CE joueur uniquement -- jamais une
+        /// NetworkVariable partagee (Boundaries "Toujours"). RunFlowController n'existe qu'une fois
+        /// par processus client, donc ce simple champ d'instance suffit a garantir l'isolation entre
+        /// joueurs : aucune synchronisation reseau du lock lui-meme, seule l'execution d'une action
+        /// reste host-authoritative.
+        /// </summary>
+        private NetworkedAIVehicleState rageTargetLock;
+
+        private bool hasRageTargetLock;
+        private AIVehicleBehaviorDebugView markedRageTargetLockView;
 
         private NetworkedVehicleDriverController subscribedVehicleDriverController;
 
@@ -90,6 +95,8 @@ namespace RoadRage.App.Run
         private bool subscribedVehicleStateCallbacks;
 
         private readonly HashSet<NetworkedVehicleDriverController> secondaryDamageWiredVehicles = new HashSet<NetworkedVehicleDriverController>();
+
+        private readonly HashSet<NetworkedVehicleDriverController> honkWiredVehicles = new HashSet<NetworkedVehicleDriverController>();
 
         public GameObject ActiveLocalPlayer
         {
@@ -101,7 +108,6 @@ namespace RoadRage.App.Run
             EnsureNetworkSessionMonitor();
             EnsureNetworkHudBridge();
             EnsureMinimumMvpRageTargets();
-            RefreshFocusedRageTarget();
 
             if (checkpointHud != null)
             {
@@ -124,6 +130,7 @@ namespace RoadRage.App.Run
         private void Update()
         {
             ResolveLocalNetworkedPlayerStateIfNeeded();
+            RevalidateRageTargetLock();
             EnsurePassengerActionBinding();
             EnsureAuthoritativePassengerActionBindings();
             RefreshPassengerActionIncidentHud();
@@ -133,8 +140,9 @@ namespace RoadRage.App.Run
             SynchronizeLocalSeatedPose();
             EnsureVehicleEventBridge();
             EnsureSecondaryVehicleDamageBridges();
+            EnsureVehicleHonkBridges();
             HandleVehicleHornInteraction();
-            HandleRageTargetCameraLockInteraction();
+            HandleRageTargetLockControls();
         }
 
         private void ResolveLocalNetworkedPlayerStateIfNeeded()
@@ -194,6 +202,15 @@ namespace RoadRage.App.Run
                 }
             }
             authoritativePassengerActionIntents.Clear();
+
+            foreach (var vehicle in honkWiredVehicles)
+            {
+                if (vehicle != null)
+                {
+                    vehicle.HonkTargetResolved -= HandleHonkTargetResolved;
+                }
+            }
+            honkWiredVehicles.Clear();
         }
 
         public bool TrySpawnSelectedProfile(out string error)
@@ -293,15 +310,6 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            if (passengerActionTarget == null)
-            {
-                passengerActionTarget = FindAnyObjectByType<NetworkedRageState>();
-            }
-            else
-            {
-                RefreshFocusedRageTarget();
-            }
-
             if (passengerActionView == null)
             {
                 var viewRoot = checkpointHud == null ? gameObject : checkpointHud.gameObject;
@@ -330,7 +338,7 @@ namespace RoadRage.App.Run
             {
                 if (intent != null)
                 {
-                    intent.SetTarget(passengerActionTarget);
+                    intent.SetTarget(ResolveLockRageState(), hasRageTargetLock);
                 }
 
                 return;
@@ -344,12 +352,13 @@ namespace RoadRage.App.Run
                 passengerActionCatalog,
                 FindAnyObjectByType<NetworkedRunState>(),
                 FindAnyObjectByType<NetworkedVehicleState>(),
-                passengerActionTarget,
+                ResolveLockRageState(),
                 checkpointHud,
                 passengerActionView,
                 () => localNetworkedPlayerState != null && NetworkedVehicleState.IsPassengerSeatIndex(localNetworkedPlayerState.SeatIndex.Value),
                 () => activeLocalPlayer == null ? Vector3.zero : activeLocalPlayer.transform.position,
-                FindAnyObjectByType<NetworkedPassengerActionIncidentState>());
+                FindAnyObjectByType<NetworkedPassengerActionIncidentState>(),
+                hasRageTargetLock);
         }
 
         private void UnsubscribeFromPassengerActionIntent()
@@ -388,26 +397,10 @@ namespace RoadRage.App.Run
             }
 
             target.ApplyRageDelta(PassengerActionOneRageDelta, passengerActionRageTuning);
-            if (target == passengerActionTarget)
+            if (target == ResolveLockRageState())
             {
                 RefreshFocusedRageHud();
             }
-        }
-
-        public void CycleFocusedRageTarget()
-        {
-            var targets = FindRageTargets();
-            if (targets.Length == 0)
-            {
-                passengerActionTarget = null;
-                checkpointHud?.ShowPassengerActionVerdict(NoRageTargetMessage);
-                checkpointHud?.ShowRageStatus(null, 0f, null);
-                return;
-            }
-
-            var currentIndex = Array.IndexOf(targets, passengerActionTarget);
-            focusedRageTargetIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % targets.Length;
-            SetFocusedRageTarget(targets[focusedRageTargetIndex], true);
         }
 
         public bool TrySpawnDevVehicle(bool rageTarget)
@@ -425,14 +418,10 @@ namespace RoadRage.App.Run
             }
 
             checkpointHud?.ShowVehicleSeatMessage(rageTarget ? "Spawn dev rage-target." : "Spawn dev vehicule.");
-            if (rageTarget)
-            {
-                SetFocusedRageTarget(vehicle.GetComponent<NetworkedRageState>(), true);
-            }
-
             return true;
         }
 
+        /// <summary>Story 5.5 : le cycle/focus de rage global (C/Y) est remplace par le lock par joueur (T/Y, HandleRageTargetLockControls). Ne reste ici que le spawn dev (V), inchange.</summary>
         private void HandleRageTargetDevControls()
         {
             if (IsNetworkSessionActive())
@@ -446,103 +435,171 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            if (keyboard.cKey.wasPressedThisFrame)
-            {
-                CycleFocusedRageTarget();
-            }
-
             if (keyboard.vKey.wasPressedThisFrame)
             {
                 TrySpawnDevVehicle(keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
             }
+        }
 
-            if (keyboard.yKey.wasPressedThisFrame)
+        /// <summary>
+        /// Story 5.5 : T verrouille l'IA eligible (NetworkedAIVehicleState + source rage/peur, spawnee)
+        /// la plus proche pour ce joueur seul ; Y cycle deterministiquement parmi les IA eligibles
+        /// (stable si une seule existe). Meme garde "joueur assis" que l'ancien
+        /// HandleRageTargetCameraLockInteraction (TryResolveLocalSeatedVehicle) : pas de camera hors
+        /// vehicule. Remplace entierement l'ancien lock global (passengerActionTarget/
+        /// focusedRageTargetIndex) et l'ancienne branche Y solo-only de HandleRageTargetDevControls.
+        /// </summary>
+        private void HandleRageTargetLockControls()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null)
             {
-                TryApplyFocusedRageReaction(
-                    keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed
-                        ? ReactionChannel.Both
-                        : ReactionChannel.Fear);
+                return;
+            }
+
+            var tPressed = keyboard.tKey.wasPressedThisFrame;
+            var yPressed = keyboard.yKey.wasPressedThisFrame;
+            if (!tPressed && !yPressed)
+            {
+                return;
+            }
+
+            if (!TryResolveLocalSeatedVehicle(out var vehicleState, out _))
+            {
+                return;
+            }
+
+            var cameraRig = vehicleState.GetComponent<LocalVehicleCameraRig>();
+            if (cameraRig == null)
+            {
+                return;
+            }
+
+            var eligible = AiRageTargetResolution.FindEligibleCandidates();
+
+            if (tPressed)
+            {
+                if (hasRageTargetLock)
+                {
+                    rageTargetLock = null;
+                    hasRageTargetLock = false;
+                    ApplyRageTargetLock(cameraRig, "Cible deverrouillee. Camera par defaut.");
+                    return;
+                }
+
+                var nearest = AiRageTargetResolution.ResolveNearestEligible(vehicleState.transform.position, eligible, float.PositiveInfinity);
+                if (nearest == null)
+                {
+                    ShowVehicleSeatMessage(NoRageTargetMessage);
+                }
+                else
+                {
+                    rageTargetLock = nearest;
+                    hasRageTargetLock = true;
+                    ApplyRageTargetLock(cameraRig, "Cible verrouillee : " + rageTargetLock.name + ".");
+                }
+
+                return;
+            }
+
+            if (yPressed)
+            {
+                if (eligible.Length == 0)
+                {
+                    ShowVehicleSeatMessage(NoRageTargetMessage);
+                }
+                else
+                {
+                    rageTargetLock = AiRageTargetResolution.ResolveNextInCycle(rageTargetLock, eligible);
+                    hasRageTargetLock = true;
+                    ApplyRageTargetLock(cameraRig, "Cible verrouillee : " + rageTargetLock.name + ".");
+                }
             }
         }
 
         /// <summary>
-        /// Declencheur de verification Story 5.1 dans MVP_Run : Y applique la peur a la cible
-        /// focalisee, Shift+Y applique rage et peur. Reserve au solo et a l'hote.
+        /// Bug fix (hors Story 5.5, code review du 2026-09-15) : <c>hasRageTargetLock</c> ne se
+        /// desynchronisait jamais quand <c>rageTargetLock</c> devenait un fake-null Unity (IA
+        /// verrouillee detruite/despawnee -- collision, despawn reseau, reset de scene). Le lock
+        /// restait alors "specifie" indefiniment : chaque frame, EnsurePassengerActionBinding
+        /// envoyait SetTarget(null, true), donc targetSpecified restait vrai avec Target null --
+        /// toute provocation et le klaxon etaient silencieusement refuses (ResolveTarget refuse un
+        /// lock specifie mais non resolu, par design, "jamais de repli sur une autre cible"), sans
+        /// aucun retour au joueur, jusqu'a ce qu'il represse T ou Y de sa propre initiative. Appele en
+        /// tete d'Update, avant tout consommateur du lock (binding passager, klaxon, HUD).
         /// </summary>
-        public bool TryApplyFocusedRageReaction(ReactionChannel channel)
+        private void RevalidateRageTargetLock()
         {
-            if (!IsAuthoritativeForDamage()
-                || passengerActionTarget == null
-                || passengerActionRageTuning == null
-                || channel == ReactionChannel.None)
-            {
-                return false;
-            }
-
-            var effect = new NpcReactionEffect(channel, DevReactionEffectMagnitude);
-            if (!effect.TryValidate(out _))
-            {
-                return false;
-            }
-
-            passengerActionTarget.ApplyReactionEffect(effect, passengerActionRageTuning);
-            RefreshFocusedRageHud();
-            checkpointHud?.ShowPassengerActionVerdict(channel == ReactionChannel.Fear
-                ? "Test peur applique a la cible focalisee."
-                : "Test rage et peur applique a la cible focalisee.");
-            return true;
-        }
-
-        private void RefreshFocusedRageTarget()
-        {
-            var targets = FindRageTargets();
-            if (targets.Length == 0)
-            {
-                passengerActionTarget = null;
-                return;
-            }
-
-            for (var i = 0; i < targets.Length; i++)
-            {
-                if (targets[i] == passengerActionTarget)
-                {
-                    focusedRageTargetIndex = i;
-                    return;
-                }
-            }
-
-            focusedRageTargetIndex = Mathf.Clamp(focusedRageTargetIndex, 0, targets.Length - 1);
-            SetFocusedRageTarget(targets[focusedRageTargetIndex], false);
-        }
-
-        private void SetFocusedRageTarget(NetworkedRageState target, bool moveCamera)
-        {
-            passengerActionTarget = target;
-            boundPassengerActionIntent?.SetTarget(target);
-            RefreshFocusedRageHud();
-
-            if (!moveCamera || target == null || playerCamera == null)
+            if (!hasRageTargetLock || rageTargetLock != null)
             {
                 return;
             }
 
-            playerCamera.transform.position = target.transform.position + new Vector3(0f, 5f, -8f);
-            playerCamera.transform.LookAt(target.transform.position + Vector3.up);
+            hasRageTargetLock = false;
+            boundPassengerActionIntent?.SetTarget(null, false);
+
+            if (markedRageTargetLockView != null)
+            {
+                markedRageTargetLockView.SetLocalRageTargetLock(false);
+                markedRageTargetLockView = null;
+            }
+
+            if (TryResolveLocalSeatedVehicle(out var vehicleState, out _))
+            {
+                vehicleState.GetComponent<LocalVehicleCameraRig>()?.SetRageTargetLookOverride(null);
+            }
+
+            RefreshFocusedRageHud();
+            ShowVehicleSeatMessage("Cible perdue (detruite ou despawnee). Camera par defaut.");
+        }
+
+        private void ApplyRageTargetLock(LocalVehicleCameraRig cameraRig, string message)
+        {
+            boundPassengerActionIntent?.SetTarget(ResolveLockRageState(), hasRageTargetLock);
+            cameraRig.SetRageTargetLookOverride(rageTargetLock == null ? null : rageTargetLock.transform);
+            ApplyRageTargetLockMarker();
+            RefreshFocusedRageHud();
+            ShowVehicleSeatMessage(message);
+        }
+
+        /// <summary>
+        /// Story 5.5 (correctif feel, 2026-09-15) : la camera ne vise plus la cible en dur (cone de
+        /// conduite, cf. LocalVehicleCameraRig), donc la cible doit rester identifiable quand elle sort
+        /// du cone. Le libelle monde deja porte par chaque IA (AIVehicleBehaviorDebugView, precedent
+        /// 5.4) prend ce role. Marquage strictement local, jamais replique : il suit le lock
+        /// client-local du joueur, pas un etat de scene partage.
+        /// </summary>
+        private void ApplyRageTargetLockMarker()
+        {
+            if (markedRageTargetLockView != null)
+            {
+                markedRageTargetLockView.SetLocalRageTargetLock(false);
+            }
+
+            markedRageTargetLockView = rageTargetLock == null ? null : rageTargetLock.GetComponent<AIVehicleBehaviorDebugView>();
+            markedRageTargetLockView?.SetLocalRageTargetLock(true);
+        }
+
+        /// <summary>Projection du lock (NetworkedAIVehicleState) vers sa source rage/peur -- null si aucun lock actif.</summary>
+        private NetworkedRageState ResolveLockRageState()
+        {
+            return rageTargetLock == null ? null : rageTargetLock.GetComponent<NetworkedRageState>();
         }
 
         private void RefreshFocusedRageHud()
         {
-            if (passengerActionTarget == null)
+            var rageState = ResolveLockRageState();
+            if (rageState == null)
             {
                 checkpointHud?.ShowRageStatus(null, 0f, null);
                 return;
             }
 
             checkpointHud?.ShowRageStatus(
-                passengerActionTarget.gameObject.name,
-                passengerActionTarget.RageValue.Value,
-                passengerActionTarget.FearValue.Value,
-                passengerActionTarget.Disposition.Value.ToString());
+                rageState.gameObject.name,
+                rageState.RageValue.Value,
+                rageState.FearValue.Value,
+                rageState.Disposition.Value.ToString());
         }
 
         /// <summary>
@@ -1111,7 +1168,7 @@ namespace RoadRage.App.Run
             }
         }
 
-        /// <summary>Klaxon (hors story, 2026-09-12) : reserve au conducteur, en solo comme en reseau.</summary>
+        /// <summary>Klaxon : reserve au conducteur, en solo comme en reseau. Story 5.5 : porte le lock rage/peur courant du joueur pour la resolution de cible partagee host-side (AiRageTargetResolution).</summary>
         private void HandleVehicleHornInteraction()
         {
             var keyboard = Keyboard.current;
@@ -1123,43 +1180,48 @@ namespace RoadRage.App.Run
             if (TryResolveLocalSeatedVehicle(out var vehicleState, out var driverController)
                 && IsDriverSeat(vehicleState.FindSeatIndex(NetworkManager.Singleton.LocalClientId)))
             {
-                driverController.RequestHonk();
+                driverController.RequestHonk(rageTargetLock, hasRageTargetLock);
             }
         }
 
         /// <summary>
-        /// Verrouillage camera sur la rage target focalisee (hors story, 2026-09-12) : demande passager
-        /// ET conducteur, bascule avec T. La camera suit la cible en continu (LocalVehicleCameraRig)
-        /// tant que le verrouillage reste actif, y compris si la cible bouge encore.
+        /// Story 5.5 : abonne chaque vehicule (conducteur local et autres) au klaxon host-authoritative
+        /// et lui pousse les valeurs authorees de RageTuningDef. L'effet est applique ici (App/Run) et
+        /// non dans Features/Vehicles, qui ne mute jamais la rage directement.
         /// </summary>
-        private void HandleRageTargetCameraLockInteraction()
+        private void EnsureVehicleHonkBridges()
         {
-            var keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard.tKey.wasPressedThisFrame)
+            if (passengerActionRageTuning == null)
             {
                 return;
             }
 
-            if (!TryResolveLocalSeatedVehicleCameraRig(out var cameraRig))
+            var vehicles = FindObjectsByType<NetworkedVehicleDriverController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var vehicle in vehicles)
+            {
+                if (vehicle == null)
+                {
+                    continue;
+                }
+
+                vehicle.ConfigureHonkReaction(passengerActionRageTuning.HonkRange, passengerActionRageTuning.HonkMagnitude, passengerActionRageTuning.HonkChannel);
+
+                if (honkWiredVehicles.Add(vehicle))
+                {
+                    vehicle.HonkTargetResolved += HandleHonkTargetResolved;
+                }
+            }
+        }
+
+        private void HandleHonkTargetResolved(NetworkedAIVehicleState target, NpcReactionEffect effect)
+        {
+            if (!IsAuthoritativeForDamage() || target == null)
             {
                 return;
             }
 
-            if (cameraRig.HasRageTargetLookOverride)
-            {
-                cameraRig.SetRageTargetLookOverride(null);
-                ShowVehicleSeatMessage("Verrouillage camera desactive.");
-                return;
-            }
-
-            if (passengerActionTarget == null)
-            {
-                ShowVehicleSeatMessage(NoRageTargetMessage);
-                return;
-            }
-
-            cameraRig.SetRageTargetLookOverride(passengerActionTarget.transform);
-            ShowVehicleSeatMessage("Camera verrouillee sur la cible rage.");
+            var rageState = target.GetComponent<NetworkedRageState>();
+            rageState?.ApplyReactionEffect(effect, passengerActionRageTuning);
         }
 
         private bool TryResolveLocalSeatedVehicle(out NetworkedVehicleState vehicleState, out NetworkedVehicleDriverController driverController)
@@ -1187,18 +1249,6 @@ namespace RoadRage.App.Run
 
             vehicleState = null;
             driverController = null;
-            return false;
-        }
-
-        private bool TryResolveLocalSeatedVehicleCameraRig(out LocalVehicleCameraRig cameraRig)
-        {
-            if (TryResolveLocalSeatedVehicle(out var vehicleState, out _))
-            {
-                cameraRig = vehicleState.GetComponent<LocalVehicleCameraRig>();
-                return cameraRig != null;
-            }
-
-            cameraRig = null;
             return false;
         }
 

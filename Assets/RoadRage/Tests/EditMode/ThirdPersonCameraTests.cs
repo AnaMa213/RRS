@@ -132,10 +132,20 @@ namespace RoadRage.Tests.EditMode
                     var active = vehicle.GetComponentsInChildren<CinemachineCamera>();
                     Assert.That(active.Length, Is.EqualTo(1));
                     Assert.That(otherVehicle.GetComponentsInChildren<CinemachineCamera>(), Is.Empty);
+                    target.transform.position = vehicle.transform.position + (vehicle.transform.forward * 20f);
                     rig.SetRageTargetLookOverride(target.transform);
-                    Assert.That(active[0].LookAt, Is.EqualTo(target.transform));
+                    // Is.SameAs et non Is.EqualTo : Transform implemente IEnumerable, donc NUnit
+                    // comparerait les enfants et jugerait egaux deux transforms sans enfant.
+                    Assert.That(active[0].LookAt, Is.Not.SameAs(target.transform),
+                        "Story 5.5 : la camera vise un relais borne au cone de conduite, jamais la cible en dur.");
+                    Assert.That(active[0].LookAt.IsChildOf(vehicle.transform), Is.True);
+                    Assert.That(active[0].LookAt.position, Is.EqualTo(target.transform.position).Using(Vector3Comparer),
+                        "Cible dans le cone : suivi exact.");
+                    Assert.That(active[0].Follow, Is.SameAs(vehicle.transform),
+                        "Le lock change uniquement le regard : la position reste ancree au vehicule du joueur.");
                     rig.SetRageTargetLookOverride(null);
-                    Assert.That(active[0].LookAt, Is.EqualTo(vehicle.transform));
+                    Assert.That(active[0].LookAt, Is.SameAs(vehicle.transform));
+                    Assert.That(active[0].Follow, Is.EqualTo(vehicle.transform));
                 }
                 rig.SetManualCameraActive(false);
                 Assert.That(vehicle.GetComponentsInChildren<CinemachineCamera>(), Is.Empty);
@@ -147,6 +157,67 @@ namespace RoadRage.Tests.EditMode
                 Object.DestroyImmediate(target);
             }
         }
+
+        /// <summary>
+        /// Story 5.5 (correctif feel, 2026-09-15) : le cone de visee est ce qui empeche le lock de
+        /// rendre la conduite illisible quand la cible passe sur le cote ou derriere. Teste sur la
+        /// fonction pure, sans camera ni session reseau.
+        /// </summary>
+        [Test]
+        public void LockedTargetLookPointStaysInsideTheDrivingCone()
+        {
+            const float maxAngle = 40f;
+            var side = 1f;
+            var anchor = new Vector3(3f, 0f, 7f);
+            var rotation = Quaternion.Euler(0f, 90f, 0f);
+
+            var ahead = anchor + (rotation * new Vector3(0f, 0f, 25f));
+            Assert.That(LocalVehicleCameraRig.ResolveRageTargetLookPoint(anchor, rotation, ahead, maxAngle, ref side),
+                Is.EqualTo(ahead).Using(Vector3Comparer), "Cible droit devant : suivi exact.");
+
+            var slightlyOff = anchor + (rotation * (Quaternion.Euler(0f, 30f, 0f) * new Vector3(0f, 0f, 25f)));
+            Assert.That(LocalVehicleCameraRig.ResolveRageTargetLookPoint(anchor, rotation, slightlyOff, maxAngle, ref side),
+                Is.EqualTo(slightlyOff).Using(Vector3Comparer), "Cible dans le cone : suivi exact, pas de bornage premature.");
+
+            foreach (var targetYaw in new[] { 75f, 120f, 179f, -75f, -120f, -179f })
+            {
+                var target = anchor + (rotation * (Quaternion.Euler(0f, targetYaw, 0f) * new Vector3(0f, 0f, 25f)));
+                var point = LocalVehicleCameraRig.ResolveRageTargetLookPoint(anchor, rotation, target, maxAngle, ref side);
+                var local = Quaternion.Inverse(rotation) * (point - anchor);
+                var resolvedYaw = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
+                Assert.That(Mathf.Abs(resolvedYaw), Is.EqualTo(maxAngle).Within(0.01f),
+                    "Cible hors cone (" + targetYaw + " deg) : la vue reste au bord du cone, jamais braquee hors route.");
+                Assert.That(local.magnitude, Is.EqualTo(25f).Within(0.01f), "Distance de visee conservee.");
+                if (Mathf.Abs(targetYaw) < 150f)
+                {
+                    Assert.That(Mathf.Sign(resolvedYaw), Is.EqualTo(Mathf.Sign(targetYaw)),
+                        "La vue penche du cote de la cible : elle indique ou elle est.");
+                }
+            }
+        }
+
+        /// <summary>Cible pile derriere : le cote du cone est fige, sinon la vue claque de gauche a droite a chaque embardee.</summary>
+        [Test]
+        public void TargetDirectlyBehindKeepsTheSameConeSide()
+        {
+            const float maxAngle = 40f;
+            var side = 1f;
+            var rotation = Quaternion.identity;
+
+            var rightSide = new Vector3(20f, 0f, 5f);
+            LocalVehicleCameraRig.ResolveRageTargetLookPoint(Vector3.zero, rotation, rightSide, maxAngle, ref side);
+            Assert.That(side, Is.EqualTo(1f));
+
+            var justBehindLeft = new Vector3(-0.2f, 0f, -25f);
+            var justBehindRight = new Vector3(0.2f, 0f, -25f);
+            var first = LocalVehicleCameraRig.ResolveRageTargetLookPoint(Vector3.zero, rotation, justBehindLeft, maxAngle, ref side);
+            var second = LocalVehicleCameraRig.ResolveRageTargetLookPoint(Vector3.zero, rotation, justBehindRight, maxAngle, ref side);
+            Assert.That(Mathf.Sign(first.x), Is.EqualTo(1f), "Le cote est conserve malgre le passage de la cible a gauche.");
+            Assert.That(first, Is.EqualTo(second).Using(Vector3Comparer), "Aucun battement quand la cible traverse l'axe arriere.");
+        }
+
+        private static readonly System.Collections.Generic.IComparer<Vector3> Vector3Comparer =
+            System.Collections.Generic.Comparer<Vector3>.Create((left, right) => (left - right).sqrMagnitude <= 0.0001f ? 0 : 1);
 
         [Test]
         public void UntaggedObstaclePullsCameraForwardEvenWhenLookAtIsOverridden()

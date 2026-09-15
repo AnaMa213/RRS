@@ -32,6 +32,20 @@ namespace RoadRage.Features.Vehicles
         private bool ownsLabel;
         private bool hasRageSource;
         private Camera billboardCamera;
+        private bool localRageTargetLock;
+
+        /// <summary>
+        /// Story 5.5 (correctif feel, 2026-09-15) : marque ce vehicule comme cible verrouillee du
+        /// joueur LOCAL. Le lock etant client-local par joueur (jamais une NetworkVariable), ce drapeau
+        /// n'est jamais replique : chaque pair marque sa propre cible sur sa propre copie de scene, donc
+        /// host et client affichent chacun la leur. Depuis que la camera ne vise plus la cible en dur
+        /// (<see cref="LocalVehicleCameraRig.ResolveRageTargetLookPoint"/>), c'est ce libelle qui rend
+        /// la cible identifiable parmi des IA identiques -- par du texte, pas par une couleur.
+        /// </summary>
+        public void SetLocalRageTargetLock(bool locked)
+        {
+            localRageTargetLock = locked;
+        }
 
         private void Awake()
         {
@@ -76,7 +90,12 @@ namespace RoadRage.Features.Vehicles
             }
 
             var text = "IA : " + target.Behavior.Value;
-            return hasRageSource ? text : text + " (rage absente)";
+            if (!hasRageSource)
+            {
+                text += " (rage absente)";
+            }
+
+            return localRageTargetLock ? "[CIBLE] " + text : text;
         }
 
         private TMP_Text CreateWorldLabel()

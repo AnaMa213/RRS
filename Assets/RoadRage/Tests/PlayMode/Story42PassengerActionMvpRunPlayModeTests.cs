@@ -66,6 +66,11 @@ namespace RoadRage.Tests.PlayMode
             Assert.That(accepted, Is.EqualTo(3));
         }
 
+        /// <summary>
+        /// Story 5.5 : la cible d'action n'est plus un champ global auto-seede (passengerActionTarget,
+        /// retire) mais un lock client-local par joueur, absent tant que T/Y n'a pas ete presse -- ce
+        /// test ne verifie donc plus qu'une cible par defaut existe au chargement de la scene.
+        /// </summary>
         [UnityTest]
         public IEnumerator MvpRunProvidesOfflineAndNetworkPassengerActionWiring()
         {
@@ -75,9 +80,6 @@ namespace RoadRage.Tests.PlayMode
             var flow = Object.FindAnyObjectByType<RunFlowController>();
             Assert.That(flow, Is.Not.Null);
             Assert.That(Read<PassengerActionCatalog>(flow, "passengerActionCatalog"), Is.Not.Null);
-            var target = Read<NetworkedRageState>(flow, "passengerActionTarget");
-            Assert.That(target, Is.Not.Null);
-            Assert.That(target.GetComponent<NetworkObject>(), Is.Not.Null);
             Assert.That(Object.FindAnyObjectByType<NetworkedRunState>(), Is.Not.Null);
 
             var prefab = Resources.Load<GameObject>(NetworkedPlayerSpawnService.PlayerRootResourceName);

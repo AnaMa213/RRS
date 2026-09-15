@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 09-14-2026
+last_updated: 09-15-2026
 # 2026-09-13 course correction: 4.5, 4.6, 5.1 and 6.5 retain their backlog keys
 # but their authoritative scopes are replaced in planning-artifacts/epics.md.
 # Stories 4.1–4.4 remain in review; 4.4's implementation-spec status was reconciled to in-review.
@@ -93,7 +93,7 @@ development_status:
   5-2-basic-ai-route-following-and-recovery: review
   5-3-unified-solo-and-online-session-start: in-progress
   5-4-rage-driven-ai-behavior-states: review
-  5-5-networked-ai-rage-targeting: backlog
+  5-5-networked-ai-rage-targeting: review
   5-6-rage-road-event-trigger: backlog
   5-7-ai-traffic-networking-and-client-presentation: backlog
   5-8-epic-5-ai-traffic-playable-checkpoint: backlog

@@ -56,19 +56,6 @@ namespace RoadRage.Tests.EditMode
             Assert.That(fixture.Target.RageValue.Value, Is.EqualTo(25f));
         }
 
-        [Test]
-        public void CycleFocusedRageTargetChangesNextIntentTarget()
-        {
-            var flow = NewObject("Flow").AddComponent<RunFlowController>();
-            var first = NewTarget("First");
-            var second = NewTarget("Second");
-            Set(flow, "passengerActionTarget", first);
-
-            flow.CycleFocusedRageTarget();
-
-            Assert.That(Read<NetworkedRageState>(flow, "passengerActionTarget"), Is.EqualTo(second));
-        }
-
         private Fixture NewFixture(Func<Vector3> actorPosition = null)
         {
             var flow = NewObject("Flow").AddComponent<RunFlowController>();
@@ -130,10 +117,16 @@ namespace RoadRage.Tests.EditMode
             return tuning;
         }
 
+        /// <summary>
+        /// Story 5.5 : l'hote exige desormais NetworkedAIVehicleState sur la cible resolue (eligibilite
+        /// IA + source rage/peur, cf. AiRageTargetResolution) -- ajoute ici pour que ces fixtures
+        /// restent des cibles valides sous la nouvelle regle de validation.
+        /// </summary>
         private NetworkedRageState NewTarget(string name)
         {
             var targetObject = NewObject(name);
             targetObject.AddComponent<NetworkObject>();
+            targetObject.AddComponent<NetworkedAIVehicleState>();
             return targetObject.AddComponent<NetworkedRageState>();
         }
 
@@ -142,11 +135,6 @@ namespace RoadRage.Tests.EditMode
             var value = new GameObject(name);
             spawned.Add(value);
             return value;
-        }
-
-        private static T Read<T>(object target, string field) where T : class
-        {
-            return target.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(target) as T;
         }
 
         private static void Set(object target, string field, object value)

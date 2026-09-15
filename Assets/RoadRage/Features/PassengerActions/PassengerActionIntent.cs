@@ -13,8 +13,9 @@ namespace RoadRage.Features.PassengerActions
         public int ActionVersion;
         public ulong Sequence;
         public NetworkObjectReference Target;
+        public bool HasTarget;
 
-        public PassengerActionIntent(int slot, string actionId, int catalogVersion, int actionVersion, ulong sequence, NetworkObjectReference target)
+        public PassengerActionIntent(int slot, string actionId, int catalogVersion, int actionVersion, ulong sequence, NetworkObjectReference target, bool hasTarget)
         {
             Slot = (byte)slot;
             ActionId = actionId;
@@ -22,6 +23,7 @@ namespace RoadRage.Features.PassengerActions
             ActionVersion = actionVersion;
             Sequence = sequence;
             Target = target;
+            HasTarget = hasTarget;
         }
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -32,13 +34,14 @@ namespace RoadRage.Features.PassengerActions
             serializer.SerializeValue(ref ActionVersion);
             serializer.SerializeValue(ref Sequence);
             serializer.SerializeValue(ref Target);
+            serializer.SerializeValue(ref HasTarget);
         }
 
         public bool Equals(PassengerActionIntent other)
         {
             return Slot == other.Slot && ActionId.Equals(other.ActionId)
                 && CatalogVersion == other.CatalogVersion && ActionVersion == other.ActionVersion
-                && Sequence == other.Sequence && Target.Equals(other.Target);
+                && Sequence == other.Sequence && Target.Equals(other.Target) && HasTarget == other.HasTarget;
         }
     }
 }

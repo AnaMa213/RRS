@@ -112,6 +112,15 @@ namespace RoadRage.DevTools
                 return;
             }
 
+            // Story 5.5 : l'hote n'accepte plus qu'une cible IA eligible (NetworkedAIVehicleState +
+            // source rage/peur, spawnee). Ce sandbox ne teste pas le trafic IA (5.2/5.4) ; on complete
+            // simplement la composition de la cible harnais plutot que d'y dupliquer un vehicule IA
+            // complet, pour que les slots passager restent testables ici.
+            if (harnessTarget.GetComponent<NetworkedAIVehicleState>() == null)
+            {
+                harnessTarget.gameObject.AddComponent<NetworkedAIVehicleState>();
+            }
+
             if (!EnsureSpawned(harnessTarget.GetComponent<NetworkObject>(), manager))
             {
                 return;

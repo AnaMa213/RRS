@@ -64,6 +64,7 @@ namespace RoadRage.Tests.EditMode
             var intent = actor.AddComponent<NetworkedPassengerActionIntent>();
             var targetObject = NewObject("Target");
             targetObject.AddComponent<NetworkObject>();
+            targetObject.AddComponent<NetworkedAIVehicleState>();
             var target = targetObject.AddComponent<NetworkedRageState>();
             var incidentObject = NewObject("Incident");
             incidentObject.AddComponent<NetworkObject>();

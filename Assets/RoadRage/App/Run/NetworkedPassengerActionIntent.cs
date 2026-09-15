@@ -25,6 +25,7 @@ namespace RoadRage.App.Run
         private NetworkedRunState runState;
         private NetworkedVehicleState vehicleState;
         private NetworkedRageState target;
+        private bool targetSpecified;
         private NetworkedPassengerActionIncidentState incidentState;
         private PassengerActionDebugView debugView;
         private RunCheckpointHudScreen checkpointHud;
@@ -50,7 +51,8 @@ namespace RoadRage.App.Run
             PassengerActionDebugView view,
             Func<bool> offlinePassenger = null,
             Func<Vector3> offlineActorPosition = null,
-            NetworkedPassengerActionIncidentState currentIncidentState = null)
+            NetworkedPassengerActionIncidentState currentIncidentState = null,
+            bool currentTargetSpecified = false)
         {
             if (actionCatalog != null)
             {
@@ -60,6 +62,7 @@ namespace RoadRage.App.Run
             runState = currentRunState;
             vehicleState = currentVehicleState;
             target = currentTarget;
+            targetSpecified = currentTargetSpecified || currentTarget != null;
             checkpointHud = hud;
             debugView = view;
             localPassengerContext = offlinePassenger;
@@ -72,9 +75,10 @@ namespace RoadRage.App.Run
             }
         }
 
-        public void SetTarget(NetworkedRageState currentTarget)
+        public void SetTarget(NetworkedRageState currentTarget, bool currentTargetSpecified = false)
         {
             target = currentTarget;
+            targetSpecified = currentTargetSpecified || currentTarget != null;
         }
 
         public void RequestSlot(int slot)
@@ -89,15 +93,22 @@ namespace RoadRage.App.Run
             var manager = NetworkManager.Singleton;
             if (manager == null || !manager.IsListening)
             {
-                var localIntent = new PassengerActionIntent(slot, action.RawId, catalog.Version, action.Version, ++nextSequence, default);
+                var localIntent = new PassengerActionIntent(
+                    slot,
+                    action.RawId,
+                    catalog.Version,
+                    action.Version,
+                    ++nextSequence,
+                    new NetworkObjectReference((NetworkObject)null),
+                    targetSpecified);
                 ApplyAuthoritative(localIntent, 0UL, target, false);
                 return;
             }
 
-            var targetReference = target == null || target.NetworkObject == null || !target.IsSpawned
-                ? default
+            var targetReference = !targetSpecified || target == null || target.NetworkObject == null || !target.IsSpawned
+                ? new NetworkObjectReference((NetworkObject)null)
                 : new NetworkObjectReference(target.NetworkObject);
-            var intent = new PassengerActionIntent(slot, action.RawId, catalog.Version, action.Version, ++nextSequence, targetReference);
+            var intent = new PassengerActionIntent(slot, action.RawId, catalog.Version, action.Version, ++nextSequence, targetReference, targetSpecified);
             if (state == null || !manager.IsClient || state.ClientId.Value != manager.LocalClientId)
             {
                 Report(new PassengerActionVerdict(PassengerActionVerdictCode.ActorMismatch, "Action refusee : acteur local invalide."), false, 0UL);
@@ -106,7 +117,7 @@ namespace RoadRage.App.Run
 
             if (IsServer)
             {
-                ApplyAuthoritative(intent, manager.LocalClientId, target != null && target.IsSpawned ? target : null, true);
+                ApplyAuthoritative(intent, manager.LocalClientId, targetSpecified && target != null && target.IsSpawned ? target : null, true);
             }
             else
             {
@@ -117,16 +128,25 @@ namespace RoadRage.App.Run
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         private void SubmitIntentRpc(PassengerActionIntent intent, RpcParams rpcParams = default)
         {
-            NetworkedRageState resolvedTarget = null;
-            if (intent.Target.TryGet(out var targetObject) && targetObject != null && targetObject.IsSpawned)
+            NetworkedRageState resolvedLockTarget = null;
+            if (intent.HasTarget && intent.Target.TryGet(out var targetObject) && targetObject != null && targetObject.IsSpawned)
             {
-                resolvedTarget = targetObject.GetComponent<NetworkedRageState>();
+                resolvedLockTarget = targetObject.GetComponent<NetworkedRageState>();
             }
 
-            ApplyAuthoritative(intent, rpcParams.Receive.SenderClientId, resolvedTarget, true);
+            ApplyAuthoritative(intent, rpcParams.Receive.SenderClientId, resolvedLockTarget, true);
         }
 
-        private void ApplyAuthoritative(PassengerActionIntent intent, ulong senderClientId, NetworkedRageState resolvedTarget, bool networked)
+        /// <summary>
+        /// Story 5.5 : resolvedLockTarget/intent.HasTarget portent desormais le lock client-local du
+        /// joueur (per-player), pas une cible globale partagee. HasTarget=false (pas de lock) :
+        /// resolution hote de la plus proche IA eligible dans la portee de l'action, sans creer de
+        /// lock persistant. HasTarget=true : le lock doit lui-meme resoudre a une IA eligible
+        /// (NetworkedAIVehicleState + source rage/peur, spawnee) en portee, sinon refus -- jamais de
+        /// repli sur une autre cible. Meme point de resolution partage que le klaxon conducteur
+        /// (AiRageTargetResolution.ResolveTarget).
+        /// </summary>
+        private void ApplyAuthoritative(PassengerActionIntent intent, ulong senderClientId, NetworkedRageState resolvedLockTarget, bool networked)
         {
             var manager = NetworkManager.Singleton;
             if (networked && (!IsServer || manager == null))
@@ -152,6 +172,19 @@ namespace RoadRage.App.Run
                 ? localPassengerContext != null && localPassengerContext()
                 : TryFindActorVehicle(seatIndex, actorId, out vehicleState);
             var catalogValid = catalog != null && catalog.TryValidate(out _);
+
+            var lockedCandidate = resolvedLockTarget == null ? null : resolvedLockTarget.GetComponent<NetworkedAIVehicleState>();
+            var resolvedCandidate = action == null
+                ? null
+                : AiRageTargetResolution.ResolveTarget(
+                    actorPosition,
+                    intent.HasTarget,
+                    lockedCandidate,
+                    AiRageTargetResolution.FindEligibleCandidates(),
+                    action.MaxRange,
+                    networked);
+            var resolvedTarget = resolvedCandidate == null ? null : resolvedCandidate.GetComponent<NetworkedRageState>();
+
             var targetValid = resolvedTarget != null && (!networked || (resolvedTarget.IsSpawned && resolvedTarget.NetworkObject != null));
             var context = new PassengerActionValidationContext(
                 !networked || manager.ConnectedClients.ContainsKey(senderClientId),
