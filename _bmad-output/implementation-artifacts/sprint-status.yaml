@@ -91,7 +91,7 @@ development_status:
   epic-5: in-progress
   5-1-configurable-npc-rage-fear-foundation: review
   5-2-basic-ai-route-following-and-recovery: review
-  5-3-unified-solo-and-online-session-start: in-progress
+  5-3-unified-solo-and-online-session-start: review
   5-4-rage-driven-ai-behavior-states: review
   5-5-networked-ai-rage-targeting: review
   5-6-rage-road-event-trigger: backlog

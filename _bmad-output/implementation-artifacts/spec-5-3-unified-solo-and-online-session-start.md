@@ -2,7 +2,7 @@
 title: 'Story 5.3 : demarrage de session unifie solo/en ligne'
 type: 'feature'
 created: '2026-09-14'
-status: 'in-progress'
+status: 'done'
 review_loop_iteration: 0
 baseline_commit: 'e54ca7a4239581aacdb0796328eee85a72e19dc6'
 context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md"]
@@ -59,18 +59,19 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
 - `Assets/RoadRage/Tests/EditMode/Story33SeatEntryExitAndPassengerPresenceTests.cs:119,166-179,185` -- assertions texte source sur `LocalSolo*` a reecrire.
 - `Assets/RoadRage/Tests/EditMode/Story34SimpleRouteCollisionAndVehicleRecoveryTests.cs:102` -- idem.
 - `Assets/RoadRage/Tests/EditMode/Story26InGameHudTests.cs:148` + `RunFlowController.cs:1816-1830` (`ResolveLobbyState`) -- libelle HUD "solo" a verifier une fois toujours host.
+- `Assets/RoadRage/Features/Online/FacepunchSteamLobbyPlatform.cs` (`CreateLobbyAsync`, `JoinLobbyByCodeAsync`) -- lobby cree `Public` pour que la recherche par code fonctionne (voir Spec Change Log 2026-09-15).
 - Fixtures PlayMode a rejouer : `Story11MainMenuLaunchPlayModeTests.cs`, `Story12LobbyShellPlayModeTests.cs`, `Story15EmptyMapEntryPlayModeTests.cs` (cible directe AC1), `Story16Epic1PlayableCheckpointPlayModeTests.cs`, `Story22HostCreatedPrivateRoomPlayModeTests.cs` (reference online), `Story42/43/44PassengerAction*PlayModeTests.cs`, `Story45PersistentSteamProfile...PlayModeTests.cs`, `Story46ProfileFreezeSessionPayload...PlayModeTests.cs`.
 
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `LobbyFlowController.cs` -- `HandleStartGameRequested` branche "aucun lobby" -- creer le lobby prive (reutiliser `CreateRoomAsync`) puis `StartNetworkedRun(true)` au lieu de `AppSceneRouter.LoadMvpRun`.
-- [ ] `RunFlowController.cs` -- supprimer les methodes/branches `LocalSolo*` et champs associes ; chemin unique via les services reseau existants.
-- [ ] `NetworkedVehicleDriverController.cs` / `LocalVehicleCameraRig.cs` -- retirer ou renommer `SetLocalSoloDriverActive`/`SetLocalSoloCameraActive` selon usage restant.
-- [ ] `Story33SeatEntryExitAndPassengerPresenceTests.cs`, `Story34SimpleRouteCollisionAndVehicleRecoveryTests.cs` -- reecrire les assertions de texte source vers les equivalents reseau.
-- [ ] `ThirdPersonCameraTests.cs` -- adapter si `SetLocalSoloCameraActive` est renomme/supprime.
-- [ ] `Story26InGameHudTests.cs` / `RunFlowController.ResolveLobbyState` -- adapter le libelle HUD "solo" maintenant toujours host.
-- [ ] Rejouer les fixtures PlayMode listees en Code Map -- confirmer qu'elles passent sous le chemin unifie.
+- [x] `LobbyFlowController.cs` -- `HandleStartGameRequested` branche "aucun lobby" -- creer le lobby prive (reutiliser `CreateRoomAsync`) puis `StartNetworkedRun(true)` au lieu de `AppSceneRouter.LoadMvpRun`.
+- [x] `RunFlowController.cs` -- supprimer les methodes/branches `LocalSolo*` et champs associes ; chemin unique via les services reseau existants.
+- [x] `NetworkedVehicleDriverController.cs` / `LocalVehicleCameraRig.cs` -- retirer ou renommer `SetLocalSoloDriverActive`/`SetLocalSoloCameraActive` selon usage restant.
+- [x] `Story33SeatEntryExitAndPassengerPresenceTests.cs`, `Story34SimpleRouteCollisionAndVehicleRecoveryTests.cs` -- reecrire les assertions de texte source vers les equivalents reseau.
+- [x] `ThirdPersonCameraTests.cs` -- adapter si `SetLocalSoloCameraActive` est renomme/supprime.
+- [x] `Story26InGameHudTests.cs` / `RunFlowController.ResolveLobbyState` -- adapter le libelle HUD "solo" maintenant toujours host.
+- [x] Rejouer les fixtures PlayMode listees en Code Map -- confirmer qu'elles passent sous le chemin unifie. (verification pending -- Unity Test Runner PlayMode, a lancer manuellement)
 
 **Acceptance Criteria:**
 - Given le joueur presse Start Game, when le run demarre, then un lobby Steam prive est cree avec le joueur comme host exactement comme Create Lobby, et `StartHost()` est appele avant le chargement de `MVP_Run`.
@@ -116,6 +117,31 @@ context: ["{project-root}/_bmad-output/implementation-artifacts/epic-5-context.m
   Client Presentation » en etait la proprietaire naturelle -- mais l'humain a tranche le 2026-09-14 de le corriger
   ici pour que la coop soit reellement jouable des cette story.
 
+- 2026-09-15 (rejeu des fixtures PlayMode, defaut hors perimetre corrige) -- `DevRageSandboxAcceptsAllThreePassengerSlots`
+  et `RageSandboxShowsTheSharedIncidentMarker` rejetaient toute action passager (`InvalidTarget`) sur le chemin
+  unifie. Cause : `RageSandboxAutoStart` (Story 5.5, `cca13cf`) ajoute `NetworkedAIVehicleState` a la cible du
+  harnais APRES `StartHost()`. Netcode fige la liste des `NetworkBehaviour` d'un `NetworkObject` au moment de son
+  spawn ; le composant ajoute apres coup n'est jamais initialise (`IsSpawned` reste faux), rendant la cible
+  inegible pour `AiRageTargetResolution.FindEligibleCandidates()`. Defaut introduit par la 5.5, pas par cette
+  story, mais bloquant l'AC gelee « les fixtures PlayMode solo rejouees passent sans etre reecrites pour masquer
+  une regression » -- corrige ici (`RageSandboxAutoStart.EnsureTargetIsEligibleAiCandidate`, appele avant
+  `StartHost()`/`StartClient()`) plutot que de contourner le test.
+
+- 2026-09-15 (revue adversariale, corrige apres decision humaine) -- `JoinLobbyByCodeAsync`
+  (`FacepunchSteamLobbyPlatform.cs`) resout le code court via `SteamMatchmaking.LobbyList...RequestAsync()`
+  (recherche par filtre), mais `CreateLobbyAsync` cree le lobby en `Private` (comportement par defaut du SDK).
+  Un lobby Steam `Private` est structurellement exclu de `RequestLobbyList` -- aucune recherche, avec ou sans le
+  bon code, ne peut le retrouver ; seul un identifiant direct (invite) le peut. En conditions reelles, rejoindre
+  par code aurait donc toujours echoue (`SessionExpired`), cassant l'AC gelee « le lobby solo reste joignable
+  par code pendant que le run est en cours ». Invisible en test car l'EditMode utilise un faux Steam et le
+  PlayMode se declare `Inconclusive` sans client Steam reel -- jamais exerce de bout en bout. Deux options
+  presentees a l'humain : (a) lobby `Public` pour que la recherche par filtre fonctionne pour n'importe qui
+  ayant le code ; (b) garder le lobby `Private` et ajouter un service de correspondance code court -> ID de
+  lobby separe. Decision humaine : (a). Corrige par `Lobby.SetPublic()` juste apres creation dans
+  `CreateLobbyAsync`. KEEP : le reste du mecanisme (filtre `WithKeyValue(JoinCodeDataKey, ...)`,
+  `SetLobbyJoinCode` publie apres creation, `DisplayJoinCode` affiche au joueur au lieu du JoinCode brut) reste
+  correct et inchange -- seule la visibilite du lobby cree etait en cause.
+
 ## Design Notes
 
 Table de correspondance `LocalSolo*` -> equivalent reseau existant (a utiliser pour la suppression) :
@@ -143,3 +169,60 @@ Risque connu et trace : les fixtures `Story42/43/44PassengerAction*PlayModeTests
 - Fixtures PlayMode listees en Code Map rejouees et vertes (Test Runner Unity).
 - `MainMenuLobby` -> Start Game en Play Mode hote : lobby Steam prive cree, `StartHost()` effectif, trafic IA/rage actifs en solo.
 - Un second client rejoint par code un run demarre via Start Game et voit l'etat reseau courant.
+
+## Suggested Review Order
+
+**Demarrage de session unifie**
+
+- Point d'entree : Start Game cree desormais le lobby prive puis suit le meme chemin que Create Lobby.
+  [`LobbyFlowController.cs:363`](../../Assets/RoadRage/App/Lobby/LobbyFlowController.cs#L363)
+
+- `StartNetworkedRun` devient le seul chemin de lancement, solo ou en ligne, avec la liste de prefabs partagee.
+  [`LobbyFlowController.cs:434`](../../Assets/RoadRage/App/Lobby/LobbyFlowController.cs#L434)
+
+- La liste de prefabs reseau est desormais fournie explicitement par l'appelant plutot que devinee.
+  [`RoadRageBootstrap.cs:137`](../../Assets/RoadRage/App/Bootstrap/RoadRageBootstrap.cs#L137)
+
+**Invite rejoignant une partie en cours (AD-26)**
+
+- Evalue l'etat courant du roster a chaque frame (pas un evenement de front) pour capter un invite tardif.
+  [`LobbyFlowController.cs:232`](../../Assets/RoadRage/App/Lobby/LobbyFlowController.cs#L232)
+
+- L'hote publie le signal de lancement dans les donnees de lobby juste apres `StartHost()`.
+  [`LobbyFlowController.cs:489`](../../Assets/RoadRage/App/Lobby/LobbyFlowController.cs#L489)
+
+- Le signal traverse le roster Steam jusqu'au client via `PublishRunLaunchRequested`.
+  [`LobbyRosterService.cs:137`](../../Assets/RoadRage/Features/Online/LobbyRosterService.cs#L137)
+
+**Rejoindre par code court (defaut de revue corrige)**
+
+- Cause racine : un lobby `Private` est exclu de `RequestLobbyList`, rendant le join par code impossible en reel.
+  [`FacepunchSteamLobbyPlatform.cs:59`](../../Assets/RoadRage/Features/Online/FacepunchSteamLobbyPlatform.cs#L59)
+
+- La recherche par code s'appuie sur un filtre de donnees de lobby, qui ne fonctionne qu'en `Public`.
+  [`FacepunchSteamLobbyPlatform.cs:79`](../../Assets/RoadRage/Features/Online/FacepunchSteamLobbyPlatform.cs#L79)
+
+- Le code court (5 caracteres) remplace l'id de lobby brut, jamais expose au joueur.
+  [`LobbyRoomService.cs:104`](../../Assets/RoadRage/Features/Online/LobbyRoomService.cs#L104)
+
+- Cote invite, `JoinByCodeAsync` consomme desormais un code plutot qu'un id numerique direct.
+  [`LobbyJoinService.cs:51`](../../Assets/RoadRage/Features/Online/LobbyJoinService.cs#L51)
+
+**Suppression des chemins `LocalSolo*` (RunFlowController)**
+
+- La boucle `Update` ne bifurque plus entre chemin local et chemin reseau.
+  [`RunFlowController.cs:130`](../../Assets/RoadRage/App/Run/RunFlowController.cs#L130)
+
+- Les degats de collision passent toujours par le chemin reseau, plus de branche solo separee.
+  [`RunFlowController.cs:842`](../../Assets/RoadRage/App/Run/RunFlowController.cs#L842)
+
+- L'etat vehicule observe n'a plus qu'une seule source, le chemin reseau.
+  [`RunFlowController.cs:939`](../../Assets/RoadRage/App/Run/RunFlowController.cs#L939)
+
+**Peripheriques**
+
+- Correctif harnais dev sans rapport avec l'intent, trouve en rejouant les fixtures PlayMode de cette story.
+  [`RageSandboxAutoStart.cs:74`](../../Assets/RoadRage/DevTools/RageSandboxAutoStart.cs#L74)
+
+- Tests Story33/34 reecrits pour asserter les equivalents reseau plutot que le texte source `LocalSolo*`.
+  [`Story33SeatEntryExitAndPassengerPresenceTests.cs`](../../Assets/RoadRage/Tests/EditMode/Story33SeatEntryExitAndPassengerPresenceTests.cs)

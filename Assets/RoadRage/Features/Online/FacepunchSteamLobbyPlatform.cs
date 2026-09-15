@@ -10,8 +10,10 @@ namespace RoadRage.Features.Online
     /// <summary>
     /// Seule classe du projet a toucher directement Steamworks.SteamMatchmaking pour la creation et le
     /// join de room (Story 2.2, Story 2.3), ainsi que pour le roster/donnees de lobby (Story 2.4).
-    /// CreateLobbyAsync cree un lobby Steam prive (comportement par defaut du SDK, aucune ouverture de
-    /// port ni connexion directe cote hote) avec Networking Sockets comme chemin reseau. JoinLobbyAsync
+    /// CreateLobbyAsync cree le lobby en Public (Story 5.3) -- SteamMatchmaking.CreateLobbyAsync le
+    /// cree Private par defaut, mais un lobby Private est exclu de RequestLobbyList (aucun moyen de le
+    /// retrouver par recherche, meme avec le bon code) ; aucune ouverture de port ni connexion directe
+    /// cote hote dans les deux cas, Networking Sockets restant le chemin reseau. JoinLobbyAsync
     /// rejoint un lobby existant par son identifiant et traduit la reponse Steamworks (Lobby.Join ->
     /// RoomEnter) en raison d'echec neutre vis-a-vis du SDK. GetRosterSnapshot/SetLocalMemberReady/
     /// SetLobbyDifficulty lisent et ecrivent les donnees de lobby et de membre Steam (repliquees par
@@ -47,6 +49,14 @@ namespace RoadRage.Features.Online
             {
                 return LobbyCreateOutcome.Failed;
             }
+
+            // Story 5.3 : SteamMatchmaking.CreateLobbyAsync cree un lobby Private par defaut, or
+            // RequestLobbyList (JoinLobbyByCodeAsync) n'y a structurellement jamais acces -- un lobby
+            // Private n'est joignable que par son identifiant direct (invite), jamais par recherche.
+            // Passe en Public pour que le code court partage reste le seul moyen pratique de le
+            // retrouver (filtre WithKeyValue), sans dependre d'une relation d'amis Steam entre les
+            // joueurs.
+            lobby.Value.SetPublic();
 
             currentLobby = lobby;
             return new LobbyCreateOutcome(true, lobby.Value.Id);

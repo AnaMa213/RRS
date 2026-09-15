@@ -1,16 +1,16 @@
 # Graph Report - RRS  (2026-09-15)
 
 ## Corpus Check
-- 901 files · ~937,546 words
+- 901 files · ~938,338 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 11182 nodes · 15555 edges · 854 communities (703 shown, 124 thin omitted)
+- 11184 nodes · 15559 edges · 847 communities (697 shown, 123 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 401 edges (avg confidence: 0.82)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `afddbf05`
+- Built from commit: `cca13cf7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,7 +18,7 @@
 - Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests
 - Story13CharacterSetupTests
 - Story25NetworkedPlayerSpawnTests
-- Story14GreyboxAssetSeedTests
+- GreyboxAssetSeedMetadata
 - render_skill.py
 - manifest.json
 - dependencies
@@ -32,19 +32,19 @@
 - RoadRage.Features.UI
 - LobbyFlowController
 - LocalOnFootController
-- LobbyRosterSnapshot
+- UserNotice
 - Story51NpcRageFearFoundationTests
 - MenuCharacterPreview
 - NetworkedVehicleDamageVfxController
 - TMP_TextEventHandler
-- TMPro.Examples
+- TextMeshProFloatingText
 - com.unity.render-pipelines.core
-- TMP_UiFrameRateCounter
+- .FrozenSelectionSpawnsTheSelectedCharacterInMvpRunAndStaysImmutable
 - Story27PlayerLifecycleTests
 - Story12LobbyShellTests
 - TMP_TextInfoDebugTool
 - com.unity.burst
-- UserNotice
+- RegisterCallbacksExample
 - Top Findings
 - dependencies
 - com.unity.modules.unitywebrequest
@@ -59,7 +59,7 @@
 - LobbyJoinOutcome
 - Story26InGameHudTests
 - .agents/skills/bmad-retrospective/scripts/tests/test_sprint_status.py
-- LobbyCreateOutcome
+- LobbyRosterSnapshot
 - .claude/skills/bmad-retrospective/scripts/tests/test_sprint_status.py
 - FakeSteamLobbyPlatform
 - Story32DriverControlAndLocalCameraTests
@@ -95,10 +95,10 @@
 - com.unity.nuget.mono-cecil
 - graphify reference: extra exports and benchmark
 - .MenuResolvesProfileAndPublishesTheChosenCharacter
-- Story34SimpleRouteCollisionAndVehicleRecoveryTests
-- Story33SeatEntryExitAndPassengerPresenceTests
+- LobbyCodeClipboard
+- RoadRage.Shared.Networking
 - spec-3-6-epic-3-driving-playable-checkpoint.md
-- PassengerActionVerdictCode
+- PassengerActionDef
 - com.unity.test-framework
 - com.unity.dt.app-ui
 - com.unity.modules.ui
@@ -109,11 +109,11 @@
 - .claude/skills/bmad-sprint-planning/scripts/tests/test_sprint_plan.py
 - com.unity.modules.imageconversion
 - DefinitionId
-- MainMenuProfileFlowController
+- CharacterCatalog
 - graphify reference: query, path, explain
 - 🎯 Story Context Quality Competition Prompt
 - RoadRageScaffoldTests
-- Benchmark01_UGUI
+- TMP_UiFrameRateCounter
 - LocalVehicleCameraRig
 - Story35VehicleDamageHookAndTeamWipeContractStubTests
 - RoadRage.Features.Players
@@ -133,9 +133,9 @@
 - graphify reference: add a URL and watch a folder
 - .agents/skills/bmad-brainstorming/scripts/brain.py
 - graphify reference: commit hook and native CLAUDE.md integration
-- LobbyCodeClipboard
+- Story36Epic3DrivingPlayableCheckpointTests
 - .claude/skills/bmad-brainstorming/scripts/brain.py
-- .Configure
+- Story34SimpleRouteCollisionAndVehicleRecoveryTests
 - graphify reference: incremental update and cluster-only
 - ObjectSpin
 - VertexJitter
@@ -227,13 +227,13 @@
 - forged-idea.md
 - com.community.netcode.transport.facepunch/README.md
 - .agents/skills/bmad-architecture/scripts/tests/test_lint_spine.py
-- PassengerActionDef
+- PassengerActionVerdictCode
 - .claude/skills/bmad-architecture/scripts/tests/test_lint_spine.py
 - .agents/skills/bmad-retrospective/scripts/sprint_status.py
 - .claude/skills/bmad-retrospective/scripts/sprint_status.py
 - .agents/skills/bmad-advanced-elicitation/scripts/tests/test_pick_methods.py
 - Step 3: Generate Epics and Stories
-- LobbyRoomService
+- LobbyRosterService
 - .claude/skills/bmad-advanced-elicitation/scripts/tests/test_pick_methods.py
 - Step 3: Generate Epics and Stories
 - .agents/skills/bmad-party-mode/scripts/tests/test_resolve_party.py
@@ -297,7 +297,7 @@
 - .agents/skills/bmad-retrospective/scripts/git_evidence.py
 - Retrospective
 - Quill — Experience Spine
-- Story36Epic3DrivingPlayableCheckpointTests
+- VehicleDriveIntent
 - On Activation
 - On Activation
 - On Activation
@@ -478,7 +478,7 @@
 - Finalize: Retrospective Document and Sprint Status
 - Excalidraw Wireframe Renderer
 - Creative Tools
-- RoadRage.Shared.Networking
+- Story33SeatEntryExitAndPassengerPresenceTests
 - Compile Epic Context
 - Compile Epic Context
 - Generate Review Trail
@@ -604,53 +604,53 @@
 - .claude/skills/bmad-sprint-planning/references/validate.md
 - .claude/skills/bmad-ux/assets/color-themes.md
 - .claude/skills/bmad-ux/assets/design-directions.md
-- Code Templates
+- TMPro_InstructionOverlay
 - Reprise Story 4.2 — Codex vers Claude
-- SpriteAtlasLateBinding
+- RouteWaypoints
 - Proposition de correction de trajectoire — 2026-09-13
 - .StartGameWithProfileLoadsMvpRunAndSpawnsLocalOnFootPlayer
-- NetworkedAIVehicleDriverController
+- NetworkedVehicleRecoveryIntent
 - handoff-2026-09-12-vehicle-camera-seat-fixes.md
 - LocalizedFontAsset
-- Story16Epic1PlayableCheckpointTests
+- TMPro.Examples
 - EnableSpritePackingExample
 - Audio Import API Recipes
-- Story52BasicAiRouteFollowingAndRecoveryTests
+- .FixedUpdate
 - LevelPlay Ad Unit Implementation Best Practices
 - iOS-Specific Setup for LevelPlay
 - Benchmark03
 - spec-4-5-persistent-steam-profile-and-main-menu-character-selection.md
 - Epic 6: Individual Economy Foundation and Future On-Foot Assembly
-- MonoBehaviour
+- HandleLateBinding
 - Story41RageStateModuleAndDefinitionsTests
 - spec-5-5-networked-ai-rage-targeting.md
 - spec-camera-troisieme-personne.md
 - spec-online-vehicle-parity.md
-- RouteWaypoints
-- RageSandboxAutoStart
-- Benchmark01
+- Code Templates
+- Core Services — Quick Reference
+- TextMeshPro
 - spec-5-1-configurable-npc-rage-fear-foundation.md
 - NetworkedPlayerReviveIntent
 - Epic 5 Context: NPC Response Foundation and Future Traffic
 - spec-fix-ui-assembly-and-camera-input-tests.md
-- NetworkedPlayerState
+- Key Model Types
 - LocalVoidRespawnController
 - Proposition de correction de trajectoire — 2026-09-14
-- .FrozenSelectionSpawnsTheSelectedCharacterInMvpRunAndStaysImmutable
-- CharacterDef
+- .MvpRunShowsTopRightRageHudAndMultipleRageVehicles
+- VertexColorCycler
 - TMP_DigitValidator
-- Package Map
+- NetworkedPlayerState
 - spec-5-4-rage-driven-ai-behavior-states.md
 - .OnGUI
 - Story21OnlineServicesPlayModeTests
 - Cloture de revue Epic 4 — preuve multi-joueur et reconciliation
 - Convert Native iOS StoreKit to Unity IAP 5
-- .MvpRunShowsTopRightRageHudAndMultipleRageVehicles
+- .NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId
 - Implement Unity IAP D2C Capabilities (Third-Party Payment Provider)
 - EXPERIENCE.md
 - spec-5-3-unified-solo-and-online-session-start.md
 - Proposition de correction de trajectoire — ciblage IA Rage/Fear — 2026-09-14
-- .ApplyHonkTarget
+- FakeSteamPlatform
 - spec-5-2-basic-ai-route-following-and-recovery.md
 - Course Correction — 2026-09-13
 - LevelPlay SDK Initialization API
@@ -703,8 +703,6 @@
 - Programmatic API
 - Unity IAP Platform-Specific Notes
 - Pre-Check: Project Scan and Path Routing
-- NetworkedLocalPlayerPoseReporter
-- RegisterCallbacksExample
 - PackTransform
 - Unity SpriteAtlas V2
 - Optimize TextMeshPro
@@ -717,7 +715,6 @@
 - Path Details, Limitations, and Best Practices
 - Story11MainMenuLaunchPlayModeTests
 - ui-ugui/SKILL.md
-- .EnsureNetworkManagerRepairsExistingSingletonWithoutNetworkConfig
 - Unity In-App Purchasing
 - Custom Sprite Packing with ScriptablePacker
 - AuthoringVsRuntimeDocumentation
@@ -745,11 +742,11 @@
 - Critical API Corrections
 - DontPackInRuntimeBuildsDocumentation
 - HandleNullCasesExample
-- GreyboxAssetSeedMetadata
+- NetworkedPlayerLifecycleIntent
 - Sprite Editor Utility Examples
 - Branching Logic (RuleTile Types)
 - Test — run EditMode/PlayMode tests
-- RunCompositionRoot
+- .MvpRunProvidesOfflineAndNetworkPassengerActionWiring
 - PixelPerfect Skill — Full API Reference
 - Remote Config Reference
 - LevelPlay Testing and Validation
@@ -760,7 +757,6 @@
 - Custom Visuals with Painter2D
 - USS Patterns and Examples
 - TMP_FrameRateCounter
-- Step 7 — Migration Phases
 - Cloud Save Operations
 - Banner Ads API Reference
 - Events
@@ -771,7 +767,6 @@
 - Unity Vivox — Voice & Text Chat
 - Additional Data Providers
 - Unity Sprite Editor API Reference
-- .Create
 - Troubleshooting Decision Tree
 - Common Recipes
 - LevelPlay Unity Integration Skill
@@ -789,20 +784,17 @@
 - Changelog
 - Best Practices
 - Core Methods
-- HandleLateBinding
 - SpriteAtlasImporter (Editor Settings)
 - SpriteAtlasAsset (Editor Authoring)
 - ScriptablePacker API
 - CleanupBatchOperationsExample
 - .SetPlatformSettings
 - PlatformNamesExample
-- .SubmitPoseRpc
 - Events, Participants, and Lifecycle
 - Text Chat
 - Hexagonal Tile Rule Pattern (Pointy Top)
 - Common USS/UXML Issues
 - Config & Hub — unity-cli command reference
-- VertexColorCycler
 - Core Concepts Reference
 - Common Issues
 - BuildAddressablesPostprocess
@@ -812,8 +804,7 @@
 - Slicing Operations
 - .SetCustomPivot
 - Auth, license & cloud — unity-cli command reference
-- .NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId
-- PlayerProfileResolution
+- NetworkedRunSessionMonitor
 - Registre d'adoption add-on, librairie et asset
 - Navigation Areas and Costs
 - Component Reference — NavMesh Agent
@@ -828,7 +819,6 @@
 - Generating a custom Shader Graph node
 - Sprite Editor
 - Reading a change
-- SeedExpectation
 - Implementation Pattern
 - EditorConfigurationExample
 - Execution path: running C# in the Editor
@@ -841,7 +831,10 @@
 - toktx-examples.sh
 - scrollview-setup.md
 - copilot-instructions.md
-- NetworkedAIVehicleState
+- .EnsureVehicleSandboxSeatHarness
+- MonoBehaviour
+- AIVehicleBehaviorDebugView
+- OnFootMovementIntent
 
 ## God Nodes (most connected - your core abstractions)
 1. `RunFlowController` - 117 edges
@@ -870,23 +863,23 @@
 ## Import Cycles
 - None detected.
 
-## Communities (854 total, 124 thin omitted)
+## Communities (847 total, 123 thin omitted)
 
 ### Community 0 - "Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests"
-Cohesion: 0.08
-Nodes (20): ArgumentException, List, CharacterCatalog, Count, PersistentPlayerProfileRecord, PlayerProfileBootstrapService, Exception, PlayerProfileFileStore (+12 more)
+Cohesion: 0.10
+Nodes (15): ArgumentException, PersistentPlayerProfileRecord, Exception, PlayerProfileFileStore, DefaultFilePath, FilePath, Component, List (+7 more)
 
 ### Community 1 - "Story13CharacterSetupTests"
 Cohesion: 0.09
-Nodes (10): AsmdefManifest, AssemblyDefinitionAsset, PlayerNameValidator, List, Object, TearDown, Test, TestCase (+2 more)
+Nodes (11): AsmdefManifest, AssemblyDefinitionAsset, PlayerNameValidator, ArgumentNullException, List, Object, TearDown, Test (+3 more)
 
 ### Community 2 - "Story25NetworkedPlayerSpawnTests"
-Cohesion: 0.15
-Nodes (6): NetworkPlayerConnectionPayload, GameObject, NetworkObject, Test, TextMeshProUGUI, Story25NetworkedPlayerSpawnTests
+Cohesion: 0.14
+Nodes (8): GameObject, NetworkManager, NetworkObject, NetworkPrefabsList, TearDown, Test, TextMeshProUGUI, Story25NetworkedPlayerSpawnTests
 
-### Community 3 - "Story14GreyboxAssetSeedTests"
-Cohesion: 0.17
-Nodes (10): Collider, GameObject, NetworkObject, Renderer, Test, Transform, Story14GreyboxAssetSeedTests, Bounds (+2 more)
+### Community 3 - "GreyboxAssetSeedMetadata"
+Cohesion: 0.06
+Nodes (28): GreyboxAssetSeedMetadata, ColliderPlan, ExportAssetPath, ReplacementPolicy, ScaleCheck, SourceAssetPath, StableId, VisualReadability (+20 more)
 
 ### Community 4 - "render_skill.py"
 Cohesion: 0.10
@@ -918,35 +911,35 @@ Nodes (41): AD-10 - Camera And Input Are Local Presentation, AD-11 - Three Scene
 
 ### Community 11 - "RunFlowController"
 Cohesion: 0.05
-Nodes (10): Camera, CharacterController, Collider, GameObject, HashSet, Quaternion, Transform, Vector3 (+2 more)
+Nodes (17): Camera, CharacterController, Collider, GameObject, HashSet, Quaternion, Transform, Vector3 (+9 more)
 
 ### Community 12 - "RunCheckpointHudScreen"
-Cohesion: 0.12
+Cohesion: 0.09
 Nodes (6): GameObject, RectTransform, TextMeshProUGUI, TMP_Text, RunCheckpointHudScreen, StringBuilder
 
 ### Community 13 - "OnlineServicesBootstrapService"
 Cohesion: 0.08
-Nodes (23): ISteamPlatform, IsLoggedOn, IsValid, OnlineServicesBootstrapService, Status, OnlineServicesStatus, InitializationFailed, NotStarted (+15 more)
+Nodes (24): ISteamPlatform, IsLoggedOn, IsValid, OnlineServicesBootstrapService, Status, OnlineServicesStatus, InitializationFailed, NotStarted (+16 more)
 
 ### Community 14 - "RoadRage.Features.UI"
-Cohesion: 0.16
-Nodes (11): RoadRage.App.Services, RoadRage.App, RoadRage.Features.UI, RoadRage.App.Lobby, RoadRage.Features.Online, Netcode.Transports.Facepunch, RoadRage.App.MainMenu, TMPro (+3 more)
+Cohesion: 0.20
+Nodes (11): RoadRage.App.Services, RoadRage.App, RoadRage.Shared.Authoring, RoadRage.Features.UI, RoadRage.App.Lobby, RoadRage.Features.Online, Netcode.Transports.Facepunch, RoadRage.App.MainMenu (+3 more)
 
 ### Community 15 - "LobbyFlowController"
 Cohesion: 0.14
 Nodes (7): HashSet, NetworkPrefabsList, RoadRageBootstrap, LobbyFlowController, Settings, ConnectionApprovalRequest, ConnectionApprovalResponse
 
 ### Community 16 - "LocalOnFootController"
-Cohesion: 0.09
-Nodes (21): Camera, CharacterController, CinemachineCamera, CinemachineOrbitalFollow, Quaternion, Vector2, Vector3, LocalOnFootController (+13 more)
+Cohesion: 0.12
+Nodes (15): Camera, CharacterController, CinemachineCamera, CinemachineOrbitalFollow, Quaternion, Vector2, Vector3, LocalOnFootController (+7 more)
 
-### Community 17 - "LobbyRosterSnapshot"
-Cohesion: 0.10
-Nodes (14): Difficulty, Task, ISteamLobbyPlatform, LobbyRosterSnapshot, Difficulty, HasLobby, Members, OwnerId (+6 more)
+### Community 17 - "UserNotice"
+Cohesion: 0.09
+Nodes (18): UserNotice, Message, Severity, UserNoticeSeverity, Error, Info, Warning, UserNoticeChannel (+10 more)
 
 ### Community 18 - "Story51NpcRageFearFoundationTests"
-Cohesion: 0.12
-Nodes (12): NpcReactionEffect, AffectsFear, AffectsRage, Channel, Magnitude, List, NetworkObject, Object (+4 more)
+Cohesion: 0.08
+Nodes (20): TMP_Text, RageStateDebugView, NpcReactionEffect, AffectsFear, AffectsRage, Channel, Magnitude, ReactionChannel (+12 more)
 
 ### Community 19 - "MenuCharacterPreview"
 Cohesion: 0.21
@@ -960,21 +953,21 @@ Nodes (7): Color, Quaternion, Renderer, Transform, Vector3, NetworkedVehicleDama
 Cohesion: 0.09
 Nodes (21): Camera, Canvas, PointerEventData, TMP_Text, CharacterSelectionEvent, LineSelectionEvent, LinkSelectionEvent, SpriteSelectionEvent (+13 more)
 
-### Community 22 - "TMPro.Examples"
-Cohesion: 0.07
-Nodes (26): Canvas, Font, Renderer, TextMesh, Benchmark02, Renderer, TextMesh, Transform (+18 more)
+### Community 22 - "TextMeshProFloatingText"
+Cohesion: 0.10
+Nodes (19): Canvas, Font, Renderer, TextMesh, Benchmark02, Font, GameObject, IEnumerator (+11 more)
 
 ### Community 23 - "com.unity.render-pipelines.core"
 Cohesion: 0.07
 Nodes (30): dependencies, depth, source, version, depth, source, version, dependencies (+22 more)
 
-### Community 24 - "TMP_UiFrameRateCounter"
-Cohesion: 0.09
-Nodes (21): Material, RectTransform, TMP_FontAsset, FpsCounterAnchorPositions, BottomLeft, BottomRight, TopLeft, TopRight (+13 more)
+### Community 24 - ".FrozenSelectionSpawnsTheSelectedCharacterInMvpRunAndStaysImmutable"
+Cohesion: 0.32
+Nodes (5): Component, IEnumerator, UnityTearDown, UnityTest, Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnPlayModeTests
 
 ### Community 25 - "Story27PlayerLifecycleTests"
-Cohesion: 0.05
-Nodes (14): Rpc, RpcParams, NetworkedPlayerLifecycleIntent, IEnumerable, NetworkedPlayerLifecycleService, Instance, IEnumerator, NetworkManager (+6 more)
+Cohesion: 0.11
+Nodes (6): IEnumerable, CharacterController, GameObject, Test, TextMeshProUGUI, Story27PlayerLifecycleTests
 
 ### Community 26 - "Story12LobbyShellTests"
 Cohesion: 0.12
@@ -988,9 +981,9 @@ Nodes (6): Color, TMP_Text, Transform, Vector3, TMP_TextInfoDebugTool, TMP_TextI
 Cohesion: 0.08
 Nodes (27): dependencies, depth, source, url, version, dependencies, depth, source (+19 more)
 
-### Community 29 - "UserNotice"
-Cohesion: 0.09
-Nodes (19): UserNotice, Message, Severity, UserNoticeSeverity, Error, Info, Warning, UserNoticeChannel (+11 more)
+### Community 29 - "RegisterCallbacksExample"
+Cohesion: 0.15
+Nodes (4): Action, SpriteAtlas, RegisterCallbacksExample, RegisterCallbacksWithEnable
 
 ### Community 30 - "Top Findings"
 Cohesion: 0.08
@@ -1009,8 +1002,8 @@ Cohesion: 0.08
 Nodes (26): dependencies, depth, source, version, dependencies, depth, source, version (+18 more)
 
 ### Community 34 - "NetworkedVehicleDriverController"
-Cohesion: 0.09
-Nodes (13): Action, NetworkTransform, Quaternion, Rigidbody, Transform, Vector3, NetworkedVehicleDriverController, VehicleDriveIntent (+5 more)
+Cohesion: 0.11
+Nodes (11): Action, NetworkObjectReference, NetworkTransform, Quaternion, Rigidbody, Rpc, RpcParams, Transform (+3 more)
 
 ### Community 36 - "NetworkedVehicleSeatIntent"
 Cohesion: 0.25
@@ -1037,16 +1030,16 @@ Cohesion: 0.09
 Nodes (21): LobbyJoinOutcome, LobbyId, Reason, Success, ArgumentNullException, Difficulty, Exception, FakeSteamLobbyPlatform (+13 more)
 
 ### Community 42 - "Story26InGameHudTests"
-Cohesion: 0.23
+Cohesion: 0.22
 Nodes (5): GameObject, Test, TextMeshProUGUI, Type, Story26InGameHudTests
 
 ### Community 43 - ".agents/skills/bmad-retrospective/scripts/tests/test_sprint_status.py"
 Cohesion: 0.07
 Nodes (82): _json(), _load(), _module(), parametrize, skipif, Import the script as a module, for the few properties that cannot be triggered…, Parse the JSON-only stdout contract, surfacing a crash instead of hiding it…, Corruption-critical tests for sprint-status.py. Each test runs the script as a… (+74 more)
 
-### Community 44 - "LobbyCreateOutcome"
-Cohesion: 0.13
-Nodes (15): LobbyCreateOutcome, LobbyId, Success, LobbyMemberSnapshot, CharacterId, DisplayName, Ready, SteamId (+7 more)
+### Community 44 - "LobbyRosterSnapshot"
+Cohesion: 0.10
+Nodes (21): LobbyCreateOutcome, LobbyId, Success, LobbyMemberSnapshot, CharacterId, DisplayName, Ready, SteamId (+13 more)
 
 ### Community 45 - ".claude/skills/bmad-retrospective/scripts/tests/test_sprint_status.py"
 Cohesion: 0.07
@@ -1097,15 +1090,15 @@ Cohesion: 0.09
 Nodes (14): IEnumerator, Material, TMP_Text, Vector3, EnvMapAnimator, Camera, Canvas, Object (+6 more)
 
 ### Community 57 - "NetworkedRageState"
-Cohesion: 0.08
-Nodes (21): AiVehicleFixture, NetworkVariable, NetworkedRageState, CurrentDisposition, IRageDispositionSource, CurrentDisposition, RageDisposition, Block (+13 more)
+Cohesion: 0.07
+Nodes (25): AiVehicleFixture, Transform, NetworkVariable, NetworkedRageState, CurrentDisposition, NetworkTransform, Rigidbody, NetworkedAIVehicleDriverController (+17 more)
 
 ### Community 58 - "FakeSteamLobbyPlatform"
 Cohesion: 0.17
 Nodes (5): Difficulty, Task, FakeSteamLobbyPlatform, NextCreateOutcome, NextRoster
 
 ### Community 59 - "LobbyJoinService"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (14): Task, LobbyJoinService, JoinedJoinCode, JoinedLobbyId, Status, LobbyJoinStatus, Idle, InvalidCode (+6 more)
 
 ### Community 60 - ".agents/skills/bmad-retrospective/scripts/tests/test_git_evidence.py"
@@ -1125,16 +1118,16 @@ Cohesion: 0.09
 Nodes (16): ArgumentNullException, Difficulty, Exception, FakeSteamLobbyPlatform, Task, Test, FakeSteamLobbyPlatform, CreateLobbyCallCount (+8 more)
 
 ### Community 64 - "Story55NetworkedAiRageTargetingTests"
-Cohesion: 0.13
-Nodes (12): GameObject, List, NetworkObject, Object, TearDown, Test, Vector3, IntentFixture (+4 more)
+Cohesion: 0.10
+Nodes (17): IReadOnlyList, Vector3, AiRageTargetResolution, NetworkVariable, NetworkedAIVehicleState, GameObject, List, NetworkObject (+9 more)
 
 ### Community 65 - "TextConsoleSimulator"
-Cohesion: 0.15
-Nodes (8): IEnumerator, TMP_Text, TeleType, IEnumerator, Object, TMP_Text, TextConsoleSimulator, WaitForSeconds
+Cohesion: 0.19
+Nodes (6): IEnumerator, IEnumerator, Object, TMP_Text, TextConsoleSimulator, WaitForSeconds
 
 ### Community 66 - "ReadmeEditor"
-Cohesion: 0.22
-Nodes (4): ReadmeEditor, ClickEvent, Editor, VisualElement
+Cohesion: 0.13
+Nodes (9): ReadmeEditor, Texture2D, Readme, Section, ClickEvent, Editor, Section, StyleSheet (+1 more)
 
 ### Community 67 - "spec-0-1-setup-readiness-checklist-and-local-workspace-baseline.md"
 Cohesion: 0.11
@@ -1161,8 +1154,8 @@ Cohesion: 0.08
 Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
 
 ### Community 73 - "RageTuningDef"
-Cohesion: 0.05
-Nodes (29): TMP_Text, RageStateDebugView, List, RageTuningCatalog, Count, RageTuningDef, FearSensitivity, HonkChannel (+21 more)
+Cohesion: 0.09
+Nodes (18): GameObject, NetworkObject, Quaternion, Rigidbody, Vector3, DevVehicleSpawner, RageTuningDef, FearSensitivity (+10 more)
 
 ### Community 74 - "Story15EmptyMapEntryTests"
 Cohesion: 0.17
@@ -1188,21 +1181,21 @@ Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only
 Cohesion: 0.19
 Nodes (8): PointerEventData, Component, IEnumerator, RawImage, TMP_InputField, UnityTearDown, UnityTest, Story45PersistentSteamProfileAndMainMenuCharacterSelectionPlayModeTests
 
-### Community 80 - "Story34SimpleRouteCollisionAndVehicleRecoveryTests"
-Cohesion: 0.21
-Nodes (5): AssemblyDefinition, GameObject, Test, AssemblyDefinition, Story34SimpleRouteCollisionAndVehicleRecoveryTests
+### Community 80 - "LobbyCodeClipboard"
+Cohesion: 0.14
+Nodes (9): PointerEventData, TMP_Text, LobbyCodeClipboard, Camera, PointerEventData, TMP_TextSelector_A, IPointerClickHandler, IPointerEnterHandler (+1 more)
 
-### Community 81 - "Story33SeatEntryExitAndPassengerPresenceTests"
-Cohesion: 0.24
-Nodes (6): AssemblyDefinition, GameObject, NetworkObject, Test, AssemblyDefinition, Story33SeatEntryExitAndPassengerPresenceTests
+### Community 81 - "RoadRage.Shared.Networking"
+Cohesion: 0.09
+Nodes (13): NetworkVariable, NetworkedBossState, NetworkVariable, NetworkedCrewEconomyState, VehicleDamageType, Brake, Engine, Wheel (+5 more)
 
 ### Community 82 - "spec-3-6-epic-3-driving-playable-checkpoint.md"
 Cohesion: 0.12
 Nodes (14): Boundaries & Constraints, Code Map, Design Notes, I/O & Edge-Case Matrix, Intent, Suggested Review Order, Tasks & Acceptance, Verification (+6 more)
 
-### Community 83 - "PassengerActionVerdictCode"
-Cohesion: 0.07
-Nodes (26): Rpc, RpcParams, FixedString32Bytes, NetworkObjectReference, PassengerActionIntent, PassengerActionValidation, PassengerActionVerdict, Accepted (+18 more)
+### Community 83 - "PassengerActionDef"
+Cohesion: 0.06
+Nodes (30): List, PassengerActionCatalog, Count, Version, PassengerActionDef, CooldownSeconds, DisplayName, Id (+22 more)
 
 ### Community 84 - "com.unity.test-framework"
 Cohesion: 0.13
@@ -1217,8 +1210,8 @@ Cohesion: 0.12
 Nodes (16): dependencies, depth, source, version, dependencies, depth, source, version (+8 more)
 
 ### Community 87 - "NetworkedVehicleSeatService"
-Cohesion: 0.12
-Nodes (11): Vector3, NetworkedVehicleSeatService, Instance, Vector3, PlayerMode, Driver, OnFoot, OnFootRageRoad (+3 more)
+Cohesion: 0.14
+Nodes (4): Vector3, NetworkedVehicleSeatService, Instance, Vector3
 
 ### Community 88 - "graphify reference: extra exports and benchmark"
 Cohesion: 0.22
@@ -1241,12 +1234,12 @@ Cohesion: 0.13
 Nodes (15): dependencies, depth, source, version, dependencies, depth, source, version (+7 more)
 
 ### Community 93 - "DefinitionId"
-Cohesion: 0.12
-Nodes (15): PlayerProfile, CharacterId, DisplayName, PlayerProfileStore, Current, HasProfile, IsFrozen, SessionSelection (+7 more)
+Cohesion: 0.13
+Nodes (14): PlayerProfile, CharacterId, DisplayName, PlayerProfileStore, Current, HasProfile, IsFrozen, SessionSelection (+6 more)
 
-### Community 94 - "MainMenuProfileFlowController"
-Cohesion: 0.33
-Nodes (3): RoadRageBootstrap, MainMenuProfileFlowController, CurrentIndex
+### Community 94 - "CharacterCatalog"
+Cohesion: 0.09
+Nodes (21): RoadRageBootstrap, MainMenuProfileFlowController, CurrentIndex, List, CharacterCatalog, Count, Color, GameObject (+13 more)
 
 ### Community 95 - "graphify reference: query, path, explain"
 Cohesion: 0.33
@@ -1260,21 +1253,21 @@ Nodes (40): **2.1 Epics and Stories Analysis**, **2.2 Architecture Deep-Dive**, 
 Cohesion: 0.22
 Nodes (6): AssemblyDefinition, NetworkObject, Test, Type, AssemblyDefinition, RoadRageScaffoldTests
 
-### Community 98 - "Benchmark01_UGUI"
-Cohesion: 0.13
-Nodes (14): Canvas, Font, IEnumerator, Material, Text, TMP_FontAsset, Benchmark01_UGUI, Material (+6 more)
+### Community 98 - "TMP_UiFrameRateCounter"
+Cohesion: 0.08
+Nodes (24): Canvas, Font, IEnumerator, Material, Text, TMP_FontAsset, Benchmark01_UGUI, Material (+16 more)
 
 ### Community 99 - "LocalVehicleCameraRig"
-Cohesion: 0.15
-Nodes (9): CinemachineCamera, CinemachineInputAxisController, CinemachineOrbitalFollow, Dictionary, Quaternion, Transform, Vector3, LocalVehicleCameraRig (+1 more)
+Cohesion: 0.07
+Nodes (24): CinemachineCamera, CinemachineInputAxisController, CinemachineOrbitalFollow, Dictionary, Quaternion, Transform, Vector3, LocalVehicleCameraRig (+16 more)
 
 ### Community 100 - "Story35VehicleDamageHookAndTeamWipeContractStubTests"
 Cohesion: 0.15
 Nodes (7): AssemblyDefinition, CharacterController, GameObject, NetworkObject, Test, AssemblyDefinition, Story35VehicleDamageHookAndTeamWipeContractStubTests
 
 ### Community 101 - "RoadRage.Features.Players"
-Cohesion: 0.19
-Nodes (3): RoadRage.Features.Players, RoadRage.Shared.Authoring, RoadRage.Shared.Definitions
+Cohesion: 0.11
+Nodes (7): RoadRage.DevTools, RoadRage.Features.Players, RoadRage.Features.Run, RoadRage.Features.OnFoot, RoadRage.App.Run, RoadRage.Features.PassengerActions, RoadRage.Shared.Definitions
 
 ### Community 102 - "MCP Tooling Setup Draft"
 Cohesion: 0.14
@@ -1340,17 +1333,17 @@ Nodes (34): _card(), categories(), category_style(), filter_cats(), find(), fmt_
 Cohesion: 0.50
 Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify reference: commit hook and native CLAUDE.md integration
 
-### Community 118 - "LobbyCodeClipboard"
-Cohesion: 0.10
-Nodes (14): Color, PointerEventData, TMP_Text, LobbyCodeClipboard, LobbyRosterEntry, DisplayName, PortraitTint, Ready (+6 more)
+### Community 118 - "Story36Epic3DrivingPlayableCheckpointTests"
+Cohesion: 0.19
+Nodes (8): AssemblyDefinition, Component, GameObject, NetworkObject, Scene, Test, AssemblyDefinition, Story36Epic3DrivingPlayableCheckpointTests
 
 ### Community 119 - ".claude/skills/bmad-brainstorming/scripts/brain.py"
 Cohesion: 0.11
 Nodes (34): _card(), categories(), category_style(), filter_cats(), find(), fmt_categories(), fmt_list(), fmt_show() (+26 more)
 
-### Community 120 - ".Configure"
-Cohesion: 0.13
-Nodes (15): CinemachineCamera, CinemachineDeoccluder, CinemachineOrbitalFollow, Transform, ThirdPersonCameraConfiguration, Camera, CinemachineCamera, CinemachineDeoccluder (+7 more)
+### Community 120 - "Story34SimpleRouteCollisionAndVehicleRecoveryTests"
+Cohesion: 0.21
+Nodes (5): AssemblyDefinition, GameObject, Test, AssemblyDefinition, Story34SimpleRouteCollisionAndVehicleRecoveryTests
 
 ### Community 121 - "graphify reference: incremental update and cluster-only"
 Cohesion: 0.50
@@ -1469,8 +1462,8 @@ Cohesion: 0.22
 Nodes (8): Code Map, Intention, Limites & Contraintes, Matrice I/O & Cas Limites, Notes De Design, Spec Change Log, Taches & Acceptation, Verification
 
 ### Community 150 - "RoadRage.Shared.Domain"
-Cohesion: 0.09
-Nodes (9): RoadRage.DevTools, RoadRage.Shared.Domain, RoadRage.Tests.EditMode, RoadRage.Features.Run, RoadRage.Features.OnFoot, RoadRage.App.Run, RoadRage.Features.Rage, RoadRage.Features.PassengerActions (+1 more)
+Cohesion: 0.10
+Nodes (5): RoadRage.Shared.Domain, RoadRage.Tests.EditMode, RoadRage.Features.Rage, TMPro, RoadRage.Features.Vehicles
 
 ### Community 151 - "spec-0-6-blender-and-3d-asset-intake-pipeline.md"
 Cohesion: 0.18
@@ -1645,8 +1638,8 @@ Cohesion: 0.40
 Nodes (5): dependencies, depth, source, version, com.unity.modules.tetgen
 
 ### Community 200 - "NetworkedPlayerPresentation"
-Cohesion: 0.18
-Nodes (7): Collider, FixedString32Bytes, GameObject, NetworkedPlayerPresentation, CharacterCatalog, RenderedCharacterId, VisualInstance
+Cohesion: 0.12
+Nodes (11): NetworkedLocalPlayerPoseReporter, Collider, FixedString32Bytes, GameObject, Rpc, RpcParams, Vector3, NetworkedPlayerPresentation (+3 more)
 
 ### Community 201 - "Story 1.5 - Entree carte vide et mouvement local a pied"
 Cohesion: 0.50
@@ -1656,9 +1649,9 @@ Nodes (3): Intent, Story 1.5 - Entree carte vide et mouvement local a pied, Sugg
 Cohesion: 0.09
 Nodes (13): cats(), Tests for lint_spine.py. Run: uv run --with pytest pytest…, test_duplicate_ad_id_caught(), test_fenced_stack_heading_not_live(), test_fenced_stack_rows_not_parsed(), test_mermaid_braces_not_flagged(), test_no_frontmatter_body_still_scanned(), test_no_stack_section_ok() (+5 more)
 
-### Community 216 - "PassengerActionDef"
-Cohesion: 0.08
-Nodes (24): Transform, PassengerActionDef, CooldownSeconds, DisplayName, Id, MaxRange, RawId, Slot (+16 more)
+### Community 216 - "PassengerActionVerdictCode"
+Cohesion: 0.13
+Nodes (15): PassengerActionVerdictCode, Accepted, ActorMismatch, ActorNotAlive, ActorNotPassenger, CooldownActive, InvalidAction, InvalidCatalog (+7 more)
 
 ### Community 217 - ".claude/skills/bmad-architecture/scripts/tests/test_lint_spine.py"
 Cohesion: 0.09
@@ -1680,9 +1673,9 @@ Nodes (25): lib(), fixture, Tests for pick_methods.py. Run: uv run scripts/tests
 Cohesion: 0.07
 Nodes (27): 1. Load Approved Epic Structure, 2. Explain Story Creation Approach, 3. Process Epics Sequentially, 4. Epic Completion, 5. Repeat for All Epics, 6. Final Document Completion, 7. Present FINAL MENU OPTIONS, A. Epic Overview (+19 more)
 
-### Community 222 - "LobbyRoomService"
-Cohesion: 0.13
-Nodes (11): Task, LobbyRoomService, DisplayJoinCode, JoinCode, Status, LobbyRoomStatus, Closed, Creating (+3 more)
+### Community 222 - "LobbyRosterService"
+Cohesion: 0.06
+Nodes (20): Difficulty, Task, ISteamLobbyPlatform, Task, LobbyRoomService, DisplayJoinCode, JoinCode, Status (+12 more)
 
 ### Community 223 - ".claude/skills/bmad-advanced-elicitation/scripts/tests/test_pick_methods.py"
 Cohesion: 0.12
@@ -1789,8 +1782,8 @@ Cohesion: 0.12
 Nodes (16): After Spec is Output, BMad Spec, Companions, Conventions, Frontmatter conventions, Load-bearing, Memory and derivation, On Activation (+8 more)
 
 ### Community 249 - "Story28Epic2OnlinePlayableCheckpointTests"
-Cohesion: 0.12
-Nodes (13): ApprovalResult, FakeSteamLobbyPlatform, GameObject, NetworkObject, Test, ApprovalResult, Approved, Profile (+5 more)
+Cohesion: 0.17
+Nodes (10): ApprovalResult, NetworkPlayerConnectionPayload, GameObject, NetworkObject, Test, ApprovalResult, Approved, Profile (+2 more)
 
 ### Community 250 - ".claude/skills/bmad-architecture/scripts/lint_spine.py"
 Cohesion: 0.21
@@ -1936,9 +1929,9 @@ Nodes (12): Flow, Inputs, Modes, On Activation, Phase 1 — Gather, Phase 2 — 
 Cohesion: 0.15
 Nodes (12): Accessibility Floor, Component Patterns, Flow 1 — Daily write (Mira, late evening, after work), Flow 2 — Recall past entry (Mira, three weeks later, looking for what she wrote about her mother), Foundation, Information Architecture, Inspiration & Anti-patterns, Interaction Primitives (+4 more)
 
-### Community 286 - "Story36Epic3DrivingPlayableCheckpointTests"
-Cohesion: 0.19
-Nodes (8): AssemblyDefinition, Component, GameObject, NetworkObject, Scene, Test, AssemblyDefinition, Story36Epic3DrivingPlayableCheckpointTests
+### Community 286 - "VehicleDriveIntent"
+Cohesion: 0.17
+Nodes (5): VehicleDriveIntent, BrakeReverse, IsIdle, Steer, Throttle
 
 ### Community 287 - "On Activation"
 Cohesion: 0.15
@@ -2042,7 +2035,7 @@ Nodes (11): Customer FAQ, Getting Started, {Headline}, How It Works, Internal FA
 
 ### Community 312 - "NetworkedPassengerActionIntent"
 Cohesion: 0.07
-Nodes (27): Func, Vector3, NetworkedPassengerActionIntent, NetworkVariable, NetworkedPassengerActionIncidentState, IsActive, List, PassengerActionCatalog (+19 more)
+Nodes (29): Func, Rpc, RpcParams, Vector3, NetworkedPassengerActionIntent, Canvas, GameObject, IEnumerator (+21 more)
 
 ### Community 313 - "BMad Architecture"
 Cohesion: 0.17
@@ -2133,7 +2126,7 @@ Cohesion: 0.18
 Nodes (10): BMad UX, Discovery, Finalize, Modes, On Activation, Overview, Reviewer Gate, Sources (+2 more)
 
 ### Community 335 - ".GreyboxPlayerCarHasNetworkIdentityAndLongitudinalColliderAndArt"
-Cohesion: 0.18
+Cohesion: 0.16
 Nodes (10): AssemblyDefinition, BoxCollider, Collider, GameObject, NetworkObject, Renderer, Test, Vector3 (+2 more)
 
 ### Community 336 - "Architecture Spine — {name}"
@@ -2205,8 +2198,8 @@ Cohesion: 0.20
 Nodes (9): Evidence rules, Findings shape, Review sequence, Step 1: Screen for behavioral change, Step 2: Find the behavior that changed, Step 3: Trace where that behavior is used, Step 4: Qualify the consumer, then check its test, Step 5: Confirm each finding is real (+1 more)
 
 ### Community 353 - "Difficulty"
-Cohesion: 0.18
-Nodes (6): Difficulty, Difficulty, Difficulty, Easy, Hard, Normal
+Cohesion: 0.14
+Nodes (10): Difficulty, Color, LobbyRosterEntry, DisplayName, PortraitTint, Ready, Difficulty, Easy (+2 more)
 
 ### Community 354 - ".claude/skills/bmad-build-auto/spec-template.md"
 Cohesion: 0.20
@@ -2445,8 +2438,8 @@ Cohesion: 0.29
 Nodes (6): Close, Markdown twin shape, Orient, Reviewer Gate, Synthesis pipeline, Validate
 
 ### Community 413 - "NetworkedPlayerSpawnService"
-Cohesion: 0.14
-Nodes (9): Dictionary, GameObject, HashSet, IEnumerator, NetworkManager, NetworkObject, Transform, Vector3 (+1 more)
+Cohesion: 0.13
+Nodes (13): Dictionary, GameObject, HashSet, IEnumerator, NetworkManager, NetworkObject, Transform, Vector3 (+5 more)
 
 ### Community 414 - "Advanced Elicitation"
 Cohesion: 0.29
@@ -2660,9 +2653,9 @@ Nodes (4): Content, CRITICAL: two-character `index` fields only, Excalidraw Wire
 Cohesion: 0.40
 Nodes (4): Artifact handling, Creative Tools, Renderer contract, When to invoke
 
-### Community 467 - "RoadRage.Shared.Networking"
-Cohesion: 0.10
-Nodes (13): NetworkVariable, NetworkedBossState, NetworkVariable, NetworkedCrewEconomyState, VehicleDamageType, Brake, Engine, Wheel (+5 more)
+### Community 467 - "Story33SeatEntryExitAndPassengerPresenceTests"
+Cohesion: 0.24
+Nodes (6): AssemblyDefinition, GameObject, NetworkObject, Test, AssemblyDefinition, Story33SeatEntryExitAndPassengerPresenceTests
 
 ### Community 468 - "Compile Epic Context"
 Cohesion: 0.40
@@ -2780,17 +2773,17 @@ Nodes (3): How to run it, Team Discussion (opt-in), When to run it
 Cohesion: 0.50
 Nodes (3): Blocked, Headless JSON Response, Success
 
-### Community 610 - "Code Templates"
-Cohesion: 0.18
-Nodes (11): Code Templates, Delete a Key, Handle Write-Lock Conflicts, List All Keys, Load Specific Keys, Query Player Data, Read Custom Data (Game-Wide, Read-Only), Save and Load a File (+3 more)
+### Community 610 - "TMPro_InstructionOverlay"
+Cohesion: 0.16
+Nodes (11): Camera, Material, TextContainer, TMP_FontAsset, Transform, FpsCounterAnchorPositions, BottomLeft, BottomRight (+3 more)
 
 ### Community 611 - "Reprise Story 4.2 — Codex vers Claude"
 Cohesion: 0.33
 Nodes (5): A faire en premier, Attention Git, Etat, Reprise Story 4.2 — Codex vers Claude, Vérification observée
 
-### Community 612 - "SpriteAtlasLateBinding"
-Cohesion: 0.24
-Nodes (5): Action, Dictionary, SpriteAtlas, SpriteAtlasLateBinding, AsyncOperationHandle
+### Community 612 - "RouteWaypoints"
+Cohesion: 0.23
+Nodes (6): IReadOnlyList, Transform, Vector3, RouteWaypoints, Count, UsesChildren
 
 ### Community 613 - "Proposition de correction de trajectoire — 2026-09-13"
 Cohesion: 0.11
@@ -2800,9 +2793,9 @@ Nodes (18): 10. Risques et garde-fous, 11. Chemin recommandé, 12. Checklist Cor
 Cohesion: 0.31
 Nodes (6): CharacterController, Component, IEnumerator, UnityTearDown, UnityTest, Story15EmptyMapEntryPlayModeTests
 
-### Community 615 - "NetworkedAIVehicleDriverController"
-Cohesion: 0.25
-Nodes (5): NetworkTransform, Quaternion, Rigidbody, Vector3, NetworkedAIVehicleDriverController
+### Community 615 - "NetworkedVehicleRecoveryIntent"
+Cohesion: 0.30
+Nodes (4): Key, Rpc, RpcParams, NetworkedVehicleRecoveryIntent
 
 ### Community 616 - "handoff-2026-09-12-vehicle-camera-seat-fixes.md"
 Cohesion: 0.13
@@ -2812,9 +2805,9 @@ Nodes (14): 1. Fix deja valide et teste (a ne pas revert) : degats vehicule mult
 Cohesion: 0.33
 Nodes (5): TMP_FontAsset, TMP_Text, LocalizedFontAsset, LocalizedAssetBehaviour, LocalizedTmpFont
 
-### Community 618 - "Story16Epic1PlayableCheckpointTests"
+### Community 618 - "TMPro.Examples"
 Cohesion: 0.20
-Nodes (7): Component, GameObject, NetworkObject, Scene, Test, Transform, Story16Epic1PlayableCheckpointTests
+Nodes (5): Transform, Benchmark04, TMP_Text, TeleType, TMPro.Examples
 
 ### Community 619 - "EnableSpritePackingExample"
 Cohesion: 0.05
@@ -2824,9 +2817,9 @@ Nodes (13): DontModifyWithoutSavingDocumentation, ModifyWithoutSavingDemo, Confi
 Cohesion: 0.04
 Nodes (42): Audio Import API Recipes, Check Source File Format (Lossy Warning), Enable Load In Background, Enumerate mixer assets, Enumerate scene components, Force To Mono and Reimport, Override Sample Rate (Mobile), Read AudioClip Importer Settings (+34 more)
 
-### Community 621 - "Story52BasicAiRouteFollowingAndRecoveryTests"
-Cohesion: 0.25
-Nodes (3): Test, Vector3, Story52BasicAiRouteFollowingAndRecoveryTests
+### Community 621 - ".FixedUpdate"
+Cohesion: 0.15
+Nodes (5): Quaternion, Vector3, Test, Vector3, Story52BasicAiRouteFollowingAndRecoveryTests
 
 ### Community 622 - "LevelPlay Ad Unit Implementation Best Practices"
 Cohesion: 0.05
@@ -2837,8 +2830,8 @@ Cohesion: 0.05
 Nodes (41): Additional Resources, App Tracking Transparency (ATT), App Transport Security (ATS) Configuration, Apple Documentation, Best Practices, Common iOS Issues, Contents, Implementation (+33 more)
 
 ### Community 624 - "Benchmark03"
-Cohesion: 0.18
-Nodes (9): Font, Benchmark03, BenchmarkType, TEXTMESH_BITMAP, TMP_BITMAP_MOBILE, TMP_SDF, TMP_SDF_MOBILE, TMP_SDF__MOBILE_SSD (+1 more)
+Cohesion: 0.14
+Nodes (11): Font, Renderer, TextMesh, Benchmark03, BenchmarkType, TEXTMESH_BITMAP, TMP_BITMAP_MOBILE, TMP_SDF (+3 more)
 
 ### Community 625 - "spec-4-5-persistent-steam-profile-and-main-menu-character-selection.md"
 Cohesion: 0.14
@@ -2848,13 +2841,13 @@ Nodes (13): Boundaries & Constraints, Code Map, Design Notes, I/O & Edge-Case Ma
 Cohesion: 0.18
 Nodes (11): Epic 6: Individual Economy Foundation and Future On-Foot Assembly, Story 6.10: Epic 6 Economy Loop Playable Checkpoint, Story 6.1: Inventory Bar and Fist Melee Action, Story 6.2: Dev NPC Dismount and Test Mannequin, Story 6.3: On-Foot Transition for Confrontation and Sandbox Stops, Story 6.4: Compact Rage Road Confrontation Resolution, Story 6.5: Individual Wallet Authority, Story 6.6: Compact Sandbox Stop with Happenings (+3 more)
 
-### Community 627 - "MonoBehaviour"
-Cohesion: 0.08
-Nodes (14): Sprite, LateBindingConsumer, AtlasLoader, Action, SpriteAtlas, ChatController, TMP_InputField, TMP_Text (+6 more)
+### Community 627 - "HandleLateBinding"
+Cohesion: 0.22
+Nodes (3): Action, SpriteAtlas, HandleLateBinding
 
 ### Community 628 - "Story41RageStateModuleAndDefinitionsTests"
-Cohesion: 0.14
-Nodes (10): RageThreshold, Disposition, MinValue, List, NetworkObject, Object, TearDown, Test (+2 more)
+Cohesion: 0.10
+Nodes (13): List, RageTuningCatalog, Count, RageThreshold, Disposition, MinValue, List, NetworkObject (+5 more)
 
 ### Community 629 - "spec-5-5-networked-ai-rage-targeting.md"
 Cohesion: 0.25
@@ -2868,17 +2861,17 @@ Nodes (7): Boundaries & Constraints, Code Map, Design Notes, Intent, Spec Change
 Cohesion: 0.29
 Nodes (6): Boundaries & Constraints, Code Map, I/O & Edge-Case Matrix, Intent, Tasks & Acceptance, Verification
 
-### Community 632 - "RouteWaypoints"
-Cohesion: 0.23
-Nodes (6): IReadOnlyList, Transform, Vector3, RouteWaypoints, Count, UsesChildren
+### Community 632 - "Code Templates"
+Cohesion: 0.22
+Nodes (9): Account Management (GetPlayerInfo, UpdatePlayerName, DeleteAccount), Code Templates, Error Handling, Initialize and Sign In Anonymously, Link a Provider, Sign In with Steam (with Identity Param), Switch Profile, Token Expiry Handling (+1 more)
 
-### Community 633 - "RageSandboxAutoStart"
-Cohesion: 0.28
-Nodes (6): Canvas, GameObject, IEnumerator, NetworkManager, NetworkObject, RageSandboxAutoStart
+### Community 633 - "Core Services — Quick Reference"
+Cohesion: 0.22
+Nodes (9): Authentication, Cloud Code, Cloud Save, Core Services — Quick Reference, Deployment, Remote Config, Services APIs, Tooling (+1 more)
 
-### Community 634 - "Benchmark01"
-Cohesion: 0.24
-Nodes (8): Font, IEnumerator, Material, Renderer, TextContainer, TextMesh, TMP_FontAsset, Benchmark01
+### Community 634 - "TextMeshPro"
+Cohesion: 0.17
+Nodes (10): Font, IEnumerator, Material, Renderer, TextContainer, TextMesh, TMP_FontAsset, Benchmark01 (+2 more)
 
 ### Community 635 - "spec-5-1-configurable-npc-rage-fear-foundation.md"
 Cohesion: 0.20
@@ -2896,33 +2889,33 @@ Nodes (7): Cross-Story Dependencies, Epic 5 Context: NPC Response Foundation and
 Cohesion: 0.25
 Nodes (7): Boundaries & Constraints, Code Map, I/O & Edge-Case Matrix, Intent, Scope extension (approved 2026-09-13), Tasks & Acceptance, Verification
 
-### Community 639 - "NetworkedPlayerState"
-Cohesion: 0.12
-Nodes (13): Key, Rpc, RpcParams, NetworkedVehicleRecoveryIntent, GameObject, IEnumerator, NetworkManager, NetworkObject (+5 more)
+### Community 639 - "Key Model Types"
+Cohesion: 0.25
+Nodes (8): `EntityData` (`Unity.Services.CloudSave.Models`), `FieldFilter` (`Unity.Services.CloudSave.Models`), `FileItem` (`Unity.Services.CloudSave.Models`), `Item` (`Unity.Services.CloudSave.Models`), `ItemKey` (`Unity.Services.CloudSave.Models`), Key Model Types, `Query` (`Unity.Services.CloudSave.Models`), `SaveItem` (`Unity.Services.CloudSave.Models`)
 
 ### Community 640 - "LocalVoidRespawnController"
-Cohesion: 0.25
+Cohesion: 0.23
 Nodes (5): Quaternion, Vector3, LocalVoidRespawnController, CheckpointHud, IsDead
 
 ### Community 641 - "Proposition de correction de trajectoire — 2026-09-14"
 Cohesion: 0.15
 Nodes (12): 1. Résumé du problème, 2. Ce que dit déjà l'architecture, 3. Impact par épopée, 4. Chemin retenu, 5. Propositions de changement détaillées, 6. Impact MVP et plan d'action, 7. Transfert d'implémentation, Architecture (AD-26) (+4 more)
 
-### Community 642 - ".FrozenSelectionSpawnsTheSelectedCharacterInMvpRunAndStaysImmutable"
-Cohesion: 0.32
-Nodes (5): Component, IEnumerator, UnityTearDown, UnityTest, Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnPlayModeTests
+### Community 642 - ".MvpRunShowsTopRightRageHudAndMultipleRageVehicles"
+Cohesion: 0.48
+Nodes (3): IEnumerator, UnityTest, Story43PassengerActionOneMvpRunPlayModeTests
 
-### Community 643 - "CharacterDef"
-Cohesion: 0.20
-Nodes (8): Color, GameObject, CharacterDef, DisplayName, Id, PreviewPrefab, PreviewTint, RawId
+### Community 643 - "VertexColorCycler"
+Cohesion: 0.38
+Nodes (3): IEnumerator, TMP_Text, VertexColorCycler
 
 ### Community 644 - "TMP_DigitValidator"
 Cohesion: 0.29
 Nodes (3): TMP_DigitValidator, TMP_PhoneNumberValidator, TMP_InputValidator
 
-### Community 645 - "Package Map"
-Cohesion: 0.33
-Nodes (6): Foundation, Package Map, Player Data and Configuration, Server Logic and Security, Social and Competitive, Telemetry
+### Community 645 - "NetworkedPlayerState"
+Cohesion: 0.13
+Nodes (11): NetworkedPlayerLifecycleService, Instance, FixedString32Bytes, NetworkVariable, Vector3, NetworkedPlayerState, PlayerLifecycle, Alive (+3 more)
 
 ### Community 646 - "spec-5-4-rage-driven-ai-behavior-states.md"
 Cohesion: 0.20
@@ -2941,12 +2934,12 @@ Cohesion: 0.22
 Nodes (8): Cloture de revue Epic 4 — preuve multi-joueur et reconciliation, Execution, Hors perimetre, Intent, Problemes a fermer, Risques et garde-fous, Travail minimal, Validation manuelle requise
 
 ### Community 650 - "Convert Native iOS StoreKit to Unity IAP 5"
-Cohesion: 0.06
-Nodes (31): 1a — Native iOS Plugin Files, 1b — C# Bridge Patterns, 1c — StoreKit 1 Patterns (in .m / .mm / .h files), 1d — StoreKit 2 Patterns (in .swift files), 1e — Scene / Prefab / Asset Scan, App Account Token (replacing `applicationUsername`), Ask-to-Buy (Deferred Purchases), Code Redemption Sheet (+23 more)
+Cohesion: 0.05
+Nodes (38): 1a — Native iOS Plugin Files, 1b — C# Bridge Patterns, 1c — StoreKit 1 Patterns (in .m / .mm / .h files), 1d — StoreKit 2 Patterns (in .swift files), 1e — Scene / Prefab / Asset Scan, App Account Token (replacing `applicationUsername`), Ask-to-Buy (Deferred Purchases), Code Redemption Sheet (+30 more)
 
-### Community 651 - ".MvpRunShowsTopRightRageHudAndMultipleRageVehicles"
-Cohesion: 0.48
-Nodes (3): IEnumerator, UnityTest, Story43PassengerActionOneMvpRunPlayModeTests
+### Community 651 - ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId"
+Cohesion: 0.33
+Nodes (3): Collider, Renderer, Type
 
 ### Community 652 - "Implement Unity IAP D2C Capabilities (Third-Party Payment Provider)"
 Cohesion: 0.04
@@ -2957,16 +2950,16 @@ Cohesion: 0.18
 Nodes (10): Accessibility Floor, Component Patterns, First launch — Kenan, Foundation, Information Architecture, Interaction Primitives, Key Flows, Multiplayer entry — Kenan (+2 more)
 
 ### Community 654 - "spec-5-3-unified-solo-and-online-session-start.md"
-Cohesion: 0.22
-Nodes (8): Boundaries & Constraints, Code Map, Design Notes, I/O & Edge-Case Matrix, Intent, Spec Change Log, Tasks & Acceptance, Verification
+Cohesion: 0.20
+Nodes (9): Boundaries & Constraints, Code Map, Design Notes, I/O & Edge-Case Matrix, Intent, Spec Change Log, Suggested Review Order, Tasks & Acceptance (+1 more)
 
 ### Community 655 - "Proposition de correction de trajectoire — ciblage IA Rage/Fear — 2026-09-14"
 Cohesion: 0.29
 Nodes (6): Artefacts modifiés, Handoff, Impact et approche retenue, Modifications approuvées, Proposition de correction de trajectoire — ciblage IA Rage/Fear — 2026-09-14, Résumé du problème
 
-### Community 656 - ".ApplyHonkTarget"
-Cohesion: 0.31
-Nodes (3): NetworkObjectReference, Rpc, RpcParams
+### Community 656 - "FakeSteamPlatform"
+Cohesion: 0.33
+Nodes (3): FakeSteamPlatform, IsLoggedOn, IsValid
 
 ### Community 657 - "spec-5-2-basic-ai-route-following-and-recovery.md"
 Cohesion: 0.20
@@ -3057,16 +3050,16 @@ Cohesion: 0.08
 Nodes (24): Access Classes, Architecture Overview, Assembly Definition, Assembly References, Asset Store Building Block, AuthenticationException, CloudSaveException, Error Handling (+16 more)
 
 ### Community 680 - "Build a Live Game With Unity Gaming Services"
-Cohesion: 0.08
-Nodes (26): Architecture — How Packages Combine, Asset Store Building Blocks, Authentication, Build a Live Game With Unity Gaming Services, Cloud Code, Cloud Save, Common Architecture Patterns, Core Services — Quick Reference (+18 more)
+Cohesion: 0.09
+Nodes (23): Architecture — How Packages Combine, Asset Store Building Blocks, Build a Live Game With Unity Gaming Services, Common Architecture Patterns, Deployment Checklist, Detailed References, Feature Blueprints, Foundation (+15 more)
 
 ### Community 681 - "Connected Editors — pipeline / command / status"
 Cohesion: 0.09
 Nodes (23): Authoring custom `[CliCommand]` tools, Available in production — the common live commands, command (aliases: cmd, request) — send commands to a running Unity Editor, Connected Editors — pipeline / command / status, Getting an Editor to drive, Integration & advanced — unity-cli command reference, list — discover a connected Editor's tools, Machine/agent mode — `--protocol ndjson` (+15 more)
 
 ### Community 682 - "Cloud Save Reference"
-Cohesion: 0.09
-Nodes (22): Access Classes, `AccessClass` Enum, Anti-Hallucination Reference, Asset Store Building Blocks, Cloud Save Reference, `CloudSaveExceptionReason` Enum, `EntityData` (`Unity.Services.CloudSave.Models`), Error Handling (+14 more)
+Cohesion: 0.08
+Nodes (25): Access Classes, `AccessClass` Enum, Anti-Hallucination Reference, Asset Store Building Blocks, Cloud Save Reference, `CloudSaveExceptionReason` Enum, Code Templates, Delete a Key (+17 more)
 
 ### Community 683 - "RevenueCat — Conversion Assessment and Guidance"
 Cohesion: 0.09
@@ -3113,8 +3106,8 @@ Cohesion: 0.10
 Nodes (18): By dimension & look, By genre (starting points, combine with the above), By monetization — install now, integrate via the dedicated skill, By target platform, Discovering and verifying packages, Foundation (almost every project), Render pipeline (pick one; usually set by the template), Selecting packages (+10 more)
 
 ### Community 694 - "Authentication Reference"
-Cohesion: 0.07
-Nodes (28): Account Management (GetPlayerInfo, UpdatePlayerName, DeleteAccount), Anti-Hallucination Reference, Asset Store Building Blocks, Authentication Reference, Code Templates, Error Handling, Error Handling, Events (+20 more)
+Cohesion: 0.11
+Nodes (19): Anti-Hallucination Reference, Asset Store Building Blocks, Authentication Reference, Error Handling, Events, Identity Providers Quick Reference, Key Properties, Link / Unlink Methods (+11 more)
 
 ### Community 695 - "Tooling Reference"
 Cohesion: 0.11
@@ -3125,7 +3118,7 @@ Cohesion: 0.11
 Nodes (19): Auto-init race condition, Canonical store keys, Catalog as part of Codeless IAP, Codeless vs scripted — which to use, Detection checklist, Editing `IAPProductCatalog.json`, Enum integers, File location (+11 more)
 
 ### Community 697 - "LobbyShellScreen"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (4): Button, TMP_InputField, TMP_Text, LobbyShellScreen
 
 ### Community 698 - "Common Icon Examples"
@@ -3176,10 +3169,6 @@ Nodes (17): Apple App Store Extensions, Apple JWS Representation (Server-Side Va
 Cohesion: 0.12
 Nodes (17): 1 — Third-Party IAP Package Check (highest priority), 1a — Essential Kit (conversion supported), 1b — UniPay (assessment path), 1c — RevenueCat (assessment path), 1d — Adapty (assessment path), 2 — Native Google Billing Check, 2b — Native iOS StoreKit Check, 3 — Unity IAP v4 Check (+9 more)
 
-### Community 711 - "RegisterCallbacksExample"
-Cohesion: 0.15
-Nodes (4): Action, SpriteAtlas, RegisterCallbacksExample, RegisterCallbacksWithEnable
-
 ### Community 712 - "PackTransform"
 Cohesion: 0.14
 Nodes (12): PackTransform, FlipHorizontal, FlipVertical, None, Rotate180, PackTransformExtensions, PackTransform, FlipHorizontal (+4 more)
@@ -3227,10 +3216,6 @@ Nodes (4): IEnumerator, UnityTearDown, UnityTest, Story11MainMenuLaunchPlayModeT
 ### Community 723 - "ui-ugui/SKILL.md"
 Cohesion: 0.13
 Nodes (14): Best Practices, C# (Only When Requested), Canvas Setup, Common Components, Conventions, Critical Rules, Editing, Error Recovery (+6 more)
-
-### Community 724 - ".EnsureNetworkManagerRepairsExistingSingletonWithoutNetworkConfig"
-Cohesion: 0.43
-Nodes (3): NetworkManager, NetworkPrefabsList, TearDown
 
 ### Community 725 - "Unity In-App Purchasing"
 Cohesion: 0.14
@@ -3336,9 +3321,9 @@ Nodes (10): ⚠️ Always scope AssetDatabase.FindAssets to the folders you mean
 Cohesion: 0.25
 Nodes (5): Object, SpriteAtlas, SpriteAtlasAsset, SpriteAtlasImporter, HandleNullCasesExample
 
-### Community 753 - "GreyboxAssetSeedMetadata"
-Cohesion: 0.20
-Nodes (8): GreyboxAssetSeedMetadata, ColliderPlan, ExportAssetPath, ReplacementPolicy, ScaleCheck, SourceAssetPath, StableId, VisualReadability
+### Community 753 - "NetworkedPlayerLifecycleIntent"
+Cohesion: 0.32
+Nodes (3): Rpc, RpcParams, NetworkedPlayerLifecycleIntent
 
 ### Community 754 - "Sprite Editor Utility Examples"
 Cohesion: 0.18
@@ -3352,9 +3337,9 @@ Nodes (10): Branching Logic (RuleTile Types), Important Notes, Path A: RuleTile,
 Cohesion: 0.18
 Nodes (11): Build, Code coverage, GitHub Actions annotations (`--format github`), Report formats (CI-native JUnit), Retrying failing tests and reporting flakes, Run — batch/headless execution, run --command — execute a registered Editor command headlessly, Run, test & build — unity-cli command reference (+3 more)
 
-### Community 757 - "RunCompositionRoot"
-Cohesion: 0.40
-Nodes (4): Transform, RunCompositionRoot, RuntimeRoot, SpawnRoot
+### Community 757 - ".MvpRunProvidesOfflineAndNetworkPassengerActionWiring"
+Cohesion: 0.33
+Nodes (5): GameObject, IEnumerator, UnityTearDown, UnityTest, Story42PassengerActionMvpRunPlayModeTests
 
 ### Community 758 - "PixelPerfect Skill — Full API Reference"
 Cohesion: 0.20
@@ -3396,10 +3381,6 @@ Nodes (9): 9-Slice Backgrounds, Child vs Descendant Selectors, Design Tokens, Ps
 Cohesion: 0.15
 Nodes (10): Camera, Material, TMP_FontAsset, Transform, FpsCounterAnchorPositions, BottomLeft, BottomRight, TopLeft (+2 more)
 
-### Community 768 - "Step 7 — Migration Phases"
-Cohesion: 0.29
-Nodes (7): Phase 1 — Package Check, Phase 2 — Product Catalog Extraction, Phase 3 — New Unity IAP Service, Phase 4 — Compatibility Facade, Phase 5 — Remove Native Plugin from Active Path, Phase 6 — Test Scaffolding, Step 7 — Migration Phases
-
 ### Community 770 - "Cloud Save Operations"
 Cohesion: 0.25
 Nodes (8): Cloud Save Operations, Load All Keys, Load Default Data, Load Public Data (Another Player), Load Public Data (Own), Namespace Aliases, Save Default Data (Private to Player), Save Public Data (Visible to Other Players)
@@ -3439,10 +3420,6 @@ Nodes (9): Additional Data Providers, ISecondaryTextureDataProvider, ISpriteBone
 ### Community 779 - "Unity Sprite Editor API Reference"
 Cohesion: 0.22
 Nodes (9): Callbacks, Common Patterns, Core Interface: ISpriteEditorDataProvider, Core Methods, Properties, SpriteRect Properties, Table of Contents, Unity Sprite Editor API Reference (+1 more)
-
-### Community 780 - ".Create"
-Cohesion: 0.29
-Nodes (6): GameObject, NetworkObject, Quaternion, Rigidbody, Vector3, DevVehicleSpawner
 
 ### Community 781 - "Troubleshooting Decision Tree"
 Cohesion: 0.25
@@ -3512,10 +3489,6 @@ Nodes (7): Auto-Refresh Management, Best Practices, Loading, Memory Management, 
 Cohesion: 0.29
 Nodes (7): Core Methods, `DestroyAd()`, `HideAd()`, `LoadAd()`, `PauseAutoRefresh()`, `ResumeAutoRefresh()`, `ShowAd()`
 
-### Community 798 - "HandleLateBinding"
-Cohesion: 0.22
-Nodes (3): Action, SpriteAtlas, HandleLateBinding
-
 ### Community 799 - "SpriteAtlasImporter (Editor Settings)"
 Cohesion: 0.29
 Nodes (7): Applying Changes, Basic Properties, Getting the Importer, Packing Settings, Platform Settings, SpriteAtlasImporter (Editor Settings), Texture Settings
@@ -3531,10 +3504,6 @@ Nodes (7): Abstract Methods, PackerData Structure, PackTransform Options, Script
 ### Community 803 - ".SetPlatformSettings"
 Cohesion: 0.33
 Nodes (4): Object, SpriteAtlasImporter, TextureImporterFormat, MasterAtlasCreator
-
-### Community 805 - ".SubmitPoseRpc"
-Cohesion: 0.43
-Nodes (3): Rpc, RpcParams, Vector3
 
 ### Community 806 - "Events, Participants, and Lifecycle"
 Cohesion: 0.29
@@ -3555,10 +3524,6 @@ Nodes (6): Common USS/UXML Issues, Hardcoded Percentage Widths, Performance Issu
 ### Community 811 - "Config & Hub — unity-cli command reference"
 Cohesion: 0.29
 Nodes (6): config get / set / list / unset — read or write any setting by key, Config & Hub — unity-cli command reference, Config — persisted CLI configuration, config proxy, config update-check, Hub — install the Unity Hub application
-
-### Community 812 - "VertexColorCycler"
-Cohesion: 0.38
-Nodes (3): IEnumerator, TMP_Text, VertexColorCycler
 
 ### Community 813 - "Core Concepts Reference"
 Cohesion: 0.33
@@ -3596,13 +3561,9 @@ Nodes (4): GUID, ISpriteEditorDataProvider, Vector2, SpriteAlignment
 Cohesion: 0.33
 Nodes (6): Auth, Auth, license & cloud — unity-cli command reference, Cloud — Unity Cloud organizations and projects, Consumers — see who's used your sign-in, and revoke one, License — list, activate, return, Multiple accounts
 
-### Community 823 - ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId"
-Cohesion: 0.33
-Nodes (3): Collider, Renderer, Type
-
-### Community 824 - "PlayerProfileResolution"
-Cohesion: 0.40
-Nodes (5): PlayerProfileResolution, Error, IsResolved, Profile, ShouldPersist
+### Community 824 - "NetworkedRunSessionMonitor"
+Cohesion: 0.29
+Nodes (3): IEnumerator, NetworkManager, NetworkedRunSessionMonitor
 
 ### Community 825 - "Registre d'adoption add-on, librairie et asset"
 Cohesion: 0.25
@@ -3656,10 +3617,6 @@ Nodes (5): Common Operations, Important Notes, Passing C# to `eval`, Sprite Edit
 Cohesion: 0.40
 Nodes (5): Reading a change, vcs affected, vcs blame, vcs diff, vcs summarize
 
-### Community 839 - "SeedExpectation"
-Cohesion: 0.67
-Nodes (3): Type, Vector3, SeedExpectation
-
 ### Community 841 - "Implementation Pattern"
 Cohesion: 0.50
 Nodes (4): Advanced: Context-Aware Banner Management, Banner with Custom Configuration, Basic Banner Implementation, Implementation Pattern
@@ -3680,29 +3637,41 @@ Nodes (4): AddNewSpriteMethod, DeleteAll, Safe, Smart
 Cohesion: 0.67
 Nodes (3): Critical Default, Generic Migration Success Gate, Generic Upgrade Contract
 
-### Community 859 - "NetworkedAIVehicleState"
-Cohesion: 0.19
-Nodes (10): IReadOnlyList, Vector3, AiRageTargetResolution, Camera, TextMeshPro, TMP_Text, Vector3, AIVehicleBehaviorDebugView (+2 more)
+### Community 854 - ".EnsureVehicleSandboxSeatHarness"
+Cohesion: 0.31
+Nodes (5): GameObject, IEnumerator, NetworkManager, NetworkObject, RoadRageNetcodeSmokeTestAutoStart
+
+### Community 858 - "MonoBehaviour"
+Cohesion: 0.06
+Nodes (19): Sprite, LateBindingConsumer, AtlasLoader, Action, SpriteAtlas, Action, Dictionary, SpriteAtlas (+11 more)
+
+### Community 859 - "AIVehicleBehaviorDebugView"
+Cohesion: 0.29
+Nodes (5): Camera, TextMeshPro, TMP_Text, Vector3, AIVehicleBehaviorDebugView
+
+### Community 860 - "OnFootMovementIntent"
+Cohesion: 0.29
+Nodes (6): Vector2, OnFootMovementIntent, IsIdle, Look, Move, SprintRequested
 
 ## Knowledge Gaps
-- **5242 isolated node(s):** `BuiltIn`, `URP`, `HDRP`, `Custom`, `PixelPerfect.Editor` (+5237 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 6757 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **124 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **5243 isolated node(s):** `BuiltIn`, `URP`, `HDRP`, `Custom`, `PixelPerfect.Editor` (+5238 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 6758 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **123 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `RunFlowController` connect `RunFlowController` to `Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests`, `.FrozenSelectionSpawnsTheSelectedCharacterInMvpRunAndStaysImmutable`, `.BootstrapToWorldCompletesEpic1PlayableCheckpoint`, `RunCheckpointHudScreen`, `.MvpRunShowsTopRightRageHudAndMultipleRageVehicles`, `LocalOnFootController`, `RoadRage.Shared.Domain`, `Story27PlayerLifecycleTests`, `Story36Epic3DrivingPlayableCheckpointTests`, `NetworkedVehicleDriverController`, `Story26InGameHudTests`, `Story43PassengerActionOneChangesRageTests`, `NetworkedPassengerActionIntent`, `NetworkedRageState`, `Story55NetworkedAiRageTargetingTests`, `RageTuningDef`, `Story15EmptyMapEntryTests`, `NetworkedAIVehicleState`, `.StartGameWithProfileLoadsMvpRunAndSpawnsLocalOnFootPlayer`, `Story16Epic1PlayableCheckpointTests`, `NetworkedVehicleState`, `MonoBehaviour`, `RunCompositionRoot`, `NetworkedPlayerState`?**
-  _High betweenness centrality (0.017) - this node is a cross-community bridge._
-- **Why does `RageTuningDef` connect `RageTuningDef` to `Story55NetworkedAiRageTargetingTests`, `RunFlowController`, `Story51NpcRageFearFoundationTests`, `Story41RageStateModuleAndDefinitionsTests`, `RoadRage.Shared.Domain`, `Story43PassengerActionOneChangesRageTests`, `RageSandboxAutoStart`, `DefinitionId`, `NetworkedRageState`?**
+- **Why does `RunFlowController` connect `RunFlowController` to `.MvpRunShowsTopRightRageHudAndMultipleRageVehicles`, `GreyboxAssetSeedMetadata`, `NetworkedPlayerState`, `.BootstrapToWorldCompletesEpic1PlayableCheckpoint`, `RunCheckpointHudScreen`, `LocalOnFootController`, `.FrozenSelectionSpawnsTheSelectedCharacterInMvpRunAndStaysImmutable`, `NetworkedPlayerSpawnService`, `NetworkedVehicleDriverController`, `Story26InGameHudTests`, `Story43PassengerActionOneChangesRageTests`, `NetworkedPassengerActionIntent`, `NetworkedRageState`, `Story55NetworkedAiRageTargetingTests`, `RageTuningDef`, `Story15EmptyMapEntryTests`, `PassengerActionDef`, `MonoBehaviour`, `AIVehicleBehaviorDebugView`, `CharacterCatalog`, `RoadRage.Features.Players`, `.StartGameWithProfileLoadsMvpRunAndSpawnsLocalOnFootPlayer`, `NetworkedVehicleState`, `.MvpRunProvidesOfflineAndNetworkPassengerActionWiring`, `Story36Epic3DrivingPlayableCheckpointTests`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Why does `RageTuningDef` connect `RageTuningDef` to `Story55NetworkedAiRageTargetingTests`, `RunFlowController`, `Story51NpcRageFearFoundationTests`, `PassengerActionDef`, `Story41RageStateModuleAndDefinitionsTests`, `RoadRage.Shared.Domain`, `Story43PassengerActionOneChangesRageTests`, `NetworkedPassengerActionIntent`, `NetworkedRageState`, `DefinitionId`?**
   _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `LobbyFlowController` connect `LobbyFlowController` to `Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests`, `Difficulty`, `Story25NetworkedPlayerSpawnTests`, `LobbyRosterScreen`, `CharacterDef`, `Story16Epic1PlayableCheckpointTests`, `.BootstrapToWorldCompletesEpic1PlayableCheckpoint`, `OnlineServicesBootstrapService`, `RoadRage.Features.UI`, `LobbyRosterSnapshot`, `MonoBehaviour`, `Story12LobbyShellPlayModeTests`, `LobbyShellScreen`, `Story12LobbyShellTests`, `LobbyJoinService`, `LobbyRoomService`?**
+- **Why does `NetworkedVehicleState` connect `NetworkedVehicleState` to `NetworkedVehicleDriverController`, `LocalVehicleCameraRig`, `Story35VehicleDamageHookAndTeamWipeContractStubTests`, `.MvpRunShowsTopRightRageHudAndMultipleRageVehicles`, `NetworkedVehicleRecoveryIntent`, `RageTuningDef`, `RunFlowController`, `.GreyboxPlayerCarHasNetworkIdentityAndLongitudinalColliderAndArt`, `Story32DriverControlAndLocalCameraTests`, `RoadRage.Shared.Networking`, `Story33SeatEntryExitAndPassengerPresenceTests`, `NetworkedVehicleDamageVfxController`, `.EnsureVehicleSandboxSeatHarness`, `NetworkedVehicleSeatService`, `NetworkedPassengerActionIntent`, `Story36Epic3DrivingPlayableCheckpointTests`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **What connects `BuiltIn`, `URP`, `HDRP` to the rest of the system?**
-  _5242 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _5243 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests` be split into smaller, more focused modules?**
-  _Cohesion score 0.08080808080808081 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0966183574879227 - nodes in this community are weakly interconnected._
 - **Should `Story13CharacterSetupTests` be split into smaller, more focused modules?**
-  _Cohesion score 0.09438775510204081 - nodes in this community are weakly interconnected._
-- **Should `render_skill.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.09831649831649832 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08941176470588236 - nodes in this community are weakly interconnected._
+- **Should `Story25NetworkedPlayerSpawnTests` be split into smaller, more focused modules?**
+  _Cohesion score 0.13911290322580644 - nodes in this community are weakly interconnected._

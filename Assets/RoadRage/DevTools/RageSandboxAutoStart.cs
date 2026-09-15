@@ -71,6 +71,8 @@ namespace RoadRage.DevTools
                 yield break;
             }
 
+            EnsureTargetIsEligibleAiCandidate();
+
             var tags = Unity.Multiplayer.PlayMode.CurrentPlayer.Tags;
             var hasClientTag = tags != null && tags.Any(tag => string.Equals(tag, ClientTag, StringComparison.OrdinalIgnoreCase));
             var isVirtualProject = Application.dataPath.Replace('\\', '/').Contains("/Library/VP/", StringComparison.OrdinalIgnoreCase);
@@ -103,6 +105,26 @@ namespace RoadRage.DevTools
             }
         }
 
+        /// <summary>
+        /// Story 5.5 : l'hote n'accepte plus qu'une cible IA eligible (NetworkedAIVehicleState +
+        /// source rage/peur, spawnee). Ce sandbox ne teste pas le trafic IA (5.2/5.4) ; on complete
+        /// simplement la composition de la cible harnais plutot que d'y dupliquer un vehicule IA
+        /// complet, pour que les slots passager restent testables ici.
+        ///
+        /// Doit rester AVANT StartHost/StartClient : Netcode fige la liste des NetworkBehaviour d'un
+        /// NetworkObject a son spawn, et l'objet de scene est spawne par le demarrage de session. Un
+        /// composant ajoute apres coup n'est jamais initialise (IsSpawned reste faux), la cible devient
+        /// inegible pour AiRageTargetResolution et toute action passager est refusee (InvalidTarget).
+        /// </summary>
+        private void EnsureTargetIsEligibleAiCandidate()
+        {
+            var target = FindAnyObjectByType<NetworkedRageState>();
+            if (target != null && target.GetComponent<NetworkedAIVehicleState>() == null)
+            {
+                target.gameObject.AddComponent<NetworkedAIVehicleState>();
+            }
+        }
+
         private void EnsurePassengerActionHarness(NetworkManager manager)
         {
             harnessTarget = FindAnyObjectByType<NetworkedRageState>();
@@ -110,15 +132,6 @@ namespace RoadRage.DevTools
             {
                 Debug.LogWarning("[RageSandboxAutoStart] Catalogue PassengerActions ou cible Rage absent.");
                 return;
-            }
-
-            // Story 5.5 : l'hote n'accepte plus qu'une cible IA eligible (NetworkedAIVehicleState +
-            // source rage/peur, spawnee). Ce sandbox ne teste pas le trafic IA (5.2/5.4) ; on complete
-            // simplement la composition de la cible harnais plutot que d'y dupliquer un vehicule IA
-            // complet, pour que les slots passager restent testables ici.
-            if (harnessTarget.GetComponent<NetworkedAIVehicleState>() == null)
-            {
-                harnessTarget.gameObject.AddComponent<NetworkedAIVehicleState>();
             }
 
             if (!EnsureSpawned(harnessTarget.GetComponent<NetworkObject>(), manager))
