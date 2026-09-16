@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bf0f3d9b3f722f4d85027087096508a, type: 3}
+  m_Name: TrafficSettingsDef_Default
+  m_EditorClassIdentifier: RoadRage.Features.Vehicles::RoadRage.Features.Vehicles.TrafficSettingsDef
+  id: traffic_default
+  defaultTargetPopulation: 8
+  minTargetPopulation: 0
+  maxTargetPopulation: 30
+  edgeBudgetFactor: 2
+  portalClearanceRadius: 12
+  connectorJoinDistance: 0.75

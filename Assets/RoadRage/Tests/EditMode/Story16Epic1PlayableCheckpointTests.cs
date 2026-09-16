@@ -11,6 +11,7 @@ using RoadRage.Features.OnFoot;
 using RoadRage.Features.Players;
 using RoadRage.Features.Run;
 using RoadRage.Features.UI;
+using RoadRage.Features.Vehicles;
 using RoadRage.Shared.Authoring;
 using TMPro;
 using Unity.Netcode;
@@ -100,7 +101,7 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(composition.SpawnRoot, Is.Not.Null);
 
                 Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_GroundPlane"), Is.Not.Null);
-                Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_RoadLoop_South"), Is.Not.Null, "bande de route greybox attendue (segment Sud de la boucle Story 3.4)");
+                AssertDistrictCarriesADrivableGreyboxRoad(runRoot.transform);
                 Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_PlayerCar_Parked"), Is.Not.Null);
                 Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_CityBlock_A_West"), Is.Not.Null);
                 Assert.That(FindChild(runRoot.transform, "GreyboxMap/Greybox_CityBlock_A_East"), Is.Not.Null);
@@ -228,6 +229,36 @@ namespace RoadRage.Tests.EditMode
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Story 5.10 : la boucle greybox de la Story 3.4 est remplacee par le district route, dont
+        /// la topologie et les noms d'instances sont libres d'etre remanies. Ce que cette garde
+        /// heritee exige n'a pas change -- une chaussee greybox praticable existe a l'entree du run --
+        /// donc elle se verifie sur une PROPRIETE : un module de route est pose sous la racine du
+        /// graphe de voies, et ce graphe porte des voies parcourables. Aucun nom d'instance ici : un
+        /// troisieme remaniement du district ne doit plus casser ce test.
+        /// </summary>
+        private static void AssertDistrictCarriesADrivableGreyboxRoad(Transform runRoot)
+        {
+            const string roadSegmentPrefabPath = "Assets/RoadRage/Prefabs/Greybox_RoadSegment_TwoWay.prefab";
+
+            var laneGraph = runRoot.GetComponentInChildren<LaneGraph>(true);
+            Assert.That(laneGraph, Is.Not.Null, "district route greybox attendu sous RunRoot");
+            Assert.That(laneGraph.NodeCount, Is.GreaterThan(0), "la chaussee du district doit porter des voies parcourables");
+
+            var roadModules = 0;
+            foreach (Transform module in laneGraph.transform)
+            {
+                var source = PrefabUtility.GetCorrespondingObjectFromSource(module.gameObject);
+                if (source != null && AssetDatabase.GetAssetPath(source) == roadSegmentPrefabPath)
+                {
+                    roadModules++;
+                }
+            }
+
+            Assert.That(roadModules, Is.GreaterThan(0),
+                "au moins un module de route greybox (" + roadSegmentPrefabPath + ") doit etre pose dans le district, quel que soit le nom de l'instance");
         }
 
         private static Transform FindChild(Transform root, string path)

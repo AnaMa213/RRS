@@ -8,7 +8,8 @@ namespace RoadRage.Tests.EditMode
 {
     /// <summary>
     /// Story 5.2 : verification ciblee des predicats purs de poursuite/blocage du controleur IA
-    /// (ComputeSeekIntent, HasArrivedAtWaypoint, IsStuck), du bouclage de route (RouteWaypoints),
+    /// (ComputeSeekIntent, HasArrivedAtWaypoint, IsStuck), des deux predicats d'index migres de
+    /// RouteWaypoints vers LaneGraphRouting en Story 5.10 (la boucle a disparu, ces garanties non),
     /// de la reutilisation (sans modification) des predicats retournement/hors-zone de la Story 3.4,
     /// et de l'absence d'etat partage entre vehicules IA -- tout testable sans Netcode.
     /// </summary>
@@ -66,17 +67,17 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void RouteWaypointsNormalizeIndexLoopsAfterLastPointAndHandlesNegativeIndices()
+        public void NormalizeIndexWrapsPastTheLastEntryAndHandlesNegativeIndices()
         {
-            Assert.That(RouteWaypoints.NormalizeIndex(0, 3), Is.EqualTo(0));
-            Assert.That(RouteWaypoints.NormalizeIndex(2, 3), Is.EqualTo(2));
-            Assert.That(RouteWaypoints.NormalizeIndex(3, 3), Is.EqualTo(0), "Boucle apres le dernier waypoint.");
-            Assert.That(RouteWaypoints.NormalizeIndex(-1, 3), Is.EqualTo(2), "Index negatif boucle depuis la fin.");
-            Assert.That(RouteWaypoints.NormalizeIndex(5, 0), Is.EqualTo(0), "Route vide : jamais d'exception, repli sur 0.");
+            Assert.That(LaneGraphRouting.NormalizeIndex(0, 3), Is.EqualTo(0));
+            Assert.That(LaneGraphRouting.NormalizeIndex(2, 3), Is.EqualTo(2));
+            Assert.That(LaneGraphRouting.NormalizeIndex(3, 3), Is.EqualTo(0), "Boucle apres le dernier element.");
+            Assert.That(LaneGraphRouting.NormalizeIndex(-1, 3), Is.EqualTo(2), "Index negatif boucle depuis la fin.");
+            Assert.That(LaneGraphRouting.NormalizeIndex(5, 0), Is.EqualTo(0), "Liste vide : jamais d'exception, repli sur 0.");
         }
 
         [Test]
-        public void RouteWaypointsNearestIndexPicksClosestPlanarWaypointForEachVehicleStart()
+        public void NearestIndexPicksClosestPlanarPointForEachVehicleStart()
         {
             var loop = new[]
             {
@@ -90,10 +91,10 @@ namespace RoadRage.Tests.EditMode
                 new Vector3(0f, 0f, -45f),
             };
 
-            Assert.That(RouteWaypoints.NearestIndex(new Vector3(45f, 0.05f, -20f), loop), Is.EqualTo(1));
-            Assert.That(RouteWaypoints.NearestIndex(new Vector3(20f, 0.05f, 45f), loop), Is.EqualTo(3));
-            Assert.That(RouteWaypoints.NearestIndex(new Vector3(-45f, 0.05f, 20f), loop), Is.EqualTo(5));
-            Assert.That(RouteWaypoints.NearestIndex(Vector3.zero, System.Array.Empty<Vector3>()), Is.EqualTo(0), "Route vide : repli sur 0.");
+            Assert.That(LaneGraphRouting.NearestIndex(new Vector3(45f, 0.05f, -20f), loop), Is.EqualTo(1));
+            Assert.That(LaneGraphRouting.NearestIndex(new Vector3(20f, 0.05f, 45f), loop), Is.EqualTo(3));
+            Assert.That(LaneGraphRouting.NearestIndex(new Vector3(-45f, 0.05f, 20f), loop), Is.EqualTo(5));
+            Assert.That(LaneGraphRouting.NearestIndex(Vector3.zero, System.Array.Empty<Vector3>()), Is.EqualTo(0), "Liste vide : repli sur 0.");
         }
 
         [Test]
@@ -118,8 +119,9 @@ namespace RoadRage.Tests.EditMode
             // Seules les fonctions de decision de la Story 5.2 restent statiques ici
             // (ComputeSeekIntent, HasArrivedAtWaypoint, IsStuck) : aucune collection/etat partage
             // entre vehicules IA, chaque instance ne lit/ecrit que ses champs. La Story 5.9 a
-            // deplace la decision de conduite (IDM/MOBIL) dans DriverModel, donc le compte descend
-            // de 4 a 3 -- la garde reste vraie au lieu d'etre diluee.
+            // deplace la decision de conduite (IDM/MOBIL) dans DriverModel, la Story 5.10 les
+            // decisions de parcours dans LaneGraphRouting : le compte reste a 3, la garde reste vraie
+            // au lieu d'etre diluee.
             Assert.That(Occurrences(source, "static "), Is.EqualTo(3),
                 "Seuls ComputeSeekIntent/HasArrivedAtWaypoint/IsStuck doivent etre statiques -- toute autre occurrence signale un etat partage entre vehicules IA.");
             Assert.That(source, Does.Not.Contain("FindObjectsOfType"),

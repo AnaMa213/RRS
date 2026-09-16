@@ -847,20 +847,26 @@ namespace RoadRage.App.Run
                 return;
             }
 
-            var service = NetworkedPlayerLifecycleService.Instance;
-            if (service != null)
-            {
-                for (var seatIndex = NetworkedVehicleState.DriverSeatIndex; seatIndex < NetworkedVehicleState.SeatCount; seatIndex++)
-                {
-                    if (subscribedVehicleState.TryGetSeatOccupant(seatIndex, out var clientId) && clientId != NetworkedVehicleState.UnoccupiedSeatClientId)
-                    {
-                        service.ApplyCollisionDamage(clientId, NetworkedPlayerLifecycleService.PlayerCollisionDamage);
-                    }
-                }
-            }
-
+            // Correctif post-livraison du 2026-09-16 (retour terrain n° 2) : la garde sur les degats
+            // VEHICULE precede l'application aux occupants, exactement comme dans
+            // ApplySecondaryVehicleCollisionDamage. Sans elle, toute entree de collision -- y compris
+            // un contact de surface sous le seuil de 3 m/s, ou la voiture ne perd aucun PV -- retirait
+            // PlayerCollisionDamage au conducteur et a chaque passager : le joueur etait blesse par des
+            // contacts qui ne sont pas des obstacles.
             if (vehicleDamage > 0)
             {
+                var service = NetworkedPlayerLifecycleService.Instance;
+                if (service != null)
+                {
+                    for (var seatIndex = NetworkedVehicleState.DriverSeatIndex; seatIndex < NetworkedVehicleState.SeatCount; seatIndex++)
+                    {
+                        if (subscribedVehicleState.TryGetSeatOccupant(seatIndex, out var clientId) && clientId != NetworkedVehicleState.UnoccupiedSeatClientId)
+                        {
+                            service.ApplyCollisionDamage(clientId, NetworkedPlayerLifecycleService.PlayerCollisionDamage);
+                        }
+                    }
+                }
+
                 subscribedVehicleState.ApplyDamage(vehicleDamage);
             }
 

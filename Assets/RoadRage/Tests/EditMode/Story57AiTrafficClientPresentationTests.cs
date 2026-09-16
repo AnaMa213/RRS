@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using NUnit.Framework;
 using RoadRage.App.Run;
 using RoadRage.Features.Rage;
@@ -12,6 +11,7 @@ using RoadRage.Features.UI;
 using RoadRage.Features.Vehicles;
 using Unity.Netcode;
 using Unity.Netcode.Components;
+using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -221,7 +221,7 @@ namespace RoadRage.Tests.EditMode
         // ---------------------------------------------------------------- Cablage de scene
 
         [Test]
-        public void MvpRunAiTrafficIsThreeInScenePlacedNetworkedVehicles()
+        public void MvpRunAiTrafficIsSpawnedAtRuntimeByThePortalSpawnerFromAFullyComposedPrefab()
         {
             var alreadyOpen = SceneManager.GetSceneByPath(MvpRunScenePath);
             var wasOpen = alreadyOpen.IsValid();
@@ -235,32 +235,41 @@ namespace RoadRage.Tests.EditMode
                 var traffic = root.transform.Find("AITraffic");
                 Assert.That(traffic, Is.Not.Null, "AITraffic attendu sous RunRoot");
 
-                var vehicles = traffic.GetComponentsInChildren<NetworkedAIVehicleState>();
-                Assert.That(vehicles.Length, Is.EqualTo(3), "Trois vehicules de trafic (Story 5.2), ni plus ni moins.");
+                // Story 5.10 : le trafic n'est plus pose en scene. Il entre et sort par les portails du
+                // graphe de voies, insere a l'execution par l'hote. Ce que la Story 5.7 verrouille --
+                // la composition d'un vehicule de trafic, et donc ce que le client voit -- se verifie
+                // desormais sur le prefab que le spawner instancie, pas sur trois instances figees.
+                var spawner = traffic.GetComponent<PortalTrafficSpawner>();
+                Assert.That(spawner, Is.Not.Null, "PortalTrafficSpawner attendu sur AITraffic : c'est lui qui fait exister le trafic cote client.");
 
-                foreach (var vehicle in vehicles)
-                {
-                    Assert.That(vehicle.GetComponent<NetworkedRageState>(), Is.Not.Null,
-                        vehicle.name + " doit porter l'etat de rage replique (source de Behavior et du Rage Road).");
-                    Assert.That(vehicle.GetComponent<NetworkTransform>(), Is.Not.Null,
-                        vehicle.name + " doit repliquer sa position par le NetworkTransform existant -- pas par une RPC de mouvement.");
-                    Assert.That(vehicle.GetComponent<AIVehicleBehaviorDebugView>(), Is.Not.Null,
-                        vehicle.name + " doit rendre son comportement en texte, jamais par une couleur seule.");
-                }
+                var serialized = new SerializedObject(spawner);
+                Assert.That(serialized.FindProperty("laneGraph").objectReferenceValue, Is.Not.Null,
+                    "Le spawner doit connaitre le graphe : sans lui aucun portail, donc aucun vehicule chez personne.");
+
+                var prefab = serialized.FindProperty("vehiclePrefab").objectReferenceValue as GameObject;
+                Assert.That(prefab, Is.Not.Null, "Le spawner doit referencer le prefab reseau du vehicule de trafic.");
+
+                Assert.That(prefab.GetComponent<NetworkObject>(), Is.Not.Null,
+                    prefab.name + " doit porter un NetworkObject : sans lui l'hote ne peut pas le spawner et le client ne le voit jamais.");
+                Assert.That(prefab.GetComponent<NetworkedAIVehicleState>(), Is.Not.Null,
+                    prefab.name + " doit porter l'etat IA replique (WaypointIndex, Behavior).");
+                Assert.That(prefab.GetComponent<NetworkedRageState>(), Is.Not.Null,
+                    prefab.name + " doit porter l'etat de rage replique (source de Behavior et du Rage Road).");
+                Assert.That(prefab.GetComponent<NetworkTransform>(), Is.Not.Null,
+                    prefab.name + " doit repliquer sa position par le NetworkTransform existant -- pas par une RPC de mouvement.");
+                Assert.That(prefab.GetComponent<AIVehicleBehaviorDebugView>(), Is.Not.Null,
+                    prefab.name + " doit rendre son comportement en texte, jamais par une couleur seule.");
+
+                Assert.That(root.GetComponentsInChildren<NetworkedAIVehicleState>(true).Length, Is.EqualTo(0),
+                    "Plus aucun vehicule de trafic pose en scene : l'effectif est resolu a l'execution, il n'est plus une constante de scene.");
 
                 var sceneText = File.ReadAllText(MvpRunScenePath);
-                var instanceBlocks = Regex.Split(sceneText, @"(?m)^--- !u!1001 &")
-                    .Skip(1)
-                    .Where(block => Regex.IsMatch(block, @"value: AI_Vehicle_0[123]"))
-                    .ToArray();
+                Assert.That(sceneText, Does.Not.Contain("value: AI_Vehicle_0"),
+                    "Les trois instances in-scene de la Story 5.2 sont retirees.");
 
-                Assert.That(instanceBlocks.Length, Is.EqualTo(3), "Trois prefab-instances de vehicule IA attendues dans MVP_Run");
-
-                foreach (var block in instanceBlocks)
-                {
-                    Assert.That(Regex.IsMatch(block, @"propertyPath: m_InScenePlaced\s+value: 1"), Is.True,
-                        "Chaque vehicule IA doit rester in-scene placed : c'est ce qui le fait spawner par l'hote au chargement synchronise de MVP_Run, donc exister cote client.");
-                }
+                var prefabGuid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(prefab));
+                Assert.That(File.ReadAllText("Assets/DefaultNetworkPrefabs.asset"), Does.Contain(prefabGuid),
+                    "Le prefab de trafic doit rester enregistre dans DefaultNetworkPrefabs : c'est ce qui autorise son spawn runtime chez les clients.");
             }
             finally
             {

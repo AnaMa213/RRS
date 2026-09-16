@@ -26,8 +26,9 @@ namespace RoadRage.Tests.PlayMode
 {
     /// <summary>
     /// Story 5.7 : preuve hote de la presentation client du trafic IA, dans MVP_Run. Les gardes
-    /// EditMode decrivent le contrat ; ce fixture constate sur un pair reel que les trois vehicules de
-    /// AITraffic sont effectivement spawes, que chacun expose un Behavior lisible depuis son propre
+    /// EditMode decrivent le contrat ; ce fixture constate sur un pair reel que le trafic est
+    /// effectivement spawe (Story 5.10 : insere aux portails par l'hote, plus pose en scene, donc
+    /// l'effectif attendu est la cible authoree et non un 3 fige), que chacun expose un Behavior lisible depuis son propre
     /// NetworkedRageState, et que les libelles crees a l'execution rendent cette meme valeur repliquee
     /// (comportement IA en monde, et ligne Rage Road du HUD). Le Test Runner ne sait pas ouvrir deux
     /// pairs Steam : la lecture cote client est garantie par la permission Everyone verifiee en
@@ -90,7 +91,7 @@ namespace RoadRage.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator HostSeesThreeSpawnedAiVehiclesAndTheirReplicatedLabels()
+        public IEnumerator HostSeesPortalSpawnedAiVehiclesAndTheirReplicatedLabels()
         {
             // Le profil persistant est redirige hors du dossier utilisateur AVANT tout chargement de
             // scene : le bootstrap lit ce chemin une seule fois dans Awake, donc une redirection plus
@@ -155,9 +156,38 @@ namespace RoadRage.Tests.PlayMode
             Assert.That(manager, Is.Not.Null, "Start Game doit avoir demarre un NetworkManager (AD-26).");
             Assert.That(manager.IsServer, Is.True, "le pair local est l'hote du run.");
 
-            var aiVehicles = Object.FindObjectsByType<NetworkedAIVehicleState>(FindObjectsInactive.Exclude);
-            Assert.That(aiVehicles.Length, Is.EqualTo(3),
-                "Les trois vehicules de AITraffic doivent etre spawes : ils sont in-scene placed et l'hote charge MVP_Run par le SceneManager reseau.");
+            // Story 5.10 : le trafic entre par les portails du graphe de voies. L'effectif attendu est
+            // celui que le Def authore (AD-32) -- aucun nombre litteral ici -- et il faut laisser le
+            // spawner hote converger avant de constater la presentation.
+            var graph = Object.FindAnyObjectByType<LaneGraph>();
+            Assert.That(graph, Is.Not.Null, "LaneGraph attendu dans MVP_Run : c'est lui qui porte les portails.");
+            Assert.That(graph.TrafficSettings, Is.Not.Null, "TrafficSettingsDef attendu sur le LaneGraph.");
+
+            var targetPopulation = graph.TrafficSettings.ClampTargetPopulation(graph.TrafficSettings.DefaultTargetPopulation);
+
+            var aiVehicles = new NetworkedAIVehicleState[0];
+            for (var frame = 0; frame < 900; frame++)
+            {
+                aiVehicles = Object.FindObjectsByType<NetworkedAIVehicleState>(FindObjectsInactive.Exclude);
+                if (aiVehicles.Length >= targetPopulation)
+                {
+                    break;
+                }
+
+                yield return null;
+            }
+
+            // Quelques frames de stabilisation : les libelles de comportement sont crees a l'execution.
+            for (var settleFrame = 0; settleFrame < 4; settleFrame++)
+            {
+                yield return null;
+            }
+
+            aiVehicles = Object.FindObjectsByType<NetworkedAIVehicleState>(FindObjectsInactive.Exclude);
+            Assert.That(aiVehicles.Length, Is.GreaterThan(0),
+                "L'hote doit avoir insere du trafic aux portails : sans vehicule spawe, aucun client ne voit quoi que ce soit.");
+            Assert.That(aiVehicles.Length, Is.LessThanOrEqualTo(targetPopulation),
+                "L'effectif ne depasse jamais la cible resolue a l'execution.");
 
             foreach (var ai in aiVehicles)
             {

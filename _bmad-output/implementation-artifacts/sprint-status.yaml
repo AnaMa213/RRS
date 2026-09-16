@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 09-15-2026
+last_updated: 09-16-2026
 # 2026-09-15 course correction: Epic 5 scope expanded (see
 # planning-artifacts/sprint-change-proposal-2026-09-15.md). Stories 5.8-5.17 added.
 # The epic checkpoint moved from 5.8 to 5.18 so it sits last in its own epic; it was
@@ -112,7 +112,7 @@ development_status:
   5-7-ai-traffic-networking-and-client-presentation: review
   5-8-escape-menu-and-return-to-main-menu: review
   5-9-parameterized-driver-model: review
-  5-10-lane-graph-greybox-district-and-routed-traffic: backlog
+  5-10-lane-graph-greybox-district-and-routed-traffic: review
   5-11-intersection-rules-and-deadlock-prevention: backlog
   5-12-wider-perception-and-progressive-unblocking: backlog
   5-13-rage-and-fear-as-driving-model-modulation: backlog

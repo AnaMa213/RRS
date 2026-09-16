@@ -7,11 +7,12 @@ namespace RoadRage.Features.Vehicles
 {
     /// <summary>
     /// Etat host-owned de progression et de comportement d'un vehicule IA. L'identite de route n'est
-    /// pas repliquee : elle est portee par la reference de scene <c>route</c> du
+    /// pas repliquee : elle est portee par la reference de scene <c>laneGraph</c> du
     /// <see cref="NetworkedAIVehicleDriverController"/>, identique sur tous les pairs.
-    /// Story 5.2 ajoute WaypointIndex : la progression du vehicule le long des
-    /// <see cref="RouteWaypoints"/> de sa route, avancee/reinitialisee par
-    /// <see cref="NetworkedAIVehicleDriverController"/> (host-only), jamais par un client.
+    /// Story 5.2 ajoute WaypointIndex : la progression du vehicule le long de sa route,
+    /// avancee/reinitialisee par <see cref="NetworkedAIVehicleDriverController"/> (host-only), jamais
+    /// par un client. Story 5.10 la reutilise TELLE QUELLE comme index de noeud dans le
+    /// <see cref="LaneGraph"/> : aucune NetworkVariable ajoutee malgre le changement de mecanisme.
     /// Story 5.4 ajoute Behavior : le comportement courant derive par l'hote depuis la propre rage du
     /// vehicule (<see cref="IRageDispositionSource"/>), publie ici en lecture pour tous et en ecriture
     /// serveur uniquement. Ce n'est pas une seconde machine de rage : la verite reste

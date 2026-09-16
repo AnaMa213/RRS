@@ -87,11 +87,17 @@ namespace RoadRage.Features.Vehicles
         private float voidHeightThreshold = -10f;
 
         [SerializeField]
+        [Min(0f)]
+        [Tooltip("Tolerance de hauteur, en metres, sous laquelle un point de contact touche le vehicule a hauteur de son dessous -- donc est un contact de surface (dalle affleurante, trottoir, levre du plan de sol) et ne produit aucun degat. La levre du plan de sol fait 5 cm : 0,1 m la couvre avec le double de marge, sans jamais couvrir la face d'un mur, qui touche le vehicule bien plus haut.")]
+        private float surfaceContactTolerance = 0.1f;
+
+        [SerializeField]
         [Tooltip("Repere de scene fixe (par scene) vers lequel la voiture est repositionnee lors d'une recuperation. Si absent, la position initiale du vehicule au demarrage sert de repli (ex. Dev_VehicleSandbox).")]
         private Transform recoveryPoint;
 
         private NetworkedVehicleState state;
         private Rigidbody body;
+        private Collider bodyCollider;
         private NetworkTransform networkTransform;
         private VehicleDriveIntent latestIntent = VehicleDriveIntent.Idle;
         private float rolloverElapsedSeconds;
@@ -338,6 +344,12 @@ namespace RoadRage.Features.Vehicles
         /// <summary>
         /// Retour visuel minimal (Story 3.4) : ne jamais interrompre la session (pas d'exception, pas
         /// de freeze physique), juste exposer un evenement C# consomme cote App/Run pour le HUD.
+        ///
+        /// Correctif post-livraison du 2026-09-16 (retour terrain n° 2) : une entree de collision qui
+        /// n'est pas un obstacle ne produit AUCUN degat. Quand tous ses points de contact touchent le
+        /// vehicule a hauteur de son dessous, l'evenement n'est pas leve -- donc ni le vehicule, ni
+        /// ses occupants ne perdent de PV -- et sa RPC n'est pas relayee non plus. La geometrie et les
+        /// colliders restent en l'etat : c'est la consommation du contact qui change, pas le decor.
         /// </summary>
         private void OnCollisionEnter(Collision collision)
         {
@@ -346,9 +358,71 @@ namespace RoadRage.Features.Vehicles
                 return;
             }
 
+            if (IsSurfaceOnlyCollision(collision))
+            {
+                return;
+            }
+
             var impactSpeed = collision.relativeVelocity.magnitude;
             VehicleCollided?.Invoke(impactSpeed);
             NotifyClientsIfNetworked(NotifyVehicleCollidedRpc, impactSpeed);
+        }
+
+        /// <summary>
+        /// Predicat pur (correctif post-livraison du 2026-09-16) : le contact touche le vehicule a
+        /// hauteur de son dessous, donc c'est un contact de SURFACE, pas un obstacle.
+        ///
+        /// Ce qui separe une dalle affleurante d'un mur n'est pas la vitesse de fermeture -- a vitesse
+        /// de conduite, les deux sont comparables -- mais la hauteur a laquelle le contact touche le
+        /// vehicule. Monter sur une dalle touche le dessous du vehicule ; un mur touche sa face. D'ou
+        /// une comparaison de hauteurs, jamais un seuil de vitesse supplementaire, qui laisserait le
+        /// bump blesser des qu'on roule vite.
+        ///
+        /// Mesure (voir docs/setup/story-5-10-lane-graph-district-notes.md) : les chaussees, trottoirs
+        /// et ilots des modules ont leur face superieure a y = 0 et le plan de sol de la carte a
+        /// y = -0,05, donc la levre rencontree fait 5 cm. Le dessous du vehicule est au niveau de la
+        /// chaussee : le contact de la levre remonte d'au plus ces 5 cm au-dessus de son dessous.
+        /// </summary>
+        public static bool IsSurfaceContact(float contactHeight, float vehicleUndersideHeight, float tolerance)
+        {
+            return contactHeight <= vehicleUndersideHeight + Mathf.Max(0f, tolerance);
+        }
+
+        /// <summary>
+        /// Vrai si TOUS les points de contact de cette entree sont des contacts de surface. Le "tous"
+        /// est ce qui preserve les vrais chocs : une paroi de tunnel monte a 5 m et produit aussi des
+        /// points a hauteur de carrosserie, donc l'entree n'est pas classee de surface et les degats
+        /// de la Story 3.5 restent appliques. Une entree sans aucun point de contact n'est pas un
+        /// contact de surface -- dans le doute, le comportement d'origine est conserve.
+        /// </summary>
+        private bool IsSurfaceOnlyCollision(Collision collision)
+        {
+            var contactCount = collision.contactCount;
+            if (contactCount <= 0)
+            {
+                return false;
+            }
+
+            var underside = ResolveVehicleUndersideHeight();
+            for (var i = 0; i < contactCount; i++)
+            {
+                if (!IsSurfaceContact(collision.GetContact(i).point.y, underside, surfaceContactTolerance))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Dessous du vehicule en coordonnees monde : le point le plus bas de son propre collider.
+        /// Repli sur l'origine du transform quand le vehicule n'en porte aucun -- jamais une valeur
+        /// inventee.
+        /// </summary>
+        private float ResolveVehicleUndersideHeight()
+        {
+            return bodyCollider != null ? bodyCollider.bounds.min.y : transform.position.y;
         }
 
         /// <summary>
@@ -732,6 +806,11 @@ namespace RoadRage.Features.Vehicles
             if (body == null)
             {
                 body = GetComponent<Rigidbody>();
+            }
+
+            if (bodyCollider == null)
+            {
+                bodyCollider = GetComponent<Collider>();
             }
 
             if (networkTransform == null)

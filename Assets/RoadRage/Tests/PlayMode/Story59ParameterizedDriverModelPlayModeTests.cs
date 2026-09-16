@@ -18,10 +18,11 @@ namespace RoadRage.Tests.PlayMode
 {
     /// <summary>
     /// Story 5.9 : preuve d'integration dans MVP_Run (exigence AGENTS.md). Les gardes EditMode
-    /// decrivent le contrat du modele ; ce fixture constate sur un pair reel que les trois vehicules
-    /// de AITraffic portent bien le profil authore, qu'ils avancent le long de leur route sous le
-    /// nouveau modele (acceleration integree au lieu d'une vitesse de croisiere cablee), et
-    /// qu'aucune vitesse NaN/Inf ne contamine leur Rigidbody.
+    /// decrivent le contrat du modele ; ce fixture constate sur un pair reel que le trafic porte bien
+    /// le profil authore, qu'il avance le long du graphe de voies sous le nouveau modele
+    /// (acceleration integree au lieu d'une vitesse de croisiere cablee), et qu'aucune vitesse
+    /// NaN/Inf ne contamine son Rigidbody. Story 5.10 : l'effectif n'est plus le 3 fige des vehicules
+    /// poses en scene, c'est la cible authoree que le spawner de portails atteint.
     ///
     /// Meme demarrage que Story 5.7 : bootstrap -> menu -> lobby -> Start Game. Une machine sans
     /// Steam P2P fonctionnel rend le test Inconclusif plutot que rouge.
@@ -126,8 +127,26 @@ namespace RoadRage.Tests.PlayMode
 
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(AppSceneRouter.MvpRunSceneName));
 
-            var controllers = Object.FindObjectsByType<NetworkedAIVehicleDriverController>(FindObjectsInactive.Exclude);
-            Assert.That(controllers.Length, Is.EqualTo(3), "Les trois vehicules de AITraffic doivent etre spawes.");
+            var graph = Object.FindAnyObjectByType<LaneGraph>();
+            Assert.That(graph, Is.Not.Null, "LaneGraph attendu dans MVP_Run.");
+            Assert.That(graph.TrafficSettings, Is.Not.Null, "TrafficSettingsDef attendu sur le LaneGraph.");
+
+            var targetPopulation = graph.TrafficSettings.ClampTargetPopulation(graph.TrafficSettings.DefaultTargetPopulation);
+
+            var controllers = new NetworkedAIVehicleDriverController[0];
+            for (var frame = 0; frame < 900; frame++)
+            {
+                controllers = Object.FindObjectsByType<NetworkedAIVehicleDriverController>(FindObjectsInactive.Exclude);
+                if (controllers.Length >= targetPopulation)
+                {
+                    break;
+                }
+
+                yield return null;
+            }
+
+            Assert.That(controllers.Length, Is.GreaterThan(0), "Le trafic doit etre insere aux portails avant toute mesure de conduite.");
+            Assert.That(controllers.Length, Is.LessThanOrEqualTo(targetPopulation), "L'effectif ne depasse jamais la cible authoree.");
 
             var startPositions = new Vector3[controllers.Length];
             for (var i = 0; i < controllers.Length; i++)

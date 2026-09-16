@@ -25,6 +25,7 @@ namespace RoadRage.Tests.EditMode
         private const string MvpRunScenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";
         private const string DevVehicleSandboxScenePath = "Assets/RoadRage/App/Scenes/Dev_VehicleSandbox.unity";
         private const string CityBlockPrefabPath = "Assets/RoadRage/Prefabs/Greybox_CityBlock_A.prefab";
+        private const string RoadSegmentPrefabPath = "Assets/RoadRage/Prefabs/Greybox_RoadSegment_TwoWay.prefab";
         private const string BarrelPrefabPath = "Assets/RoadRage/Prefabs/Prop_Barrel.prefab";
 
         [Test]
@@ -165,10 +166,19 @@ namespace RoadRage.Tests.EditMode
             Assert.That(sceneText, Does.Contain("m_LocalScale: {x: 120, y: 0.1, z: 120}"),
                 "Le sol greybox doit etre nettement agrandi (~120x120).");
 
-            Assert.That(sceneText, Does.Contain("Greybox_RoadLoop_North"));
-            Assert.That(sceneText, Does.Contain("Greybox_RoadLoop_South"));
-            Assert.That(sceneText, Does.Contain("Greybox_RoadLoop_East"));
-            Assert.That(sceneText, Does.Contain("Greybox_RoadLoop_West"));
+            // Story 5.10 : la boucle de quatre bandes est remplacee par le district route (avenues,
+            // carrefours, ronds-points, tunnels-portails). Ce que la Story 3.4 exige reste vrai -- un
+            // circuit praticable, borne, decore, avec son repere de recuperation -- sur la nouvelle
+            // geometrie. La presence du circuit se verifie par le GUID du prefab de route, stable au
+            // renommage et au remaniement du trace, comme le font deja les decors ci-dessous.
+            var roadSegmentGuid = AssetDatabase.AssetPathToGUID(RoadSegmentPrefabPath);
+            Assert.That(roadSegmentGuid, Is.Not.Empty, RoadSegmentPrefabPath);
+            Assert.That(sceneText, Does.Contain(roadSegmentGuid),
+                "Le circuit praticable doit etre pose dans MVP_Run : c'est le district route qui le porte.");
+
+            // Assertion d'ABSENCE : elle peut rester litterale, un nom retire ne se renomme plus.
+            Assert.That(sceneText, Does.Not.Contain("Greybox_RoadLoop"),
+                "La boucle de quatre bandes a bien disparu : le district l'a remplacee.");
 
             Assert.That(sceneText, Does.Contain("Greybox_MapBoundary_North"));
             Assert.That(sceneText, Does.Contain("Greybox_MapBoundary_South"));

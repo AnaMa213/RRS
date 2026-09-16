@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using RoadRage.Shared.Domain;
 using Unity.Netcode;
 using Unity.Netcode.Components;
@@ -6,13 +7,13 @@ using UnityEngine;
 namespace RoadRage.Features.Vehicles
 {
     /// <summary>
-    /// Controleur de conduite IA basique (Story 5.2) : poursuite deterministe des
-    /// <see cref="RouteWaypoints"/> assignes, calculee et appliquee host-only (IsServer), position
+    /// Controleur de conduite IA basique (Story 5.2) : poursuite deterministe des noeuds du
+    /// <see cref="LaneGraph"/> assigne, calculee et appliquee host-only (IsServer), position
     /// repliquee vers les clients par le NetworkTransform existant -- aucune RPC de mouvement.
     /// Reutilise tel quel le predicat retournement/hors-zone de
     /// <see cref="NetworkedVehicleDriverController"/> (IsRolledOver / IsBelowVoidHeightThreshold) et
     /// applique la meme detection "soutenue N secondes" pour le blocage (vitesse quasi nulle). Toute
-    /// recuperation (retournement, hors-zone ou blocage) reinitialise le vehicule au waypoint courant
+    /// recuperation (retournement, hors-zone ou blocage) reinitialise le vehicule au noeud courant
     /// -- jamais au WaypointIndex d'un autre vehicule : chaque instance ne porte que son
     /// propre etat (aucune collection statique/partagee), donc independante par construction.
     /// Desactivation/isolation (AC epic 5) : ce comportement passe entierement par FixedUpdate, donc
@@ -30,6 +31,23 @@ namespace RoadRage.Features.Vehicles
     /// cadence l'evaluation de changement de voie sur l'intervalle du profil avec une phase propre a
     /// l'instance. Toutes les decisions vivent dans <see cref="DriverModel"/> : aucune valeur de
     /// conduite n'est litterale dans ce fichier.
+    ///
+    /// Story 5.10 : la boucle de waypoints est remplacee par un graphe de voies authore. A chaque
+    /// jonction le successeur sort d'un tirage de virage pondere par les ratios authores sur le noeud
+    /// (modele jtrrouter), deterministe pour un meme vehicule car graine sur son NetworkObjectId.
+    /// L'arrivee a un portail de sortie est SIGNALEE (<see cref="HasReachedExitPortal"/>) mais ne
+    /// retire rien : le retrait appartient au seul spawner hote, et uniquement pour ce motif (AD-34).
+    /// Toutes les decisions de parcours vivent dans <see cref="LaneGraphRouting"/>.
+    ///
+    /// Correctif post-livraison du 2026-09-16 : le parcours est une MARCHE AUTO-EVITANTE. Le noeud
+    /// d'insertion puis chaque noeud atteint sont marques comme parcourus, et le tirage de virage ne
+    /// porte que sur les successeurs non parcourus -- un vehicule IA ne parcourt jamais deux fois le
+    /// meme noeud de voie. La consequence de forme est voulue : un tour complet de giratoire devient
+    /// impossible (le "continuer" qui ramenerait au noeud d'entree de l'anneau n'est plus eligible a
+    /// la derniere branche) et aucun circuit autour d'une jonction carree n'est atteignable. Quand
+    /// plus aucun successeur n'est eligible, la reorientation gloutonne vers la sortie la plus proche
+    /// reprend la main -- elle peut re-accepter un noeud parcouru, c'est l'echappatoire, bornee par le
+    /// budget d'aretes.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
@@ -51,8 +69,8 @@ namespace RoadRage.Features.Vehicles
         private const float ScanSteerBlend = 0.5f;
 
         [SerializeField]
-        [Tooltip("Geometrie de route (RouteWaypoints) suivie par ce vehicule. Aucune route assignee ou route vide : le vehicule reste immobile.")]
-        private RouteWaypoints route;
+        [Tooltip("Graphe de voies (LaneGraph) parcouru par ce vehicule. Aucun graphe assigne ou graphe vide : le vehicule reste immobile.")]
+        private LaneGraph laneGraph;
 
         [SerializeField]
         [Tooltip("Profil de conduite authore (Story 5.9). Non assigne : le vehicule reste inerte, comme quand la route est absente -- aucun repli numerique en dur.")]
@@ -115,11 +133,54 @@ namespace RoadRage.Features.Vehicles
         private float appliedAcceleration;
         private float laneChangeElapsedSeconds;
         private float instancePhase;
+        private readonly List<Vector3> redirectCandidatePositions = new List<Vector3>();
+
+        /// <summary>
+        /// Memoire de parcours (correctif post-livraison du 2026-09-16) : un bit par noeud du graphe,
+        /// propre a CE vehicule. C'est elle qui rend la marche auto-evitative -- le tirage ne porte
+        /// jamais sur un noeud deja parcouru par ce vehicule.
+        ///
+        /// ponytail: un tableau de bits dimensionne sur NodeCount suffit -- ni HashSet, ni index
+        /// spatial, ni identifiant supplementaire. La memoire est remise a zero aux deux seuls moments
+        /// qui remettent le vehicule a un point de depart connu : l'insertion et la recuperation sur
+        /// place.
+        /// </summary>
+        private bool[] traversedNodes;
+
+        /// <summary>Masque d'eligibilite reutilise d'un noeud au suivant : le sous-ensemble du tirage vient de l'appelant (le driver), la ponderation reste celle du noeud.</summary>
+        private readonly List<bool> eligibleSuccessors = new List<bool>();
+
+        private int traversedEdges;
+        private bool reachedExitPortal;
+        private bool hasDepartedSpawnNode;
+        private bool warnedDeadEnd;
+        private bool warnedNoReachableExit;
         private bool warnedMissingDriverProfile;
         private bool warnedLeaderBufferSaturated;
         private bool warnedClearanceBufferSaturated;
         private float frontOffset;
         private float scanRadius;
+
+        /// <summary>
+        /// Vrai des que ce vehicule a atteint un noeud de portail de sortie. C'est le SEUL signal de
+        /// retrait du trafic (AD-34) : ni compteur, ni distance au joueur, ni echec de trajet, ni
+        /// capot retourne ne le levent. Lu par le spawner hote, qui detient le despawn -- ce
+        /// composant, lui, ne detruit jamais rien.
+        /// </summary>
+        public bool HasReachedExitPortal
+        {
+            get { return reachedExitPortal; }
+        }
+
+        /// <summary>
+        /// Cablage du graphe a l'insertion : un prefab ne peut pas porter une reference de scene, donc
+        /// le spawner hote la pose juste avant le spawn reseau. Un vehicule pose en scene garde la
+        /// reference authoree dans l'Inspector et n'a jamais besoin de cet appel.
+        /// </summary>
+        public void BindLaneGraph(LaneGraph graph)
+        {
+            laneGraph = graph;
+        }
 
         private void Awake()
         {
@@ -137,11 +198,20 @@ namespace RoadRage.Features.Vehicles
                 body.isKinematic = !IsServer;
             }
 
-            // Depart host-only sur le repere le plus proche : plusieurs vehicules peuvent partager
-            // une meme boucle sans index a cabler instance par instance dans la scene.
-            if (IsServer && state != null && route != null && route.Count > 0)
+            // Depart host-only sur le noeud le plus proche : un vehicule insere a un portail y
+            // demarre sans index a cabler, et un vehicule pose en scene reprend le graphe ou il est.
+            if (IsServer && state != null && laneGraph != null && laneGraph.NodeCount > 0)
             {
-                state.WaypointIndex.Value = route.NearestIndex(transform.position);
+                var nearest = laneGraph.NearestNodeIndex(transform.position);
+                state.WaypointIndex.Value = nearest < 0 ? 0 : nearest;
+                traversedEdges = 0;
+                reachedExitPortal = false;
+                hasDepartedSpawnNode = false;
+
+                // Remise a zero de la memoire de parcours, puis marquage du noeud d'insertion : le
+                // vehicule repart d'une marche auto-evitative vierge et ne reviendra jamais sur son
+                // propre noeud de naissance.
+                ResetRouteMemoryAt(state.WaypointIndex.Value);
             }
 
             // Phase deterministe de l'instance, dans [0, 1[ : elle desynchronise le minuteur de
@@ -172,7 +242,7 @@ namespace RoadRage.Features.Vehicles
                 state.Behavior.Value = behavior;
             }
 
-            if (route == null || route.Count <= 0)
+            if (laneGraph == null || laneGraph.NodeCount <= 0)
             {
                 return;
             }
@@ -193,7 +263,7 @@ namespace RoadRage.Features.Vehicles
             var fixedDeltaTime = Time.fixedDeltaTime;
             var profile = DriverModel.ResolveEffectiveProfile(driverProfile.Profile, behavior);
             var waypointIndex = state.WaypointIndex.Value;
-            var waypointPosition = route.GetPosition(waypointIndex);
+            var waypointPosition = laneGraph.GetNodePosition(waypointIndex);
 
             if (NetworkedVehicleDriverController.IsBelowVoidHeightThreshold(transform.position.y, voidHeightThreshold))
             {
@@ -263,9 +333,9 @@ namespace RoadRage.Features.Vehicles
 
             if (HasArrivedAtWaypoint(transform.position, waypointPosition, arrivalRadius))
             {
-                waypointIndex = route.NextIndex(waypointIndex);
+                waypointIndex = ResolveNextNode(waypointIndex);
                 state.WaypointIndex.Value = waypointIndex;
-                waypointPosition = route.GetPosition(waypointIndex);
+                waypointPosition = laneGraph.GetNodePosition(waypointIndex);
             }
 
             IntegrateLongitudinalSpeed(profile, fixedDeltaTime, hasLeader, leaderGap, leaderSpeed);
@@ -273,6 +343,190 @@ namespace RoadRage.Features.Vehicles
 
             var intent = ComputeSeekIntent(transform.position, transform.forward, waypointPosition, arrivalRadius, steerFullLockDegrees);
             ApplyMovement(intent, fixedDeltaTime, currentSpeed);
+        }
+
+        /// <summary>
+        /// Point de branchement du parcours (Story 5.10) : a l'arrivee sur un noeud, le successeur
+        /// sort d'un tirage de virage pondere par les ratios authores sur CE noeud, jamais d'un
+        /// itineraire pre-calcule par vehicule. Trois issues de secours, dont aucune ne retire le
+        /// vehicule : portail de sortie atteint (signale, le spawner decide), budget d'aretes depasse
+        /// ou cul-de-sac (reorientation gloutonne vers la sortie la plus proche), graphe sans sortie
+        /// (le vehicule reste sur place, inerte).
+        /// </summary>
+        private int ResolveNextNode(int currentIndex)
+        {
+            // Le vehicule nait exactement SUR son noeud de portail d'entree (le spawner l'y pose a
+            // distance 0) : le tout premier appel arrive ici avec currentIndex == ce meme noeud, avant
+            // la moindre arete parcourue. Pour un portail marque "sortie reutilisant l'entree",
+            // IsExitPortal(currentIndex) serait alors vrai des la naissance -- le vehicule se ferait
+            // redespawner sans avoir roule. hasDepartedSpawnNode distingue "je viens de naitre ici"
+            // de "j'y reviens apres avoir effectivement circule" : seul le second cas honore la
+            // sortie. Un vrai retour ulterieur au meme noeud (boucle du graphe) continue de fonctionner,
+            // puisque le drapeau reste vrai une fois pose.
+            if (laneGraph.IsExitPortal(currentIndex) && hasDepartedSpawnNode)
+            {
+                reachedExitPortal = true;
+                return currentIndex;
+            }
+
+            var candidates = laneGraph.GetSuccessors(currentIndex);
+            traversedEdges++;
+            hasDepartedSpawnNode = true;
+
+            var budgetExceeded = LaneGraphRouting.IsEdgeBudgetExceeded(
+                traversedEdges, laneGraph.NodeCount, ResolveEdgeBudgetFactor());
+
+            if (candidates.Count > 0 && !budgetExceeded)
+            {
+                var eligible = BuildEligibleSuccessorMask(candidates);
+
+                var drawn = LaneGraphRouting.SelectWeightedSuccessor(
+                    candidates,
+                    laneGraph.GetTurnWeights(currentIndex),
+                    eligible,
+                    NetworkObjectId,
+                    traversedEdges,
+                    out var weightsInvalid);
+
+                if (drawn >= 0)
+                {
+                    if (weightsInvalid)
+                    {
+                        laneGraph.ReportInvalidTurnWeights(currentIndex);
+                    }
+
+                    MarkNodeTraversed(drawn);
+                    return drawn;
+                }
+
+                // Tous les successeurs non parcourus ont ete epuises a ce noeud : la marche
+                // auto-evitative s'arrete ici. La reorientation gloutonne vers la sortie la plus
+                // proche reprend la main -- c'est l'echappatoire voulue, bornee par le budget
+                // d'aretes, et le vehicule n'est jamais retire.
+            }
+
+            return ResolveRedirectToNearestExit(currentIndex, candidates);
+        }
+
+        /// <summary>
+        /// Memoire de parcours : remise a zero puis marquage du noeud courant. Appelee aux deux seuls
+        /// moments qui remettent le vehicule a un point de depart connu -- l'insertion et la
+        /// recuperation sur place -- et jamais ailleurs : ailleurs, la memoire doit survivre au
+        /// parcours, c'est tout l'objet de la regle de non-bouclage.
+        /// </summary>
+        private void ResetRouteMemoryAt(int nodeIndex)
+        {
+            EnsureRouteMemory();
+
+            if (traversedNodes != null)
+            {
+                System.Array.Clear(traversedNodes, 0, traversedNodes.Length);
+            }
+
+            MarkNodeTraversed(nodeIndex);
+        }
+
+        /// <summary>
+        /// Dimensionne la memoire sur le graphe. Un trace ne change pas a l'execution -- un Rebuild de
+        /// graphe est un cas d'authoring, pas de parcours : aucune reallocation ne vient donc effacer
+        /// silencieusement la memoire en cours de route.
+        /// </summary>
+        private void EnsureRouteMemory()
+        {
+            var nodeCount = laneGraph != null ? laneGraph.NodeCount : 0;
+            if (traversedNodes != null && traversedNodes.Length == nodeCount)
+            {
+                return;
+            }
+
+            traversedNodes = nodeCount > 0 ? new bool[nodeCount] : null;
+        }
+
+        private void MarkNodeTraversed(int nodeIndex)
+        {
+            if (traversedNodes == null || nodeIndex < 0 || nodeIndex >= traversedNodes.Length)
+            {
+                return;
+            }
+
+            traversedNodes[nodeIndex] = true;
+        }
+
+        private bool IsNodeTraversed(int nodeIndex)
+        {
+            return traversedNodes != null && nodeIndex >= 0 && nodeIndex < traversedNodes.Length && traversedNodes[nodeIndex];
+        }
+
+        /// <summary>
+        /// Sous-ensemble ELIGIBLE du tirage : les successeurs que ce vehicule n'a pas encore
+        /// parcourus. C'est le driver qui fournit le sous-ensemble, et <see cref="LaneGraphRouting"/> qui
+        /// reste pondere par les ratios authores sur le noeud ; l'absence de candidat eligible rend
+        /// -1, ce que l'appelant traite par la reorientation gloutonne.
+        /// </summary>
+        private IReadOnlyList<bool> BuildEligibleSuccessorMask(IReadOnlyList<int> candidates)
+        {
+            EnsureRouteMemory();
+
+            eligibleSuccessors.Clear();
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                eligibleSuccessors.Add(!IsNodeTraversed(candidates[i]));
+            }
+
+            return eligibleSuccessors;
+        }
+
+        /// <summary>
+        /// Budget d'aretes authore, ou 0 (= pas de budget) quand aucun reglage de trafic n'est
+        /// assigne : un budget invente serait exactement la valeur en dur que la story supprime.
+        /// </summary>
+        private float ResolveEdgeBudgetFactor()
+        {
+            var settings = laneGraph.TrafficSettings;
+            return settings == null ? 0f : settings.EdgeBudgetFactor;
+        }
+
+        /// <summary>
+        /// Reorientation vers le portail de sortie le plus proche, un pas a la fois : parmi les
+        /// successeurs du noeud courant, celui qui rapproche le plus de ce portail. Sans successeur
+        /// (cul-de-sac), la sortie devient directement la cible. Sans aucun portail de sortie dans le
+        /// graphe, le vehicule garde son noeud courant et devient inerte -- il n'est jamais retire.
+        /// </summary>
+        private int ResolveRedirectToNearestExit(int currentIndex, IReadOnlyList<int> candidates)
+        {
+            var exitIndex = laneGraph.NearestExitNodeIndex(transform.position);
+            if (exitIndex < 0)
+            {
+                if (!warnedNoReachableExit)
+                {
+                    warnedNoReachableExit = true;
+                    Debug.LogWarning("[Vehicles] " + name
+                        + " : le graphe de voies ne porte aucun portail de sortie, le vehicule reste inerte (jamais retire).", this);
+                }
+
+                return currentIndex;
+            }
+
+            if (candidates.Count == 0)
+            {
+                if (!warnedDeadEnd)
+                {
+                    warnedDeadEnd = true;
+                    Debug.LogWarning("[Vehicles] " + name
+                        + " : cul-de-sac dans le graphe de voies, reorientation vers le portail de sortie le plus proche.", this);
+                }
+
+                return exitIndex;
+            }
+
+            redirectCandidatePositions.Clear();
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                redirectCandidatePositions.Add(laneGraph.GetNodePosition(candidates[i]));
+            }
+
+            return LaneGraphRouting.SelectSuccessorTowardTarget(
+                candidates, redirectCandidatePositions, laneGraph.GetNodePosition(exitIndex));
         }
 
         /// <summary>
@@ -332,12 +586,12 @@ namespace RoadRage.Features.Vehicles
 
             forward.Normalize();
 
-            if (route == null || route.Count <= 0 || state == null)
+            if (laneGraph == null || laneGraph.NodeCount <= 0 || state == null)
             {
                 return forward;
             }
 
-            var toWaypoint = route.GetPosition(state.WaypointIndex.Value) - transform.position;
+            var toWaypoint = laneGraph.GetNodePosition(state.WaypointIndex.Value) - transform.position;
             toWaypoint.y = 0f;
             if (toWaypoint.sqrMagnitude <= 0.0001f)
             {
@@ -502,9 +756,9 @@ namespace RoadRage.Features.Vehicles
         /// <summary>
         /// Minuteur de changement de voie cadence par l'intervalle authore du profil, avec la phase
         /// initiale propre a l'instance posee au spawn. Aucune voie candidate n'est proposee tant que
-        /// la Story 5.10 n'a pas livre le graphe de voies : le predicat MOBIL
+        /// une story dediee n'a pas livre les voies paralleles du graphe : le predicat MOBIL
         /// (<see cref="DriverModel.TryEvaluateLaneChange"/>) est en place et se branchera sur la liste
-        /// de candidats que cette story fournira.
+        /// de candidats qu'elle fournira. La Story 5.10 n'authore qu'une voie par sens.
         /// </summary>
         private void TickLaneChangeEvaluation(DriverProfile profile, float fixedDeltaTime)
         {
@@ -602,6 +856,13 @@ namespace RoadRage.Features.Vehicles
             stuckElapsedSeconds = 0f;
             currentSpeed = 0f;
             appliedAcceleration = 0f;
+
+            // Memoire de parcours remise a zero (correctif post-livraison du 2026-09-16) : la
+            // recuperation sur place repose le vehicule sur son noeud courant, donc elle rouvre la
+            // marche auto-evitative exactement comme une insertion. C'est le second et dernier moment
+            // ou la memoire est effacee -- ailleurs elle doit survivre au parcours. La recuperation
+            // reste un repositionnement, jamais un retrait (AD-34).
+            ResetRouteMemoryAt(state != null ? state.WaypointIndex.Value : -1);
 
             if (networkTransform != null)
             {
