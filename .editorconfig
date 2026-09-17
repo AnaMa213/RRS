@@ -1,0 +1,57 @@
+root = true
+
+# Microsoft.Unity.Analyzers (ADDON-019) -- 5 regles en warning, le reste en silent.
+# Catalogue mesure directement dans le DLL charge (2026-09-17, docs/setup/audit-microsoft-unity-analyzers-baseline.md) :
+# 43 regles au total, 40 par defaut en Info (invisibles dans la Console Unity, gate AD-7 sur les
+# warnings uniquement) et 3 par defaut en Warning. Objectif : signal utile a faible volume, pas
+# maximum de regles couvertes.
+[*.cs]
+
+# --- Warning : deja Warning par defaut, bugs reels de signature/nommage de message Unity ---
+dotnet_diagnostic.UNT0006.severity = warning  # Incorrect message signature
+dotnet_diagnostic.UNT0033.severity = warning  # Incorrect message case
+dotnet_diagnostic.UNT0015.severity = warning  # Use a static and parameterless method
+
+# --- Warning : promues depuis Info, footguns specifiques a ce projet (Netcode + conduite) ---
+dotnet_diagnostic.UNT0007.severity = warning  # Null coalescing sur un UnityEngine.Object (operateur == surcharge, objet detruit != null) -- churn de cycle de vie NetworkObject frequent dans ce projet
+dotnet_diagnostic.UNT0004.severity = warning  # Time.fixedDeltaTime utilise dans Update -- jeu de conduite/physique
+
+# --- Silent : le reste du catalogue, laisse au silence pour ne pas noyer le signal ---
+dotnet_diagnostic.UNT0001.severity = silent
+dotnet_diagnostic.UNT0002.severity = silent
+dotnet_diagnostic.UNT0003.severity = silent
+dotnet_diagnostic.UNT0005.severity = silent
+dotnet_diagnostic.UNT0008.severity = silent
+dotnet_diagnostic.UNT0009.severity = silent
+dotnet_diagnostic.UNT0010.severity = silent
+dotnet_diagnostic.UNT0011.severity = silent
+dotnet_diagnostic.UNT0012.severity = silent
+dotnet_diagnostic.UNT0013.severity = silent
+dotnet_diagnostic.UNT0014.severity = silent
+dotnet_diagnostic.UNT0016.severity = silent
+dotnet_diagnostic.UNT0017.severity = silent
+dotnet_diagnostic.UNT0018.severity = silent
+dotnet_diagnostic.UNT0019.severity = silent
+dotnet_diagnostic.UNT0020.severity = silent
+dotnet_diagnostic.UNT0021.severity = silent
+dotnet_diagnostic.UNT0022.severity = silent
+dotnet_diagnostic.UNT0023.severity = silent
+dotnet_diagnostic.UNT0024.severity = silent
+dotnet_diagnostic.UNT0025.severity = silent
+dotnet_diagnostic.UNT0026.severity = silent
+dotnet_diagnostic.UNT0027.severity = silent
+dotnet_diagnostic.UNT0028.severity = silent
+dotnet_diagnostic.UNT0029.severity = silent
+dotnet_diagnostic.UNT0030.severity = silent
+dotnet_diagnostic.UNT0031.severity = silent
+dotnet_diagnostic.UNT0032.severity = silent
+dotnet_diagnostic.UNT0034.severity = silent
+dotnet_diagnostic.UNT0035.severity = silent
+dotnet_diagnostic.UNT0036.severity = silent
+dotnet_diagnostic.UNT0037.severity = silent
+dotnet_diagnostic.UNT0038.severity = silent
+dotnet_diagnostic.UNT0039.severity = silent
+dotnet_diagnostic.UNT0040.severity = silent
+dotnet_diagnostic.UNT0041.severity = silent
+dotnet_diagnostic.UNT0042.severity = silent
+dotnet_diagnostic.UNT0043.severity = silent

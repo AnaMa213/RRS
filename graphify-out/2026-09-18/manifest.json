@@ -840,15 +840,15 @@
     "semantic_hash": ""
   },
   "Packages/manifest.json": {
-    "mtime": 1789573685.5012114,
-    "seen": 1789573830.0500286,
-    "ast_hash": "5c541af784b87a3198ba9ebb50238ee6",
+    "mtime": 1789680767.386106,
+    "seen": 1789681397.492626,
+    "ast_hash": "e4e6b142b7ae860afc0b9358cc659032",
     "semantic_hash": ""
   },
   "Packages/packages-lock.json": {
-    "mtime": 1789573685.5094235,
-    "seen": 1789573830.0500293,
-    "ast_hash": "a863ac4663e616418d26114a671344c3",
+    "mtime": 1789680767.392688,
+    "seen": 1789681397.4926276,
+    "ast_hash": "a9f8c9af59a6241869864230380a87b6",
     "semantic_hash": ""
   },
   "ProjectSettings/Packages/com.unity.ai.assistant/Settings.json": {
@@ -966,9 +966,9 @@
     "semantic_hash": ""
   },
   "docs/setup/addon-adoption-register.md": {
-    "mtime": 1789677342.167581,
-    "seen": 1789678606.5644941,
-    "ast_hash": "d0b7522bc682eb9aed9faa1bd9255c95",
+    "mtime": 1789681274.3056169,
+    "seen": 1789681397.494431,
+    "ast_hash": "919a6029889fa931540f0c7d5f4b0e84",
     "semantic_hash": ""
   },
   "docs/setup/epic-0-readiness-checklist.md": {
@@ -1542,15 +1542,15 @@
     "semantic_hash": ""
   },
   "scripts/validate.ps1": {
-    "mtime": 1789678508.6706362,
-    "seen": 1789678606.5631807,
-    "ast_hash": "d2fbfe47a57f04ac45e49866b0a84826",
+    "mtime": 1789681237.995324,
+    "seen": 1789681397.4929929,
+    "ast_hash": "ea4b04ca8f6266fc0a358bf2f92f9689",
     "semantic_hash": ""
   },
   "docs/setup/devworkflow-rollout.md": {
-    "mtime": 1789679333.0859852,
-    "seen": 1789680352.72423,
-    "ast_hash": "84db9e32123b2793faaae6135126f470",
+    "mtime": 1789681280.2700794,
+    "seen": 1789681397.4946053,
+    "ast_hash": "26cf63a6be084394fb107b6680e974d9",
     "semantic_hash": ""
   },
   "docs/setup/audit-networked-authority-guard-cluster.md": {
@@ -1563,6 +1563,12 @@
     "mtime": 1789679087.265002,
     "seen": 1789680352.7242289,
     "ast_hash": "01a246a07239d46a189b453b43d7ab39",
+    "semantic_hash": ""
+  },
+  "docs/setup/audit-project-auditor-baseline.md": {
+    "mtime": 1789681259.1253152,
+    "seen": 1789681397.4945219,
+    "ast_hash": "50ad120194211f848604984ee7c9b3fb",
     "semantic_hash": ""
   }
 }

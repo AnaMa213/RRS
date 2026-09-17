@@ -1,0 +1,31 @@
+# Perimetre du graphe Graphify : code applicatif RoadRage uniquement.
+#
+# Syntaxe gitignore. Fusionne APRES .gitignore et ne peut qu'exclure davantage
+# (une negation "!" ne peut pas re-inclure un chemin deja exclu par .gitignore).
+#
+# Motif : avant cette exclusion, 997 fichiers etaient indexes dont seulement
+# 156 (15,6 %) de code projet ; le graphe atteignait 12 011 noeuds contre une
+# limite utile interne de 5 000, ce qui degradait graph.html en vue agregee,
+# produisait ~896 communautes parasites et alimentait des reponses plausibles
+# mais fausses sur des symboles inexistants.
+
+# --- Outillage agents : skills BMAD / Unity, dupliquees entre clients ---
+# Les dossiers eux-memes restent en place : .agents/skills est consomme par
+# Codex et la convention AGENTS.md. Seule leur indexation posait probleme.
+.agents/
+.claude/
+.codex/
+
+# --- BMAD : moteur et artefacts de planification ---
+# Les specs et le sprint-status restent la source de verite, mais ils sont
+# lus directement par BMAD, pas via le graphe de code.
+_bmad/
+_bmad-output/
+
+# --- Sortie de Graphify lui-meme ---
+graphify-out/
+
+# --- Assets tiers : decor uniquement, aucun code applicatif ---
+# Deja couvert par .gitignore aujourd'hui ; repete ici pour que le perimetre
+# du graphe ne depende pas d'une decision de versionnement.
+Assets/Synty/
