@@ -331,7 +331,15 @@ namespace RoadRage.Features.Vehicles
                 stuckElapsedSeconds = 0f;
             }
 
-            if (HasArrivedAtWaypoint(transform.position, waypointPosition, arrivalRadius))
+            // Deux facons de franchir un noeud, et elles sont complementaires (ANO-5.10-02) :
+            // l'arrivee nominale (on entre dans le rayon), et le depassement irrattrapable (le
+            // noeud est passe ET tombe dans le cercle de braquage, donc la poursuite pure tournerait
+            // autour de lui indefiniment sans jamais entrer dans le rayon). Sans la seconde, un
+            // vehicule bouscule pres d'un giratoire reste en orbite pour toujours : son noeud
+            // courant ne change plus, donc le parcours ne progresse plus.
+            if (HasArrivedAtWaypoint(transform.position, waypointPosition, arrivalRadius)
+                || LaneGraphRouting.HasPassedUnreachableWaypoint(
+                    transform.position, transform.forward, waypointPosition, currentSpeed, steerDegreesPerSecond))
             {
                 waypointIndex = ResolveNextNode(waypointIndex);
                 state.WaypointIndex.Value = waypointIndex;

@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
-    "mtime": 1788366847.5308268,
-    "seen": 1789154390.867335,
-    "ast_hash": "d31bbce9a97f92250c81a280bae56bb7",
+    "mtime": 1789574488.7632318,
+    "seen": 1789576758.6240985,
+    "ast_hash": "6f5ed20e7373723e78203054ad5ec8db",
     "semantic_hash": ""
   },
   ".claude/skills/bmad-advanced-elicitation/scripts/pick_methods.py": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/RunFlowController.cs": {
-    "mtime": 1789499168.1651752,
-    "seen": 1789499414.6928794,
-    "ast_hash": "2ff4b9abd89f9c78a77f126c69814fc0",
+    "mtime": 1789555823.458823,
+    "seen": 1789573830.0498903,
+    "ast_hash": "6e1d50f53996db0f30860a5384cde070",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Services/AppSceneRouter.cs": {
@@ -660,9 +660,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs": {
-    "mtime": 1789499168.1424868,
-    "seen": 1789499414.6929739,
-    "ast_hash": "d9ab725074bd9b8467e21c29a055318f",
+    "mtime": 1789555823.4512641,
+    "seen": 1789573830.049939,
+    "ast_hash": "15f5ad016757de194fdc298b1ae8effd",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedVehicleState.cs": {
@@ -1146,15 +1146,15 @@
     "semantic_hash": ""
   },
   "Packages/manifest.json": {
-    "mtime": 1788457315.5550196,
-    "seen": 1789154390.8674312,
-    "ast_hash": "26ae56fff9a78744169a18c74b6d6055",
+    "mtime": 1789573685.5012114,
+    "seen": 1789573830.0500286,
+    "ast_hash": "5c541af784b87a3198ba9ebb50238ee6",
     "semantic_hash": ""
   },
   "Packages/packages-lock.json": {
-    "mtime": 1788459534.8297536,
-    "seen": 1789154390.8674316,
-    "ast_hash": "0ae6f5b00f089a676a04a670b19b0471",
+    "mtime": 1789573685.5094235,
+    "seen": 1789573830.0500293,
+    "ast_hash": "a863ac4663e616418d26114a671344c3",
     "semantic_hash": ""
   },
   "ProjectSettings/Packages/com.unity.ai.assistant/Settings.json": {
@@ -3498,9 +3498,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1789332294.890062,
-    "seen": 1789332677.0212667,
-    "ast_hash": "8cefff23fee382af2e941755688e06c9",
+    "mtime": 1789574211.748,
+    "seen": 1789576758.6979606,
+    "ast_hash": "7b71a1c38b7336c1e7b44b6af381f5e4",
     "semantic_hash": ""
   },
   "Assets/TextMesh Pro/Examples & Extras/Fonts/Anton OFL.txt": {
@@ -3606,9 +3606,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/deferred-work.md": {
-    "mtime": 1789461374.8545156,
-    "seen": 1789461510.5956595,
-    "ast_hash": "9457de628817f8cf37639abbaf764e35",
+    "mtime": 1789547837.5464778,
+    "seen": 1789553425.8392754,
+    "ast_hash": "15dd66fca42f6ff56b78463c1f3c4065",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/epic-0-context.md": {
@@ -3852,9 +3852,9 @@
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/sprint-status.yaml": {
-    "mtime": 1789509370.194359,
-    "seen": 1789545109.0190558,
-    "ast_hash": "c717599da6ceec91cd2b9ded24a18c1c",
+    "mtime": 1789574950.585675,
+    "seen": 1789576758.7057312,
+    "ast_hash": "4e8d9d28584a7774a6a4c8b8adab4d4f",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/story-1-3-editmode-results.txt": {
@@ -4020,9 +4020,9 @@
     "semantic_hash": ""
   },
   "docs/setup/addon-adoption-register.md": {
-    "mtime": 1789488361.8421977,
-    "seen": 1789488566.071165,
-    "ast_hash": "28868094e356bf6e0421c5266fd8f211",
+    "mtime": 1789573750.2435577,
+    "seen": 1789573830.0505073,
+    "ast_hash": "2f1a3d6abc4e178943fd2f28d6191bfc",
     "semantic_hash": ""
   },
   "docs/setup/epic-0-readiness-checklist.md": {
@@ -4693,7 +4693,7 @@
   },
   ".vscode/mcp.json": {
     "mtime": 1789293397.8698504,
-    "seen": 1789507076.7979274,
+    "seen": 1789573830.0498693,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -5634,9 +5634,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs": {
-    "mtime": 1789546663.8404438,
-    "seen": 1789546827.8630245,
-    "ast_hash": "c15afdf414b3f4014d805f4f452ecc5f",
+    "mtime": 1789583783.5641215,
+    "seen": 1789584001.5987592,
+    "ast_hash": "cec6ee5567f9c6761cc79d0a3331141b",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story52BasicAiRouteFollowingAndRecoveryTests.cs": {
@@ -5916,21 +5916,21 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/PortalTrafficSpawner.cs": {
-    "mtime": 1789509598.5289972,
-    "seen": 1789545108.9518676,
-    "ast_hash": "f32a2dab751840131317a9d9b07d2e57",
+    "mtime": 1789555823.4598231,
+    "seen": 1789573830.0498867,
+    "ast_hash": "c9c159bfea3a5b40398b0ef2d5674b6a",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/LaneGraph.cs": {
-    "mtime": 1789509531.0767233,
-    "seen": 1789545108.9568965,
-    "ast_hash": "d3c217eea8c3846892fd7c1699a9b16c",
+    "mtime": 1789555823.4639454,
+    "seen": 1789573830.0499337,
+    "ast_hash": "27301959791b57df425848c8919d6aab",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/LaneGraphRouting.cs": {
-    "mtime": 1789509502.5909095,
-    "seen": 1789545108.956898,
-    "ast_hash": "cc18521dc836fcedec6f7befef49bd2f",
+    "mtime": 1789583780.2456558,
+    "seen": 1789584001.5985918,
+    "ast_hash": "bf765ad80c5f0a221ebbd8a2450e6ceb",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/LaneNode.cs": {
@@ -5946,27 +5946,39 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs": {
-    "mtime": 1789547693.1534557,
-    "seen": 1789547801.7261186,
-    "ast_hash": "d2b8e37076a58b92f3635faaf6630716",
+    "mtime": 1789583903.7139175,
+    "seen": 1789584001.602887,
+    "ast_hash": "2d84ca542d9c734876f01c2ef743a220",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story510RoutedTrafficPlayModeTests.cs": {
-    "mtime": 1789545014.8312588,
-    "seen": 1789545108.9622324,
-    "ast_hash": "965e3de30914ff4a5add5ce31558064b",
+    "mtime": 1789555823.4639454,
+    "seen": 1789573830.049991,
+    "ast_hash": "ba3f274b224755bfe9fbdeba79a31724",
     "semantic_hash": ""
   },
   "_bmad-output/implementation-artifacts/spec-5-10-lane-graph-greybox-district-and-routed-traffic.md": {
-    "mtime": 1789547485.5393507,
-    "seen": 1789547801.7824295,
-    "ast_hash": "01cf13de40980028814fecf6d55dd9e9",
+    "mtime": 1789575369.868903,
+    "seen": 1789576758.704353,
+    "ast_hash": "87f29744cd555c14237c12c6f4318ab1",
     "semantic_hash": ""
   },
   "docs/setup/story-5-10-lane-graph-district-notes.md": {
-    "mtime": 1789547762.1944249,
-    "seen": 1789547801.7887607,
-    "ast_hash": "3f58d066cdf5154390f64ec9beb92f8b",
+    "mtime": 1789555823.577964,
+    "seen": 1789573830.0505161,
+    "ast_hash": "de082542e2e0e21c25d4d3e428a86976",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/anomalies/epic 5/ANO-5.10-03/ANO-5.10-03.md": {
+    "mtime": 1789581705.1783288,
+    "seen": 1789584001.6557765,
+    "ast_hash": "27e6a0cee2c0b0f9e656ae2cdfe5ffe1",
+    "semantic_hash": ""
+  },
+  "_bmad-output/implementation-artifacts/anomalies/epic 5/ANO-5.10.02/ANO-5.10.02.md": {
+    "mtime": 1789558684.7780237,
+    "seen": 1789573830.0504239,
+    "ast_hash": "aaae48affa99f39bf6f9e02179cad03c",
     "semantic_hash": ""
   }
 }

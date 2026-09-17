@@ -35,4 +35,4 @@ Unity 6 cooperative driving prototype. BMAD remains the source of truth for Stor
 - Regle d'usage : ces packs sont du **decor uniquement**. Aucun de leurs prefabs ne porte d'etat gameplay, de `NetworkObject` ou de `NetworkVariable`. Ne jamais utiliser leurs prefabs `Characters` ou `Vehicles` comme avatars ou vehicules jouables : les prefabs reseau du projet restent la seule source de verite. Un prop Synty s'instancie en enfant visuel sous un root prefab projet (voir AD-13 / AD-27).
 - Leur import exige le package Unity `com.unity.shadergraph` `17.6.0` (`Packages/manifest.json`). Sans lui, les materiaux Synty ne se compilent pas.
 - Evaluation d'adoption, licence et inventaire detailles : `docs/setup/addon-adoption-register.md` (lignes `ADDON-009` et `ADDON-010`).
-- `Assets/Synty/` n'est **pas** suivi par git au 2026-09-16 (~196 Mo).
+- `Assets/Synty/` est **volontairement ignore par git** (`.gitignore`) : la licence Synty interdit la redistribution et le depot est public. Sur un clone frais, reimporter les packs depuis l'Asset Store ; ne jamais les committer. Poids local ~196 Mo, dont 128,9 Mo de FBX/PNG qui partiraient sinon dans Git LFS.

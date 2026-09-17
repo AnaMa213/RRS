@@ -1,7 +1,7 @@
 ---
 id: ANO-5.10-02
 title: AI vehicles can enter a circular/orbiting movement around specific road zones
-status: open
+status: resolved
 epic: 5
 story: 5.10
 type: bug
@@ -372,3 +372,158 @@ Après correction, documenter :
 4. la correction appliquée ;
 5. les tests exécutés ;
 6. les éventuels risques restant à surveiller.
+
+---
+
+# Résolution — 2026-09-16
+
+## 1. Cause racine
+
+**Catégorie : sélection de cible / steering.** Ni le lane graph ni le routing ne sont en cause.
+
+`NetworkedAIVehicleDriverController` est un contrôleur de **poursuite pure** : il vise le nœud
+courant, borne son braquage à `steerDegreesPerSecond` (90 °/s sur `Greybox_AIVehicle`) et roule à la
+vitesse désirée du profil (8 m/s sur `DriverProfileDef_Default`). Son rayon de braquage minimal est
+donc **R = v / ω = 8 / 1,571 = 5,09 m**, alors que le franchissement de nœud était validé
+**uniquement** par `HasArrivedAtWaypoint`, c'est-à-dire une distance planaire ≤ `arrivalRadius`
+(3 m).
+
+Ces deux valeurs sont incompatibles : **un nœud qui tombe à l'intérieur du cercle de braquage du
+véhicule ne peut jamais être atteint.** Le véhicule tourne autour de lui à un rayon ≈ R = 5,09 m,
+n'entre jamais dans le rayon d'arrivée de 3 m, donc `ResolveNextNode` n'est jamais appelé, donc
+`WaypointIndex` ne change plus jamais. L'orbite est permanente et parfaitement stable.
+
+État mesuré sur les véhicules en orbite (identique sur tous les cas) :
+
+| Grandeur | Valeur observée |
+|---|---|
+| Distance à la cible | 3,9 – 6,9 m (toujours entre `arrivalRadius` et 2R) |
+| Angle vers la cible | ±91° à ±109° — cible **par le travers** |
+| Nœud courant / suivant | **figés**, aucune progression |
+| `traversedEdges` | figé |
+| Recalcul de route | **aucun** — la route n'est jamais recalculée pendant le phénomène |
+
+Réponses aux questions de diagnostic du handoff : la route logique est correcte et acyclique (1) à
+(4) ; la progression sur la lane n'avance pas (5) ; le steering target est **fixe** (6, 9) et ne
+change ni n'oscille (10, 11) ; la distance à la cible ne diminue pas, elle se stabilise à R (7) ; la
+cible finit **latéralement** au véhicule (8) ; aucun recalcul de route ni de prochain edge (12, 13) ;
+l'orientation désirée est cohérente avec le routing (14) ; **le véhicule ne possède pas le rayon de
+braquage nécessaire (15)** — c'est le seul point qui échoue.
+
+## 2. Ce que représentent réellement les zones signalées
+
+Ce sont les **quatre giratoires** du district : `Roundabout_NorthEast`, `Roundabout_SouthEast`,
+`Roundabout_SouthWest`, `Roundabout_NorthWest`, instances de `Greybox_Roundabout.prefab`, chacune
+portant un anneau de 11 `LaneNode` (`Ring_Split_*`, `Ring_Arc_*`, `Ring_Merge_*`) de **rayon 6,00 m**.
+
+Ce sont donc bien des éléments du lane graph — mais **elles ne sont pas la cause**. Elles sont
+l'endroit où la poursuite pure roule au plus près de sa limite physique :
+
+- rayon de l'anneau **6,00 m** contre un rayon de braquage minimal de **5,09 m** — 0,9 m de marge ;
+- espacement des nœuds d'anneau **3,43 m** contre un rayon d'arrivée de **3,00 m** — 0,43 m de marge.
+
+La moindre perturbation (contact avec un autre véhicule ou avec le joueur) suffit alors à faire
+passer la cible à l'intérieur du cercle de braquage. Le même défaut existe partout dans le district ;
+les giratoires sont simplement le seul endroit où il se déclenche en pratique. Les quatre nœuds de
+blocage identifiés sont tous des nœuds d'anneau : `Ring_Merge_Diagonal`, `Ring_Split_West`,
+`Ring_Arc_Diagonal_1`, `Ring_Arc_South_1`.
+
+## 3. Comment le bug a été reproduit
+
+Reproduction déterministe hors Play Mode, par **rejeu cinématique** du contrôleur sur le graphe réel
+de `MVP_Run` (mêmes équations : `HasArrivedAtWaypoint`, `ComputeSeekIntent`, `ApplyMovement`,
+`ResolveNextNode`, `Time.fixedDeltaTime` = 0,02 s), exécuté dans l'Éditeur via Unity MCP.
+
+- Départ parfaitement aligné sur un portail : **0 orbite sur 48 trajets** — le bug ne se voit pas.
+- Avec **une** perturbation unique en cours de route (décalage latéral + changement de cap, ce que
+  produit un contact) : **56 orbites sur 320 trajets (18 %)**, puis **996 sur 2160 (46 %)** sur un
+  balayage plus sévère.
+
+Cela explique le caractère intermittent rapporté : le trafic nominal ne déclenche rien, seuls les
+véhicules bousculés tombent dedans.
+
+## 4. Données ayant permis d'identifier la cause
+
+1. **Audit statique du graphe** : 204 nœuds, 232 arêtes, **0 self-loop**, **0 connecteur orphelin**,
+   4 portails d'entrée, 4 de sortie, `TryValidate` vert. → hypothèse A (cycle de graphe) écartée.
+2. **Simulation du routing logique seul** : **160/160 parcours atteignent un portail de sortie**,
+   depuis les 4 portails et 40 graines. → le routing ne boucle pas.
+3. **Mesure géométrique** : R = 5,09 m contre anneau 6,00 m et `arrivalRadius` 3,00 m.
+4. **Signature de l'état bloqué** : cible figée par le travers à une distance ≈ R (tableau ci-dessus).
+
+## 5. Fichiers modifiés
+
+| Fichier | Nature |
+|---|---|
+| `Assets/RoadRage/Features/Vehicles/LaneGraphRouting.cs` | Nouveau prédicat pur `HasPassedUnreachableWaypoint` |
+| `Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs` | Le prédicat complète la condition de franchissement de nœud |
+| `Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs` | 6 gardes de non-régression |
+
+Aucune scène, aucun prefab, aucun `Def`, aucun tracé n'a été touché.
+
+## 6. Correction appliquée
+
+Un nœud est désormais franchi de **deux** façons complémentaires : l'arrivée nominale (inchangée), ou
+le **dépassement irrattrapable** — le nœud est déjà derrière le véhicule **et** tombe dans son cercle
+de braquage.
+
+```csharp
+if (HasArrivedAtWaypoint(transform.position, waypointPosition, arrivalRadius)
+    || LaneGraphRouting.HasPassedUnreachableWaypoint(
+        transform.position, transform.forward, waypointPosition, currentSpeed, steerDegreesPerSecond))
+```
+
+Propriétés du prédicat :
+
+- **Auto-calibré** : le rayon vient de la vitesse courante et de la vitesse de lacet maximale
+  (R = v / ω). Aucun nouveau seuil à authorer, aucun réglage de conduite modifié.
+- **S'éteint de lui-même à basse vitesse** : à 1 m/s, R = 0,64 m, le véhicule peut revenir sur son
+  repère, le prédicat ne se déclenche pas.
+- **Ne porte jamais loin** : un point intérieur au cercle est à au plus 2R (≈ 10 m à 8 m/s). Un
+  véhicule retourné à l'autre bout du district revient chercher son repère, comme avant.
+- **Ne coupe pas les virages** : la garde « déjà dépassé » (produit scalaire ≤ 0) fait que le nœud
+  suivant d'un anneau de giratoire, qui reste **devant**, n'est jamais court-circuité.
+
+Aucun des interdits n'est utilisé : ni téléportation, ni suppression de véhicule, ni reset
+silencieux, ni coordonnée en dur, ni itinéraire figé, ni connexion désactivée. Les routes
+alternatives, le tirage pondéré aux jonctions et le déterminisme par graine sont intacts.
+
+## 7. Tests exécutés
+
+| Test | Résultat |
+|---|---|
+| Audit statique du lane graph de `MVP_Run` | 0 self-loop, 0 orphelin, `TryValidate` vert |
+| Routing logique, 4 portails × 40 graines | 160/160 atteignent une sortie |
+| Rejeu cinématique nominal, 48 trajets | 48/48 atteignent une sortie |
+| Balayage perturbé 320 trajets, A/B | **56 orbites → 0** |
+| Balayage perturbé sévère 2160 trajets, A/B | **996 orbites → 0** |
+| Profil de déclenchement sur 100 trajets nominaux | 3,8 % des franchissements, toujours à ≥ 90° (jamais en avance) |
+| Non-régression des trajets nominaux | Portail-à-portail conservé sur 100/100 |
+| 6 nouvelles gardes EditMode | Vertes (évaluées directement dans l'Éditeur) |
+
+## 8. Risques et points à surveiller
+
+- **Les itinéraires nominaux changent** (44 % des trajets comparés). Conséquence attendue et
+  acceptée : `SelectWeightedSuccessor` est graine par `traversedEdges`, donc consommer un nœud un
+  instant plus tôt décale le tirage. Les trajets restent valides, pondérés, déterministes et
+  portail-à-portail — mais un trajet donné n'est plus identique à celui d'avant le correctif.
+- **La marge géométrique reste faible** : anneau 6,00 m contre R 5,09 m. Le correctif garantit la
+  progression, pas une trajectoire élégante — un véhicule bousculé rejoint sa voie en élargissant.
+  Si la Story 5.11/5.12 augmente `desiredSpeed` au-delà de ~9,4 m/s, R dépasse le rayon de l'anneau
+  et les giratoires deviendront intraçables ; il faudra alors ralentir en courbure ou élargir les
+  anneaux.
+- **92 arêtes de longueur nulle** (jointures de connecteurs, deux nœuds superposés). Sans effet sur
+  cette anomalie, mais `ComputeSeekIntent` rend `Idle` sur ces nœuds : le véhicule s'immobilise
+  ~2 frames physiques à chaque jointure de module. Cosmétique, hors périmètre de cette ANO.
+- **ANO-5.10-03** (réaction à la collision) reste ouverte. Ce correctif empêche un véhicule bousculé
+  de rester en orbite, mais ne lui donne pas de réaction naturelle à un choc — c'est le périmètre de
+  l'autre anomalie.
+
+## 9. Outils de debug ajoutés
+
+Aucun composant de debug runtime n'a été ajouté : le diagnostic a été mené par rejeu cinématique hors
+Play Mode, plus fiable et reproductible qu'une instrumentation en scène. Ce rejeu est **conservé dans
+le projet** sous forme de garde de non-régression
+(`PerturbedVehiclesAlwaysReachAnExitPortalInTheAuthoredDistrict`), directement réutilisable par les
+Stories 5.11 et 5.12 pour vérifier qu'un changement de profil de conduite ou de tracé ne réintroduit
+pas d'orbite.

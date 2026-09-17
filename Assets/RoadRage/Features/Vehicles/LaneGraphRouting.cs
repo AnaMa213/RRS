@@ -215,6 +215,63 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
+        /// Predicat pur (ANO-5.10-02) : un repere DEJA DEPASSE et situe a l'interieur du cercle de
+        /// braquage du vehicule ne sera jamais rattrape par la poursuite pure -- le vehicule tourne
+        /// autour de lui indefiniment sans jamais entrer dans son rayon d'arrivee. C'est exactement
+        /// l'orbite observee : la cible se stabilise par le travers (+/-90 degres), a une distance
+        /// egale au rayon de braquage, et le franchissement de noeud ne se produit plus jamais.
+        ///
+        /// Le rayon vient de la vitesse courante et de la vitesse de lacet maximale (R = v / w) :
+        /// aucun seuil supplementaire a authorer, et le predicat se reduit tout seul la ou il doit --
+        /// a basse vitesse le vehicule braque assez court pour revenir sur son repere, et un point
+        /// interieur au cercle etant a au plus 2R, un repere lointain n'est jamais concerne (un
+        /// vehicule retourne a l'autre bout du district revient le chercher, comme aujourd'hui).
+        ///
+        /// La garde "deja depasse" est ce qui separe l'orbite d'une approche serree normale : sur un
+        /// giratoire, le noeud suivant reste DEVANT le vehicule, donc ce predicat ne s'y declenche
+        /// pas et le trace du giratoire reste suivi noeud par noeud.
+        /// </summary>
+        public static bool HasPassedUnreachableWaypoint(
+            Vector3 position,
+            Vector3 forward,
+            Vector3 waypointPosition,
+            float speed,
+            float maxYawDegreesPerSecond)
+        {
+            var toWaypoint = waypointPosition - position;
+            toWaypoint.y = 0f;
+
+            var flatForward = new Vector3(forward.x, 0f, forward.z);
+            if (flatForward.sqrMagnitude <= 0.0001f || toWaypoint.sqrMagnitude <= 0.0001f)
+            {
+                return false;
+            }
+
+            flatForward.Normalize();
+
+            // Repere encore devant : la poursuite normale s'en occupe, rien a court-circuiter.
+            if (Vector3.Dot(flatForward, toWaypoint) > 0f)
+            {
+                return false;
+            }
+
+            if (!float.IsFinite(speed) || !float.IsFinite(maxYawDegreesPerSecond)
+                || speed <= 0f || maxYawDegreesPerSecond <= 0f)
+            {
+                return false;
+            }
+
+            // Centre du virage du cote du repere : c'est celui que le vehicule va decrire, puisqu'il
+            // braque vers sa cible. Un repere a l'interieur de ce cercle est hors d'atteinte.
+            var turnRadius = speed / (maxYawDegreesPerSecond * Mathf.Deg2Rad);
+            var right = Vector3.Cross(Vector3.up, flatForward);
+            var side = Vector3.Dot(right, toWaypoint) >= 0f ? 1f : -1f;
+            var center = right * (side * turnRadius);
+
+            return (toWaypoint - center).sqrMagnitude < turnRadius * turnRadius;
+        }
+
+        /// <summary>
         /// Descente gloutonne vers une cible : parmi les successeurs, celui dont la position est la
         /// plus proche de <paramref name="target"/>. C'est la reorientation "vers la sortie la plus
         /// proche" -- un pas a la fois, sans A* ni itineraire pre-calcule. Rend la valeur d'un element

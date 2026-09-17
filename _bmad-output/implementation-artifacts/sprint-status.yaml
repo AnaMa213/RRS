@@ -112,7 +112,7 @@ development_status:
   5-7-ai-traffic-networking-and-client-presentation: review
   5-8-escape-menu-and-return-to-main-menu: review
   5-9-parameterized-driver-model: review
-  5-10-lane-graph-greybox-district-and-routed-traffic: review
+  5-10-lane-graph-greybox-district-and-routed-traffic: in-progress
   5-11-intersection-rules-and-deadlock-prevention: backlog
   5-12-wider-perception-and-progressive-unblocking: backlog
   5-13-rage-and-fear-as-driving-model-modulation: backlog

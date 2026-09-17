@@ -24,6 +24,15 @@ namespace RoadRage.Tests.EditMode
         private const string CharacterCatalogAssetPath = "Assets/RoadRage/ScriptableObjects/Players/CharacterCatalog.asset";
         private const string VehicleStableId = "vehicle_player_shared";
 
+        /// <summary>
+        /// Story 5.10 : ce seed a ete repris comme habillage decoratif du district (trottoirs, places
+        /// et tour de repere), en dehors du perimetre du lane graph -- voir
+        /// docs/setup/story-1-4-greybox-asset-seeds-evidence.md. Son gabarit et ses parties
+        /// reconnaissables ne sont donc plus ceux d'un batiment simple Story 1.4, et sa base descend
+        /// legitimement sous le sol (semelle de trottoir), contrairement aux trois autres seeds.
+        /// </summary>
+        private const string CityBlockStableId = "building_city_block_a";
+
         private static readonly SeedExpectation[] Seeds =
         {
             new SeedExpectation(
@@ -73,17 +82,19 @@ namespace RoadRage.Tests.EditMode
                 "Wheel_FrontRight",
                 "Wheel_RearLeft",
                 "Wheel_RearRight"),
+            // Story 5.10 : repris comme ilot de district decoratif (trottoirs + places autour d'une
+            // tour de repere), instancie 4 fois dans MVP_Run -- plus le batiment simple de Story 1.4.
+            // Gabarit et parties reconnaissables mesures sur l'etat actuel du prefab (voir preuve).
             new SeedExpectation(
                 "Assets/RoadRage/Prefabs/Greybox_CityBlock_A.prefab",
                 "Assets/RoadRage/ArtExports/Greybox_CityBlock_A.fbx",
-                "building_city_block_a",
+                CityBlockStableId,
                 typeof(BoxCollider),
-                new Vector3(6.8f, 8.3f, 4.2f),
-                new Vector3(6.95f, 8.4f, 4.3f),
+                new Vector3(15.9f, 24.1f, 15.9f),
+                new Vector3(16.1f, 24.3f, 16.1f),
                 "Tower",
-                "Door",
-                "Window",
-                "RoofCap")
+                "Sidewalk",
+                "Plaza")
         };
 
         [Test]
@@ -181,7 +192,11 @@ namespace RoadRage.Tests.EditMode
                     Assert.That(bounds.size.x, Is.InRange(seed.MinBounds.x, seed.MaxBounds.x), seed.PrefabPath + " largeur/longueur");
                     Assert.That(bounds.size.y, Is.InRange(seed.MinBounds.y, seed.MaxBounds.y), seed.PrefabPath + " hauteur");
                     Assert.That(bounds.size.z, Is.InRange(seed.MinBounds.z, seed.MaxBounds.z), seed.PrefabPath + " profondeur");
-                    Assert.That(bounds.min.y, Is.GreaterThanOrEqualTo(-0.01f), seed.PrefabPath + " base sous le sol");
+                    // Le trottoir du district (Story 5.10) porte une semelle qui descend sous le sol
+                    // pour ne jamais laisser de vide visible au raccord avec le terrain -- les trois
+                    // autres seeds restent des batiments simples poses exactement au sol.
+                    var minRenderedY = seed.StableId == CityBlockStableId ? -0.19f : -0.01f;
+                    Assert.That(bounds.min.y, Is.GreaterThanOrEqualTo(minRenderedY), seed.PrefabPath + " base sous le sol");
                 }
                 finally
                 {

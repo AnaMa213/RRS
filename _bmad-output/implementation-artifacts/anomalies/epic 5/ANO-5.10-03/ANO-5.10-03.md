@@ -1,6 +1,6 @@
 ---
 id: ANO-5.10-03
-title: AI vehicles are violently launched or flipped near tunnel roundabouts
+title: AI vehicles do not react naturally to collisions and keep forcing their normal route
 status: open
 epic: 5
 story: 5.10
@@ -10,367 +10,403 @@ severity: major
 priority: high
 ---
 
-# ANO-5.10-03 — Des véhicules IA sont projetés ou s'envolent à proximité des ronds-points devant les tunnels
+# ANO-5.10-03 — Les véhicules IA continuent à forcer leur trajet après une collision
 
 ## Contexte
 
 - **Epic :** 5 — NPC Response Foundation and Future Traffic
 - **Story concernée :** 5.10 — Lane Graph, Greybox District, and Routed Traffic
-- **Type :** Anomalie fonctionnelle / physique / géométrie routière
-- **Sévérité initiale :** Majeure
-- **Priorité initiale :** Haute
+- **Type :** Anomalie fonctionnelle / physique véhicule / réaction IA
+- **Sévérité :** Majeure
+- **Priorité :** Haute
 - **Scène concernée :** `MVP_Run`
-- **Reproductibilité :** Fréquente dans certaines zones
-- **Zone principalement concernée :** Ronds-points situés devant les tunnels / portals
 
-La Story 5.10 a introduit le nouveau district greybox, ses routes, ses portals et le routed traffic.
+Cette anomalie avait initialement été identifiée parce que certains véhicules pouvaient être violemment projetés ou retournés, notamment à proximité des ronds-points devant les tunnels.
 
-Pendant les tests de recette, certains véhicules IA subissent une réaction physique anormale lorsqu'ils circulent à proximité des ronds-points situés devant les tunnels.
+L'investigation manuelle montre cependant que le problème est plus général.
 
-Une capture et une vidéo de reproduction sont fournies avec cette anomalie.
+Le comportement problématique semble provenir principalement de la manière dont l'IA continue à appliquer son comportement normal de conduite après une collision ou une forte perturbation physique.
 
 ---
 
-## Comportement observé
+# Problème identifié
 
-Lorsqu'un véhicule IA circule normalement, il peut parfois sembler entrer brutalement en collision avec quelque chose d'invisible ou avec un élément difficilement identifiable de la chaussée.
+Lorsqu'un véhicule IA subit une collision importante, est poussé hors de sa trajectoire ou se fait percuter par un autre véhicule, il continue actuellement à essayer de suivre immédiatement son chemin normal.
 
-La réaction est violente :
+Il cherche donc à retrouver sa cible de navigation et à continuer sa route alors que :
 
-- le véhicule est brusquement poussé vers l'avant ou vers le haut ;
-- il peut fortement basculer ;
-- il peut quitter complètement le sol ;
-- dans certains cas, il semble véritablement être projeté dans les airs.
+- son orientation peut avoir été fortement modifiée ;
+- sa vitesse peut ne plus correspondre à la situation ;
+- il peut être déplacé latéralement ;
+- il peut être en train de basculer ;
+- un autre véhicule peut encore être en contact avec lui ;
+- il peut se trouver temporairement hors de la chaussée.
 
-La vidéo fournie montre clairement un véhicule qui commence à basculer puis est soulevé jusqu'à se retrouver quasiment vertical/en l'air.
+Cela peut créer un conflit entre :
 
-Le phénomène est observé **très majoritairement, voire presque systématiquement, autour des ronds-points situés devant les tunnels**.
+1. la réaction physique naturelle du `Rigidbody` à la collision ;
+2. les commandes du contrôleur IA qui continuent à vouloir faire avancer le véhicule vers son trajet normal.
 
-La capture fournie indique en rouge une zone où le comportement a notamment été observé.
+Dans certaines situations, cela peut contribuer à produire des réactions physiques très violentes, notamment :
 
-Le testeur a l'impression que le véhicule rencontre physiquement quelque chose sur sa trajectoire, mais aucun obstacle évident n'est visible à cet endroit.
-
-Cette impression constitue une observation de gameplay et **pas encore un diagnostic technique**.
-
----
-
-## Comportement attendu
-
-Un véhicule IA circulant sur une portion valide de chaussée doit rester physiquement stable.
-
-Il doit pouvoir :
-
-1. entrer sur le rond-point ;
-2. suivre sa trajectoire ;
-3. emprunter la sortie appropriée ;
-4. rejoindre ou quitter le tunnel/portal ;
-
-sans subir d'impulsion physique anormale.
-
-Une chaussée considérée comme praticable par le système de trafic ne doit contenir aucun élément invisible ou géométrie provoquant le soulèvement, le retournement ou la projection d'un véhicule.
+- propulsion anormale ;
+- véhicule projeté ;
+- retournement ;
+- comportement erratique après un choc ;
+- véhicule continuant à pousser alors qu'il vient d'entrer en collision.
 
 ---
 
-## Étapes de reproduction
+# Comportement observé
 
-### Reproduction actuellement observée
+Lorsqu'un véhicule IA est percuté ou rencontre une collision importante :
 
-1. Lancer une partie dans `MVP_Run`.
-2. Laisser plusieurs véhicules IA circuler.
-3. Observer les véhicules approchant des ronds-points devant les tunnels.
-4. Attendre qu'un véhicule traverse les zones signalées sur la capture.
-5. Dans certains cas, constater une réaction physique soudaine :
-   - basculement ;
-   - propulsion vers l'avant ;
-   - soulèvement ;
-   - projection dans les airs.
+1. la physique déplace ou fait pivoter le véhicule ;
+2. le système de conduite continue immédiatement à chercher à suivre la route prévue ;
+3. le véhicule continue souvent à appliquer une intention de mouvement vers sa trajectoire ;
+4. la réaction produite peut devenir artificielle ou physiquement instable.
 
-Le taux exact de reproduction doit être mesuré pendant l'investigation.
+Le véhicule donne alors davantage l'impression d'un agent de navigation essayant à tout prix de rejoindre son chemin que d'un conducteur venant de subir un accident.
 
 ---
 
-## Éléments de preuve fournis
+# Comportement attendu
 
-### Capture
+Lorsqu'un véhicule subit une collision significative, sa priorité immédiate ne doit plus être de suivre parfaitement son trajet normal.
 
-Une capture montre une zone située sur/à proximité d'un rond-point devant un tunnel où le phénomène est fréquemment observé.
+Il doit temporairement entrer dans un comportement de **réaction à la collision / perte de contrôle**.
 
-La zone entourée en rouge indique uniquement l'emplacement approximatif associé au problème.
+Pendant cette phase :
 
-Elle ne constitue pas une identification de sa cause.
+- le suivi normal de route doit être temporairement suspendu ou fortement réduit ;
+- le véhicule doit laisser la physique du choc se résoudre ;
+- l'IA doit produire une réaction crédible à l'événement ;
+- elle ne doit pas lutter immédiatement contre le `Rigidbody` pour rejoindre sa trajectoire.
 
-### Vidéo
-
-La vidéo de reproduction montre notamment :
-
-1. un véhicule circulant dans la zone ;
-2. une modification brutale de son orientation ;
-3. le véhicule qui commence à se soulever ;
-4. le véhicule projeté dans les airs / positionné presque verticalement.
-
-La vidéo confirme donc qu'il ne s'agit pas seulement d'un problème visuel de mesh : le véhicule subit une réaction physique anormale.
+Une fois la situation stabilisée, le véhicule doit pouvoir analyser sa position et retrouver progressivement une route valide.
 
 ---
 
-# Investigation demandée
+# Réactions attendues à une collision
 
-## 1. Identifier la géométrie et les colliders présents dans la zone
+Les réactions ne doivent pas être parfaitement identiques pour tous les véhicules.
 
-Inspecter précisément la zone où le véhicule rencontre le problème.
+Lors d'une collision significative, un conducteur peut par exemple :
 
-Déterminer quels objets sont présents, notamment :
+## Réaction A — Freinage d'urgence
 
-- meshes de chaussée ;
-- colliders de chaussée ;
-- colliders de bordure ;
-- éléments du rond-point ;
-- éléments liés au tunnel/portal ;
-- objets invisibles ;
-- triggers ;
-- volumes de navigation ;
-- objets générés au runtime ;
-- éventuels objets dupliqués.
+Réaction la plus courante.
 
-Afficher si nécessaire les colliders/gizmos dans Unity afin de comparer leur forme avec la géométrie visible.
+Le conducteur :
+
+- pile ;
+- réduit brutalement son accélération ;
+- tente de stabiliser le véhicule ;
+- peut s'arrêter complètement.
+
+Il attend ensuite que la situation immédiate soit suffisamment stable avant de repartir.
 
 ---
 
-## 2. Vérifier les collisions invisibles ou incorrectes
+## Réaction B — Esquive
 
-Rechercher notamment :
+Réaction plus rare.
 
-- collider ne correspondant pas au mesh visible ;
-- collider légèrement surélevé par rapport à la chaussée ;
-- face verticale ou marche invisible ;
-- collider traversant la route ;
-- plusieurs colliders superposés ;
-- MeshCollider généré incorrectement ;
-- collider appartenant à un objet pourtant visuellement désactivé ;
-- collision avec un élément du portal ;
-- collider résiduel d'une ancienne géométrie ;
-- objet instancié en double.
+Le conducteur tente d'éviter la collision ou de sortir de la situation.
 
-Ces éléments sont des pistes d'investigation, pas des diagnostics établis.
+Cela peut l'amener temporairement :
 
----
+- à dévier fortement de sa trajectoire ;
+- à quitter partiellement la chaussée ;
+- à mordre sur un trottoir ou une zone normalement non utilisée par le trafic.
 
-## 3. Vérifier la géométrie de la chaussée
+Cette réaction doit rester physiquement plausible.
 
-Déterminer également si le véhicule est projeté par une irrégularité réelle de la géométrie.
-
-Inspecter notamment :
-
-- différences de hauteur entre deux morceaux de route ;
-- raccord incorrect entre route et rond-point ;
-- triangles ou vertices anormalement positionnés ;
-- changement brutal de pente ;
-- surfaces qui se chevauchent ;
-- trous ou marches entre deux meshes ;
-- raccord route/tunnel.
+Elle ne signifie pas que le véhicule doit systématiquement éviter tous les obstacles.
 
 ---
 
-## 4. Instrumenter la collision
+## Réaction C — Mauvaise réaction / perte de contrôle
 
-Lorsqu'un véhicule reproduit le bug, identifier si possible :
+Certains conducteurs peuvent mal réagir au choc.
 
-- l'objet avec lequel il vient d'entrer en collision ;
-- le collider concerné ;
-- le `contact point` ;
-- la normale de collision ;
-- la vitesse du véhicule juste avant l'impact ;
-- sa vitesse immédiatement après ;
-- son `angularVelocity` ;
-- l'impulsion physique reçue.
+Par exemple :
 
-L'objectif est d'éviter de diagnostiquer le problème uniquement à partir du résultat visuel.
+- continuer momentanément tout droit ;
+- ne pas freiner suffisamment ;
+- finir contre un mur ;
+- heurter un autre obstacle ;
+- se retrouver mal orientés ou hors de la chaussée.
 
-Si nécessaire, ajouter temporairement un logging de développement pour les collisions anormalement violentes des véhicules IA.
+Le système ne doit pas rendre tous les conducteurs artificiellement parfaits.
 
----
-
-## 5. Vérifier si le problème vient du véhicule ou de l'environnement
-
-Déterminer si :
-
-- tous les véhicules peuvent reproduire le problème au même endroit ;
-- seuls certains véhicules/prefabs sont concernés ;
-- le problème dépend de la vitesse ;
-- le problème dépend de l'angle d'approche ;
-- le problème se produit dans les deux sens de circulation ;
-- tous les ronds-points devant les tunnels sont concernés ;
-- un rond-point particulier est principalement responsable.
-
-Cette distinction permettra de déterminer si la cause appartient principalement :
-
-1. à la géométrie/collision de la map ;
-2. au véhicule ;
-3. au contrôleur de conduite ;
-4. ou à une combinaison de ces éléments.
+Une collision doit pouvoir produire une situation chaotique crédible.
 
 ---
 
-# Hypothèses initiales — NON CONFIRMÉES
+# Variabilité des réactions
 
-## Hypothèse A — Collider invisible ou mal positionné
+Les différentes réactions ne doivent pas nécessairement être équiprobables.
 
-La réaction observée est compatible avec un véhicule rencontrant brutalement un collider invisible ou une face de collider qui coupe sa trajectoire.
+Exemple de tendance souhaitée :
 
-C'est actuellement une hypothèse forte, mais elle doit être démontrée.
+- freinage / arrêt : fréquent ;
+- esquive : plus rare ;
+- mauvaise réaction / perte de contrôle : possible.
 
----
+Les probabilités ou tendances exactes ne doivent pas être hardcodées si le système possède déjà une architecture permettant de les rendre configurables.
 
-## Hypothèse B — Mauvais raccord entre meshes
-
-Le raccord entre une route, le rond-point et/ou la zone du tunnel pourrait créer une petite marche ou une géométrie physique différente de la surface visible.
-
-À vitesse normale, cette irrégularité pourrait agir comme une rampe ou un obstacle.
+BMAD doit déterminer la manière la plus cohérente d'intégrer cette variabilité au modèle de conducteur existant.
 
 ---
 
-## Hypothèse C — Géométrie/collider dupliqué
+# Détection d'une collision significative
 
-Compte tenu des autres anomalies déjà observées sur certaines surfaces de la Story 5.10, vérifier si plusieurs objets occupent la même zone.
+Toutes les petites collisions ne doivent pas nécessairement interrompre la navigation.
 
-**Ne pas considérer pour autant ANO-5.10-01 et ANO-5.10-03 comme ayant nécessairement la même cause.**
+Le système doit distinguer autant que possible :
 
-La relation doit être vérifiée.
+- contact léger ;
+- petit frottement ;
+- collision réelle ;
+- impact suffisamment important pour déclencher une réaction.
+
+La manière de déterminer ce seuil doit être analysée pendant l'implémentation.
+
+Elle peut notamment dépendre de données physiques telles que :
+
+- vitesse relative ;
+- impulsion de collision ;
+- changement brutal de vitesse ;
+- rotation générée ;
+- direction de l'impact.
+
+Ne pas introduire un seuil arbitraire sans vérifier son comportement en jeu.
 
 ---
 
-## Hypothèse D — Instabilité physique du véhicule
+# État Collision / Recovery
 
-La géométrie pourrait être valide mais une collision mineure pourrait générer une réaction disproportionnée en raison :
+Le système devrait conceptuellement distinguer au minimum deux phases.
 
-- du Rigidbody ;
-- des colliders du véhicule ;
-- de son centre de masse ;
-- du contrôle de vitesse ;
-- ou de la manière dont le contrôleur applique le mouvement.
+## Phase 1 — Collision Response
 
-Cette piste doit principalement être étudiée si l'environnement ne révèle pas de collision anormale.
+Immédiatement après un impact significatif :
+
+- la conduite normale n'est plus prioritaire ;
+- l'IA réagit au choc ;
+- le contrôleur ne doit pas forcer immédiatement le véhicule à reprendre son ancienne trajectoire ;
+- la physique doit pouvoir se résoudre correctement.
+
+## Phase 2 — Recovery
+
+Lorsque :
+
+- les collisions immédiates ont cessé ;
+- la vitesse et la rotation du véhicule sont redevenues suffisamment stables ;
+- la situation autour du véhicule permet de recommencer à conduire ;
+
+l'IA peut chercher à retrouver le réseau routier.
+
+Elle doit alors :
+
+1. déterminer où elle se trouve ;
+2. identifier une manière valide de rejoindre une lane ;
+3. se réaligner progressivement ;
+4. reprendre son itinéraire ou recalculer une route valide.
+
+Le véhicule ne doit pas nécessairement chercher à revenir exactement au point où il a quitté sa trajectoire.
 
 ---
 
-# Contraintes de correction
+# Retour sur la route
 
-Ne pas résoudre l'anomalie en :
+Un véhicule déplacé hors de son parcours doit pouvoir revenir naturellement dans le trafic.
 
-- réduisant arbitrairement la vitesse de toutes les IA ;
-- augmentant artificiellement leur masse ;
-- bloquant leur rotation ;
-- téléportant les véhicules après l'impact ;
-- ignorant globalement les collisions ;
-- modifiant les Physics Layers sans analyse de leur rôle ;
-- déplaçant arbitrairement la trajectoire IA pour contourner la zone.
+Le système de récupération ne doit pas utiliser :
 
-Ces modifications pourraient masquer le symptôme sans supprimer sa cause.
+- téléportation ;
+- repositionnement instantané ;
+- despawn/re-spawn ;
+- snap brutal sur une lane.
 
-La cause physique ou géométrique doit être identifiée avant la correction.
+Le véhicule doit physiquement rejoindre une portion valide du réseau.
+
+Si nécessaire, son itinéraire peut être recalculé depuis la lane valide qu'il réussit à rejoindre.
+
+---
+
+# Relation avec le modèle de conduite
+
+Cette réaction à la collision doit être compatible avec le modèle de conducteur introduit par la Story 5.9.
+
+À terme, les paramètres du conducteur, Rage/Fear ou certains archétypes pourront éventuellement influencer sa réaction.
+
+Par exemple :
+
+- conducteur prudent → freinage plus probable ;
+- conducteur agressif → freinage tardif ou poursuite du mouvement ;
+- conducteur paniqué → esquive plus forte.
+
+Cependant, l'objectif de cette anomalie n'est pas de construire maintenant toute la personnalisation émotionnelle future.
+
+La priorité est d'établir un système de réaction aux collisions générique et crédible sur lequel les futures stories pourront s'appuyer.
+
+---
+
+# Investigation technique demandée
+
+Avant correction, analyser précisément le fonctionnement actuel du contrôleur lors d'une collision.
+
+Vérifier notamment :
+
+- comment l'accélération est appliquée au `Rigidbody` ;
+- si la vitesse est directement imposée ;
+- si le steering continue à fonctionner pendant une collision ;
+- si le véhicule continue à poursuivre sa target alors qu'il est en perte de contrôle ;
+- si les forces/velocities calculées par la physique sont écrasées ou combattues par le contrôleur ;
+- comment est déterminée la prochaine cible après déplacement du véhicule ;
+- si le contrôleur possède déjà une notion de perte de contrôle ou recovery.
+
+Identifier la cause exacte des projections physiques précédemment observées et déterminer dans quelle mesure elles proviennent du conflit entre conduite normale et physique.
+
+---
+
+# Contraintes
+
+Ne pas résoudre le problème en :
+
+- augmentant simplement la masse du véhicule ;
+- bloquant artificiellement ses rotations ;
+- réduisant globalement la vitesse des IA ;
+- désactivant les collisions ;
+- téléportant les véhicules après un choc ;
+- forçant immédiatement le véhicule sur la lane la plus proche ;
+- empêchant les véhicules de quitter physiquement la route.
+
+Ces solutions masqueraient le problème au lieu de construire un comportement de collision exploitable pour le gameplay futur.
 
 ---
 
 # Critères d'acceptation
 
-## AC1 — Traversée stable des zones concernées
+## AC1 — Interruption du comportement normal après un choc
 
-**Given** un véhicule IA approche d'un rond-point devant un tunnel  
-**When** il traverse la zone précédemment concernée  
-**Then** le véhicule reste en contact normal avec la chaussée  
-**And** il ne subit aucune propulsion, rotation ou élévation anormale.
-
----
-
-## AC2 — Validation répétée
-
-**Given** la correction est appliquée  
-**When** plusieurs véhicules traversent successivement chaque rond-point situé devant un tunnel  
-**Then** aucune projection ou collision invisible n'est reproduite sur une durée de test représentative.
-
-Le test doit couvrir plusieurs passages et pas seulement un véhicule unique.
+**Given** un véhicule IA suit normalement son itinéraire  
+**When** il subit une collision significative  
+**Then** il ne continue pas immédiatement à forcer son suivi normal de route  
+**And** une phase temporaire de réaction à la collision prend la priorité.
 
 ---
 
-## AC3 — Différentes trajectoires
+## AC2 — Réaction physique stable
 
-**Given** plusieurs trajectoires valides traversent le rond-point  
-**When** les véhicules empruntent les différentes entrées et sorties disponibles  
-**Then** toutes les trajectoires restent physiquement praticables.
-
----
-
-## AC4 — Cause racine identifiée
-
-**Given** l'anomalie a été reproduite  
-**When** l'investigation est terminée  
-**Then** l'objet, la géométrie, le collider ou le mécanisme responsable est identifié  
-**And** la cause de l'impulsion physique est documentée.
+**Given** un véhicule vient d'être percuté  
+**When** la collision est résolue par la physique  
+**Then** le contrôleur IA ne génère pas de forces ou commandes conduisant à une projection physique artificielle  
+**And** le mouvement résultant reste cohérent avec le choc subi.
 
 ---
 
-## AC5 — Pas de workaround physique global
+## AC3 — Variabilité des réactions
 
-**Given** le bug est corrigé  
-**Then** la stabilité des véhicules ne dépend pas d'un contournement global destiné uniquement à empêcher leur envol  
-**And** les paramètres de conduite/physique généraux ne sont modifiés que si leur rôle dans la cause racine est démontré.
+**Given** plusieurs véhicules subissent des collisions significatives dans des conditions comparables  
+**When** leur réaction est déterminée  
+**Then** ils peuvent produire plusieurs comportements crédibles  
+**Including** freinage/arrêt comme réaction courante  
+**And** esquive comme réaction moins fréquente  
+**And** mauvaise réaction ou poursuite incontrôlée comme possibilité.
 
----
-
-## AC6 — Non-régression Story 5.10
-
-**Given** la correction est appliquée  
-**When** la Story 5.10 est retestée  
-**Then** :
-
-- les portals continuent à fonctionner ;
-- les véhicules peuvent entrer et sortir du district ;
-- les différents itinéraires restent accessibles ;
-- le lane graph reste fonctionnel ;
-- les véhicules restent capables de traverser les ronds-points normalement ;
-- le système de spawn/despawn source/sink reste fonctionnel.
+Les distributions exactes doivent rester configurables si cela correspond à l'architecture existante.
 
 ---
 
-# Corrélation avec les autres anomalies 5.10
+## AC4 — Pas de reprise prématurée
 
-Les anomalies suivantes concernent également la nouvelle géométrie/navigation de la Story 5.10 :
+**Given** un véhicule est encore :
 
-- `ANO-5.10-01` — clignotement/superposition de certaines surfaces ;
-- `ANO-5.10-02` — véhicules pouvant tourner en boucle autour de certaines zones ;
-- `ANO-5.10-03` — véhicules projetés physiquement près des ronds-points/tunnels.
+- en contact important avec un autre objet ;
+- en rotation importante ;
+- déplacé hors de sa trajectoire ;
+- ou physiquement instable ;
 
-Pendant l'investigation, vérifier si certaines de ces anomalies possèdent une cause commune.
+**When** son contrôleur est mis à jour  
+**Then** il ne doit pas considérer que la situation est déjà terminée et reprendre immédiatement son comportement nominal.
 
-**Ne pas les fusionner ni supposer une cause commune avant investigation.**
+---
+
+## AC5 — Recovery
+
+**Given** la collision est terminée et le véhicule est suffisamment stable  
+**When** une route valide peut être retrouvée  
+**Then** le véhicule passe progressivement en mode récupération  
+**And** cherche un moyen physiquement crédible de rejoindre le réseau routier.
+
+---
+
+## AC6 — Retour au trafic
+
+**Given** un véhicule a été déplacé hors de sa route par une collision  
+**When** il termine sa phase de récupération  
+**Then** il rejoint une lane valide sans téléportation  
+**And** reprend ensuite un itinéraire valide vers sa destination.
+
+---
+
+## AC7 — Possibilité de quitter temporairement la route
+
+**Given** une collision ou une réaction d'esquive déplace le véhicule hors de la chaussée  
+**When** cette trajectoire est physiquement possible  
+**Then** le système ne doit pas artificiellement empêcher le véhicule de quitter temporairement la route  
+**And** le recovery doit ensuite être capable de le ramener vers une zone de circulation valide.
+
+---
+
+## AC8 — Non-régression conduite normale
+
+**Given** aucune collision significative ne se produit  
+**When** les véhicules circulent normalement  
+**Then** le comportement de route/routing de la Story 5.10 continue de fonctionner comme auparavant.
+
+---
+
+# Relation avec les futures stories
+
+Cette correction doit être conçue pour rester compatible avec :
+
+- Story 5.11 — Intersection Rules and Deadlock Prevention ;
+- Story 5.12 — Wider Perception and Progressive Unblocking ;
+- Story 5.13 — Rage and Fear as Driving Model Modulation ;
+- Story 5.14 — Player-Targeted Rage Ladder and Rage Road Trigger.
+
+En particulier, la future Rage/Fear doit pouvoir moduler la réaction à une collision sans nécessiter de remplacer complètement ce système.
 
 ---
 
 # Instruction BMAD
 
-Traiter cette anomalie comme une investigation de physique/géométrie avant correction.
+Cette anomalie n'est plus à traiter principalement comme un problème de géométrie du rond-point.
 
-La vidéo confirme qu'un véhicule subit une réaction physique anormale, mais elle ne permet pas à elle seule d'identifier ce qu'il percute.
+Les observations précédentes autour des tunnels ont permis de révéler un problème plus général dans la gestion physique des véhicules après une collision.
 
-Commencer par reproduire le problème et inspecter les colliders/géométries réellement présents dans la zone.
+Analyser en priorité l'interaction entre :
 
-Lorsque le problème se produit, identifier si possible l'objet et le collider impliqués dans la collision ainsi que le contact physique généré.
+- `Rigidbody` ;
+- système de steering ;
+- modèle de conduite ;
+- suivi du lane graph ;
+- récupération après déplacement physique.
 
-Comparer ensuite plusieurs passages afin de déterminer si le problème dépend :
+Identifier ce qui provoque actuellement la poursuite immédiate du trajet après un impact.
 
-- de la zone ;
-- du véhicule ;
-- de la trajectoire ;
-- de la vitesse ;
-- ou d'une combinaison de ces facteurs.
+Proposer ensuite un comportement générique de :
 
-Ne modifier les paramètres généraux de physique ou de conduite qu'après avoir démontré qu'ils participent à la cause racine.
+**Normal Driving → Collision Response → Recovery → Normal Driving**
 
-Après correction, documenter :
+sans créer une architecture parallèle au modèle de conduite existant.
 
-1. la cause racine ;
-2. l'objet / collider / système impliqué ;
-3. les fichiers, prefabs ou scènes modifiés ;
-4. la correction appliquée ;
-5. les tests de reproduction effectués ;
-6. la vérification des autres ronds-points/tunnels ;
-7. toute relation éventuellement identifiée avec ANO-5.10-01 ou ANO-5.10-02.
+La réaction à une collision doit laisser temporairement la priorité à la situation physique plutôt qu'au suivi strict de l'itinéraire.
+
+Une fois la situation stabilisée, l'IA doit être capable de retrouver naturellement une route valide et de reprendre sa circulation.
+
+Avant implémentation, vérifier si cette correction empiète sur le périmètre prévu de la Story 5.12. Si une responsabilité appartient clairement à cette story future, conserver ici uniquement la fondation minimale nécessaire et documenter le reste plutôt que dupliquer deux systèmes de recovery.

@@ -132,3 +132,9 @@ __pycache__/
 /graphify-out/.graphify_*
 /graphify-out/graph.html
 /graphify-out/manifest.json
+
+# Third-party paid asset packs. Synty EULA / Unity Asset Store Extension Asset licence forbids
+# redistribution, and this repository is public, so the raw pack must never be committed.
+# Re-import from the Asset Store on a fresh clone. See ADDON-009 in docs/setup/addon-adoption-register.md.
+/Assets/Synty/
+/Assets/Synty.meta

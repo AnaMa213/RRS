@@ -73,7 +73,37 @@ La voiture n'est pas enregistree dans `DefaultNetworkPrefabs.asset` en Story 1.4
 | `Assets/RoadRage/Prefabs/Greybox_Character_Rookie.prefab` | `95F97F552EFCCFA890AF8C067CF2A8AC5993D0BD7B5836DD34B209CC7A80D5ED` |
 | `Assets/RoadRage/Prefabs/Greybox_Character_Veteran.prefab` | `D71E6126DC09E39B3B028A6F118BA3CE1FBA69FA8333578505D9FEA51FB02C92` |
 | `Assets/RoadRage/Prefabs/Greybox_PlayerCar.prefab` | `77EC2BA0396EECA17735AB19FA7B01BA795A06B66CBF0FEF5EF47D44A4627347` |
-| `Assets/RoadRage/Prefabs/Greybox_CityBlock_A.prefab` | `93511888E569388BE1FD073EA564A1D6F0986168C28F4E9E95E0857CE3B0286A` |
+| `Assets/RoadRage/Prefabs/Greybox_CityBlock_A.prefab` | `CBAC3856BF8804213E8EAFB7409BE70C1D7DB297A3507663D29AEEC8D38506A6` (mis a jour 2026-09-16, repurposing decoratif Story 5.10 ci-dessus ; ancien hash `93511888E569388BE1FD073EA564A1D6F0986168C28F4E9E95E0857CE3B0286A`) |
+
+## Mise a jour -- repurposing decoratif Story 5.10 (2026-09-16)
+
+`Assets/RoadRage/Prefabs/Greybox_CityBlock_A.prefab` a ete repris comme habillage decoratif du
+district de la Story 5.10 : il porte desormais un ilot complet (trottoirs, places et une tour de
+repere) instancie 4 fois dans `MVP_Run` (`Greybox_CityBlock_A_East/_SouthEast/_West/_SouthWest`),
+en plus du batiment simple d'origine.
+
+Les nouvelles parties visuelles sont des props **Synty POLYGON - City Pack** (`SM_Env_Sidewalk_*`,
+`SM_Bld_OfficeSquare_01`) instancies en enfants visuels sous `Visual_Greybox_CityBlock_A` --
+conforme a la regle d'usage des packs Synty (AGENTS.md, AD-13/AD-27) : decor uniquement, aucun
+`NetworkObject`, aucun `MeshCollider`, le root gameplay et son unique `BoxCollider` restent
+inchanges. Le FBX source de Story 1.4 (`Greybox_CityBlock_A.fbx`) n'a pas ete retouche ; seul le
+prefab a grandi.
+
+Consequence sur le contrat scelle de Story 1.4 : les parties reconnaissables `Door`/`Window`/
+`RoofCap` du petit batiment ne sont plus garanties sur ce seed precis (les trois autres seeds --
+personnages, voiture -- restent inchanges). Le test `GreyboxPrefabsHaveRecognizableObjectParts` et
+`GreyboxPrefabBoundsMatchDocumentedRoughScale` ont ete mis a jour en consequence
+(`Assets/RoadRage/Tests/EditMode/Story14GreyboxAssetSeedTests.cs`).
+
+Nouvelle mesure Unity (`CalculateRendererBounds`, meme methode que le test) :
+
+| Prefab | Stable id | Mesure Unity | Renderer count | Collider |
+| --- | --- | --- | --- | --- |
+| `Assets/RoadRage/Prefabs/Greybox_CityBlock_A.prefab` | `building_city_block_a` | `size=(16.000,24.184,16.000)`, `min=(-8.000,-0.184,-8.000)`, `max=(8.000,24.000,8.000)` | 17 | `BoxCollider` root (inchange) |
+
+La base descend a `y = -0.184` (semelle de trottoir enterree pour ne jamais laisser de vide visible
+au raccord avec le terrain) : c'est desormais le seul des quatre seeds dont la base n'est pas
+exactement au sol.
 
 ## Verification
 

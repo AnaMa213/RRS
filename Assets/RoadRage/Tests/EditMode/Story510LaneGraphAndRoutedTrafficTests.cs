@@ -1122,6 +1122,247 @@ namespace RoadRage.Tests.EditMode
             return string.Join("-", visited);
         }
 
+        // ------------------------------------------------- ANO-5.10-02 : orbite de poursuite
+
+        /// <summary>
+        /// Le coeur de l'anomalie, en une geometrie : un repere DEJA DEPASSE et tombe dans le cercle
+        /// de braquage est hors d'atteinte -- c'est exactement l'etat stable mesure sur les vehicules
+        /// en orbite (cible par le travers, a une distance egale au rayon de braquage).
+        /// </summary>
+        [Test]
+        public void PassedWaypointInsideTurnCircleIsReportedUnreachable()
+        {
+            // 8 m/s sous 90 deg/s : rayon de braquage 5,09 m. Repere par le travers a 5 m.
+            Assert.That(
+                LaneGraphRouting.HasPassedUnreachableWaypoint(
+                    Vector3.zero, Vector3.forward, new Vector3(5f, 0f, -0.5f), 8f, 90f),
+                Is.True,
+                "Repere depasse et interieur au cercle de braquage : la poursuite pure tournerait autour indefiniment.");
+        }
+
+        /// <summary>
+        /// La garde qui empeche le predicat de couper les virages : tant que le repere est DEVANT, la
+        /// poursuite normale s'en occupe. Sans cette garde, un vehicule sur un giratoire franchirait
+        /// ses noeuds d'anneau en avance et couperait le trace.
+        /// </summary>
+        [Test]
+        public void WaypointStillAheadIsNeverReportedUnreachable()
+        {
+            Assert.That(
+                LaneGraphRouting.HasPassedUnreachableWaypoint(
+                    Vector3.zero, Vector3.forward, new Vector3(1.7f, 0f, 3f), 8f, 90f),
+                Is.False,
+                "Noeud suivant d'un anneau de giratoire (3,4 m, 29 deg) : encore devant, donc jamais court-circuite.");
+        }
+
+        /// <summary>
+        /// Le predicat ne porte jamais loin : un point interieur au cercle est a au plus 2R, donc un
+        /// vehicule retourne a l'autre bout du district revient chercher son repere comme avant.
+        /// </summary>
+        [Test]
+        public void DistantWaypointBehindIsNeverReportedUnreachable()
+        {
+            Assert.That(
+                LaneGraphRouting.HasPassedUnreachableWaypoint(
+                    Vector3.zero, Vector3.forward, new Vector3(0f, 0f, -40f), 8f, 90f),
+                Is.False,
+                "Repere lointain derriere : atteignable en faisant demi-tour, le parcours ne doit pas sauter de noeud.");
+        }
+
+        /// <summary>
+        /// Le rayon vient de la vitesse : un vehicule lent braque assez court pour revenir sur son
+        /// repere, donc le predicat s'eteint de lui-meme. Aucun seuil supplementaire a authorer.
+        /// </summary>
+        [Test]
+        public void SlowVehicleCanStillReachAPassedWaypoint()
+        {
+            Assert.That(
+                LaneGraphRouting.HasPassedUnreachableWaypoint(
+                    Vector3.zero, Vector3.forward, new Vector3(5f, 0f, -0.5f), 1f, 90f),
+                Is.False,
+                "A 1 m/s le rayon de braquage tombe a 0,64 m : le repere est hors du cercle, donc atteignable.");
+        }
+
+        /// <summary>Entrees degenerees : jamais de division par zero, jamais de franchissement invente.</summary>
+        [Test]
+        public void UnreachableWaypointPredicateIsInertOnDegenerateInputs()
+        {
+            Assert.That(LaneGraphRouting.HasPassedUnreachableWaypoint(Vector3.zero, Vector3.zero, new Vector3(5f, 0f, -0.5f), 8f, 90f), Is.False);
+            Assert.That(LaneGraphRouting.HasPassedUnreachableWaypoint(Vector3.zero, Vector3.forward, Vector3.zero, 8f, 90f), Is.False);
+            Assert.That(LaneGraphRouting.HasPassedUnreachableWaypoint(Vector3.zero, Vector3.forward, new Vector3(5f, 0f, -0.5f), 0f, 90f), Is.False);
+            Assert.That(LaneGraphRouting.HasPassedUnreachableWaypoint(Vector3.zero, Vector3.forward, new Vector3(5f, 0f, -0.5f), 8f, 0f), Is.False);
+            Assert.That(LaneGraphRouting.HasPassedUnreachableWaypoint(Vector3.zero, Vector3.forward, new Vector3(5f, 0f, -0.5f), float.NaN, 90f), Is.False);
+        }
+
+        /// <summary>
+        /// La garde de non-regression de l'anomalie, sur le district REELLEMENT authore : on rejoue
+        /// la cinematique exacte du driver (meme rayon d'arrivee, meme vitesse de lacet, meme pas de
+        /// physique, meme resolution de noeud) depuis chaque portail d'entree, en bousculant le
+        /// vehicule une fois en cours de route -- ce que fait un contact avec un autre vehicule ou le
+        /// joueur. Chaque vehicule doit finir par atteindre un portail de sortie.
+        ///
+        /// Le meme balayage SANS le predicat de depassement laissait 46 % des vehicules en orbite
+        /// permanente autour d'un noeud d'anneau de giratoire : c'est la garde qui echoue si le
+        /// correctif est retire.
+        /// </summary>
+        [Test]
+        public void PerturbedVehiclesAlwaysReachAnExitPortalInTheAuthoredDistrict()
+        {
+            WithMvpRun(scene =>
+            {
+                var graph = ResolveGraph(scene);
+                graph.Rebuild();
+
+                var orbits = new List<string>();
+                var runs = 0;
+
+                foreach (var entry in graph.EntryPortals)
+                {
+                    foreach (var lateral in new[] { 0f, 3f, -4.5f })
+                    {
+                        foreach (var heading in new[] { 90f, 180f, -135f })
+                        {
+                            foreach (var bumpStep in new[] { 80, 500, 1400 })
+                            {
+                                runs++;
+                                if (!ReplayReachesExit(graph, entry, lateral, heading, bumpStep))
+                                {
+                                    orbits.Add("portail " + entry + " lateral=" + lateral + " cap=" + heading + " choc=" + bumpStep);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Assert.That(orbits, Is.Empty,
+                    "ANO-5.10-02 : " + orbits.Count + "/" + runs
+                    + " vehicules bouscules restent en orbite au lieu d'atteindre un portail de sortie -- "
+                    + string.Join(" ; ", orbits.Take(5)));
+            });
+        }
+
+        /// <summary>
+        /// Rejoue la cinematique du driver IA sur le graphe reel. Volontairement une copie des seules
+        /// equations de <c>NetworkedAIVehicleDriverController</c> qui decident du franchissement de
+        /// noeud (arrivee, depassement irrattrapable, poursuite, lacet borne) : la garde doit tomber
+        /// si l'une d'elles change, pas si le reste du controleur bouge.
+        /// </summary>
+        private static bool ReplayReachesExit(LaneGraph graph, int entry, float lateral, float headingOffset, int bumpStep)
+        {
+            const float ArrivalRadius = 3f;          // Greybox_AIVehicle
+            const float SteerFullLockDegrees = 45f;  // Greybox_AIVehicle
+            const float SteerDegreesPerSecond = 90f; // Greybox_AIVehicle
+            const float Speed = 8f;                  // DriverProfileDef_Default.desiredSpeed
+            const float FixedDeltaTime = 0.02f;
+
+            var traversed = new bool[graph.NodeCount];
+            var node = entry;
+            traversed[node] = true;
+
+            var traversedEdges = 0;
+            var departed = false;
+            var position = graph.GetNodePosition(entry);
+            var yaw = graph.GetNodeRotation(entry).eulerAngles.y;
+            var target = graph.GetNodePosition(node);
+            var lastNodeChangeStep = 0;
+
+            for (var step = 0; step < 12000; step++)
+            {
+                if (step == bumpStep)
+                {
+                    position += Quaternion.Euler(0f, yaw, 0f) * Vector3.right * lateral;
+                    yaw += headingOffset;
+                }
+
+                var forward = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+                var toWaypoint = target - position;
+                toWaypoint.y = 0f;
+
+                var arrived = toWaypoint.sqrMagnitude <= ArrivalRadius * ArrivalRadius;
+                if (arrived || LaneGraphRouting.HasPassedUnreachableWaypoint(
+                        position, forward, target, Speed, SteerDegreesPerSecond))
+                {
+                    if (graph.IsExitPortal(node) && departed)
+                    {
+                        return true;
+                    }
+
+                    node = ReplayResolveNextNode(graph, node, traversed, ref traversedEdges, ref departed, position);
+                    target = graph.GetNodePosition(node);
+                    lastNodeChangeStep = step;
+
+                    toWaypoint = target - position;
+                    toWaypoint.y = 0f;
+                    arrived = toWaypoint.sqrMagnitude <= ArrivalRadius * ArrivalRadius;
+                }
+
+                // Aucun noeud franchi depuis 18 s : le vehicule ne progresse plus, c'est l'orbite.
+                if (step - lastNodeChangeStep > 900)
+                {
+                    return false;
+                }
+
+                if (arrived)
+                {
+                    continue;
+                }
+
+                var signedAngle = Vector3.SignedAngle(forward, toWaypoint.normalized, Vector3.up);
+                yaw += Mathf.Clamp(signedAngle / SteerFullLockDegrees, -1f, 1f) * SteerDegreesPerSecond * FixedDeltaTime;
+                position += Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * (Speed * FixedDeltaTime);
+            }
+
+            return false;
+        }
+
+        /// <summary>Tirage auto-evitant puis reorientation gloutonne : la resolution de noeud du driver.</summary>
+        private static int ReplayResolveNextNode(
+            LaneGraph graph, int current, bool[] traversed, ref int traversedEdges, ref bool departed, Vector3 position)
+        {
+            var candidates = graph.GetSuccessors(current);
+            traversedEdges++;
+            departed = true;
+
+            var budgetExceeded = LaneGraphRouting.IsEdgeBudgetExceeded(
+                traversedEdges, graph.NodeCount, graph.TrafficSettings.EdgeBudgetFactor);
+
+            if (candidates.Count > 0 && !budgetExceeded)
+            {
+                var eligible = new List<bool>();
+                for (var i = 0; i < candidates.Count; i++)
+                {
+                    eligible.Add(!traversed[candidates[i]]);
+                }
+
+                var drawn = LaneGraphRouting.SelectWeightedSuccessor(
+                    candidates, graph.GetTurnWeights(current), eligible, 7UL, traversedEdges, out _);
+                if (drawn >= 0)
+                {
+                    traversed[drawn] = true;
+                    return drawn;
+                }
+            }
+
+            var exitIndex = graph.NearestExitNodeIndex(position);
+            if (exitIndex < 0)
+            {
+                return current;
+            }
+
+            if (candidates.Count == 0)
+            {
+                return exitIndex;
+            }
+
+            var positions = new List<Vector3>();
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                positions.Add(graph.GetNodePosition(candidates[i]));
+            }
+
+            return LaneGraphRouting.SelectSuccessorTowardTarget(candidates, positions, graph.GetNodePosition(exitIndex));
+        }
+
         private static int CountModules(Transform root, string prefabPath)
         {
             var count = 0;
