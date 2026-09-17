@@ -1,7 +1,15 @@
 [workflow]
 
+# Regles du cycle de build RRS (recon conditionnelle, routage EditMode/PlayMode, checkpoint de
+# verification, politique de revue, outils non integres). Charge a l'activation et garde pour tout
+# le run, pour tous les clients, depuis cette source unique. Le transversal reste dans AGENTS.md.
+persistent_facts = [
+  "file:{project-root}/docs/setup/build-workflow-rules.md",
+]
+
 activation_steps_append = [
-  """Checkpoint vérification obligatoire : juste avant d’exécuter tout test, build, validation automatisée ou commande de vérification, demande à l’utilisateur de la lancer manuellement. N’exécute pas cette commande. Attends son résultat, puis poursuis selon la sortie fournie. Cette règle s’applique à toutes les routes de bmad-build."""
+  """Checkpoint vérification obligatoire : juste avant d’exécuter tout test, build, validation automatisée ou commande de vérification, demande à l’utilisateur de la lancer manuellement. N’exécute pas cette commande. Attends son résultat, puis poursuis selon la sortie fournie. Cette règle s’applique à toutes les routes de bmad-build.""",
+  """La commande de vérification de ce projet est `scripts/validate.ps1`. Demande-la en lisant le mode dans la section 2 de `docs/setup/build-workflow-rules.md`, par exemple `.\\scripts\\validate.ps1 -TestMode PlayMode`. Ne substitue pas tes propres commandes Unity à ce script, et ne saute pas le checkpoint parce que le changement paraît petit. Une absence de résultat n'est jamais un succès."""
 ]
 
 implementation_handoff = """
@@ -34,15 +42,104 @@ CONTENT:
 {diff_output}
 """
 
+# Reactive conditionnellement : ce n'est pas une passe par defaut. Le declencheur ferme
+# explicitement la porte aux diffs documentaires et aux petits changements locaux.
+# Asymetrie voulue avec verification-gap ci-dessous : celle-ci produit du volume, donc le doute la
+# desactive ; verification-gap est courte et couvre un risque de preuve, donc le doute l'active.
 [[workflow.review_layers]]
 id = "edge-case-hunter"
 name = "Edge Case Hunter"
-instruction = ""
+when = """
+le changement est non trivial, c'est-a-dire qu'il touche au moins un de : reseau (RPC, ownership,
+permission d'ecriture d'une NetworkVariable, spawn/despawn), IA de conduite ou de comportement,
+physique et collisions, etat ou cycle de vie (MonoBehaviour, scene, prefab, coroutine, timing/frame),
+contrat partage entre plusieurs assemblies ou features, refactor cross-file, ou logique dense a
+branches multiples.
+Ne PAS declencher pour de la documentation, des commentaires, du formatage, un libelle, une valeur
+de tuning isolee — y compris la valeur d'une NetworkVariable existante sans changement de permission
+— ou un changement minuscule et local dans un seul fichier deja connu.
+En cas de doute sur le caractere non trivial, la declarer inactive.
+"""
+instruction = """
+Launch a context-free subagent with this prompt:
 
+Read `{skill-root}/review-prompts/edge-case-hunter.md` completely and follow it as your review instructions.
+
+Review content:
+
+{diff_output}
+
+Do not invoke any skill. If the instruction file is unreadable, report that exact failure and stop. Return only the review result.
+
+"""
+
+# Reactive des qu'un comportement observable change : c'est le filet des changements de
+# comportement, pas une passe de conformite sur les diffs documentaires.
 [[workflow.review_layers]]
 id = "verification-gap"
 name = "Verification Gap Reviewer"
-instruction = ""
+when = """
+le changement modifie un comportement observable — logique, donnee, calcul, validation, algorithme,
+ScriptableObject, contrat, interface, sortie runtime — et pas seulement de la documentation, des
+commentaires, du formatage, un libelle ou un changement minuscule et local.
+En cas de doute sur le caractere comportemental, la declarer active : un test manquant coute plus
+cher qu'une passe de revue inutile.
+"""
+instruction = """
+Launch a context-free subagent with this prompt:
+
+Read `{skill-root}/review-prompts/verification-gap.md` completely and follow it as your review instructions.
+
+Review content:
+
+{diff_output}
+
+Do not invoke any skill. If the instruction file is unreadable, report that exact failure and stop. Return only the review result.
+
+"""
+
+# Couche conditionnelle : jamais par defaut. AD-10 -- la revue de securite ne se justifie que si la
+# story deplace une frontiere de confiance reseau, jamais pour une simple valeur repliquee.
+[[workflow.review_layers]]
+id = "security-review"
+name = "Network Trust Boundary Reviewer"
+when = """
+le diff introduit ou deplace une frontiere de confiance reseau, c'est-a-dire : une nouvelle RPC, une
+RPC existante rendue joignable par un client supplementaire, un changement de validation ou d'usage
+de SenderClientId, un changement d'ownership ou d'autorite host/client, un changement de permission
+d'ecriture d'une NetworkVariable, ou une donnee controlable par un client qui atteint un chemin
+autoritaire. Ne PAS declencher pour un tuning, une valeur repliquee modifiee sans changement
+d'autorite, un champ replique ajoute sans changement de permission, ou du travail local/presentation.
+"""
+instruction = """
+Launch a context-free subagent with this prompt:
+
+Review CONTENT strictly against one question: does the change create or move a network trust
+boundary that a client can abuse?
+
+CONTENT:
+{diff_output}
+
+Focus only on real reachable weakness introduced or exposed by this change:
+
+- every RPC a client can call: is the caller's authority established server-side, or is the payload
+  trusted? Check that `SenderClientId` / `RpcParams.Receive.SenderClientId` is compared against the
+  authoritative owner before any state mutation, and that the comparison is the right one.
+- payload sanity: can a client send values that are out of range, negative, null, oversized, or a
+  reference to a NetworkObject the sender does not own?
+- ownership and authority: can a non-owner drive a server-write path, or can a client claim a role
+  it does not hold?
+- NetworkVariable write permissions: did any permission widen, and does the widened writer have a
+  legitimate reason?
+- client-controlled data reaching a host-authoritative path, including through a relayed field.
+- denial of service: unbounded loops, allocations, or repeated spawning driven by client input.
+
+For each finding give: the file and line, the exact sequence a client would use, why the current
+guard does not stop it, and the smallest fix. If the change does not actually move a trust boundary,
+return an empty list and say so plainly -- do not manufacture findings to justify the pass.
+
+Do not invoke any skill. Return only the review result.
+"""
 
 [[workflow.oneshot_review_layers]]
 id = "blind-hunter"

@@ -29,3 +29,45 @@ graphify-out/
 # Deja couvert par .gitignore aujourd'hui ; repete ici pour que le perimetre
 # du graphe ne depende pas d'une decision de versionnement.
 Assets/Synty/
+
+# --- Second passage (2026-09-18) : fuites mesurees apres le premier rescope ---
+#
+# Mesure du 2026-09-18 apres rebuild : 235 fichiers / 4 098 noeuds indexes, dont
+# environ 1 170 noeuds (28,5 %) hors code applicatif, alors que AD-2 dispose
+# « Graphify n'indexe que le code applicatif » :
+#   Packages/packages-lock.json                 433 noeuds
+#   Assets/TextMesh Pro/Examples & Extras/*.cs  ~270 noeuds
+#   docs/setup/*.md (27 fichiers)               ~265 noeuds
+#   Packages/manifest.json                      112 noeuds
+#   Packages/com.community...facepunch/*.cs      45 noeuds
+#   AGENTS.md, .mcp.json, scripts/validate.ps1…  45 noeuds
+# Le premier rescope n'avait traite que l'outillage agent et les assets Synty ;
+# les manifestes Unity, la documentation et le contenu livre par Unity restaient
+# dans le corpus, avec le meme effet mecanique qu'AD-2 cherchait a supprimer.
+
+# --- Manifestes et configuration Unity : listes de packages, pas du code ---
+Packages/
+ProjectSettings/
+
+# --- Documentation : lue directement, jamais via le graphe de code ---
+# Meme raisonnement que pour _bmad-output/ : la source de verite reste le
+# fichier markdown lui-meme.
+docs/
+
+# --- Outillage agent executable ---
+scripts/
+
+# --- Contenu livre par Unity : exemples TextMesh Pro et scaffolding de projet ---
+# Aucun code projet n'y vit ; ce sont des samples Unity, deja presents a
+# l'import d'un projet vide.
+Assets/TextMesh Pro/
+Assets/TutorialInfo/
+
+# --- Fichiers de regles et de configuration agent a la racine ---
+AGENTS.md
+CLAUDE.md
+.github/
+.mcp.json
+.vscode/
+skills-lock.json
+steam_appid.txt

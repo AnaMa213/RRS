@@ -35,14 +35,33 @@ $ErrorActionPreference = 'Stop'
 $ExpectedCliVersion = '1.0.0-beta.8'
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
+# Recapitulatif collecte au fil des etapes et affiche en fin de course (resume lisible exige par
+# docs/setup/build-workflow-rules.md). Aucune valeur de ce recapitulatif ne participe a une decision
+# de gate : les gates restent dans les etapes elles-memes (AD-8).
+$script:Summary = [ordered]@{}
+
 function Write-Step {
     param([string]$Message)
     Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
+function Write-Summary {
+    if (-not $script:Summary -or $script:Summary.Count -eq 0) {
+        return
+    }
+    Write-Host ""
+    Write-Host "---- Recapitulatif de validation ----" -ForegroundColor Cyan
+    foreach ($key in $script:Summary.Keys) {
+        Write-Host ("  {0,-24} {1}" -f $key, $script:Summary[$key])
+    }
+    Write-Host "-------------------------------------" -ForegroundColor Cyan
+}
+
 function Fail {
     param([string]$Message)
     Write-Host "ECHEC: $Message" -ForegroundColor Red
+    Write-Summary
+    Write-Host "VALIDATION FAILED / INCOMPLETE" -ForegroundColor Red
     exit 1
 }
 
@@ -99,6 +118,7 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($cliVersion)) {
 if ($cliVersion -ne $ExpectedCliVersion) {
     Fail "Unity CLI $cliVersion non revalidee pour RRS (reference : $ExpectedCliVersion). Revalider avant de faire confiance a ce script."
 }
+$script:Summary['Unity CLI'] = $cliVersion
 Write-Host "  $cliVersion (reference validee)" -ForegroundColor DarkGray
 
 # --- Etape 1 : unity status -> ready pour ce projet ---
@@ -114,6 +134,7 @@ if (-not $instance) {
 if ($instance.state -ne 'ready') {
     Fail "Etat Unity '$($instance.state)' != ready sur le port $($instance.port) (AD-8)."
 }
+$script:Summary['Editeur'] = "port $($instance.port), Unity $($instance.version), ready"
 Write-Host "  port $($instance.port), Unity $($instance.version), etat ready" -ForegroundColor DarkGray
 
 # --- Etape 2 : recompile ---
@@ -135,6 +156,7 @@ do {
 if ($recompileStatus -notin @('completed', 'up_to_date', 'idle')) {
     Fail "recompile_status bloque sur '$recompileStatus' apres ${RecompileTimeoutSec}s (AD-8)."
 }
+$script:Summary['Recompilation'] = $recompileStatus
 Write-Host "  recompile_status: $recompileStatus" -ForegroundColor DarkGray
 
 # --- Etape 4 : console --level error (gate) + warnings hors Assets/Synty (info, AD-7) ---
@@ -146,13 +168,31 @@ if ($errorEntries -and $errorEntries.Count -gt 0) {
     }
     Fail "$($errorEntries.Count) erreur(s) en Console (AD-7)."
 }
+$script:Summary['Erreurs Console'] = '0'
 Write-Host "  0 erreur" -ForegroundColor DarkGray
 
 $warningEntries = (Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'console', '--level', 'warning'))).entries
 $relevantWarnings = @($warningEntries | Where-Object { $_.message -notlike '*Assets/Synty/*' })
+$script:Summary['Avertissements hors Synty'] = "$($relevantWarnings.Count) (informatif, hors gate)"
 Write-Host "  $($relevantWarnings.Count) avertissement(s) hors Assets/Synty/ (informatif, ne bloque pas)" -ForegroundColor DarkGray
-foreach ($entry in $relevantWarnings) {
-    Write-Host "  [WARN] $($entry.message)" -ForegroundColor Yellow
+
+# Les avertissements repetes sont regroupes par message, les plus frequents d'abord (AD-7) : sur ce
+# projet 100 fois le meme message chassaient toute information utile de l'ecran. Rien n'est supprime
+# ni desactive -- le total reste affiche au-dessus, et chaque groupe montre son nombre d'occurrences.
+# Un groupe est marque [projet] quand le message nomme Assets/RoadRage : c'est un test de contenu,
+# pas une deduction. Un message sans chemin reste non marque.
+$warningGroups = @($relevantWarnings | Group-Object message | Sort-Object Count -Descending)
+$maxWarningGroups = 12
+$shownGroups = 0
+foreach ($group in $warningGroups) {
+    if ($shownGroups -ge $maxWarningGroups) {
+        Write-Host "  ... $($warningGroups.Count - $shownGroups) autre(s) message(s) distinct(s) non affiche(s) ; total : $($relevantWarnings.Count)" -ForegroundColor Yellow
+        break
+    }
+    $origin = if ($group.Name -like '*Assets/RoadRage*') { ' [projet]' } else { '' }
+    $repeat = if ($group.Count -gt 1) { " x$($group.Count)" } else { '' }
+    Write-Host "  [WARN]$origin$repeat $($group.Name)" -ForegroundColor Yellow
+    $shownGroups++
 }
 
 # --- Etape 5 : tests cibles (AD-9) ---
@@ -189,6 +229,7 @@ foreach ($mode in $modes) {
         Fail "$($testStatus.summary.failed)/$($testStatus.summary.total) test(s) $mode en echec."
     }
     Write-Host "  $($testStatus.summary.passed)/$($testStatus.summary.total) test(s) $mode passes" -ForegroundColor DarkGray
+    $script:Summary["Tests $mode"] = "$($testStatus.summary.passed)/$($testStatus.summary.total) passes"
 }
 
 # --- Etape 6 : list_open_scenes + git status (etat final, garde-fou AGENTS.md) ---
@@ -202,14 +243,18 @@ $dirtyScenes = @($scenes | Where-Object { $_.isDirty })
 if ($dirtyScenes.Count -gt 0) {
     Write-Host "  ATTENTION : scene(s) isDirty=true -- ne pas sauvegarder sans expliquer l'etat (garde-fou AGENTS.md)." -ForegroundColor Yellow
 }
+$sceneState = if ($dirtyScenes.Count -gt 0) { "$($dirtyScenes.Count) scene(s) isDirty=true" } else { 'aucune scene modifiee' }
+$script:Summary['Scenes ouvertes'] = $sceneState
 
 $gitStatus = & git -C $RepoRoot status --short
 if ($gitStatus) {
     Write-Host "  git status --short :" -ForegroundColor DarkGray
     $gitStatus | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+    $script:Summary['Arbre de travail'] = "$(@($gitStatus).Count) entree(s) modifiee(s) -- voir git status"
 }
 else {
     Write-Host "  git status --short : propre" -ForegroundColor DarkGray
+    $script:Summary['Arbre de travail'] = 'propre'
 }
 
 # --- Etape optionnelle : Project Auditor (ADDON-018) ---
@@ -218,6 +263,7 @@ else {
 # echec automatique. Voir docs/setup/audit-project-auditor-baseline.md pour la mesure de reference.
 if ($Audit) {
     Write-Step "unity cmd audit (ADDON-018, informatif, hors gate)"
+    $auditClock = [System.Diagnostics.Stopwatch]::StartNew()
     $trigger = Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'audit'))
     Write-Host "  scan $($trigger.scanId) declenche" -ForegroundColor DarkGray
 
@@ -227,15 +273,20 @@ if ($Audit) {
         Start-Sleep -Seconds 5
         $auditState = Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'audit_status'))
     } while ($auditState.status -eq 'scanning' -and (Get-Date) -lt $deadline)
+    $auditClock.Stop()
+    $auditDuration = [math]::Round($auditClock.Elapsed.TotalSeconds, 1)
 
     if ($auditState.status -eq 'completed') {
-        Write-Host "  $($auditState.issueCount) diagnostic(s) -- CSV : $($auditState.csvPath)" -ForegroundColor DarkGray
+        Write-Host "  $($auditState.issueCount) diagnostic(s) en ${auditDuration}s -- CSV : $($auditState.csvPath)" -ForegroundColor DarkGray
         Write-Host "  Triage manuel recommande : filtrer Assets/Synty/ et Tests/, ~1-2% du volume brut est reellement actionnable (ADDON-018)." -ForegroundColor DarkGray
+        $script:Summary['Project Auditor'] = "$($auditState.issueCount) diagnostic(s) en ${auditDuration}s (hors gate)"
     }
     else {
-        Write-Host "  Project Auditor non conclusif : statut '$($auditState.status)' (non bloquant, ADDON-018)." -ForegroundColor Yellow
+        Write-Host "  Project Auditor non conclusif : statut '$($auditState.status)' apres ${auditDuration}s (non bloquant, ADDON-018)." -ForegroundColor Yellow
+        $script:Summary['Project Auditor'] = "non conclusif : '$($auditState.status)' apres ${auditDuration}s (hors gate)"
     }
 }
 
+Write-Summary
 Write-Host "OK" -ForegroundColor Green
 exit 0
