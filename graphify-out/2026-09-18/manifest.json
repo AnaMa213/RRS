@@ -876,9 +876,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1789680306.0514708,
-    "seen": 1789680352.7228951,
-    "ast_hash": "22fe169f44136794166469fc20867d11",
+    "mtime": 1789682763.4582117,
+    "seen": 1789682898.4011197,
+    "ast_hash": "f4e11d10fa8cb42454b21adc9e1c5528",
     "semantic_hash": ""
   },
   "Assets/TextMesh Pro/Examples & Extras/Fonts/Anton OFL.txt": {
@@ -966,9 +966,9 @@
     "semantic_hash": ""
   },
   "docs/setup/addon-adoption-register.md": {
-    "mtime": 1789681274.3056169,
-    "seen": 1789681397.494431,
-    "ast_hash": "919a6029889fa931540f0c7d5f4b0e84",
+    "mtime": 1789682378.1168025,
+    "seen": 1789682400.824638,
+    "ast_hash": "0980095021c3238950719f78ed30b739",
     "semantic_hash": ""
   },
   "docs/setup/epic-0-readiness-checklist.md": {
@@ -1249,7 +1249,7 @@
   },
   ".vscode/mcp.json": {
     "mtime": 1789293397.8698504,
-    "seen": 1789671551.2553074,
+    "seen": 1789682565.705415,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -1542,15 +1542,15 @@
     "semantic_hash": ""
   },
   "scripts/validate.ps1": {
-    "mtime": 1789681237.995324,
-    "seen": 1789681397.4929929,
-    "ast_hash": "ea4b04ca8f6266fc0a358bf2f92f9689",
+    "mtime": 1789682858.2713203,
+    "seen": 1789682898.4009302,
+    "ast_hash": "7872caa4482e5d110895c5a5fa9636d1",
     "semantic_hash": ""
   },
   "docs/setup/devworkflow-rollout.md": {
-    "mtime": 1789681280.2700794,
-    "seen": 1789681397.4946053,
-    "ast_hash": "26cf63a6be084394fb107b6680e974d9",
+    "mtime": 1789682388.6554284,
+    "seen": 1789682400.824907,
+    "ast_hash": "88698d06af5c559cb3d457f2a69ea2f2",
     "semantic_hash": ""
   },
   "docs/setup/audit-networked-authority-guard-cluster.md": {
@@ -1569,6 +1569,18 @@
     "mtime": 1789681259.1253152,
     "seen": 1789681397.4945219,
     "ast_hash": "50ad120194211f848604984ee7c9b3fb",
+    "semantic_hash": ""
+  },
+  "docs/setup/audit-microsoft-unity-analyzers-baseline.md": {
+    "mtime": 1789682362.0837295,
+    "seen": 1789682400.8246403,
+    "ast_hash": "cc60975646706bec15fc60bdfb9d83cc",
+    "semantic_hash": ""
+  },
+  "docs/setup/build-workflow-rules.md": {
+    "mtime": 1789682823.7456288,
+    "seen": 1789682898.4027655,
+    "ast_hash": "6609f0aff86378e759a7a5fbc56d64a5",
     "semantic_hash": ""
   }
 }

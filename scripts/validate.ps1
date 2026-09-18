@@ -1,5 +1,7 @@
 <#
-Chaine de verification RRS (AD-4, AD-5, AD-7, AD-8, AD-9 -- architecture-RRS-devworkflow-2026-09-17).
+Chaine de verification RRS (AD-5, AD-7, AD-8, AD-9 -- architecture-RRS-devworkflow-2026-09-17).
+AD-4 (verification declenchee par l'utilisateur) abrogee le 2026-09-18 : l'agent execute ce script
+directement.
 
 unity status -> recompile -> recompile_status -> console --level error -> tests cibles -> list_open_scenes + git status
 Echoue ferme a chaque etape (AD-8) : `status` != ready, CLI muet, commande inconnue, timeout, resultat

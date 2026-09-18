@@ -1,15 +1,17 @@
 [workflow]
 
-# Regles du cycle de build RRS (recon conditionnelle, routage EditMode/PlayMode, checkpoint de
-# verification, politique de revue, outils non integres). Charge a l'activation et garde pour tout
-# le run, pour tous les clients, depuis cette source unique. Le transversal reste dans AGENTS.md.
+# RRS build-cycle rules:
+# conditional recon, EditMode/PlayMode routing, verification checkpoint,
+# review policy, and tools that must not be integrated.
+#
+# Loaded at activation and kept for the entire run from this single source
+# (docs/setup/build-workflow-rules.md) — the verification checkpoint policy,
+# including the command and its mode, lives only there (section 3) to avoid
+# a second copy drifting out of sync. Cross-cutting repository rules remain
+# in AGENTS.md.
+
 persistent_facts = [
   "file:{project-root}/docs/setup/build-workflow-rules.md",
-]
-
-activation_steps_append = [
-  """Checkpoint vérification obligatoire : juste avant d’exécuter tout test, build, validation automatisée ou commande de vérification, demande à l’utilisateur de la lancer manuellement. N’exécute pas cette commande. Attends son résultat, puis poursuis selon la sortie fournie. Cette règle s’applique à toutes les routes de bmad-build.""",
-  """La commande de vérification de ce projet est `scripts/validate.ps1`. Demande-la en lisant le mode dans la section 2 de `docs/setup/build-workflow-rules.md`, par exemple `.\\scripts\\validate.ps1 -TestMode PlayMode`. Ne substitue pas tes propres commandes Unity à ce script, et ne saute pas le checkpoint parce que le changement paraît petit. Une absence de résultat n'est jamais un succès."""
 ]
 
 implementation_handoff = """
@@ -18,6 +20,7 @@ Launch a subagent with no prior conversation context, with this prompt:
 > Read {spec_file} fully and implement it. Load every file listed in its frontmatter `context:` before you start.
 >
 > Keep scope surgical. Use risk-scaled verification:
+>
 > - docs, comments, formatting, copy, or tiny local changes: inspect the changed files and run the cheapest relevant check, if any;
 > - normal behavior changes: run targeted tests or the nearest existing verification command;
 > - shared contracts, migrations, auth, payments, concurrency, build tooling, or broad refactors: run broader checks.
@@ -42,23 +45,30 @@ CONTENT:
 {diff_output}
 """
 
-# Reactive conditionnellement : ce n'est pas une passe par defaut. Le declencheur ferme
-# explicitement la porte aux diffs documentaires et aux petits changements locaux.
-# Asymetrie voulue avec verification-gap ci-dessous : celle-ci produit du volume, donc le doute la
-# desactive ; verification-gap est courte et couvre un risque de preuve, donc le doute l'active.
+# Enabled conditionally: this is not a default review pass.
+# The trigger explicitly excludes documentation-only diffs and small local changes.
+#
+# The asymmetry with verification-gap below is intentional:
+# this review can generate substantial output, so uncertainty disables it;
+# verification-gap is shorter and protects against missing evidence,
+# so uncertainty enables that review instead.
+
 [[workflow.review_layers]]
 id = "edge-case-hunter"
 name = "Edge Case Hunter"
 when = """
-le changement est non trivial, c'est-a-dire qu'il touche au moins un de : reseau (RPC, ownership,
-permission d'ecriture d'une NetworkVariable, spawn/despawn), IA de conduite ou de comportement,
-physique et collisions, etat ou cycle de vie (MonoBehaviour, scene, prefab, coroutine, timing/frame),
-contrat partage entre plusieurs assemblies ou features, refactor cross-file, ou logique dense a
-branches multiples.
-Ne PAS declencher pour de la documentation, des commentaires, du formatage, un libelle, une valeur
-de tuning isolee — y compris la valeur d'une NetworkVariable existante sans changement de permission
-— ou un changement minuscule et local dans un seul fichier deja connu.
-En cas de doute sur le caractere non trivial, la declarer inactive.
+The change is non-trivial, meaning it touches at least one of the following:
+networking (RPCs, ownership, NetworkVariable write permissions, spawn/despawn),
+driving or behavioral AI, physics and collisions, state or lifecycle
+(MonoBehaviour, scene, prefab, coroutine, timing/frame),
+a contract shared across multiple assemblies or features,
+a cross-file refactor, or dense logic with multiple branches.
+
+Do NOT trigger for documentation, comments, formatting, labels,
+an isolated tuning value — including changing the value of an existing NetworkVariable
+without changing its permissions — or a tiny, local change inside a single already-known file.
+
+If uncertain whether the change is non-trivial, consider this review inactive.
 """
 instruction = """
 Launch a context-free subagent with this prompt:
@@ -69,21 +79,26 @@ Review content:
 
 {diff_output}
 
-Do not invoke any skill. If the instruction file is unreadable, report that exact failure and stop. Return only the review result.
-
+Do not invoke any skill.
+If the instruction file is unreadable, report that exact failure and stop.
+Return only the review result.
 """
 
-# Reactive des qu'un comportement observable change : c'est le filet des changements de
-# comportement, pas une passe de conformite sur les diffs documentaires.
+# Enabled whenever observable behavior changes.
+# This is the safety net for behavioral changes, not a compliance pass
+# for documentation-only diffs.
+
 [[workflow.review_layers]]
 id = "verification-gap"
 name = "Verification Gap Reviewer"
 when = """
-le changement modifie un comportement observable — logique, donnee, calcul, validation, algorithme,
-ScriptableObject, contrat, interface, sortie runtime — et pas seulement de la documentation, des
-commentaires, du formatage, un libelle ou un changement minuscule et local.
-En cas de doute sur le caractere comportemental, la declarer active : un test manquant coute plus
-cher qu'une passe de revue inutile.
+The change modifies observable behavior — logic, data, calculations, validation,
+algorithms, ScriptableObjects, contracts, interfaces, or runtime output —
+rather than only documentation, comments, formatting, labels,
+or a tiny and purely local change.
+
+If uncertain whether the change is behavioral, consider this review active:
+a missing test is more costly than one unnecessary review pass.
 """
 instruction = """
 Launch a context-free subagent with this prompt:
@@ -94,51 +109,74 @@ Review content:
 
 {diff_output}
 
-Do not invoke any skill. If the instruction file is unreadable, report that exact failure and stop. Return only the review result.
-
+Do not invoke any skill.
+If the instruction file is unreadable, report that exact failure and stop.
+Return only the review result.
 """
 
-# Couche conditionnelle : jamais par defaut. AD-10 -- la revue de securite ne se justifie que si la
-# story deplace une frontiere de confiance reseau, jamais pour une simple valeur repliquee.
+# Conditional review layer: never enabled by default.
+# AD-10 — security review is justified only when the story creates,
+# expands, or moves a network trust boundary, never for a simple replicated value.
+
 [[workflow.review_layers]]
 id = "security-review"
 name = "Network Trust Boundary Reviewer"
 when = """
-le diff introduit ou deplace une frontiere de confiance reseau, c'est-a-dire : une nouvelle RPC, une
-RPC existante rendue joignable par un client supplementaire, un changement de validation ou d'usage
-de SenderClientId, un changement d'ownership ou d'autorite host/client, un changement de permission
-d'ecriture d'une NetworkVariable, ou une donnee controlable par un client qui atteint un chemin
-autoritaire. Ne PAS declencher pour un tuning, une valeur repliquee modifiee sans changement
-d'autorite, un champ replique ajoute sans changement de permission, ou du travail local/presentation.
+The diff introduces or moves a network trust boundary, meaning at least one of the following:
+
+- a new RPC is introduced;
+- an existing RPC becomes callable by an additional client;
+- SenderClientId validation or usage changes;
+- ownership or host/client authority changes;
+- NetworkVariable write permissions change;
+- client-controlled data reaches an authoritative execution path.
+
+Do NOT trigger for tuning changes, changes to replicated values without authority changes,
+adding a replicated field without changing permissions, or local/presentation-only work.
 """
 instruction = """
 Launch a context-free subagent with this prompt:
 
-Review CONTENT strictly against one question: does the change create or move a network trust
-boundary that a client can abuse?
+Review CONTENT strictly against one question:
+does the change create or move a network trust boundary that a client can abuse?
 
 CONTENT:
 {diff_output}
 
-Focus only on real reachable weakness introduced or exposed by this change:
+Focus only on real reachable weaknesses introduced or exposed by this change:
 
-- every RPC a client can call: is the caller's authority established server-side, or is the payload
-  trusted? Check that `SenderClientId` / `RpcParams.Receive.SenderClientId` is compared against the
-  authoritative owner before any state mutation, and that the comparison is the right one.
-- payload sanity: can a client send values that are out of range, negative, null, oversized, or a
-  reference to a NetworkObject the sender does not own?
-- ownership and authority: can a non-owner drive a server-write path, or can a client claim a role
-  it does not hold?
-- NetworkVariable write permissions: did any permission widen, and does the widened writer have a
-  legitimate reason?
-- client-controlled data reaching a host-authoritative path, including through a relayed field.
-- denial of service: unbounded loops, allocations, or repeated spawning driven by client input.
+- every RPC a client can call: is the caller's authority established server-side,
+  or is the payload trusted? Check that `SenderClientId` /
+  `RpcParams.Receive.SenderClientId` is compared against the authoritative owner
+  before any state mutation, and that the comparison is the correct one.
 
-For each finding give: the file and line, the exact sequence a client would use, why the current
-guard does not stop it, and the smallest fix. If the change does not actually move a trust boundary,
-return an empty list and say so plainly -- do not manufacture findings to justify the pass.
+- payload sanity: can a client send values that are out of range, negative, null,
+  oversized, or a reference to a NetworkObject the sender does not own?
 
-Do not invoke any skill. Return only the review result.
+- ownership and authority: can a non-owner drive a server-write path,
+  or can a client claim a role it does not hold?
+
+- NetworkVariable write permissions: did any permission widen,
+  and does the widened writer have a legitimate reason?
+
+- client-controlled data reaching a host-authoritative path,
+  including through a relayed field.
+
+- denial of service: unbounded loops, allocations, or repeated spawning
+  driven by client input.
+
+For each finding give:
+- the file and line;
+- the exact sequence a client would use;
+- why the current guard does not stop it;
+- the smallest fix.
+
+If the change does not actually move a trust boundary,
+return an empty list and say so plainly.
+Do not manufacture findings to justify the review pass.
+
+Do not invoke any skill.
+Return only the review result.
 """
 
 [[workflow.oneshot_review_layers]]
@@ -147,7 +185,9 @@ name = "One-Shot Risk-Scaled Reviewer"
 instruction = """
 Review the changed files once.
 
-Return only real findings caused by this change. Do not force a minimum number of findings.
+Return only real findings caused by this change.
+Do not force a minimum number of findings.
 For trivial or localized changes, an empty list is acceptable.
-Do not request more tests unless an important changed behavior is unverified by the nearest relevant check.
+Do not request more tests unless an important changed behavior
+is unverified by the nearest relevant check.
 """

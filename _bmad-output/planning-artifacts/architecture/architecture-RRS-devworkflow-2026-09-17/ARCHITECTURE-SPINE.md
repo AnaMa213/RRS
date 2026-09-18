@@ -59,11 +59,12 @@ Le fil conducteur : **un agent ne valide jamais son propre travail par un moyen 
 - **Prevents :** qu'un agent agisse sur une reponse fabriquee pour un symbole inexistant
 - **Rule :** `rg "\bSymbole\b" Assets/RoadRage -g "*.cs"` d'abord ; absent → **STOP**, sans interroger Graphify. Pas de precheck pour les questions macro sans symbole nomme. Une sortie sans aucune ligne `Assets/RoadRage` est un echec de resolution, jamais une reponse.
 
-### AD-4 — La verification est declenchee par l'utilisateur, jamais par l'agent [ADOPTED]
+### AD-4 — La verification est declenchee par l'utilisateur, jamais par l'agent [SUPERSEDED 2026-09-18]
 
 - **Binds :** compilation, tests, analyzers, audit
-- **Prevents :** qu'un agent declare une story terminee sur une verification qu'il a lui-meme simulee ou contournee
-- **Rule :** l'agent demande l'execution de `scripts/validate.ps1` et consomme la sortie fournie. Il n'execute aucune commande de verification. Herite de `_bmad/custom/bmad-build.toml`.
+- **Prevented (historique) :** qu'un agent declare une story terminee sur une verification qu'il a lui-meme simulee ou contournee — le risque n'a pas disparu, il est desormais accepte plutot que mitige par cette regle.
+- **Rule (abrogee) :** l'agent demandait l'execution de `scripts/validate.ps1` et consommait la sortie fournie, sans executer lui-meme de commande de verification.
+- **Superseded by :** decision utilisateur du 2026-09-18, prise hors process `bmad-correct-course`/`bmad-architecture` — l'agent execute desormais `scripts/validate.ps1` et les commandes `unity cmd` de verification directement. Le fil conducteur de ce document (« un agent ne valide jamais son propre travail par un moyen qu'il controle », ligne 40) ne s'applique plus a la verification ; il reste vrai pour AD-5/AD-6/AD-7/AD-8/AD-9, non modifiees par cette decision. Regle courante portee par `AGENTS.md` et `docs/setup/build-workflow-rules.md` section 3, heritee via `_bmad/custom/bmad-build.toml`.
 
 ### AD-5 — La validation passe par l'Editeur connecte, jamais par le batchmode
 

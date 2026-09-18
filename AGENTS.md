@@ -50,6 +50,7 @@ Unity 6 cooperative driving prototype. BMAD remains the source of truth for Stor
   ```
 
   Codes de sortie : `0` trouve, `1` **absent -> STOP**, ne pas interroger Graphify, corriger le nom ; `2` la recherche elle-meme a echoue, le resultat est **inconnu** et jamais « absent ». Cette distinction est tout l'objet du script : `rg` n'est pas garanti present dans la session de l'agent (verifie absent le 2026-09-18), et une commande inconnue produit une sortie vide qu'un agent peut lire comme une absence. Mesure : une requete Graphify sur un symbole inexistant coute ~2 600 tokens et renvoie des noeuds sans rapport, presentes avec le meme aplomb qu'une vraie reponse. Le rescope du graphe n'a pas supprime ce mode d'echec, il l'a seulement rendu moins reconnaissable (le bruit vient desormais de `Assets/RoadRage` au lieu de l'outillage).
+
 - **Pas de precheck** pour les questions macro sans symbole nomme ("quels systemes participent au flow de lobby ?", "comment fonctionne la recuperation vehicule ?") : interroger Graphify directement.
 - Toute sortie de requete sans aucune ligne `Assets/RoadRage` doit etre traitee comme un echec de resolution, jamais comme une reponse.
 
@@ -97,8 +98,6 @@ chaque run via `persistent_facts` (`_bmad/custom/bmad-build.toml`), donc il ne d
 ici : `AGENTS.md` porte le transversal valable dans toute session, ce fichier porte le specifique au
 cycle de build.
 
-## Verification declenchee par l'utilisateur (AD-4)
+## Verification executee par l'agent (AD-4, abrogee le 2026-09-18)
 
-La verification (compilation, tests, `validate.ps1`, toute commande `unity cmd` qui n'est pas en lecture seule au sens de la garde ci-dessus) est **demandee a l'utilisateur, jamais executee directement par l'agent** — pas seulement dans les routes `bmad-build`, mais dans toute session, y compris en dehors de BMAD. L'agent demande l'execution et consomme la sortie fournie. La commande attendue, son mode et son interpretation vivent dans `docs/setup/build-workflow-rules.md`.
-
-Exception explicite : construire ou deboguer un outil de verification lui-meme (ex. ecrire `scripts/validate.ps1`) exige de l'exercer en direct pour le prouver ; dans ce cas, le dire clairement au moment de le faire plutot que de laisser la regle glisser silencieusement.
+La verification (compilation, tests, `validate.ps1`, toute commande `unity cmd` qui n'est pas en lecture seule au sens de la garde ci-dessus) est **executee directement par l'agent** — pas seulement dans les routes `bmad-build`, mais dans toute session, y compris en dehors de BMAD. La commande attendue, son mode et son interpretation vivent dans `docs/setup/build-workflow-rules.md`.

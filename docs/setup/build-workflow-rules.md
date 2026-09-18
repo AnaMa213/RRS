@@ -19,12 +19,12 @@ ne les remplace jamais ; en cas de divergence, le spec gagne.
 Choisis le niveau de recon avant d'ouvrir quoi que ce soit. Le surcout d'une recon inutile est du
 bruit ; le cout d'une recon manquante est une reponse fausse presentee avec assurance.
 
-| Situation | Action |
-| --- | --- |
-| Un symbole precis est nomme (`RunFlowController`, `DriverProfileDef`, `NetworkedAIVehicleDriverController`…) | **Precheck obligatoire avant toute requete Graphify** : `.\scripts\find-symbol.ps1 <Symbole>` (voir `AGENTS.md` AD-3). Sortie `1` = absent -> STOP. Sortie `2` = la recherche a echoue -> resultat **inconnu**, ne pas conclure a une absence. Sortie `0` -> Graphify seulement si une analyse d'impact est reellement necessaire. |
-| Question macro sans symbole nomme (« quels systemes participent au flow de lobby ? », « qui depend de X ? », impact cross-file) | Graphify directement, sans precheck. |
-| Changement XS/S evident (libelle, commentaire, valeur de tuning locale, fichier unique deja connu) | **Pas de recon.** Lire le fichier et implementer. |
-| Le spec frontmatter liste des `context:` | Les charger : c'est la recon deja faite, ne pas la refaire. |
+| Situation                                                                                                                       | Action                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Un symbole precis est nomme (`RunFlowController`, `DriverProfileDef`, `NetworkedAIVehicleDriverController`…)                    | **Precheck obligatoire avant toute requete Graphify** : `.\scripts\find-symbol.ps1 <Symbole>` (voir `AGENTS.md` AD-3). Sortie `1` = absent -> STOP. Sortie `2` = la recherche a echoue -> resultat **inconnu**, ne pas conclure a une absence. Sortie `0` -> Graphify seulement si une analyse d'impact est reellement necessaire. |
+| Question macro sans symbole nomme (« quels systemes participent au flow de lobby ? », « qui depend de X ? », impact cross-file) | Graphify directement, sans precheck.                                                                                                                                                                                                                                                                                               |
+| Changement XS/S evident (libelle, commentaire, valeur de tuning locale, fichier unique deja connu)                              | **Pas de recon.** Lire le fichier et implementer.                                                                                                                                                                                                                                                                                  |
+| Le spec frontmatter liste des `context:`                                                                                        | Les charger : c'est la recon deja faite, ne pas la refaire.                                                                                                                                                                                                                                                                        |
 
 Regle de sortie : une reponse Graphify sans aucune ligne `Assets/RoadRage` est un **echec de
 resolution**, jamais une reponse.
@@ -50,18 +50,19 @@ classement, PlayMode.**
 **Deux pieges a connaitre :**
 
 - `-TestMode Both` applique le **meme** `-TestFilter` aux deux modes. Un filtre nommant une fixture
-d'un seul mode fait donc echouer l'autre mode sur « aucun test execute » — et c'est voulu (AD-8 :
-une absence de resultat n'est jamais un succes).
+  d'un seul mode fait donc echouer l'autre mode sur « aucun test execute » — et c'est voulu (AD-8 :
+  une absence de resultat n'est jamais un succes).
 - Le filtrage **ne fonctionne pas en PlayMode** avec la chaine actuelle (mesure en section 3). En
-pratique : `-TestMode EditMode -TestFilter …` pour cibler, `-TestMode PlayMode` **sans filtre**
-pour le runtime.
+  pratique : `-TestMode EditMode -TestFilter …` pour cibler, `-TestMode PlayMode` **sans filtre**
+  pour le runtime.
 
 ## 3. Checkpoint de verification
 
-L'agent **n'execute aucune commande de verification** (voir `AGENTS.md`, AD-4). Il demande, puis
-consomme la sortie fournie.
+L'agent **execute lui-meme** `scripts/validate.ps1` et les commandes `unity cmd` de verification
+(AD-4 abrogee le 2026-09-18, voir `AGENTS.md`). Il lit la sortie produite telle quelle et ne la
+reformule pas de memoire.
 
-Commande a demander, avec le mode issu du point 2 :
+Commande a executer, avec le mode issu du point 2 :
 
 ```powershell
 .\scripts\validate.ps1 -TestMode EditMode
@@ -88,9 +89,9 @@ commande inconnue, timeout, resultat illisible ou absent = echec.
 Deux consequences a respecter :
 
 - **Une absence de resultat n'est jamais un succes.** Sans sortie du script, la story n'est pas
-  verifiee, point final.
-- Le script **rend la main sur la sortie de l'utilisateur**. Ne conclus pas le contraire de ce
-  qu'elle dit, et ne la ressaisis pas de memoire.
+  verifiee, point final — y compris quand c'est l'agent lui-meme qui l'a lancee.
+- **Rapporte la sortie brute**, y compris un echec. Ne l'attenue pas, ne la reformule pas de
+  memoire, et ne relance pas silencieusement une commande en echec pour en obtenir une meilleure.
 
 `-Audit` (Project Auditor) reste **hors gate** et optionnel : informatif, jamais bloquant
 (ADDON-018). Ne le demande pas par defaut.
@@ -101,12 +102,12 @@ Couches **reellement actives**, telles que configurees dans `_bmad/custom/bmad-b
 couche conditionnelle est annoncee au rendu par `Run only when: …` : evalue la condition sur le diff
 avant de la lancer. Une `instruction` vide desactiverait une couche — ce n'est plus le cas d'aucune.
 
-| Couche | Activation | Cout |
-| --- | --- | --- |
-| `blind-hunter` — Risk-Scaled Reviewer | toujours | faible, proportionnel au blast radius |
-| `edge-case-hunter` — Edge Case Hunter | conditionnelle : changement **non trivial** (reseau, IA, physique, etat/cycle de vie, contrat partage, refactor cross-file, logique dense) | eleve — d'ou un doute qui la **desactive** |
-| `verification-gap` — Verification Gap Reviewer | conditionnelle : le changement modifie un **comportement observable** | faible — d'ou un doute qui l'**active** |
-| `security-review` — Network Trust Boundary Reviewer | conditionnelle : frontiere de confiance reseau (voir ci-dessous) | faible |
+| Couche                                              | Activation                                                                                                                                 | Cout                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| `blind-hunter` — Risk-Scaled Reviewer               | toujours                                                                                                                                   | faible, proportionnel au blast radius      |
+| `edge-case-hunter` — Edge Case Hunter               | conditionnelle : changement **non trivial** (reseau, IA, physique, etat/cycle de vie, contrat partage, refactor cross-file, logique dense) | eleve — d'ou un doute qui la **desactive** |
+| `verification-gap` — Verification Gap Reviewer      | conditionnelle : le changement modifie un **comportement observable**                                                                      | faible — d'ou un doute qui l'**active**    |
+| `security-review` — Network Trust Boundary Reviewer | conditionnelle : frontiere de confiance reseau (voir ci-dessous)                                                                           | faible                                     |
 
 **Aucune n'est executee pour de la documentation, des commentaires, du formatage, un libelle, une
 valeur de tuning isolee ou un changement minuscule et local.**
