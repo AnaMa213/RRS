@@ -351,7 +351,9 @@ namespace RoadRage.Tests.EditMode
             }
 
             Assert.That(steeringWheels, Is.EqualTo(2), "Un essieu directrice, deux roues.");
-            Assert.That(drivenWheels, Is.EqualTo(2), "Un essieu moteur, deux roues : IsDriven est enfin consomme, il n'est plus une donnee inerte.");
+            Assert.That(drivenWheels, Is.EqualTo(4),
+                "Quatre roues motrices : le couple est reparti sur les quatre, donc chaque pneu reste loin de sa limite "
+                + "d'adherence -- c'est le patinage qui consommait le budget lateral et faisait deraper la voiture.");
         }
 
         // ---------------------------------------------------- la visee anticipee
@@ -687,15 +689,15 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void TheDrivenAxleIsTheNonSteeringOneOnBothCopiesOfTheProfile()
+        public void TheDrivetrainIsAllWheelDriveOnBothCopiesOfTheProfile()
         {
             var profile = LoadDefaultProfile();
-            AssertDrivetrainIsRearWheelDrive(profile, "l'asset authore");
+            AssertDrivetrainIsAllWheelDrive(profile, "l'asset authore");
 
             var def = ScriptableObject.CreateInstance<VehicleProfileDef>();
             try
             {
-                AssertDrivetrainIsRearWheelDrive(def.Profile, "les valeurs par defaut du Def");
+                AssertDrivetrainIsAllWheelDrive(def.Profile, "les valeurs par defaut du Def");
             }
             finally
             {
@@ -740,6 +742,20 @@ namespace RoadRage.Tests.EditMode
             var brakingAcceleration = brakeForce / profile.Mass;
             var corneringAcceleration = (2f * gripPerWheel) / profile.Mass;
 
+            // Recette du 2026-09-18 (2e retour) : « ca derape beaucoup trop, je veux un derapage tres tres
+            // leger ». Le mecanisme du derapage etait le PATINAGE : un pneu qui glisse consomme son budget
+            // d'adherence en longitudinal, donc il ne tient plus la caisse en travers. La garde qui encode ce
+            // ressenti est donc une MARGE : l'effort demande a chaque roue motrice doit rester nettement sous
+            // ce que son adherence peut transmettre.
+            var driveForcePerWheel = profile.EngineTorque / profile.GetWheel(0).Radius;
+            var gripUsageAtLaunch = driveForcePerWheel / gripPerWheel;
+            Assert.That(gripUsageAtLaunch, Is.LessThanOrEqualTo(0.7f),
+                "Depart sans patinage : chaque roue motrice utilise " + (gripUsageAtLaunch * 100f).ToString("F0")
+                + " % de son adherence (" + driveForcePerWheel.ToString("F0") + " N pour " + gripPerWheel.ToString("F0")
+                + " N disponibles). Au-dela, le pneu patine, perd son adherence laterale et la voiture derape : la borne est 70 %.");
+            Assert.That(drivenWheels, Is.EqualTo(4),
+                "Et l'effort est reparti sur quatre roues : c'est ce qui permet la marge ci-dessus sans sacrifier le depart.");
+
             Assert.That(launchAcceleration, Is.GreaterThanOrEqualTo(8f),
                 "Acceleration d'arcade : l'enveloppe du profil donne " + launchAcceleration.ToString("F1")
                 + " m/s2. La recette du 2026-09-18 a refuse 4,5 m/s2 ; la borne basse est 8.");
@@ -761,17 +777,18 @@ namespace RoadRage.Tests.EditMode
         }
 
         /// <summary>
-        /// Le montage change par la 5.12 (la donnee de 5.11 portait isDriven a l'avant, mais le drapeau
-        /// etait inerte) doit etre VISIBLE : sans cette garde, revenir a la donnee d'avant 5.12 ne ferait
-        /// echouer aucun test tout en enlevant au frein a main sa roue motrice.
+        /// Le montage du train roulant doit etre VISIBLE : quatre roues motrices pour la marge d'adherence
+        /// (recette du 2026-09-18 : « ca derape beaucoup trop »), et un essieu non directrice pour que le
+        /// frein a main ait des roues a bloquer. Sans cette garde, revenir a un montage deux roues motrices
+        /// ne ferait echouer aucun autre test tout en ramenant le patinage -- et le derapage.
         /// </summary>
-        private static void AssertDrivetrainIsRearWheelDrive(VehicleProfile profile, string source)
+        private static void AssertDrivetrainIsAllWheelDrive(VehicleProfile profile, string source)
         {
             Assert.That(profile.GetWheel(0).IsSteering, Is.True, source + " : l'essieu avant est directrice.");
-            Assert.That(profile.GetWheel(0).IsDriven, Is.False, source + " : et il n'est pas moteur.");
+            Assert.That(profile.GetWheel(0).IsDriven, Is.True, source + " : et il est moteur -- quatre roues motrices.");
             Assert.That(profile.GetWheel(2).IsSteering, Is.False, source + " : l'essieu arriere ne braque pas.");
             Assert.That(profile.GetWheel(2).IsDriven, Is.True,
-                source + " : et c'est lui qui est moteur -- le frein a main bloque donc l'essieu qui pousse.");
+                source + " : et il est moteur aussi, donc le frein a main bloque des roues motrices.");
         }
 
         // ------------------------------------------------------------------ helpers

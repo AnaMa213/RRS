@@ -22,12 +22,12 @@ MonoBehaviour:
       radius: 0.33
       axleIndex: 0
       isSteering: 1
-      isDriven: 0
+      isDriven: 1
     - localPosition: {x: 0.85, y: 0.22, z: 1.55}
       radius: 0.33
       axleIndex: 0
       isSteering: 1
-      isDriven: 0
+      isDriven: 1
     - localPosition: {x: -0.85, y: 0.22, z: -1.55}
       radius: 0.33
       axleIndex: 1
@@ -45,13 +45,13 @@ MonoBehaviour:
     antiRollRate: 20000
     attitudeLevellingRate: 18000
     attitudeDamping: 6000
-    lateralFrictionCoefficient: 2.5
+    lateralFrictionCoefficient: 3
     groundMask:
       serializedVersion: 2
       m_Bits: 1
     surfaceContactTolerance: 0.15
-    engineTorque: 2600
-    reverseTorque: 1800
+    engineTorque: 1600
+    reverseTorque: 1400
     brakeTorque: 2000
     coastTorque: 260
     handbrakeTorque: 4500
@@ -66,4 +66,4 @@ MonoBehaviour:
     steerReturnRateDegreesPerSecond: 260
     tirePeakSlipRatio: 0.14
     tirePeakSlipAngleDegrees: 8
-    tireSlipFalloffFraction: 0.7
+    tireSlipFalloffFraction: 0.8

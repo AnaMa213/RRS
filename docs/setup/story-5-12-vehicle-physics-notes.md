@@ -54,19 +54,22 @@ ouvert. Les mesures sont citees telles qu'elles sont sorties des commandes.
 
 ## 2. Valeurs authorees, et ce qui les a produites
 
+**Valeurs FINALES**, apres les deux retours de recette du 2026-09-18 (voir section 8 pour l'historique
+et les raisons de chaque correction).
+
 | Parametre | Valeur | Pourquoi |
 | --- | --- | --- |
-| `engineTorque` / `reverseTorque` | 900 / 700 N.m | effort au sol = couple / rayon de roue (0,33 m), soit ~2 700 N par roue motrice |
-| `brakeTorque` / `coastTorque` / `handbrakeTorque` | 700 / 120 / 3 000 N.m | le frein a main doit BLOQUER les roues arriere : 3 000 depasse largement l'adherence disponible de l'essieu, la ou 700 freine sans bloquer |
+| Train roulant | avant directrice **et** motrice, arriere motrice : **quatre roues motrices** | repartir l'effort sur quatre pneus garde chaque roue loin de sa limite : c'est le patinage qui faisait deraper la voiture |
+| `engineTorque` / `reverseTorque` | 1 600 / 1 400 N.m **par roue motrice** | 4 x 1 600 / 0,33 = 19 394 N, soit 16,2 m/s2, avec 55 % d'adherence utilisee par roue |
+| `brakeTorque` / `coastTorque` / `handbrakeTorque` | 2 000 / 260 / 4 500 N.m | le frein a main doit BLOQUER les roues non directrices malgre l'adherence authoree ; le frein moteur retient un vehicule gare sans conducteur |
 | `wheelInertia` | 3 kg.m2 | integre la rotation de roue sans la rendre instantanee |
 | `maxForwardSpeed` / `maxReverseSpeed` | 18 / 7 m/s | **les memes valeurs qu'avant**, desormais lues sur le profil : la pointe est approchee par une pente d'effort, jamais posee |
 | `minimumDirectionSpeed` | 0,25 m/s | le seuil de changement de sens de la Story 3.2, conserve |
-| `maxSteerAngleDegrees` / `highSpeedSteerAngleDegrees` / `steerFullReductionSpeed` | 32 / 10 / 18 | la direction reste lisible a vitesse elevee |
-| `steerRateDegreesPerSecond` / `steerReturnRateDegreesPerSecond` | 180 / 140 | rappel plus lent que le braquage : relacher la direction n'est pas une remise sur rails |
-| `tirePeakSlipRatio` / `tirePeakSlipAngleDegrees` / `tireSlipFalloffFraction` | 0,14 / 8 / 0,7 | pic a 14 % de glissement longitudinal et 8 deg d'angle, puis chute vers 70 % : la perte d'adherence est progressive et ne tombe jamais a zero |
-| `lateralFrictionCoefficient` | 1,2 | **reutilise** comme adherence du pneu, pas renomme (aucune table par surface : cf. section 5) |
+| `maxSteerAngleDegrees` / `highSpeedSteerAngleDegrees` / `steerFullReductionSpeed` | 40 / 16 / 26 | debattement utile a basse vitesse, et la direction tourne encore a vitesse de conduite |
+| `steerRateDegreesPerSecond` / `steerReturnRateDegreesPerSecond` | 300 / 260 | la roue atteint son angle tout de suite ; le rappel reste plus lent que le braquage |
+| `tirePeakSlipRatio` / `tirePeakSlipAngleDegrees` / `tireSlipFalloffFraction` | 0,14 / 8 / 0,8 | pic a 14 % de glissement longitudinal et 8 deg d'angle, puis chute vers 80 % : la perte d'adherence est progressive, ne tombe jamais a zero, et se rattrape vite |
+| `lateralFrictionCoefficient` | 3,0 | **reutilise** comme adherence du pneu, pas renomme (aucune table par surface : cf. section 9) |
 | `lookAheadSeconds` (IA) | 0,6 s | distance de visee = vitesse x duree, soit ~4,8 m a 8 m/s |
-| Train roulant | essieu avant directrice, essieu arriere **motrice** | voir section 4 : c'est un changement de la donnee author e en 5.11 |
 
 ## 3. Mesures
 
@@ -184,6 +187,42 @@ retomber le ressenti en silence. La suite EditMode passe a **574/574** apres ce 
 **Ce qui reste a affiner, et par qui.** Ces nombres sont calcules, pas ressentis : l'agent ne peut pas
 conduire la voiture. Le prochain cran naturel est la **Story 5.13** (aides arcade : stabilite en lacet,
 controle de traction, recuperation de tete-a-queue), qui adoucira ce que ce modele rend encore brut.
+
+### Deuxieme retour de recette (meme jour) : « ca derape beaucoup trop, et le demarrage est encore trop lent »
+
+**Diagnostic : les deux reproches ont la meme cause -- le patinage.** Le vehicule etait a deux roues
+motrices avec un couple eleve : au depart, les roues arriere glissaient. Or dans ce modele un pneu n'a
+qu'UN budget d'adherence, partage entre longitudinal et lateral (`VehicleTireModel.ResolveTireForces`) :
+un pneu qui patine consomme son budget en longitudinal, donc **il ne tient plus la caisse en travers**.
+Le patinage expliquait donc a la fois le demarrage mou (la force utile tombait sur la branche descendante
+de la courbe, 0,7 x adherence x charge) et le derapage permanent de l'arriere.
+
+**Correction : repartir l'effort sur quatre roues, et donner de la marge au pneu.**
+
+| Parametre | Avant | Apres | Effet |
+| --- | --- | --- | --- |
+| Roues motrices (`isDriven`) | 2 (arriere) | **4** (quatre roues motrices) | meme effort total avec la moitie par roue : le pneu reste loin de sa limite |
+| `lateralFrictionCoefficient` | 2,5 | **3,0** | marge d'adherence supplementaire |
+| `engineTorque` | 2 600 N.m sur 2 roues | **1 600 N.m sur 4** | 4 x 1 600/0,33 = 19 394 N, soit **16,2 m/s2** |
+| `reverseTorque` | 1 800 N.m sur 2 | **1 400 N.m sur 4** | meme repartition en marche arriere |
+| `tireSlipFalloffFraction` | 0,7 | **0,8** | si un pneu glisse quand meme, il perd moins d'adherence et se rattrape plus vite |
+
+**Mesure qui encode le ressenti demande.** Chaque roue motrice utilise **55 %** de son adherence au
+depart (4 848 N demandes pour 8 829 N disponibles). La garde `TheAuthoredProfileKeepsAnArcadeEnvelope`
+exige que ce taux reste **sous 70 %** : au-dela, le pneu patine -- et patiner, c'est deraper. Enveloppe
+obtenue : **16,2 m/s2 en acceleration** (12,3 avant), **20,2 m/s2 au freinage** (inchange) et
+**14,7 m/s2 en appui** (12,3 avant).
+
+**Ce qui n'a pas ete sacrifie.** Le frein a main garde son effet : il bloque les roues **non
+directrices**, et c'est le mecanisme du **budget unique** -- pas la chute d'adherence -- qui effondre
+leur adherence laterale quand elles se bloquent. Un pneu bloque ne tient plus la caisse en travers,
+quelle que soit la chute. Le derapage volontaire reste donc atteignable ; c'est le derapage **subi** qui
+a ete reduit.
+
+**Si c'est encore trop vif**, il reste deux leviers, dans cet ordre : (1) la **Story 5.13** -- une aide
+de stabilite en lacet est exactement l'outil prevu, et rien ne la remplace dans ce modele ; (2) faire
+monter l'adherence arriere au-dessus de l'avant (equilibre sous-vireur) pour que la limite se traduise
+par un elargissement de trajectoire plutot que par une rotation.
 
 ### Les roues visuelles ne tournent pas : c'est voulu, et hors perimetre
 

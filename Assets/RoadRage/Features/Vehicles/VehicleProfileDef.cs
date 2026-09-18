@@ -31,15 +31,15 @@ namespace RoadRage.Features.Vehicles
             mass: 1200f,
             centerOfMass: new Vector3(0f, -0.35f, 0f),
             inertiaTensor: new Vector3(2173f, 2396f, 626f),
-            // Roues avant directrices, roues arriere motrices. La repartition doit etre SYMETRIQUE
-            // gauche/droite : une seule roue motrice d'un cote produirait un couple de lacet permanent
-            // que rien ne compense (le vehicule tirerait d'un cote en acceleration). La Story 5.11
-            // avait author e un drapeau par roue en alternance ; le sens est corrige ici, ou les
-            // drapeaux sont enfin consommes.
+            // Roues avant directrices ET motrices : le vehicule est a quatre roues motrices. Le couple
+            // est reparti sur les quatre, donc chaque pneu reste LOIN de sa limite d'adherence (c'est
+            // ce qui evite le patinage -- et le patinage est ce qui consommait le budget lateral du
+            // pneu arriere, donc ce qui faisait deraper la voiture). Les roues arriere ne braquent
+            // toujours pas : le frein a main y garde ses roues a bloquer.
             wheels: new[]
             {
-                new VehicleWheel(new Vector3(-0.85f, 0.22f, 1.55f), 0.33f, 0, true, false),
-                new VehicleWheel(new Vector3(0.85f, 0.22f, 1.55f), 0.33f, 0, true, false),
+                new VehicleWheel(new Vector3(-0.85f, 0.22f, 1.55f), 0.33f, 0, true, true),
+                new VehicleWheel(new Vector3(0.85f, 0.22f, 1.55f), 0.33f, 0, true, true),
                 new VehicleWheel(new Vector3(-0.85f, 0.22f, -1.55f), 0.33f, 1, false, true),
                 new VehicleWheel(new Vector3(0.85f, 0.22f, -1.55f), 0.33f, 1, false, true)
             },
@@ -50,11 +50,11 @@ namespace RoadRage.Features.Vehicles
             antiRollRate: 20000f,
             attitudeLevellingRate: 18000f,
             attitudeDamping: 6000f,
-            lateralFrictionCoefficient: 2.5f,
+            lateralFrictionCoefficient: 3f,
             groundMask: 1,
             surfaceContactTolerance: 0.15f,
-            engineTorque: 2600f,
-            reverseTorque: 1800f,
+            engineTorque: 1600f,
+            reverseTorque: 1400f,
             brakeTorque: 2000f,
             coastTorque: 260f,
             handbrakeTorque: 4500f,
@@ -69,7 +69,7 @@ namespace RoadRage.Features.Vehicles
             steerReturnRateDegreesPerSecond: 260f,
             tirePeakSlipRatio: 0.14f,
             tirePeakSlipAngleDegrees: 8f,
-            tireSlipFalloffFraction: 0.7f);
+            tireSlipFalloffFraction: 0.8f);
 
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
