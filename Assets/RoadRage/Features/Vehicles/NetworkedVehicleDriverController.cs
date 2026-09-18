@@ -25,6 +25,9 @@ namespace RoadRage.Features.Vehicles
     /// host-authoritative, meme garde d'autorite que le reste du fichier), jamais cote client reseau. Les collisions et
     /// recuperations sont exposees en evenements C# purs (aucune reference UI ici) pour rester
     /// consommables uniquement depuis App/Run, conformement a la frontiere du module Vehicules.
+    /// Story 5.11 : la couche physique du vehicule vit dans <see cref="VehiclePhysicsBody"/> (AD-35),
+    /// porte par ce prefab comme par le prefab IA. Ce controleur ne garde que le longitudinal et le
+    /// lateral ; l'axe vertical appartient a la suspension et n'est plus ecrit ici.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
@@ -69,13 +72,6 @@ namespace RoadRage.Features.Vehicles
         private float minimumSteerSpeed = 0.25f;
 
         [SerializeField]
-        [Min(0f)]
-        private float rollStabilityAssist = 8f;
-
-        [SerializeField]
-        private Vector3 centerOfMassOffset = new Vector3(0f, -0.35f, 0f);
-
-        [SerializeField]
         [Range(-1f, 1f)]
         private float rolloverUprightDotThreshold = 0.35f;
 
@@ -87,17 +83,14 @@ namespace RoadRage.Features.Vehicles
         private float voidHeightThreshold = -10f;
 
         [SerializeField]
-        [Min(0f)]
-        [Tooltip("Tolerance de hauteur, en metres, sous laquelle un point de contact touche le vehicule a hauteur de son dessous -- donc est un contact de surface (dalle affleurante, trottoir, levre du plan de sol) et ne produit aucun degat. La levre du plan de sol fait 5 cm : 0,1 m la couvre avec le double de marge, sans jamais couvrir la face d'un mur, qui touche le vehicule bien plus haut.")]
-        private float surfaceContactTolerance = 0.1f;
-
-        [SerializeField]
         [Tooltip("Repere de scene fixe (par scene) vers lequel la voiture est repositionnee lors d'une recuperation. Si absent, la position initiale du vehicule au demarrage sert de repli (ex. Dev_VehicleSandbox).")]
         private Transform recoveryPoint;
 
         private NetworkedVehicleState state;
         private Rigidbody body;
         private Collider bodyCollider;
+        private VehiclePhysicsBody physicsBody;
+        private DevIndestructibleVehicle devIndestructible;
         private NetworkTransform networkTransform;
         private VehicleDriveIntent latestIntent = VehicleDriveIntent.Idle;
         private float rolloverElapsedSeconds;
@@ -162,7 +155,8 @@ namespace RoadRage.Features.Vehicles
 
             if (body != null)
             {
-                ConfigureArcadeBody();
+                // Story 5.11 : masse, centre de masse et tenseur d'inertie ne sont plus poses ici --
+                // VehiclePhysicsBody les applique depuis le VehicleProfileDef authore (AD-35).
                 body.isKinematic = !IsServer;
             }
 
@@ -234,8 +228,8 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
-        /// Detection host/solo-only (Story 3.4) : retournement soutenu N secondes (meme esprit anti-
-        /// faux-positif que ApplyStabilityAssist) et sortie de zone via le meme motif de seuil de vide
+        /// Detection host/solo-only (Story 3.4) : retournement soutenu N secondes, avec la meme garde de
+        /// duree contre les faux positifs que le reste du fichier, et sortie de zone via le meme motif de seuil de vide
         /// que LocalVoidRespawnController/NetworkedPlayerLifecycleService, applique ici a la position
         /// du vehicule plutot qu'au joueur.
         /// </summary>
@@ -330,6 +324,13 @@ namespace RoadRage.Features.Vehicles
             transform.SetPositionAndRotation(position, rotation);
             rolloverElapsedSeconds = 0f;
 
+            // Deplacement discontinu : la memoire de suspension est purgee, sinon la difference finie
+            // de compression produirait au pas suivant un pic d'amortisseur que rien ne justifie.
+            if (physicsBody != null)
+            {
+                physicsBody.ResetSuspensionState();
+            }
+
             if (networkTransform != null)
             {
                 // Snap immediately on every observer instead of letting NetworkTransform's
@@ -345,15 +346,24 @@ namespace RoadRage.Features.Vehicles
         /// Retour visuel minimal (Story 3.4) : ne jamais interrompre la session (pas d'exception, pas
         /// de freeze physique), juste exposer un evenement C# consomme cote App/Run pour le HUD.
         ///
-        /// Correctif post-livraison du 2026-09-16 (retour terrain n° 2) : une entree de collision qui
-        /// n'est pas un obstacle ne produit AUCUN degat. Quand tous ses points de contact touchent le
-        /// vehicule a hauteur de son dessous, l'evenement n'est pas leve -- donc ni le vehicule, ni
-        /// ses occupants ne perdent de PV -- et sa RPC n'est pas relayee non plus. La geometrie et les
-        /// colliders restent en l'etat : c'est la consommation du contact qui change, pas le decor.
+        /// Depuis la Story 5.11 les roues portent le vehicule, donc heurter un trottoir ou monter une
+        /// levre de dalle n'est plus un choc : c'est de la compression de suspension. Un contact qui ne
+        /// touche que le DESSOUS du vehicule -- donc un relief franchi, pas un obstacle -- ne leve ni
+        /// evenement ni degat. Un mur (5 m de haut) et une autre voiture touchent la caisse bien plus
+        /// haut, donc leurs degats de la Story 3.5 restent intacts.
         /// </summary>
         private void OnCollisionEnter(Collision collision)
         {
             if (!IsServer)
+            {
+                return;
+            }
+
+            // Vehicule de developpement marque indestructible : aucun evenement de collision n'est
+            // leve, donc ni le vehicule ni ses occupants ne perdent de PV, et aucune RPC de degat n'est
+            // relayee. Un seul point a garder, et le code de jeu n'a pas a connaitre le developpement.
+            // Le marqueur doit etre ACTIF : un composant desactive doit rendre l'immunite, pas la laisser.
+            if (devIndestructible != null && devIndestructible.isActiveAndEnabled)
             {
                 return;
             }
@@ -369,60 +379,44 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
-        /// Predicat pur (correctif post-livraison du 2026-09-16) : le contact touche le vehicule a
-        /// hauteur de son dessous, donc c'est un contact de SURFACE, pas un obstacle.
+        /// Vrai si TOUS les points de contact de cette entree ne touchent que le dessous du vehicule :
+        /// l'entree est alors un relief franchi -- trottoir, levre de dalle, bordure authoree -- et non
+        /// un obstacle, donc elle ne produit aucun degat.
         ///
-        /// Ce qui separe une dalle affleurante d'un mur n'est pas la vitesse de fermeture -- a vitesse
-        /// de conduite, les deux sont comparables -- mais la hauteur a laquelle le contact touche le
-        /// vehicule. Monter sur une dalle touche le dessous du vehicule ; un mur touche sa face. D'ou
-        /// une comparaison de hauteurs, jamais un seuil de vitesse supplementaire, qui laisserait le
-        /// bump blesser des qu'on roule vite.
+        /// Le "tous" est ce qui preserve les vrais chocs : une paroi de tunnel monte a 5 m et touche
+        /// aussi la face de la caisse, donc l'entree reste un choc. Une entree sans aucun point de
+        /// contact n'est pas classee de surface : dans le doute, le comportement de la Story 3.5 est
+        /// conserve.
         ///
-        /// Mesure (voir docs/setup/story-5-10-lane-graph-district-notes.md) : les chaussees, trottoirs
-        /// et ilots des modules ont leur face superieure a y = 0 et le plan de sol de la carte a
-        /// y = -0,05, donc la levre rencontree fait 5 cm. Le dessous du vehicule est au niveau de la
-        /// chaussee : le contact de la levre remonte d'au plus ces 5 cm au-dessus de son dessous.
-        /// </summary>
-        public static bool IsSurfaceContact(float contactHeight, float vehicleUndersideHeight, float tolerance)
-        {
-            return contactHeight <= vehicleUndersideHeight + Mathf.Max(0f, tolerance);
-        }
-
-        /// <summary>
-        /// Vrai si TOUS les points de contact de cette entree sont des contacts de surface. Le "tous"
-        /// est ce qui preserve les vrais chocs : une paroi de tunnel monte a 5 m et produit aussi des
-        /// points a hauteur de carrosserie, donc l'entree n'est pas classee de surface et les degats
-        /// de la Story 3.5 restent appliques. Une entree sans aucun point de contact n'est pas un
-        /// contact de surface -- dans le doute, le comportement d'origine est conserve.
+        /// La tolerance vient du PROFIL PHYSIQUE authore, jamais d'une constante de ce fichier : elle
+        /// doit couvrir la bordure authoree (0,12 m) sans jamais couvrir la face d'un mur, et c'est le
+        /// meme reglage pour la voiture joueur et pour tout vehicule IA.
         /// </summary>
         private bool IsSurfaceOnlyCollision(Collision collision)
         {
+            if (physicsBody == null || !physicsBody.HasProfile || bodyCollider == null)
+            {
+                return false;
+            }
+
             var contactCount = collision.contactCount;
             if (contactCount <= 0)
             {
                 return false;
             }
 
-            var underside = ResolveVehicleUndersideHeight();
+            var underside = bodyCollider.bounds.min.y;
+            var tolerance = physicsBody.Profile.SurfaceContactTolerance;
+
             for (var i = 0; i < contactCount; i++)
             {
-                if (!IsSurfaceContact(collision.GetContact(i).point.y, underside, surfaceContactTolerance))
+                if (!VehicleSuspensionModel.IsSurfaceContact(collision.GetContact(i).point.y, underside, tolerance))
                 {
                     return false;
                 }
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Dessous du vehicule en coordonnees monde : le point le plus bas de son propre collider.
-        /// Repli sur l'origine du transform quand le vehicule n'en porte aucun -- jamais une valeur
-        /// inventee.
-        /// </summary>
-        private float ResolveVehicleUndersideHeight()
-        {
-            return bodyCollider != null ? bodyCollider.bounds.min.y : transform.position.y;
         }
 
         /// <summary>
@@ -658,10 +652,14 @@ namespace RoadRage.Features.Vehicles
                 0f,
                 lateralGrip * fixedDeltaTime);
 
+            // Story 5.11 : l'axe vertical appartient a VehiclePhysicsBody (gravite, ressort,
+            // amortisseur, anti-roulis). La composante verticale courante est donc relue et reecrite
+            // a l'identique -- un read-modify-write, jamais une decision de mouvement. L'ecriture en
+            // bloc disparait en Story 5.12, qui remplace le longitudinal et le lateral par des efforts
+            // aux roues.
             body.linearVelocity = (forward * nextLongitudinalSpeed) + (right * nextLateralSpeed) + verticalVelocity;
 
             ApplySteering(intent, nextLongitudinalSpeed, fixedDeltaTime);
-            ApplyStabilityAssist(fixedDeltaTime);
         }
 
         public static float ResolveSteerDirectionMultiplier(float longitudinalSpeed, float brakeReverseInput)
@@ -742,26 +740,6 @@ namespace RoadRage.Features.Vehicles
             body.MoveRotation(Quaternion.AngleAxis(yawDegrees, Vector3.up) * body.rotation);
         }
 
-        private void ApplyStabilityAssist(float fixedDeltaTime)
-        {
-            if (rollStabilityAssist <= 0f)
-            {
-                return;
-            }
-
-            var angularVelocity = body.angularVelocity;
-            angularVelocity.x = Mathf.MoveTowards(angularVelocity.x, 0f, rollStabilityAssist * fixedDeltaTime);
-            angularVelocity.z = Mathf.MoveTowards(angularVelocity.z, 0f, rollStabilityAssist * fixedDeltaTime);
-            body.angularVelocity = angularVelocity;
-        }
-
-        private void ConfigureArcadeBody()
-        {
-            body.centerOfMass = centerOfMassOffset;
-            body.interpolation = RigidbodyInterpolation.Interpolate;
-            body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-        }
-
         private VehicleDriveIntent ReadLocalDriveIntent()
         {
             var keyboard = Keyboard.current;
@@ -808,14 +786,24 @@ namespace RoadRage.Features.Vehicles
                 body = GetComponent<Rigidbody>();
             }
 
+            if (networkTransform == null)
+            {
+                networkTransform = GetComponent<NetworkTransform>();
+            }
+
             if (bodyCollider == null)
             {
                 bodyCollider = GetComponent<Collider>();
             }
 
-            if (networkTransform == null)
+            if (physicsBody == null)
             {
-                networkTransform = GetComponent<NetworkTransform>();
+                physicsBody = GetComponent<VehiclePhysicsBody>();
+            }
+
+            if (devIndestructible == null)
+            {
+                devIndestructible = GetComponent<DevIndestructibleVehicle>();
             }
         }
     }

@@ -66,7 +66,28 @@ namespace RoadRage.DevTools
                 {
                     yield return null;
                     EnsureVehicleSandboxSeatHarness(manager);
+                    EnsureVehicleTelemetryView();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Story 5.11 : monte la vue de telemetrie physique sur le vehicule de la sandbox, une seule
+        /// fois. La vue se desactive d'elle-meme hors build de developpement, donc ce montage ne peut
+        /// rien laisser derriere lui dans un build de livraison. Elle ne detient aucun etat de
+        /// gameplay : c'est un instrument de mesure, pas une fonctionnalite.
+        /// </summary>
+        private static void EnsureVehicleTelemetryView()
+        {
+            var vehicleState = FindAnyObjectByType<NetworkedVehicleState>();
+            if (vehicleState == null)
+            {
+                return;
+            }
+
+            if (vehicleState.GetComponent<VehiclePhysicsTelemetryView>() == null)
+            {
+                vehicleState.gameObject.AddComponent<VehiclePhysicsTelemetryView>();
             }
         }
 

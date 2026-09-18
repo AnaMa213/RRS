@@ -826,10 +826,13 @@ namespace RoadRage.Features.Vehicles
 
         private void ApplyMovement(VehicleDriveIntent intent, float fixedDeltaTime, float longitudinalSpeed)
         {
-            // La composante verticale est preservee comme dans NetworkedVehicleDriverController : la
-            // conduite IA ne pilote que le plan horizontal. L'ecraser annulerait la gravite -- le
-            // vehicule levite et ne peut plus jamais franchir le seuil de vide, ce qui rendrait la
-            // recuperation hors-zone inatteignable.
+            // Story 5.11 : l'axe vertical appartient a VehiclePhysicsBody (gravite, ressort,
+            // amortisseur, anti-roulis). La composante verticale courante est donc relue et reecrite
+            // a l'identique -- un read-modify-write, jamais une decision de mouvement. L'ecraser
+            // annulerait la gravite : le vehicule leviterait et ne pourrait plus jamais franchir le
+            // seuil de vide, ce qui rendrait la recuperation hors-zone inatteignable. L'ecriture en
+            // bloc disparait en Story 5.14, qui remplace l'integration en boucle ouverte par une
+            // intention de conduite.
             var verticalVelocity = Vector3.up * body.linearVelocity.y;
 
             if (intent.IsIdle)
@@ -864,6 +867,14 @@ namespace RoadRage.Features.Vehicles
             stuckElapsedSeconds = 0f;
             currentSpeed = 0f;
             appliedAcceleration = 0f;
+
+            // Deplacement discontinu : meme purge que cote joueur, sinon le pic d'amortisseur de la
+            // reprise de contact s'ajoute a la recuperation.
+            var physics = GetComponent<VehiclePhysicsBody>();
+            if (physics != null)
+            {
+                physics.ResetSuspensionState();
+            }
 
             // Memoire de parcours remise a zero (correctif post-livraison du 2026-09-16) : la
             // recuperation sur place repose le vehicule sur son noeud courant, donc elle rouvre la

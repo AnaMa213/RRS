@@ -126,7 +126,7 @@ development_status:
   5-8-escape-menu-and-return-to-main-menu: review
   5-9-parameterized-driver-model: review
   5-10-lane-graph-greybox-district-and-routed-traffic: review
-  5-11-vehicle-chassis-wheels-and-suspension: backlog
+  5-11-vehicle-chassis-wheels-and-suspension: review
   5-12-tire-forces-and-steering: backlog
   5-13-arcade-assists-and-uneven-ground: backlog
   5-14-ai-drives-by-intent: backlog

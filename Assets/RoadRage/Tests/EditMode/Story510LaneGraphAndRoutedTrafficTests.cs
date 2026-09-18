@@ -30,7 +30,6 @@ namespace RoadRage.Tests.EditMode
         private const string MvpRunScenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";
         private const string SpawnerSourcePath = "Assets/RoadRage/App/Run/PortalTrafficSpawner.cs";
         private const string DriverSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs";
-        private const string VehicleDriverSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs";
         private const string RunFlowSourcePath = "Assets/RoadRage/App/Run/RunFlowController.cs";
         private const string TrafficDefPath = "Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.asset";
         private const string NavMeshAreasPath = "ProjectSettings/NavMeshAreas.asset";
@@ -506,60 +505,6 @@ namespace RoadRage.Tests.EditMode
         // ------------------------------------------------- correctifs post-livraison (2026-09-16)
 
         [Test]
-        public void SurfaceContactPredicateAcceptsWhatTouchesTheUndersideAndRejectsObstacles()
-        {
-            // Retour terrain n° 2 : monter sur une dalle affleurante, sur un trottoir ou franchir la
-            // levre de 5 cm du plan de sol ne doit produire aucun degat. Ce qui separe une dalle d'un
-            // mur n'est pas la vitesse de fermeture -- a vitesse de conduite, les deux sont
-            // comparables -- mais la HAUTEUR a laquelle le contact touche le vehicule : une dalle
-            // touche son dessous, un mur touche sa face. D'ou une comparaison de hauteurs, jamais un
-            // seuil de vitesse supplementaire, qui laisserait le bump blesser des qu'on roule vite.
-            const float tolerance = 0.1f; // le double de la levre de 5 cm mesuree (note de verification)
-            const float underside = 0f;   // sur la chaussee, le dessous du vehicule est au plan de roulage
-
-            Assert.That(NetworkedVehicleDriverController.IsSurfaceContact(underside, underside, tolerance), Is.True,
-                "Dalle affleurante : le contact est exactement au niveau du dessous du vehicule.");
-            Assert.That(NetworkedVehicleDriverController.IsSurfaceContact(-0.05f, underside, tolerance), Is.True,
-                "Levre de 5 cm du plan de sol : le contact est SOUS le dessous du vehicule.");
-            Assert.That(NetworkedVehicleDriverController.IsSurfaceContact(underside + tolerance, underside, tolerance), Is.True,
-                "Exactement a la tolerance : dernier point encore accepte.");
-            Assert.That(NetworkedVehicleDriverController.IsSurfaceContact(underside + tolerance + 0.01f, underside, tolerance), Is.False,
-                "Au-dessus de la tolerance : c'est un obstacle (face d'un autre vehicule, mur), donc un vrai choc.");
-            Assert.That(NetworkedVehicleDriverController.IsSurfaceContact(5f, underside, tolerance), Is.False,
-                "Paroi de tunnel (5 m de haut) : tres au-dessus du dessous, les degats de la Story 3.5 restent appliques.");
-            Assert.That(NetworkedVehicleDriverController.IsSurfaceContact(0.001f, underside, -1f), Is.False,
-                "Tolerance negative : aucune marge. Une valeur mal authoree ne doit jamais transformer un obstacle en simple surface.");
-        }
-
-        [Test]
-        public void OnlyAnEntryWhoseEveryContactIsASurfaceContactSkipsTheCollisionEvent()
-        {
-            var source = File.ReadAllText(VehicleDriverSourcePath);
-
-            var enter = ExtractMethod(source, "private void OnCollisionEnter(Collision collision)");
-            var surfaceCheck = enter.IndexOf("IsSurfaceOnlyCollision(collision)", StringComparison.Ordinal);
-            var raiseEvent = enter.IndexOf("VehicleCollided?.Invoke(impactSpeed)", StringComparison.Ordinal);
-
-            Assert.That(surfaceCheck, Is.GreaterThanOrEqualTo(0),
-                "OnCollisionEnter doit consulter le predicat de contact de surface.");
-            Assert.That(raiseEvent, Is.GreaterThan(surfaceCheck),
-                "L'evenement -- donc sa RPC, donc les degats vehicule ET occupants -- se leve APRES la garde, jamais avant.");
-
-            var predicate = CodeOnly(ExtractMethod(source, "private bool IsSurfaceOnlyCollision(Collision collision)"));
-
-            Assert.That(predicate, Does.Contain("collision.contactCount"),
-                "Le 'tous' porte sur l'entree de collision entiere : c'est lui qui preserve les vrais chocs, "
-                + "puisqu'une paroi de tunnel produit aussi des points a hauteur de carrosserie.");
-            Assert.That(predicate, Does.Contain("IsSurfaceContact("),
-                "Chaque point de contact est juge par le predicat pur, jamais par un seuil de vitesse.");
-            Assert.That(predicate, Does.Contain("return false;"),
-                "Un seul contact qui n'est pas de surface requalifie l'entree en choc.");
-            Assert.That(predicate, Does.Not.Contain("velocity"),
-                "La regle de surface est une comparaison de hauteurs : un seuil de vitesse laisserait le bump "
-                + "blesser des qu'on roule vite, ce qui est exactement le retour terrain a corriger.");
-        }
-
-        [Test]
         public void OccupantCollisionDamageIsGatedOnPositiveVehicleDamage()
         {
             // Retour terrain n° 2, premiere moitie : ApplyNetworkedCollisionDamage appliquait
@@ -919,32 +864,46 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void NoModuleColliderRisesAboveTheDrivingPlane()
         {
-            // Depuis la Story 5.9 le vehicule est pilote en ecrivant linearVelocity, sans roue ni
-            // suspension : une face verticale, meme de 15 cm, ne se gravit pas -- PhysX resout
-            // l'interpenetration par une impulsion qui devient de la vitesse verticale, et le vehicule
-            // s'envole ou se colle. Le plan de roulage est donc y = 0 EXACTEMENT, et rien d'un module
-            // ne depasse : trottoirs et ilots de giratoire se distinguent par leur materiau, pas par
-            // leur hauteur. Seules les parois de tunnel ont le droit de s'elever, ce sont des
-            // obstacles voulus. L'interdiction des trottoirs reste portee par le graphe de voies et le
-            // masque d'aire NavMesh -- la physique n'a jamais ete le mecanisme d'interdiction.
+            // Story 5.11 : la regle change de SEUIL, pas d'OBJET. Tant que le vehicule etait pilote en
+            // ecrivant linearVelocity, sans roue ni suspension, une face verticale ne se gravissait pas
+            // -- PhysX resolvait l'interpenetration par une impulsion, donc trottoirs et ilots devaient
+            // rester affleurants et distingues par leur materiau.
+            //
+            // Les roues portent desormais le vehicule : une bordure authoree est franchissable, et
+            // c'est sa hauteur qui decide si une roue peut la monter. Le plan de roulage reste donc
+            // plat a une exception nommee et bornee -- la bordure du prototype -- et le kit artistique
+            // garde sa garde : toute autre marche au-dessus du plan reste interdite.
             string[] allowedToRise = { "Col_Wall_Left", "Col_Wall_Right", "Col_Roof", "Col_Backstop" };
+            const float curbHeight = Story511VehicleChassisWheelsAndSuspensionTests.CurbHeight;
 
             foreach (var path in ModulePrefabPaths)
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 Assert.That(prefab, Is.Not.Null, path + " attendu");
 
-                foreach (var collider in prefab.GetComponentsInChildren<Collider>(true))
+                // Mesure sur une INSTANCE, jamais sur l'asset : sur un prefab non instancie, Unity ne
+                // rend pas de `bounds` exploitables (le collider n'est pas enregistre dans la scene
+                // physique, sa boite est de taille nulle), donc la version precedente de cette garde
+                // -- qui comparait `bounds.max.y` a zero sur l'asset -- etait vraie par construction.
+                // Elle ne gardait rien. C'est le meme piege que celui corrige ici.
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                spawned.Add(instance);
+
+                foreach (var collider in instance.GetComponentsInChildren<Collider>(true))
                 {
                     if (allowedToRise.Contains(collider.name))
                     {
                         continue;
                     }
 
-                    Assert.That(collider.bounds.max.y, Is.LessThanOrEqualTo(0.0001f),
+                    var isAuthoredCurb = collider.name.StartsWith("Col_Curb", StringComparison.Ordinal);
+                    var allowedHeight = isAuthoredCurb ? curbHeight : 0.0001f;
+
+                    Assert.That(collider.bounds.max.y, Is.LessThanOrEqualTo(allowedHeight + 0.0001f),
                         path + " : le collider " + collider.name + " culmine a y = "
                         + collider.bounds.max.y.ToString("F4")
-                        + ". Toute marche au-dessus du plan de roulage renvoie le vehicule en l'air (il est pilote en vitesse, sans suspension).");
+                        + ". Seule une bordure authoree (" + curbHeight.ToString("F3") + " m) peut s'elever au-dessus du "
+                        + "plan de roulage : toute autre marche reste interdite, aucune roue authoree ne la franchirait.");
                 }
             }
         }

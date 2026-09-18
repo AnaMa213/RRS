@@ -49,28 +49,39 @@ pas une intention.
 
 ### Le plan de roulage -- la regle qui prime sur toutes les autres
 
-> **PROVISOIRE -- revu par la Story 5.11 (course correction du 2026-09-18).** Cette regle, et la seule
-> ligne « Hauteur de trottoir » du tableau ci-dessous, tiennent uniquement tant que le vehicule n'a ni
-> roue ni suspension. La Story 5.11 (Vehicle Chassis, Wheels, and Suspension) supprime cette premisse :
-> elle authore une bordure prototype sur un module de jonction, en mesure la hauteur franchissable, et
-> cette hauteur devient la nouvelle cote de contrat. Le test `NoModuleColliderRisesAboveTheDrivingPlane`
-> est alors reecrit en « aucun collider de module ne depasse le plan de roulage AU-DELA de la hauteur de
-> bordure authoree » -- il n'est pas retire, sinon l'art pourrait reintroduire sans garde les marches de
-> 15 cm a l'origine du bug. **Tout le reste du tableau de cotes ci-dessous ne depend pas de la physique
-> et reste ferme.**
+> **LIVRE par la Story 5.11 (2026-09-18).** La premisse « ni roue ni suspension » a disparu : des
+> raycasts par roue et une suspension authoree portent le vehicule (AD-35), donc une bordure authoree
+> est franchissable, et sa hauteur devient la nouvelle cote de contrat. La regle en vigueur est :
 >
-> Regle en vigueur jusqu'a la livraison de la Story 5.11 :
+> Une surface roulable a sa face superieure a `y = 0` exactement. Aucun collider de module ne presente
+> de marche verticale au-dessus de ce plan, **sauf la bordure authoree du prototype**, dont la hauteur
+> est bornee, nommee ci-dessous, et gardee par un test. Trottoirs et ilots de giratoire restent
+> affleurants et distingues par leur materiau, pas par leur hauteur. Les parois de tunnel et les murs de
+> bord de carte gardent leur droit de s'elever : ce sont des obstacles voulus.
 >
-> Une surface roulable a sa face superieure a `y = 0` exactement, et aucun collider de module ne
-> presente de marche verticale au-dessus de ce plan -- trottoirs et ilots de giratoire compris,
-> distingues par leur materiau et non par leur hauteur. Seules les parois de tunnel et les murs de
-> bord de carte ont le droit de s'elever : ce sont des obstacles voulus.
+> **La bordure livree** : 0,12 m de haut, 0,3 m d'epaisseur, 4 m de long, quatre segments sous
+> `Collision/` du carrefour central `Greybox_Intersection`, nommes `Col_Curb_*`, poses sur les aretes de
+> chaussee de la route est-ouest -- face interieure exactement a `|z| = 4 m`, donc **entierement dans la
+> bande trottoir de 4 m, jamais dans les 8 m de chaussee**, et sans deplacer un seul `LaneNode`.
+>
+> Le nom `Col_Curb_*` est delibere : `SidewalksCarryTheDedicatedAreaAndStayOutOfTheVehicleBake` exige
+> zero `Col_Sidewalk` sur le giratoire, et une bordure ne doit pas etre lue comme un trottoir bake.
+>
+> Le test `NoModuleColliderRisesAboveTheDrivingPlane` est **reecrit, pas retire** : « aucun collider de
+> module ne depasse le plan de roulage au-dela de la hauteur de bordure authoree ». Sans cette garde,
+> l'art pourrait reintroduire en silence les marches de 15 cm a l'origine du bug. **Tout le reste du
+> tableau de cotes ci-dessous ne depend pas de la physique et reste ferme.**
 
-**Pourquoi.** Depuis la Story 5.9 le vehicule est pilote en ecrivant `linearVelocity`, sans roue ni
-suspension. Une `BoxCollider` contre une face verticale ne peut pas la gravir : PhysX resout
-l'interpenetration par une impulsion qui se convertit en vitesse verticale. Les trottoirs de 15 cm
-de la premiere version envoyaient donc les vehicules en l'air, en collaient d'autres, et
-declenchaient le hook de degats de la Story 3.5.
+**Pourquoi la regle etait si stricte, et pourquoi elle peut se relacher d'un cran.** Jusqu'a la Story
+5.9 le vehicule etait pilote en ecrivant `linearVelocity`, sans roue ni suspension : une `BoxCollider`
+contre une face verticale ne peut pas la gravir, PhysX resout l'interpenetration par une impulsion qui
+se convertit en vitesse verticale. Les trottoirs de 15 cm de la premiere version envoyaient donc les
+vehicules en l'air, en collaient d'autres, et declenchaient le hook de degats de la Story 3.5. Depuis
+la Story 5.11, le contact au sol vient de raycasts par roue pilotes par des fonctions pures : la
+hauteur franchissable n'est plus nulle, elle est **bornee par le debattement de suspension authore**
+(0,25 m pour le profil par defaut, contre une bordure de 0,12 m), et un test EditMode tient les deux
+valeurs ensemble -- monter la bordure sans couvrir le debattement serait une incoherence d'authoring,
+plus une surprise de recette.
 
 L'interdiction des trottoirs reste **entierement** portee par le graphe de voies et le masque d'aire
 NavMesh. La physique n'a jamais ete le mecanisme d'interdiction et ne doit pas le devenir. Un test
@@ -85,7 +96,8 @@ EditMode (`NoModuleColliderRisesAboveTheDrivingPlane`) garde la regle.
 | Largeur de chaussee (2 voies)              | 8 m                                                                                  | --                                                                                         |
 | Largeur de trottoir                        | 4 m par cote                                                                         | Change l'emprise totale du module.                                                         |
 | **Emprise totale (right-of-way)**          | **16 m** (8 de chaussee + 2 x 4 de trottoir)                                         | Les modules ne s'alignent plus en largeur.                                                 |
-| Hauteur de trottoir **(PROVISOIRE, Story 5.11)** | **0 m -- affleurant** : meme dalle de 0,2 m que la chaussee, face superieure a y = 0 | Toute elevation renvoie le vehicule en l'air (voir la regle du plan de roulage ci-dessus). |
+| Hauteur de trottoir                        | **0 m -- affleurant** : meme dalle de 0,2 m que la chaussee, face superieure a y = 0 | Le trottoir reste affleurant : c'est son materiau qui le distingue. Ce qui s'eleve, c'est la **bordure** du prototype, pas le trottoir. |
+| **Hauteur de bordure authoree (Story 5.11)** | **0,12 m** de haut, 0,3 m d'epaisseur, segments `Col_Curb_*` sur les aretes est-ouest du carrefour central | C'est la valeur contractuelle du kit artistique. Au-dela, la roue ne monte plus (debattement de 0,25 m) ; en deca, la bordure cesse d'etre une bordure lisible. |
 | Epaisseur de dalle (chaussee ET trottoir)  | 0,2 m, face superieure a **y = 0**                                                   | Les `LaneNode` sont a y = 0 : un autre niveau met le graphe sous ou sur la route.          |
 | Face superieure du plan de sol de la carte | **y = -0,05** (5 cm sous le plan de roulage)                                         | Coplanaire avec les chaussees, il les fait clignoter (z-fighting) sur toute l'emprise.     |
 | Sens de circulation                        | a droite : la voie "aller" est a +2 m de l'axe, vue dans le sens de marche           | Inverse toute la topologie du graphe.                                                      |
