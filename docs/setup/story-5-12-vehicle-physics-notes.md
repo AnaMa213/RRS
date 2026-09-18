@@ -148,7 +148,64 @@ visee anticipee reellement exercee, et pas de degradation du degagement.
   legitime dans l'etape de conduite). Les quatre gardes sont desormais des jetons precis -- le piege
   est le meme que celui deja documente pour les gardes de texte.
 
-## 5. Ce qui reste ouvert
+## 8. Recette du 2026-09-18 : le ressenti n'etait pas arcade, et pourquoi
+
+Retour humain apres essai : « beaucoup trop dur dans la conduite, ce n'est pas du tout arcade --
+l'acceleration est super lente, c'est tres difficile de tourner et le frein est super lent ».
+
+**Cause mesuree, pas supposee.** Le modele a effort a remplace un modele qui ECRIVAIT la vitesse :
+l'ancien donnait 28 m/s2 d'acceleration et 42 m/s2 de freinage, avec un lacet impose a 125 deg/s donc
+aucune limite laterale. Le profil livre donnait, lui, une enveloppe reelle de **4,5 m/s2 en
+acceleration** (couple moteur 900 N.m par roue motrice), **7,1 m/s2 au freinage** et **5,9 m/s2 en
+appui** (adherence 1,2). Les trois symptomes decrivent exactement ces trois nombres -- ce n'etait donc
+pas un defaut, c'etait un reglage trop bas pour le style du jeu.
+
+**Reetalonnage livre** (profil et valeurs par defaut du Def, les deux copies alignees) :
+
+| Parametre | Avant | Apres | Effet |
+| --- | --- | --- | --- |
+| `lateralFrictionCoefficient` | 1,2 | **2,5** | seule vraie limite de l'acceleration ET du virage : sans elle, monter le couple ne fait que faire patiner |
+| `engineTorque` | 900 | **2 600** N.m | depart limite par l'adherence : 12,3 m/s2 |
+| `brakeTorque` | 700 | **2 000** N.m | freinage limite par l'adherence : 20,2 m/s2 |
+| `handbrakeTorque` | 3 000 | **4 500** N.m | bloque l'essieu arriere avec la nouvelle adherence |
+| `coastTorque` | 120 | **260** N.m | frein moteur perceptible |
+| `reverseTorque` | 700 | **1 800** N.m | marche arriere utilisable |
+| `maxSteerAngleDegrees` | 32 | **40** | debattement a basse vitesse |
+| `highSpeedSteerAngleDegrees` | 10 | **16** | la voiture tourne encore a vitesse de conduite |
+| `steerFullReductionSpeed` | 18 | **26** | la reduction d'angle arrive plus tard |
+| `steerRateDegreesPerSecond` / `steerReturnRateDegreesPerSecond` | 180 / 140 | **300 / 260** | la roue atteint son angle tout de suite |
+
+Enveloppe obtenue : **12,3 m/s2 en acceleration, 20,2 m/s2 au freinage, 12,3 m/s2 en appui**
+(contre 4,5 / 7,1 / 5,9 avant). Une garde EditMode (`TheAuthoredProfileKeepsAnArcadeEnvelope`) fige
+cette enveloppe **calculee depuis le profil** -- acceleration >= 8, freinage >= 10, appui >= 9 m/s2,
+debattement >= 30 deg, taux de braquage >= 240 deg/s -- pour qu'un futur reglage ne fasse pas
+retomber le ressenti en silence. La suite EditMode passe a **574/574** apres ce changement.
+
+**Ce qui reste a affiner, et par qui.** Ces nombres sont calcules, pas ressentis : l'agent ne peut pas
+conduire la voiture. Le prochain cran naturel est la **Story 5.13** (aides arcade : stabilite en lacet,
+controle de traction, recuperation de tete-a-queue), qui adoucira ce que ce modele rend encore brut.
+
+### Les roues visuelles ne tournent pas : c'est voulu, et hors perimetre
+
+Question posee en recette : « est-ce normal que les roues ne tournent pas quand je tourne ? ».
+**Oui, et rien n'est casse.** Les roues de ce modele sont de la **donnee**, pas des objets :
+
+- `VehicleWheel` porte une position locale, un rayon et deux drapeaux (`isSteering`, `isDriven`) ; la
+  couche physique lance un rayon a chaque ancrage. Aucun GameObject de roue n'existe.
+- `Greybox_PlayerCar.prefab` n'a **aucun enfant de roue** (seules les cameras sont nommees) : il n'y a
+  materiellement rien a faire tourner.
+- La Story 5.11 avait explicitement classe « roues visuelles ou art final (AD-14) » dans ses
+  **Never**, precisement pour ne pas faire entrer l'art par la porte de la physique.
+- Le vehicule de developpement (`Dev_IndestructibleCar`) utilise le mesh Synty `SM_Veh_Car_Sedan_01`,
+  **mono-mesh, roues comprises** : elles sont cuites dans la geometrie et ne peuvent pas tourner.
+
+Rendre les roues visibles est donc un ajout de **presentation** (quatre roues visuelles sous le root du
+vehicule, en lecture seule sur l'angle de roue et la rotation de chaque roue), a faire soit avec la
+passe d'art (AD-27 : les meshes finaux remplacent les enfants visuels), soit comme petit outil de
+developpement si le besoin de lisibilite se confirme. Ce n'est exige par aucun critere d'acceptation de
+la 5.11 ni de la 5.12.
+
+## 9. Ce qui reste ouvert
 
 - **Controle de bordure absolu** : tenu par l'observation humaine en Play Mode (section 3),
   condition de reouverture ecrite dans `deferred-work.md`.
@@ -161,7 +218,7 @@ visee anticipee reellement exercee, et pas de degradation du degagement.
   chute, adherence, couples).
 - **Preuves runtime** : a executer par l'humain (section 3).
 
-## 6. Procedure de recette humaine (Editeur, `MVP_Run`, hote)
+## 10. Procedure de recette humaine (Editeur, `MVP_Run`, hote)
 
 1. Accelerer depuis l'arret, freiner jusqu'a l'arret, puis tourner a vitesse de conduite. Attendu : la
    voiture tourne par ses roues, l'angle de braquage diminue avec la vitesse, la roue revient au
@@ -175,7 +232,7 @@ visee anticipee reellement exercee, et pas de degradation du degagement.
 5. Garde de double etat : toute vue de telemetrie ajoutee a la main doit etre retiree avant de sauver
    la scene ; `MVP_Run.unity` et `git status --short` reviennent a leur etat initial.
 
-## 7. Revue du 2026-09-18 (etape 4 du cycle de build)
+## 11. Revue du 2026-09-18 (etape 4 du cycle de build)
 
 Couches actives : `blind-hunter` (toujours), `edge-case-hunter` (changement non trivial : physique,
 IA de conduite, prefab, contrat partage), `verification-gap` (comportement observable modifie),

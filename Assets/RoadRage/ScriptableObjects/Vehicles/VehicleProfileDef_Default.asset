@@ -45,25 +45,25 @@ MonoBehaviour:
     antiRollRate: 20000
     attitudeLevellingRate: 18000
     attitudeDamping: 6000
-    lateralFrictionCoefficient: 1.2
+    lateralFrictionCoefficient: 2.5
     groundMask:
       serializedVersion: 2
       m_Bits: 1
     surfaceContactTolerance: 0.15
-    engineTorque: 900
-    reverseTorque: 700
-    brakeTorque: 700
-    coastTorque: 120
-    handbrakeTorque: 3000
+    engineTorque: 2600
+    reverseTorque: 1800
+    brakeTorque: 2000
+    coastTorque: 260
+    handbrakeTorque: 4500
     wheelInertia: 3
     maxForwardSpeed: 18
     maxReverseSpeed: 7
     minimumDirectionSpeed: 0.25
-    maxSteerAngleDegrees: 32
-    highSpeedSteerAngleDegrees: 10
-    steerFullReductionSpeed: 18
-    steerRateDegreesPerSecond: 180
-    steerReturnRateDegreesPerSecond: 140
+    maxSteerAngleDegrees: 40
+    highSpeedSteerAngleDegrees: 16
+    steerFullReductionSpeed: 26
+    steerRateDegreesPerSecond: 300
+    steerReturnRateDegreesPerSecond: 260
     tirePeakSlipRatio: 0.14
     tirePeakSlipAngleDegrees: 8
     tireSlipFalloffFraction: 0.7

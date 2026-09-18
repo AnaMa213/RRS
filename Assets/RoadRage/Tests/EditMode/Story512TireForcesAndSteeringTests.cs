@@ -585,7 +585,7 @@ namespace RoadRage.Tests.EditMode
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 Assert.That(def.TryValidate(out _), Is.True, "Profil par defaut valide : les refus ci-dessous viennent du champ modifie.");
 
-                AssertRefused(def, serialized, profileProperty, "highSpeedSteerAngleDegrees", 40f, "HighSpeedSteerAngleDegrees",
+                AssertRefused(def, serialized, profileProperty, "highSpeedSteerAngleDegrees", 41f, "HighSpeedSteerAngleDegrees",
                     "Un angle haut vitesse superieur a l'angle maximal ouvrirait la direction avec la vitesse.");
                 AssertRefused(def, serialized, profileProperty, "steerRateDegreesPerSecond", 0f, "SteerRateDegreesPerSecond",
                     "Un taux de braquage nul : les roues ne braqueraient jamais.");
@@ -701,6 +701,63 @@ namespace RoadRage.Tests.EditMode
             {
                 UnityEngine.Object.DestroyImmediate(def);
             }
+        }
+
+        /// <summary>
+        /// Recette humaine du 2026-09-18 : « beaucoup trop dur dans la conduite, ce n'est pas du tout
+        /// arcade -- l'acceleration est super lente, tres difficile de tourner, le frein est super
+        /// lent ». La cause etait le remplacement du modele precedant (vitesse ecrite, 28 m/s2
+        /// d'acceleration et 42 m/s2 de freinage) par un modele a effort : l'enveloppe REELLE du profil
+        /// author e tombait a 4,5 m/s2 en acceleration, 7,1 m/s2 au freinage et 5,9 m/s2 en virage.
+        ///
+        /// Cette garde fixe l'enveloppe calculee depuis le profil, pas un reglage au jugé : c'est le
+        /// ressenti d'arcade rendu MESURABLE, pour qu'un futur reglage ne le fasse pas retomber en
+        /// silence. Les bornes sont volontairement en dessous des valeurs livrees : elles disent
+        /// « arcade », pas « exactement ces nombres-la ».
+        /// </summary>
+        [Test]
+        public void TheAuthoredProfileKeepsAnArcadeEnvelope()
+        {
+            var profile = LoadDefaultProfile();
+            var staticLoad = profile.Mass * Mathf.Abs(Physics.gravity.y) / profile.WheelCount;
+            var gripPerWheel = profile.LateralFrictionCoefficient * staticLoad;
+
+            var drivenWheels = 0;
+            var brakeForce = 0f;
+            for (var i = 0; i < profile.WheelCount; i++)
+            {
+                var wheel = profile.GetWheel(i);
+                if (wheel.IsDriven)
+                {
+                    drivenWheels++;
+                }
+
+                brakeForce += Mathf.Min(profile.BrakeTorque / wheel.Radius, gripPerWheel);
+            }
+
+            var launchForce = drivenWheels * Mathf.Min(profile.EngineTorque / profile.GetWheel(0).Radius, gripPerWheel);
+            var launchAcceleration = launchForce / profile.Mass;
+            var brakingAcceleration = brakeForce / profile.Mass;
+            var corneringAcceleration = (2f * gripPerWheel) / profile.Mass;
+
+            Assert.That(launchAcceleration, Is.GreaterThanOrEqualTo(8f),
+                "Acceleration d'arcade : l'enveloppe du profil donne " + launchAcceleration.ToString("F1")
+                + " m/s2. La recette du 2026-09-18 a refuse 4,5 m/s2 ; la borne basse est 8.");
+
+            Assert.That(brakingAcceleration, Is.GreaterThanOrEqualTo(10f),
+                "Freinage d'arcade : l'enveloppe du profil donne " + brakingAcceleration.ToString("F1")
+                + " m/s2. La recette a refuse 7,1 m/s2 ; la borne basse est 10.");
+
+            Assert.That(corneringAcceleration, Is.GreaterThanOrEqualTo(9f),
+                "Virage d'arcade : l'adherence par roue autorise " + corneringAcceleration.ToString("F1")
+                + " m/s2 en appui sur l'essieu avant. La recette a refuse 5,9 m/s2 ; la borne basse est 9.");
+
+            Assert.That(profile.MaxSteerAngleDegrees, Is.GreaterThanOrEqualTo(30f),
+                "Braquage a basse vitesse : il faut du debattement pour tourner court, pas un rayon de camion.");
+            Assert.That(profile.HighSpeedSteerAngleDegrees, Is.GreaterThanOrEqualTo(12f),
+                "Braquage a vitesse de conduite : l'angle doit rester utilisable, sinon la voiture ne tourne qu'a l'arret.");
+            Assert.That(profile.SteerRateDegreesPerSecond, Is.GreaterThanOrEqualTo(240f),
+                "Vitesse de braquage : une roue qui met une seconde a atteindre son angle ne se sent pas.");
         }
 
         /// <summary>
