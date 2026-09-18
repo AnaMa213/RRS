@@ -5,17 +5,17 @@ Decision d'architecture : AD-35 (`ARCHITECTURE-SPINE.md`), course correction du 
 
 ## Ce qui est livre
 
-| Fichier | Role |
-| --- | --- |
-| `Assets/RoadRage/Features/Vehicles/VehicleProfile.cs` | La donnee physique complete : masse, centre de masse, tenseur d'inertie, roues, ressort, amortisseur, longueur au repos, debattement, anti-roulis, rappel d'assiette, amortissement tangage/roulis, masque de sol, tolerance de contact de surface. Immutable a l'execution. |
-| `Assets/RoadRage/Features/Vehicles/VehicleWheel.cs` | Implantation authoree d'une roue (origine du raycast, rayon, essieu, directrice/motrice). Les roues sont de la donnee : le prefab n'en gagne aucune. |
-| `Assets/RoadRage/Features/Vehicles/VehicleSuspensionModel.cs` | Les fonctions **pures** : compression, ressort + amortisseur, anti-roulis par essieu, echantillon de telemetrie de caisse. Aucune dependance a `Rigidbody`, `Time` ou une scene. |
-| `Assets/RoadRage/Features/Vehicles/VehicleProfileDef.cs` | Le Def authore : id stable en minuscules, profil, `TryValidate` qui refuse en nommant le champ fautif. Pas de catalogue, comme `DriverProfileDef`. |
-| `Assets/RoadRage/Features/Vehicles/VehiclePhysicsBody.cs` | LE composant physique, porte par le prefab joueur **et** le prefab IA : applique le profil au `Rigidbody`, puis contact au sol, suspension et anti-roulis par raycasts par roue. |
-| `Assets/RoadRage/ScriptableObjects/Vehicles/VehicleProfileDef_Default.asset` | Profil authore par defaut, reference par les deux prefabs (meme GUID dans les deux YAML). |
-| `Assets/RoadRage/DevTools/VehiclePhysicsTelemetryView.cs` | Telemetrie par roue (compression, contact) + caisse (vitesse, laterale, glissement, derive). Lecture seule, gardee par `Debug.isDebugBuild`. |
-| `Assets/RoadRage/Tests/EditMode/Story511VehicleChassisWheelsAndSuspensionTests.cs` | 16 gardes EditMode : fonctions pures et matrice de cas limites, authoring du profil, parite des prefabs, invariants de code, geometrie de la bordure. |
-| `Assets/RoadRage/Tests/PlayMode/Story511VehicleChassisWheelsAndSuspensionPlayModeTests.cs` | 2 preuves runtime : montee de la bordure authoree a basse vitesse, absence de projection a vitesse de conduite. |
+| Fichier                                                                                    | Role                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Assets/RoadRage/Features/Vehicles/VehicleProfile.cs`                                      | La donnee physique complete : masse, centre de masse, tenseur d'inertie, roues, ressort, amortisseur, longueur au repos, debattement, anti-roulis, rappel d'assiette, amortissement tangage/roulis, masque de sol, tolerance de contact de surface. Immutable a l'execution. |
+| `Assets/RoadRage/Features/Vehicles/VehicleWheel.cs`                                        | Implantation authoree d'une roue (origine du raycast, rayon, essieu, directrice/motrice). Les roues sont de la donnee : le prefab n'en gagne aucune.                                                                                                                         |
+| `Assets/RoadRage/Features/Vehicles/VehicleSuspensionModel.cs`                              | Les fonctions **pures** : compression, ressort + amortisseur, anti-roulis par essieu, echantillon de telemetrie de caisse. Aucune dependance a `Rigidbody`, `Time` ou une scene.                                                                                             |
+| `Assets/RoadRage/Features/Vehicles/VehicleProfileDef.cs`                                   | Le Def authore : id stable en minuscules, profil, `TryValidate` qui refuse en nommant le champ fautif. Pas de catalogue, comme `DriverProfileDef`.                                                                                                                           |
+| `Assets/RoadRage/Features/Vehicles/VehiclePhysicsBody.cs`                                  | LE composant physique, porte par le prefab joueur **et** le prefab IA : applique le profil au `Rigidbody`, puis contact au sol, suspension et anti-roulis par raycasts par roue.                                                                                             |
+| `Assets/RoadRage/ScriptableObjects/Vehicles/VehicleProfileDef_Default.asset`               | Profil authore par defaut, reference par les deux prefabs (meme GUID dans les deux YAML).                                                                                                                                                                                    |
+| `Assets/RoadRage/DevTools/VehiclePhysicsTelemetryView.cs`                                  | Telemetrie par roue (compression, contact) + caisse (vitesse, laterale, glissement, derive). Lecture seule, gardee par `Debug.isDebugBuild`.                                                                                                                                 |
+| `Assets/RoadRage/Tests/EditMode/Story511VehicleChassisWheelsAndSuspensionTests.cs`         | 16 gardes EditMode : fonctions pures et matrice de cas limites, authoring du profil, parite des prefabs, invariants de code, geometrie de la bordure.                                                                                                                        |
+| `Assets/RoadRage/Tests/PlayMode/Story511VehicleChassisWheelsAndSuspensionPlayModeTests.cs` | 2 preuves runtime : montee de la bordure authoree a basse vitesse, absence de projection a vitesse de conduite.                                                                                                                                                              |
 
 Modifies : `NetworkedVehicleDriverController` (contournement de surface retire, reglages de chassis migres, annulation roulis/tangage retiree, `ConfigureArcadeBody` supprime), `NetworkedAIVehicleDriverController` (commentaire d'axe vertical), `RoadRageNetcodeSmokeTestAutoStart` (montage de la vue), les deux prefabs vehicules, `Greybox_Intersection.prefab` (bordure), `Story510LaneGraphAndRoutedTrafficTests`, `story-5-10-lane-graph-district-notes.md`.
 
@@ -29,11 +29,11 @@ Modifies : `NetworkedVehicleDriverController` (contournement de surface retire, 
 
 ## Mesures de verification
 
-| Verification | Resultat |
-| --- | --- |
-| `.\scripts\validate.ps1 -TestMode EditMode` | **537/537 verts**, 0 erreur Console. 523 tests avant la story, +16 (nouvelle fixture) -2 (tests de surface retires). |
-| `.\scripts\validate.ps1 -TestMode PlayMode` (16:3x) | **34/35**, dont les deux tests Story 5.11 **verts**. L'unique echec est `Story59ParameterizedDriverModelPlayModeTests.AiVehiclesDriveAlongTheirRouteUnderTheAuthoredDriverProfile`, qui attend `MVP_Run` et trouve `MainMenuLobby` -- il echoue **avant** toute conduite, sur le chargement de scene, et n'a pas de lien avec la couche physique. |
-| `.\scripts\validate.ps1 -TestMode PlayMode` (16:39, puis 16:41) | **Aucun test execute**. Le harnais PlayMode n'execute plus rien, en synchrone comme en asynchrone. AD-8 fait correctement echouer ferme, mais la preuve runtime n'est pas reproductible a la demande. |
+| Verification                                                    | Resultat                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.\scripts\validate.ps1 -TestMode EditMode`                     | **537/537 verts**, 0 erreur Console. 523 tests avant la story, +16 (nouvelle fixture) -2 (tests de surface retires).                                                                                                                                                                                                                              |
+| `.\scripts\validate.ps1 -TestMode PlayMode` (16:3x)             | **34/35**, dont les deux tests Story 5.11 **verts**. L'unique echec est `Story59ParameterizedDriverModelPlayModeTests.AiVehiclesDriveAlongTheirRouteUnderTheAuthoredDriverProfile`, qui attend `MVP_Run` et trouve `MainMenuLobby` -- il echoue **avant** toute conduite, sur le chargement de scene, et n'a pas de lien avec la couche physique. |
+| `.\scripts\validate.ps1 -TestMode PlayMode` (16:39, puis 16:41) | **Aucun test execute**. Le harnais PlayMode n'execute plus rien, en synchrone comme en asynchrone. AD-8 fait correctement echouer ferme, mais la preuve runtime n'est pas reproductible a la demande.                                                                                                                                             |
 
 **Conclusion de verification** : la preuve EditMode est complete et verte. La preuve runtime a ete obtenue une fois (34/35, les deux tests 5.11 verts) et **n'est pas reproductible dans l'etat actuel du harnais PlayMode**. Les valeurs mesurees (`[Story511] bordure ... excursion verticale ...`) sont emises par `Debug.Log` dans le test : elles sont a relever au prochain run PlayMode vert et a consigner ici. En l'etat, la story ne peut pas pretendre a une porte PlayMode verte.
 
@@ -77,12 +77,12 @@ La fonction pure etait pourtant juste -- sa documentation decrivait l'applicatio
 
 ## Mesures apres correctifs
 
-| Verification | Resultat |
-| --- | --- |
-| `unity cmd run_tests --mode EditMode` | **542/542 verts, 0 echec.** 537 avant correctifs, +5 gardes (paire anti-roulis, application non reinterpretable, rappel d'assiette, amortissement qui epargne le lacet, discrimination surface/obstacle). |
-| `recompile_status` | `completed`, `failed: false`, `errors: []`, y compris apres recompilation forcee. |
-| `.\scripts\validate.ps1 -TestMode EditMode` | **rouge sur la porte Console, pas sur le code** -- voir le constat ci-dessous. |
-| `.\scripts\validate.ps1 -TestMode PlayMode` | inchange : zero test execute. |
+| Verification                                | Resultat                                                                                                                                                                                                  |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `unity cmd run_tests --mode EditMode`       | **542/542 verts, 0 echec.** 537 avant correctifs, +5 gardes (paire anti-roulis, application non reinterpretable, rappel d'assiette, amortissement qui epargne le lacet, discrimination surface/obstacle). |
+| `recompile_status`                          | `completed`, `failed: false`, `errors: []`, y compris apres recompilation forcee.                                                                                                                         |
+| `.\scripts\validate.ps1 -TestMode EditMode` | **rouge sur la porte Console, pas sur le code** -- voir le constat ci-dessous.                                                                                                                            |
+| `.\scripts\validate.ps1 -TestMode PlayMode` | inchange : zero test execute.                                                                                                                                                                             |
 
 ### Constat d'outillage : la porte Console est empoisonnable par l'historique
 
@@ -106,12 +106,12 @@ Elles reviennent avec **le meme numero de sequence et le meme horodatage** penda
 
 Consequence a surveiller : le frottement lateral **s'ajoute** au `lateralGrip` du controleur quand un conducteur est assis (36 + 1,2 g). Le comportement en virage peut donc se raffermir legerement. Si c'est trop, c'est un coefficient author e, pas une reprise de code.
 
-| Verification | Resultat |
-| --- | --- |
-| `unity cmd run_tests --mode EditMode` | **544/544 verts, 0 echec** (542 avant cette passe, +2 gardes : plafond de force de suspension, frottement de contact borne). |
-| Test Runner de l'Editeur, mode PlayMode | **tout est vert** (mesure utilisateur du 2026-09-18). C'est la seule mesure PlayMode de cette story. |
+| Verification                                  | Resultat                                                                                                                                                                                                                                                                                                               |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `unity cmd run_tests --mode EditMode`         | **544/544 verts, 0 echec** (542 avant cette passe, +2 gardes : plafond de force de suspension, frottement de contact borne).                                                                                                                                                                                           |
+| Test Runner de l'Editeur, mode PlayMode       | **tout est vert** (mesure utilisateur du 2026-09-18). C'est la seule mesure PlayMode de cette story.                                                                                                                                                                                                                   |
 | `unity cmd run_tests --mode PlayMode` (agent) | **impossible** : en synchrone le CLI repond que le rechargement de domaine perd la requete, et en asynchrone (`--async_tests`) le statut revient `completed` avec zero test et une duree nulle. La porte PlayMode ne peut donc pas etre produite par l'agent ; elle vient de l'Editeur et doit etre citee comme telle. |
-| `.\scripts\validate.ps1 -TestMode EditMode` | toujours rouge sur la porte Console historique, pas sur le code. |
+| `.\scripts\validate.ps1 -TestMode EditMode`   | toujours rouge sur la porte Console historique, pas sur le code.                                                                                                                                                                                                                                                       |
 
 **Ce que la porte PlayMode verte change** : les deux tests `Story511…PlayModeTests` (montee de la bordure a basse vitesse, absence de projection a vitesse de conduite) sont desormais prouves sur du vrai pas de physique, et les trois anomalies de recette -- vehicule couche, degats de trottoir, glissade de flanc -- ont ete corrigees puis rapportees comme telles par l'humain. **Ce qu'elle ne couvre pas** : le controle « les vehicules IA traversent le carrefour sans toucher la bordure en conduite nominale » n'a **pas de test dedie** ; il repose sur la geometrie EditMode et sur l'observation. Le point de visee anticipe et le rayon d'arrivee qui le corrigeraient appartiennent a la Story 5.12.
 

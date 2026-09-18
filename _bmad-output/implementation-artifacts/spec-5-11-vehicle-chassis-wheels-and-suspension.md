@@ -1,12 +1,12 @@
 ---
-title: 'Vehicle Chassis, Wheels, and Suspension'
-type: 'feature'
-created: '2026-09-18'
-status: 'done'
+title: "Vehicle Chassis, Wheels, and Suspension"
+type: "feature"
+created: "2026-09-18"
+status: "done"
 review_loop_iteration: 0
-baseline_commit: '7718e7e94056331b056c4bb9e01c899f4c42d7ed'
+baseline_commit: "7718e7e94056331b056c4bb9e01c899f4c42d7ed"
 context:
-  - '{project-root}/docs/setup/story-5-10-lane-graph-district-notes.md'
+  - "{project-root}/docs/setup/story-5-10-lane-graph-district-notes.md"
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
@@ -20,6 +20,7 @@ context:
 ## Boundaries & Constraints
 
 **Always:**
+
 - AD-35 : raycasts par roue, **jamais** `WheelCollider`. Un seul composant physique, porte par le prefab joueur **et** le prefab IA, configure par profil -- aucun reglage chassis/suspension en `[SerializeField]` sur un controleur.
 - La couche physique ne lit que `VehicleProfileDef` : jamais rage, peur ni disposition (AD-33). L'hote reste le seul simulateur (AD-21).
 - NFR18 : identite des prefabs, `NetworkObject` enregistres, composants gameplay et ids de definition inchanges. Le collider du vehicule (`(2.06, 1.42, 4.44)`) et son emprise ne bougent pas.
@@ -30,11 +31,13 @@ context:
 - Cette story ne prend que **l'axe vertical**. Le remplacement des ecritures `linearVelocity` longitudinales et laterales appartient a la Story 5.12.
 
 **Ask First:**
+
 - Toute correction touchant le graphe de voies (`LaneNode`, `LaneGraph`, ratios authores) pour faire passer un des trois controles de bordure.
 - Toute modification du collider du vehicule, de l'emprise d'un module ou de la largeur de chaussee.
 - Descendre la hauteur de bordure sous la valeur necessaire au franchissement a basse vitesse.
 
 **Never:**
+
 - `WheelCollider`, ou un modele de pneu tiers (`ADDON-003` est clos en negatif par AD-35).
 - Ecrire la velocite verticale, la position ou la rotation du `Rigidbody` depuis un conducteur ; masquer un symptome par une masse augmentee, une rotation gelee, une vitesse IA reduite, des collisions desactivees ou une teleportation apres choc.
 - Toucher a la teleportation de recuperation de `NetworkedAIVehicleDriverController.RecoverAtWaypoint` : sa suppression appartient a la Story 5.14 (`ANO-5.10-03` AC6).
@@ -42,13 +45,13 @@ context:
 
 ## I/O & Edge-Case Matrix
 
-| Scenario | Input / State | Expected Output / Behavior | Error Handling |
-|----------|--------------|---------------------------|----------------|
-| Roue au sol | raycast atteint le sol, `distance < restLength` | compression `= restLength - distance` bornee a `[0, travel]` ; ressort + amortisseur appliques au point de contact ; roue `Grounded` | distance `> restLength` ou aucun contact -> compression 0, force 0, roue `Airborne`, aucune exception |
-| Roulis | compression gauche != compression droite | terme anti-roulis proportionnel a l'ecart : il reduit le roulis **sans l'annuler** | ecart nul -> anti-roulis nul |
-| Bordure a basse vitesse | vehicule < ~2 m/s contre `Col_Curb_*` | la roue monte la bordure, le vehicule reste sur ses roues et au sol | si la montee echoue, **HALT** : cause = hauteur authoree ou arrivee des roues, jamais le graphe |
-| Bordure a vitesse de conduite | impact ~8-18 m/s contre `Col_Curb_*` | aucune excursion verticale durable, roues au sol apres le contact, pas de degats issus d'un simple contact de surface | si le vehicule decolle, **HALT** : cause = couche physique, jamais geometrie |
-| Profil invalide | `VehicleProfileDef` mal author e (id non minuscule, masse <= 0, `restLength <= travel`) | `TryValidate` refuse en nommant le champ fautif | aucune valeur de repli silencieuse : le composant ne s'active pas sur un profil invalide |
+| Scenario                      | Input / State                                                                           | Expected Output / Behavior                                                                                                           | Error Handling                                                                                        |
+| ----------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Roue au sol                   | raycast atteint le sol, `distance < restLength`                                         | compression `= restLength - distance` bornee a `[0, travel]` ; ressort + amortisseur appliques au point de contact ; roue `Grounded` | distance `> restLength` ou aucun contact -> compression 0, force 0, roue `Airborne`, aucune exception |
+| Roulis                        | compression gauche != compression droite                                                | terme anti-roulis proportionnel a l'ecart : il reduit le roulis **sans l'annuler**                                                   | ecart nul -> anti-roulis nul                                                                          |
+| Bordure a basse vitesse       | vehicule < ~2 m/s contre `Col_Curb_*`                                                   | la roue monte la bordure, le vehicule reste sur ses roues et au sol                                                                  | si la montee echoue, **HALT** : cause = hauteur authoree ou arrivee des roues, jamais le graphe       |
+| Bordure a vitesse de conduite | impact ~8-18 m/s contre `Col_Curb_*`                                                    | aucune excursion verticale durable, roues au sol apres le contact, pas de degats issus d'un simple contact de surface                | si le vehicule decolle, **HALT** : cause = couche physique, jamais geometrie                          |
+| Profil invalide               | `VehicleProfileDef` mal author e (id non minuscule, masse <= 0, `restLength <= travel`) | `TryValidate` refuse en nommant le champ fautif                                                                                      | aucune valeur de repli silencieuse : le composant ne s'active pas sur un profil invalide              |
 
 </frozen-after-approval>
 
@@ -72,6 +75,7 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
+
 - [x] Baseline d'abord : `.\scripts\validate.ps1 -TestMode PlayMode` **avant** toute modification. **Mesure du 2026-09-18 16:2x : 33/33 verts** -- et non 3/33 rouges comme l'annoncent `build-workflow-rules.md` et le registre d'adoption.
 - [x] `Assets/RoadRage/Features/Vehicles/VehicleProfile.cs` -- nouveau `struct VehicleProfile` : masse, centre de masse, tenseur d'inertie, implantation des roues, `springRate`, amortisseur, `restLength`, `travel`, raideur anti-roulis, masque de sol.
 - [x] `Assets/RoadRage/Features/Vehicles/VehicleWheel.cs` -- **ajoute** : implantation authoree d'une roue. Les roues sont de la donnee, pas des GameObjects : le prefab n'en gagne aucun.
@@ -94,6 +98,7 @@ context:
 - [x] **Controle IA / bordure** -- la geometrie est prouvee en EditMode (aucun `LaneNode` dans l'emprise de la bordure, degagement de 0,97 m, hauteur sous le debattement et sous le dessous du chassis). Le controle « les vehicules IA traversent le module sans la toucher en conduite nominale » **n'a pas de test dedie** : il repose sur la porte PlayMode verte du 2026-09-18 (mesure utilisateur) et sur la conduite observee par l'humain. A noter pour la suite : c'est la Story 5.12 qui possede le point de visee anticipe et le rayon d'arrivee, tous deux nommes par l'AC comme les corrections a privilegier si ce controle echoue.
 
 **Acceptance Criteria:**
+
 - Given les deux prefabs portent aujourd'hui un Rigidbody identique a COM implicite et sans suspension, when le chassis est authore, then masse, centre de masse et tenseur d'inertie sont explicites, les deux prefabs portent **le meme** composant physique configure par profil, et l'identite, l'enregistrement `NetworkObject`, les composants gameplay et les ids de definition sont inchanges.
 - Given le vehicule doit garder un contact fiable, when le modele de roue est construit, then contact, compression et transfert de charge viennent de **raycasts par roue** (jamais `WheelCollider`), raideur, amortissement, longueur au repos et debattement sont authores, un terme anti-roulis reduit le roulis sans l'annuler, et ces fonctions sont verifiables en EditMode.
 - Given les vehicules doivent avoir des ressentis differents, when la configuration est authoree, then tout parametre chassis/roue/suspension vit dans un `VehicleProfileDef` a id stable, aucun ne reste en `[SerializeField]` sur un controleur, et une vue de telemetrie `RoadRage.DevTools` montre par roue compression et contact plus vitesse, vitesse laterale, glissement et angle de derive, en build de developpement seulement.
@@ -119,12 +124,14 @@ context:
 ## Verification
 
 **Commands:**
+
 - `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story511VehicleChassisWheelsAndSuspensionTests"` -- **mesure : 17/17 verts, exit 0**.
 - `.\scripts\validate.ps1 -TestMode EditMode` -- **mesure : 537/537 verts**, 0 erreur Console (523 tests avant la story, +17 pour la fixture 5.11, -2 pour les tests de surface retires).
 - `\scripts\validate.ps1 -TestMode PlayMode` -- **mesure utilisateur du 2026-09-18 (Test Runner de l'Editeur) : tout est vert.** C'est la seule mesure PlayMode disponible : le chemin CLI ne fonctionne pas dans la session de l'agent -- en synchrone il repond `PlayMode tests cannot run synchronously over HTTP: entering play mode triggers a domain reload that drops the request`, et en asynchrone (`--async_tests`) le statut revient `completed` avec **zero test** et une duree nulle. Aucune mesure PlayMode n'a donc pu etre produite par l'agent ; celle qui fait foi vient de l'Editeur, et elle doit etre citee comme telle.
 - `graphify update .` -- attendu : graphe regenere, aucun noeud residuel `.IsSurfaceContact()` / `.IsSurfaceOnlyCollision()`.
 
 **Manual checks (if no CLI):**
+
 - Editor, `MVP_Run`, hote : traverser le carrefour central en conduite nominale (aucun contact avec `Col_Curb_*`), puis monter la bordure a basse vitesse et la heurter a vitesse de conduite. Attendu : le vehicule monte ou reste au sol, aucun envol, aucun arret net, aucun degat sur un contact de surface. Consigner captures et lecture de telemetrie dans `docs/setup/story-5-11-vehicle-physics-notes.md`.
 - Pour cette passe de mesure, la vue de telemetrie est ajoutee **a la main** sur la voiture dans `MVP_Run` puis retiree avant de sauver la scene : `MVP_Run.unity` et `git status --short` doivent revenir a leur etat initial (garde de double etat d'`AGENTS.md`).
 
