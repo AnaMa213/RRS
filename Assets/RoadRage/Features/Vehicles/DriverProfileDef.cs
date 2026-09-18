@@ -9,7 +9,7 @@ namespace RoadRage.Features.Vehicles
     /// stable, sur le meme gabarit que <c>RageTuningDef</c> (Features.Rage) et <c>CharacterDef</c>
     /// (Features.Players). Jamais mute a l'execution.
     ///
-    /// Pas de catalogue associe : aucun appelant ne fait de lookup par id avant les Stories 5.13 et
+    /// Pas de catalogue associe : aucun appelant ne fait de lookup par id avant les Stories 5.19 et
     /// 5.16 -- le Def est reference directement par le prefab du vehicule.
     /// </summary>
     [CreateAssetMenu(fileName = "DriverProfileDef", menuName = "RoadRage/Vehicles/Driver Profile Def")]

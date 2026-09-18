@@ -49,6 +49,18 @@ pas une intention.
 
 ### Le plan de roulage -- la regle qui prime sur toutes les autres
 
+> **PROVISOIRE -- revu par la Story 5.11 (course correction du 2026-09-18).** Cette regle, et la seule
+> ligne « Hauteur de trottoir » du tableau ci-dessous, tiennent uniquement tant que le vehicule n'a ni
+> roue ni suspension. La Story 5.11 (Vehicle Chassis, Wheels, and Suspension) supprime cette premisse :
+> elle authore une bordure prototype sur un module de jonction, en mesure la hauteur franchissable, et
+> cette hauteur devient la nouvelle cote de contrat. Le test `NoModuleColliderRisesAboveTheDrivingPlane`
+> est alors reecrit en « aucun collider de module ne depasse le plan de roulage AU-DELA de la hauteur de
+> bordure authoree » -- il n'est pas retire, sinon l'art pourrait reintroduire sans garde les marches de
+> 15 cm a l'origine du bug. **Tout le reste du tableau de cotes ci-dessous ne depend pas de la physique
+> et reste ferme.**
+>
+> Regle en vigueur jusqu'a la livraison de la Story 5.11 :
+>
 > Une surface roulable a sa face superieure a `y = 0` exactement, et aucun collider de module ne
 > presente de marche verticale au-dessus de ce plan -- trottoirs et ilots de giratoire compris,
 > distingues par leur materiau et non par leur hauteur. Seules les parois de tunnel et les murs de
@@ -73,7 +85,7 @@ EditMode (`NoModuleColliderRisesAboveTheDrivingPlane`) garde la regle.
 | Largeur de chaussee (2 voies)              | 8 m                                                                                  | --                                                                                         |
 | Largeur de trottoir                        | 4 m par cote                                                                         | Change l'emprise totale du module.                                                         |
 | **Emprise totale (right-of-way)**          | **16 m** (8 de chaussee + 2 x 4 de trottoir)                                         | Les modules ne s'alignent plus en largeur.                                                 |
-| Hauteur de trottoir                        | **0 m -- affleurant** : meme dalle de 0,2 m que la chaussee, face superieure a y = 0 | Toute elevation renvoie le vehicule en l'air (voir la regle du plan de roulage ci-dessus). |
+| Hauteur de trottoir **(PROVISOIRE, Story 5.11)** | **0 m -- affleurant** : meme dalle de 0,2 m que la chaussee, face superieure a y = 0 | Toute elevation renvoie le vehicule en l'air (voir la regle du plan de roulage ci-dessus). |
 | Epaisseur de dalle (chaussee ET trottoir)  | 0,2 m, face superieure a **y = 0**                                                   | Les `LaneNode` sont a y = 0 : un autre niveau met le graphe sous ou sur la route.          |
 | Face superieure du plan de sol de la carte | **y = -0,05** (5 cm sous le plan de roulage)                                         | Coplanaire avec les chaussees, il les fait clignoter (z-fighting) sur toute l'emprise.     |
 | Sens de circulation                        | a droite : la voie "aller" est a +2 m de l'axe, vue dans le sens de marche           | Inverse toute la topologie du graphe.                                                      |
@@ -144,7 +156,7 @@ poursuite de point a point. Un vehicule coupe toujours legerement a l'interieur 
 la profondeur de coupe est bornee par la distance au noeud vise (donc par `arrivalRadius`, 3 m). Sur
 la geometrie authoree ici la marge est confortable ; un trace plus serre demanderait un vrai suivi de
 courbe (poursuite pure, point de visee anticipe), ce qui est une mecanique de conduite, pas
-d'authoring -- a tracer pour la Story 5.11 ou 5.12.
+d'authoring -- a tracer pour la Story 5.18 ou 5.17 (ex-5.11 / ex-5.12).
 
 ## Authoring du graphe
 
@@ -194,7 +206,7 @@ L'ilot central d'un rond-point est _par-dessus_ la chaussee : l'exclure du bake 
 navigable dessous, donc c'est ici l'aire dediee qui fait le travail -- la surface existe, mais elle
 porte l'aire `Sidewalk`, que le masque de l'agent vehicule ne coche pas.
 
-Les Stories 5.12 (contournement d'obstacle) et 5.14 (poursuite en rage) ouvriront cette exclusion
+Les Stories 5.17 (contournement d'obstacle, ex-5.12) et 5.21 (poursuite en rage, ex-5.14) ouvriront cette exclusion
 **explicitement** plutot que de la decouvrir.
 
 Sondages apres bake (avec le masque vehicule) :
@@ -219,7 +231,7 @@ Asset : `Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.a
 | Parametre                                     | Valeur | Provenance                                                                                                                                                                                                            |
 | --------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `defaultTargetPopulation`                     | 8      | Jugement : dense sans saturer un district de cette taille. Point de reglage unique.                                                                                                                                   |
-| `minTargetPopulation` / `maxTargetPopulation` | 0 / 30 | Borne haute alignee sur la cible ~30 vehicules des Stories 5.16 / 5.17.                                                                                                                                               |
+| `minTargetPopulation` / `maxTargetPopulation` | 0 / 30 | Borne haute alignee sur la cible ~30 vehicules des Stories 5.16 / 5.22 (ex-5.17).                                                                                                                                               |
 | `edgeBudgetFactor`                            | 2      | `--max-edges-factor` de `jtrrouter`, valeur par defaut. Sur 204 noeuds, budget = 408 aretes ; les parcours tires observes vont de 20 a 109 aretes, donc le garde-fou ne se declenche jamais en fonctionnement normal. |
 | `portalClearanceRadius`                       | 12 m   | Jugement : au-dela d'une longueur de vehicule, sous la profondeur du tunnel.                                                                                                                                          |
 | `connectorJoinDistance`                       | 0,75 m | Jugement : large devant l'imprecision de pose, tres etroit devant les 4 m qui separent deux voies a une meme jointure.                                                                                                |
@@ -334,7 +346,7 @@ peut etre prise avant que le vehicule soit au noeud.
 Ce rayon n'est **pas borne ici**, et c'est une decision de perimetre, pas un oubli : le symptome de
 bouclage est explique par les poids et supprime par la regle de non-bouclage, alors que borner le
 rayon toucherait le suivi de trajectoire -- une poursuite de point a point, mecanique de conduite
-deja renvoyee aux Stories 5.11 / 5.12 plus haut dans cette note. Il ne sera rouvert que si
+desormais portee par la Story 5.12 (Tire Forces and Steering), qui remplace la poursuite point-a-point par un point de visee anticipe. Il ne sera rouvert que si
 l'observation Play Mode montre encore un bouclage.
 
 ### Verification du correctif
@@ -366,11 +378,11 @@ d'une ville a l'autre.
 
 - **Ronds-points : geometrie seulement.** Une petite boucle de noeuds a trois branches, avec des
   ratios de sortie authores. Aucune regle de cession du passage, aucune priorite aux engages : c'est
-  de l'arbitrage d'intersection, donc Story 5.11. Un test EditMode verifie qu'aucun mot de
+  de l'arbitrage d'intersection, donc Story 5.18 (ex-5.11). Un test EditMode verifie qu'aucun mot de
   circulation (`Yield`, `Priority`, `GiveWay`) n'a fuite dans le driver ou le spawner.
 - **Aucun arbitrage de jonction du tout.** Le carrefour central, les jonctions en T et les
   ronds-points se traversent sans priorite, sans controle d'occupation de la voie de sortie et sans
-  echelle anti-blocage. Ce sont des points de collision assumes jusqu'a la Story 5.11.
+  echelle anti-blocage. Ce sont des points de collision assumes jusqu'a la Story 5.18 (ex-5.11).
 - **Jointure par proximite O(n^2).** Balayage de tous les connecteurs contre tous, a la construction
   du graphe. Trivial a l'echelle du district (204 noeuds). Marque `ponytail:` dans
   `LaneGraph.JoinConnectors`, avec le chemin de sortie : indexer par cellule au-dela de quelques
@@ -393,7 +405,7 @@ d'une ville a l'autre.
   l'entree du run, un circuit borne et decore avec son repere de recuperation -- reste verifie, sur
   la geometrie du district. `Story57` et `Story59` epinglaient un effectif de 3 vehicules poses en
   scene ; ils verifient maintenant la cible authoree et le spawn runtime.
-- **Le NavMesh vehicule n'a aucun consommateur runtime** avant la Story 5.12. Marque `ponytail:` dans
+- **Le NavMesh vehicule n'a aucun consommateur runtime** avant la Story 5.17 (ex-5.12). Marque `ponytail:` dans
   la spec ; un test EditMode epingle l'exclusion des trottoirs pour qu'elle ne regresse pas en
   silence.
 - **Levre de 5 cm au bord du district.** Le plan de sol passant 5 cm sous le plan de roulage, le

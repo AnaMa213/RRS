@@ -3,7 +3,9 @@ id: ANO-5.10-03
 title: AI vehicles do not react naturally to collisions and keep forcing their normal route
 status: open
 epic: 5
-story: 5.10
+story: 5.14
+original_story: 5.10
+reassigned: 2026-09-18
 type: bug
 category: ai-traffic-physics
 severity: major
@@ -14,8 +16,10 @@ priority: high
 
 ## Contexte
 
-- **Epic :** 5 — NPC Response Foundation and Future Traffic
-- **Story concernée :** 5.10 — Lane Graph, Greybox District, and Routed Traffic
+> **Réaffectée le 2026-09-18** (`planning-artifacts/sprint-change-proposal-2026-09-18.md`). Cette anomalie passe de la Story 5.10 à la **Story 5.14 — AI Drives by Intent**, dont elle constitue le cœur. Motif : sa correction est impossible sans le modèle physique à roues livré par les Stories 5.11 à 5.13 — la réaction « mordre sur un trottoir » demandée en Réaction B suppose une bordure franchissable, et les projections observées viennent du conflit entre une écriture directe de `linearVelocity` et la résolution PhysX. Ses huit critères d'acceptation restent **autoritatifs et inchangés** ; la Story 5.14 les référence sans les recopier. Statut inchangé : `open`. La Story 5.10 passe en `review`.
+
+- **Epic :** 5 — Vehicle Physics, NPC Response Foundation and Routed Traffic
+- **Story propriétaire :** 5.14 — AI Drives by Intent (réaffectée depuis 5.10 le 2026-09-18)
 - **Type :** Anomalie fonctionnelle / physique véhicule / réaction IA
 - **Sévérité :** Majeure
 - **Priorité :** Haute
@@ -374,10 +378,10 @@ Les distributions exactes doivent rester configurables si cela correspond à l'a
 
 Cette correction doit être conçue pour rester compatible avec :
 
-- Story 5.11 — Intersection Rules and Deadlock Prevention ;
-- Story 5.12 — Wider Perception and Progressive Unblocking ;
-- Story 5.13 — Rage and Fear as Driving Model Modulation ;
-- Story 5.14 — Player-Targeted Rage Ladder and Rage Road Trigger.
+- Story 5.17 — Wider Perception and Progressive Unblocking (ex-5.12) ;
+- Story 5.18 — Intersection Rules and Deadlock Prevention (ex-5.11) ;
+- Story 5.19 — Rage and Fear as Driving Model Modulation (ex-5.13) ;
+- Story 5.21 — Player-Targeted Rage Ladder and Rage Road Trigger (ex-5.14).
 
 En particulier, la future Rage/Fear doit pouvoir moduler la réaction à une collision sans nécessiter de remplacer complètement ce système.
 
@@ -409,4 +413,4 @@ La réaction à une collision doit laisser temporairement la priorité à la sit
 
 Une fois la situation stabilisée, l'IA doit être capable de retrouver naturellement une route valide et de reprendre sa circulation.
 
-Avant implémentation, vérifier si cette correction empiète sur le périmètre prévu de la Story 5.12. Si une responsabilité appartient clairement à cette story future, conserver ici uniquement la fondation minimale nécessaire et documenter le reste plutôt que dupliquer deux systèmes de recovery.
+Avant implémentation, vérifier si cette correction empiète sur le périmètre prévu de la Story 5.17 (ex-5.12). Si une responsabilité appartient clairement à cette story future, conserver ici uniquement la fondation minimale nécessaire et documenter le reste plutôt que dupliquer deux systèmes de recovery.

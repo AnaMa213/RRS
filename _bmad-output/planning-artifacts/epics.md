@@ -24,9 +24,11 @@ inputDocuments:
 | --- | --- | --- | --- |
 | 0 | Epics 0–4 | Setup gate, game shell, online lobby, vehicle sandbox, passenger actions and rage module, persistent profile and character selection. | done |
 | 1 | 5.1 – 5.7 | NPC Rage/Fear foundation, AI route following, unified session start, rage-driven states, networked rage targeting, Rage Road trigger, client presentation. | implemented, in review |
-| 2 | 5.8 – 5.17 | Traffic rework: parameterized driving model, lane graph and greybox district, intersection rules, wider perception, rage/fear modulation, player-targeted rage ladder, litter foundation, lobby traffic settings, escape menu, scale measurement. See `sprint-change-proposal-2026-09-15.md`. | backlog |
-| 3 | 5.18 | Epic 5 playable checkpoint, rewritten. Last story of the epic. | backlog |
-| 4 | 6.5 Individual Wallet Authority | Establish host-authoritative per-player wallet before reward, purchase, or inventory economy work. | backlog |
+| 2 | 5.8 – 5.10 | Escape menu, parameterized driver model, lane graph and greybox district with portal-only traffic. See `sprint-change-proposal-2026-09-15.md`. | implemented, in review |
+| 3 | 5.11 – 5.15 | **Vehicle physics foundation:** chassis/wheels/suspension, tire forces and steering, arcade assists and uneven ground, AI driving by intent (absorbs `ANO-5.10-03`), credible collisions and damage integration. See `sprint-change-proposal-2026-09-18.md`. | backlog |
+| 4 | 5.16 – 5.22 | Traffic rework continued: lobby traffic settings, wider perception, intersection rules, rage/fear modulation, litter foundation, player-targeted rage ladder, scale measurement. | backlog |
+| 5 | 5.23 | Epic 5 playable checkpoint, rewritten. Last story of the epic. | backlog |
+| 6 | 6.5 Individual Wallet Authority | Establish host-authoritative per-player wallet before reward, purchase, or inventory economy work. | backlog |
 | later | MVP 2 assembly | Levels, litter recovery loop, encounters, bosses, run/checkpoint flow, balance, final integration. | deferred |
 
 > **Superseded roadmap note — 2026-09-15.** The previous version of this table listed only Story 5.1 before deferring everything else to MVP 2, while Stories 5.2–5.7 had in fact been implemented. It has been reconciled with `implementation-artifacts/sprint-status.yaml`. Where this table and sprint-status disagree, sprint-status wins.
@@ -296,11 +298,11 @@ Passengers can use three MVP actions that target vehicles or situations, send va
 
 **FRs covered:** FR7, FR9, FR10, FR17, FR24, FR25, FR26, FR27
 
-### Epic 5: AI Traffic & Rage Road Trigger
+### Epic 5: Vehicle Physics, AI Traffic & Rage Road Trigger
 
-The route contains three AI vehicles with independent rage states and simple rage-driven behaviors, and escalation can trigger the first Rage Road event.
+A wheeled arcade vehicle model carries both the player car and the AI traffic. Routed traffic populates a greybox district with independent rage states and rage-driven behaviors, and escalation can trigger the first Rage Road event.
 
-**FRs covered:** FR6, FR7, FR8, FR11, FR24, FR25, FR27
+**FRs covered:** FR1, FR5, FR6, FR7, FR8, FR11, FR17, FR24, FR25, FR26, FR27
 
 ### Epic 6: On-Foot Confrontation, Sandbox Stop & Economy Loop
 
@@ -952,11 +954,13 @@ So that persistent profile, session, and runtime player state remain distinct.
 **And** lobby/session state and runtime player state do not persist into the profile
 **And** solo plus host/client tests cover selection persistence, lobby immutability, and spawned presentation
 
-## Epic 5: NPC Response Foundation and Future Traffic
+## Epic 5: Vehicle Physics, NPC Response Foundation and Routed Traffic
 
 MVP 1 first establishes configurable NPC Rage/Fear response. Traffic, Rage Road, and vehicle behavior are MVP 2 assembly after this foundation is validated.
 
-**Requirements covered:** FR6, FR7, FR8, FR11, FR24, FR25, FR27, NFR2, NFR4, NFR5, NFR6, NFR13, NFR14, NFR18
+> **2026-09-18 course correction** (`sprint-change-proposal-2026-09-18.md`). Stories 5.11–5.15 insert a **vehicle physics foundation** ahead of the remaining AI traffic work: recette showed vehicles launched by curbs, stopped dead by low lips, and AI forcing its route after a collision (`ANO-5.10-03`), all traceable to a drive model that writes `Rigidbody.linearVelocity` directly with no wheel or suspension. The former Stories 5.11–5.18 shift to 5.16–5.23; all were in `backlog`, so no work was attached to a renumbered key. The epic title gains "Vehicle Physics" because the epic now carries it. The epic **remains a foundation sandbox**: the greybox district stays an explicitly scoped proving ground, not the MVP 2 Level 1 city, and no run/level/checkpoint contract is introduced with it.
+
+**Requirements covered:** FR1, FR5, FR6, FR7, FR8, FR11, FR17, FR24, FR25, FR26, FR27, NFR2, NFR4, NFR5, NFR6, NFR13, NFR14, NFR18
 
 ### Story 5.1: Configurable NPC Rage/Fear Foundation
 
@@ -1179,157 +1183,172 @@ So that the world reads as a living district rather than a visible loop.
 **And** no vehicle is removed anywhere other than at a portal, for any reason — blockage, congestion, distance to player, or route failure
 **And** an insertion that fails because a portal is crowded queues the vehicle rather than dropping it
 
-### Story 5.11: Intersection Rules and Deadlock Prevention
+### Story 5.11: Vehicle Chassis, Wheels, and Suspension
 
-**Implements:** FR6, FR24, FR25, FR27, NFR4
+**Implements:** FR1, FR5, FR6, FR24, FR25, FR27, AD-7, AD-12, AD-21, AD-25, AD-35, NFR4, NFR13, NFR18
 
 As a player,
-I want AI vehicles to respect simple traffic rules at intersections,
-So that the city reads as ordered before rage makes it chaotic.
+I want the car to sit on the road, absorb what it drives over, and stay on its wheels,
+So that driving feels like a vehicle with mass rather than a box pushed along a plane.
 
 **Acceptance Criteria:**
 
-**Given** intersections exist in the lane graph
-**When** they are authored
-**Then** each stream's priority is decided at authoring time — priority road, priority to the right, stop — and is not recomputed every frame
-**And** a stop sign requires a full halt and then a minimum accepted gap before crossing
+**Given** the player and AI prefabs today carry identical Rigidbody settings with an implicit centre of mass at mid-height and no suspension at all
+**When** the chassis is authored
+**Then** mass, centre of mass, and inertia tensor are **explicitly authored**, never left implicit
+**And** the player prefab and the AI prefab carry the **same** physics component, configured by a profile rather than by per-prefab serialized fields
+**And** prefab identity, NetworkObject registration, gameplay components, and definition ids are unchanged (NFR18)
 
-**Given** a vehicle approaches an intersection
-**When** it evaluates whether to enter
-**Then** it does not enter if its exit lane has no room to receive it
-**And** this check precedes the application of the priority rule
+**Given** the vehicle must keep reliable contact with the ground
+**When** the wheel model is built
+**Then** ground contact, suspension compression, and load transfer are computed from **per-wheel raycasts**, never from `WheelCollider` (AD-35)
+**And** spring rate, damping, rest length, and travel are authored parameters, not constants
+**And** an anti-roll term reduces body roll without suppressing it entirely
+**And** suspension, damping, and anti-roll are **pure functions** verifiable in EditMode
 
-**Given** a blockage forms despite the rules
-**When** a vehicle's wait persists
-**Then** a progressive authored rule-bending ladder applies: first entering an intersection it would normally keep clear, then driving around a blocker
-**And** every tier is authored and enabled; none is disabled by default
-**And** **no removal, teleport, or reinsertion-elsewhere tier exists**
-**And** a detected deadlock is logged in development builds with the vehicles involved
+**Given** different vehicles will need different feel
+**When** the configuration is authored
+**Then** every chassis, wheel, and suspension parameter lives in a `VehicleProfileDef` ScriptableObject with a stable globally unique id (NFR13, AD-12, AD-25)
+**And** no chassis or suspension value remains as a `[SerializeField]` on the controller
+**And** a developer telemetry view in `RoadRage.DevTools` shows, per wheel, suspension compression and ground contact, plus body speed, lateral speed, slip, and drift angle
+**And** that view exists in development builds only and holds no gameplay state
 
-### Story 5.12: Wider Perception and Progressive Unblocking
+**Given** the district modules currently have flush sidewalks precisely because the vehicle could not climb anything
+**When** this story is verified in the Editor
+**Then** a **curb prototype is authored on one junction or roundabout module**, never on a straight, because vehicles cut the inside of turns
+**And** it is measured against the frozen module dimensions: 2 m from lane axis to roadway edge against a 2.06 m wide vehicle, leaving 0.97 m of clearance per side
+**And** three checks pass: no `LaneNode` falls on or inside the curb; AI vehicles cross the module without touching it in nominal driving; the vehicle climbs the curb at low speed and stays on the ground when it strikes it at driving speed
+**And** **the lane graph is not modified** — if the second check fails, the correction is the arrival radius or the Story 5.12 look-ahead point, and touching the graph is the last resort
+**And** the curb height that results becomes an authored contract value for the art kit
 
-**Implements:** FR6, FR8, FR24, FR25, FR27, NFR4
+**Given** the surface-contact predicate exists only to compensate for the absence of suspension
+**When** wheels carry the vehicle
+**Then** `IsSurfaceContact`, `IsSurfaceOnlyCollision`, and the surface-contact tolerance are removed, together with the EditMode test that asserts on their source text
+**And** `NoModuleColliderRisesAboveTheDrivingPlane` is rewritten as "no module collider rises above the driving plane by more than the authored curb height", so the art kit keeps a guard
+**And** the `vehicleDamage > 0` guard in `RunFlowController` is **left untouched**: it is an independent and still-valid threshold, not a workaround
+
+### Story 5.12: Tire Forces and Steering
+
+**Implements:** FR1, FR5, FR24, FR25, FR27, AD-7, AD-21, AD-35, NFR4, NFR5
 
 As a player,
-I want AI drivers to notice what is around them and react rather than freeze,
-So that they still behave sensibly when players and enraged AI make the road chaotic.
+I want the car to accelerate, brake, and turn through its tires,
+So that grip can be lost and recovered instead of the car running on rails.
 
 **Acceptance Criteria:**
 
-**Given** an AI vehicle is driving
-**When** it evaluates its situation
-**Then** it perceives several vehicles and players within an authored radius and arc, not only the vehicle directly ahead
-**And** this perception feeds both leader selection for the driving model and intersection arbitration
-**And** perception cost is bounded by a spatial index or a reduced update rate, never by scanning every vehicle every frame
+**Given** the drive model currently writes `Rigidbody.linearVelocity` as a block and preserves only the vertical component
+**When** the drive model is replaced
+**Then** longitudinal motion comes from **forces applied at the wheels**, and the block velocity write is removed
+**And** acceleration, braking, and top speed are progressive and authored per profile
+**And** the host remains the only simulator of vehicle movement (AD-21)
 
-**Given** a vehicle's path is blocked
-**When** the blockage is detected
-**Then** replanning starts immediately and continues, with no prior waiting period
-**And** visible escalation is progressive: a horn after a short authored delay of roughly two to four seconds, then an overtake attempt as soon as a gap is acceptable
-**And** a blocked vehicle is never teleported, reinserted elsewhere, or removed to resolve the blockage
-**And** a clearing manoeuvre does not put the vehicle up on a sidewalk
+**Given** a tire can only transmit so much force
+**When** lateral and longitudinal grip are computed
+**Then** grip loss is **progressive**, driven by a slip value, never by a binary threshold
+**And** a controlled drift is reachable and recoverable at authored slip values
+**And** slip, tire force, and grip are pure functions verifiable in EditMode
 
-### Story 5.13: Rage and Fear as Driving Model Modulation
+**Given** steering must stay readable at speed
+**When** the steering model is built
+**Then** the steer angle depends on speed and the wheel returns to centre progressively
+**And** the AI point-to-point pursuit is replaced by an **anticipated look-ahead point**, which closes the trajectory debt recorded in `deferred-work.md` on 2026-09-18
+**And** vehicles no longer cut the inside of turns by an amount bounded by the arrival radius
 
-**Implements:** FR7, FR8, FR24, FR25, FR27, AD-31, AD-33, NFR4, NFR6
+**Given** a handbrake is part of the requested feel
+**When** the drive intent is extended
+**Then** `VehicleDriveIntent` gains a handbrake channel
+**And** it travels the **existing** intent submission path; no second intent or RPC path is introduced (NFR5)
+
+### Story 5.13: Arcade Assists and Uneven Ground
+
+**Implements:** FR1, FR5, FR6, FR24, FR25, FR27, AD-7, AD-33, AD-35, NFR4
 
 As a player,
-I want rage and fear to change how an AI drives rather than replace its driving,
-So that an enraged driver still behaves like a driver.
+I want the car to stay drivable over curbs, bumps, and bad landings,
+So that the arcade feel survives contact with real geometry.
 
 **Acceptance Criteria:**
 
-**Given** a vehicle carries its own rage and fear meters (Story 5.1)
-**When** either meter changes
-**Then** effective driving parameters are obtained by modulating the base parameters as a function of rage and fear
-**And** no code branch replaces the driving model with alternative logic based on emotional state
-**And** one vehicle's state never influences another vehicle's parameters
+**Given** arcade driving must forgive more than simulation does
+**When** the assists are added
+**Then** yaw stability, traction control, and spin recovery are implemented as authored, individually tunable terms
+**And** each assist reads **only `VehicleProfileDef`** and never reads rage, fear, or any driver disposition (AD-33, AD-35)
+**And** every assist can be disabled by its authored value, and none silently overrides driver input to zero
 
-**Given** the meters evolve over time
-**When** no source is feeding them
-**Then** each meter decays at an authored rate, one percent per second by default
-**And** entering a new rage tier freezes the meter for an authored duration, ten seconds by default, before decay resumes
-**And** at one hundred percent rage the meter stops decaying until the associated Rage Road event leaves the `Triggered` and `Confrontation` states
-**And** a meter can still rise during a freeze
+**Given** the district now carries a real curb (Story 5.11)
+**When** the vehicle meets uneven ground
+**Then** curbs, small steps, bumps, and irregular geometry are crossed without the vehicle being thrown into the air or pinned against the lip
+**And** tuning is done against the curb height authored in Story 5.11, never against an assumed value
 
-**Given** rage and fear coexist
-**When** arbitration applies
-**Then** fear at one hundred percent overrides rage at any level
-**And** fear greater than or equal to fifty percent and strictly greater than rage produces escape behaviour, which ends only once fear falls back to thirty percent or less
-**And** while fear is neither at one hundred percent nor above rage, rage governs behaviour
-**And** every threshold in this arbitration is authored, not hard-coded
-**And** all these transitions are host-authoritative
+**Given** wheels can leave the ground
+**When** some or all wheels lose contact
+**Then** drive and steering authority are reduced in proportion to the number of grounded wheels
+**And** an airborne vehicle keeps a stable attitude without its rotation being artificially frozen
+**And** the grounded-wheel count and its effect on authority are verifiable in EditMode
 
-### Story 5.14: Player-Targeted Rage Ladder and Rage Road Trigger
+### Story 5.14: AI Drives by Intent
 
-**Implements:** FR7, FR8, FR11, FR24, FR25, FR27, AD-22, NFR4, NFR5
+**Implements:** FR6, FR8, FR24, FR25, FR27, AD-21, AD-33, AD-34, AD-35, NFR4, NFR5
+
+> Absorbs anomaly `ANO-5.10-03`, transferred from Story 5.10 on 2026-09-18. Its eight acceptance criteria are authoritative for the collision-response behaviour and are not restated here.
 
 As a player,
-I want an AI I provoked to escalate against me specifically,
-So that road rage feels personal and leads somewhere.
+I want a crashed AI driver to react to the crash instead of forcing its route,
+So that an accident reads as an accident rather than a navigation agent fighting physics.
 
 **Acceptance Criteria:**
 
-**Given** an AI vehicle has a target resolved by the Story 5.5 targeting mechanism
-**When** its rage crosses the tiers
-**Then** between twenty and forty percent it honks at that target
-**And** between forty and eighty percent it follows that target, and when it draws alongside it insults the target and throws litter at them
-**And** between eighty and ninety-nine percent it attempts to ram that target
-**And** at one hundred percent it pursues that target until the target stops, then requests the Rage Road event trigger
-**And** the bounds of these tiers are authored, not hard-coded
+**Given** the AI controller integrates its own speed in open loop and writes `Rigidbody.linearVelocity` directly
+**When** the AI is switched to intent
+**Then** the AI produces a `VehicleDriveIntent` — steer, throttle, brake, handbrake — and **never writes** the Rigidbody velocity, position, or rotation
+**And** the open-loop speed field is removed and speed is read back from the Rigidbody
+**And** player and AI vehicles run the same physics component (AD-35)
 
-**Given** litter thrown by an enraged vehicle hits a player
-**When** the impact resolves
-**Then** the player's health loss is applied host-side through a validated intent, never by the client
-**And** the effect is authored as a definition, not hard-coded per caller
+**Given** the parameterized driving model of Story 5.9 must survive this change untouched
+**When** the EditMode suite runs
+**Then** the Story 5.9 tests — `DriverModel`, IDM, MOBIL — pass **green without modification**
+**And** a failure here means physics has leaked into the decision layer, and it is corrected before the story continues
 
-**Given** a vehicle's fear reaches one hundred percent
-**When** that vehicle is still circulating
-**Then** it takes the shortest path to the nearest exit portal at high speed, then despawns there
-**And** it despawns nowhere else
+**Given** a vehicle suffers a significant impact
+**When** the response resolves
+**Then** the behaviour satisfies `ANO-5.10-03` AC1 through AC8
+**And** the existing waypoint-teleport recovery is **replaced** by a physical return to a valid lane, per `ANO-5.10-03` AC6 and AD-34
+**And** reaction variability is authored in the driver profile, never hard-coded (AD-33)
 
-**Given** the Rage Road event already exists (Story 5.6)
-**When** the pursuit succeeds
-**Then** the trigger request goes through the existing `Idle -> Triggered -> Confrontation` lifecycle without introducing a second one
-**And** confrontation resolution stays out of this story's scope
+**Given** the PlayMode suite is red 3 of 33 and cannot be filtered, and one failing fixture is `Story57AiTrafficClientPresentationPlayModeTests` — this story's own domain
+**When** this story is scheduled
+**Then** the PlayMode harness fix is a **hard prerequisite**, tracked as tooling in `docs/setup/devworkflow-rollout.md`
+**And** verification splits deliberately: the collision-significance predicate, the reaction draw, the response-to-recovery transition, lane reattachment, and the Story 5.9 non-regression are proven in **EditMode**; only `ANO-5.10-03` AC2 and AC6 with AC7 are proven in **PlayMode**, in at most two tests
 
-### Story 5.15: Thrown Litter Foundation and Attribution
+### Story 5.15: Credible Collisions and Damage Integration
 
-**Implements:** FR17, FR24, FR25, FR27, AD-13, AD-20, AD-32, AD-34, NFR13, NFR18
+**Implements:** FR1, FR6, FR24, FR25, FR27, AD-3, AD-18, AD-21, NFR4, NFR18
 
 As a player,
-I want some AI drivers to throw litter out of their window,
-So that the road accumulates evidence of who behaved badly.
+I want a collision to look like a collision,
+So that hitting a car or a wall reads as an impact rather than a physics glitch.
 
 **Acceptance Criteria:**
 
-**Given** traffic is circulating
-**When** littering vehicles are selected
-**Then** the number of vehicles allowed to throw litter at the same time is **resolved at runtime from session settings** (Story 5.16), never from a constant
-**And** the default value and bounds are authored, with five litterers by default
-**And** each littering vehicle throws at most an authored number of pieces, three by default, between its spawn and its despawn
+**Given** vehicles now carry wheels, suspension, and tire forces
+**When** two vehicles collide, or a vehicle hits scenery
+**Then** the resulting motion is proportional to the impact, and no vehicle is launched, spun, or pinned against geometry
+**And** collision response stays host-authoritative while clients read replicated state (AD-3, AD-18, NFR4)
 
-**Given** a vehicle throws a piece of litter
-**When** the object is created
-**Then** it is a host-owned NetworkObject with light-object physics
-**And** it references the throwing vehicle through `NetworkObjectReference`, never through an authored id or an index
-**And** the greybox litter asset has passed the Blender intake gate per AD-13
+**Given** the damage threshold was calibrated against a velocity-driven vehicle
+**When** the drive model has changed under it
+**Then** collision damage is recalibrated against the new impact profile, and the new threshold is recorded with the measurement that produced it
+**And** the guard that prevents occupants taking damage when the vehicle takes none is preserved
 
-**Given** litter accumulates over a session
-**When** the configured global live-litter cap is reached
-**Then** the oldest piece is recycled
-**And** a piece whose throwing vehicle has despawned stays valid but loses its return target
-
-**Given** a piece of litter can be returned to its throwing vehicle
-**When** that return resolves host-side
-**Then** that vehicle is marked to head for the nearest exit portal and stops being able to throw litter
-**And** this marking reuses the same navigation mode as the fear flight of Story 5.14
-
-**Given** the player recovery loop belongs to Epic 6
-**When** this story ships
-**Then** picking up, binning, and throwing back **are not implemented here**; only the host-side intent that will receive them is exposed
+**Given** both vehicle prefabs use discrete collision detection
+**When** high-speed vehicle-to-vehicle impacts are evaluated
+**Then** the collision detection mode is decided by **measurement**, weighing tunnelling risk against CPU cost at the roughly thirty vehicles targeted by Story 5.22
+**And** the decision and its measurement are recorded, never assumed
 
 ### Story 5.16: Lobby-Configurable Traffic Settings
+
+> Kept at 5.16 by the 2026-09-18 course correction. The number is unchanged but the story now sits after the vehicle physics block. It has no dependency on that block and may be pulled forward at any time if the block stalls.
 
 **Implements:** FR3, FR6, FR26, FR27, AD-12, AD-25, AD-32, NFR4
 
@@ -1362,7 +1381,170 @@ So that I can tune test conditions without touching code or scenes.
 **And** no controller, prefab, or scene carries a headcount constant
 **And** changing these values between two runs takes effect without recompiling or editing a scene
 
-### Story 5.17: Scale Validation and Network Budget
+### Story 5.17: Wider Perception and Progressive Unblocking
+
+> Renumbered from Story 5.12 on 2026-09-18. It was in `backlog`, so no work was attached to the renumbered key. It now precedes Story 5.18, which consumes its perception — the previous ordering had that dependency inverted.
+
+**Implements:** FR6, FR8, FR24, FR25, FR27, NFR4
+
+As a player,
+I want AI drivers to notice what is around them and react rather than freeze,
+So that they still behave sensibly when players and enraged AI make the road chaotic.
+
+**Acceptance Criteria:**
+
+**Given** an AI vehicle is driving
+**When** it evaluates its situation
+**Then** it perceives several vehicles and players within an authored radius and arc, not only the vehicle directly ahead
+**And** this perception feeds both leader selection for the driving model and intersection arbitration
+**And** perception cost is bounded by a spatial index or a reduced update rate, never by scanning every vehicle every frame
+
+**Given** a vehicle's path is blocked
+**When** the blockage is detected
+**Then** replanning starts immediately and continues, with no prior waiting period
+**And** visible escalation is progressive: a horn after a short authored delay of roughly two to four seconds, then an overtake attempt as soon as a gap is acceptable
+**And** a blocked vehicle is never teleported, reinserted elsewhere, or removed to resolve the blockage
+**And** a **deliberate** clearing manoeuvre does not put the vehicle up on a sidewalk, while a trajectory suffered after a collision may do so — that case belongs to Story 5.14 and this story does not suppress it
+
+### Story 5.18: Intersection Rules and Deadlock Prevention
+
+> Renumbered from Story 5.11 on 2026-09-18. It was in `backlog`, so no work was attached to the renumbered key.
+
+**Implements:** FR6, FR24, FR25, FR27, NFR4
+
+As a player,
+I want AI vehicles to respect simple traffic rules at intersections,
+So that the city reads as ordered before rage makes it chaotic.
+
+**Acceptance Criteria:**
+
+**Given** intersections exist in the lane graph
+**When** they are authored
+**Then** each stream's priority is decided at authoring time — priority road, priority to the right, stop — and is not recomputed every frame
+**And** a stop sign requires a full halt and then a minimum accepted gap before crossing
+
+**Given** a vehicle approaches an intersection
+**When** it evaluates whether to enter
+**Then** it does not enter if its exit lane has no room to receive it, using the perception delivered by Story 5.17
+**And** this check precedes the application of the priority rule
+
+**Given** a blockage forms despite the rules
+**When** a vehicle's wait persists
+**Then** a progressive authored rule-bending ladder applies: first entering an intersection it would normally keep clear, then driving around a blocker
+**And** every tier is authored and enabled; none is disabled by default
+**And** **no removal, teleport, or reinsertion-elsewhere tier exists**
+**And** a detected deadlock is logged in development builds with the vehicles involved
+
+### Story 5.19: Rage and Fear as Driving Model Modulation
+
+> Renumbered from Story 5.13 on 2026-09-18. It was in `backlog`, so no work was attached to the renumbered key.
+
+**Implements:** FR7, FR8, FR24, FR25, FR27, AD-31, AD-33, AD-35, NFR4, NFR6
+
+As a player,
+I want rage and fear to change how an AI drives rather than replace its driving,
+So that an enraged driver still behaves like a driver.
+
+**Acceptance Criteria:**
+
+**Given** a vehicle carries its own rage and fear meters (Story 5.1)
+**When** either meter changes
+**Then** effective driving parameters are obtained by modulating the base parameters as a function of rage and fear
+**And** no code branch replaces the driving model with alternative logic based on emotional state
+**And** one vehicle's state never influences another vehicle's parameters
+**And** the modulation reaches the driver profile only; it never reaches `VehicleProfileDef` or any physics parameter (AD-35)
+
+**Given** the meters evolve over time
+**When** no source is feeding them
+**Then** each meter decays at an authored rate, one percent per second by default
+**And** entering a new rage tier freezes the meter for an authored duration, ten seconds by default, before decay resumes
+**And** at one hundred percent rage the meter stops decaying until the associated Rage Road event leaves the `Triggered` and `Confrontation` states
+**And** a meter can still rise during a freeze
+
+**Given** rage and fear coexist
+**When** arbitration applies
+**Then** fear at one hundred percent overrides rage at any level
+**And** fear greater than or equal to fifty percent and strictly greater than rage produces escape behaviour, which ends only once fear falls back to thirty percent or less
+**And** while fear is neither at one hundred percent nor above rage, rage governs behaviour
+**And** every threshold in this arbitration is authored, not hard-coded
+**And** all these transitions are host-authoritative
+
+### Story 5.20: Thrown Litter Foundation and Attribution
+
+> Renumbered from Story 5.15 on 2026-09-18. It was in `backlog`, so no work was attached to the renumbered key.
+
+**Implements:** FR17, FR24, FR25, FR27, AD-13, AD-20, AD-32, AD-34, NFR13, NFR18
+
+As a player,
+I want some AI drivers to throw litter out of their window,
+So that the road accumulates evidence of who behaved badly.
+
+**Acceptance Criteria:**
+
+**Given** traffic is circulating
+**When** littering vehicles are selected
+**Then** the number of vehicles allowed to throw litter at the same time is **resolved at runtime from session settings** (Story 5.16), never from a constant
+**And** the default value and bounds are authored, with five litterers by default
+**And** each littering vehicle throws at most an authored number of pieces, three by default, between its spawn and its despawn
+
+**Given** a vehicle throws a piece of litter
+**When** the object is created
+**Then** it is a host-owned NetworkObject with light-object physics
+**And** it references the throwing vehicle through `NetworkObjectReference`, never through an authored id or an index
+**And** the greybox litter asset has passed the Blender intake gate per AD-13
+
+**Given** litter accumulates over a session
+**When** the configured global live-litter cap is reached
+**Then** the oldest piece is recycled
+**And** a piece whose throwing vehicle has despawned stays valid but loses its return target
+
+**Given** a piece of litter can be returned to its throwing vehicle
+**When** that return resolves host-side
+**Then** that vehicle is marked to head for the nearest exit portal and stops being able to throw litter
+**And** this marking reuses the same navigation mode as the fear flight of Story 5.21
+
+**Given** the player recovery loop belongs to Epic 6
+**When** this story ships
+**Then** picking up, binning, and throwing back **are not implemented here**; only the host-side intent that will receive them is exposed
+
+### Story 5.21: Player-Targeted Rage Ladder and Rage Road Trigger
+
+> Renumbered from Story 5.14 on 2026-09-18. It was in `backlog`, so no work was attached to the renumbered key.
+
+**Implements:** FR7, FR8, FR11, FR24, FR25, FR27, AD-22, NFR4, NFR5
+
+As a player,
+I want an AI I provoked to escalate against me specifically,
+So that road rage feels personal and leads somewhere.
+
+**Acceptance Criteria:**
+
+**Given** an AI vehicle has a target resolved by the Story 5.5 targeting mechanism
+**When** its rage crosses the tiers
+**Then** between twenty and forty percent it honks at that target
+**And** between forty and eighty percent it follows that target, and when it draws alongside it insults the target and throws litter at them
+**And** between eighty and ninety-nine percent it attempts to ram that target
+**And** at one hundred percent it pursues that target until the target stops, then requests the Rage Road event trigger
+**And** the bounds of these tiers are authored, not hard-coded
+
+**Given** litter thrown by an enraged vehicle hits a player
+**When** the impact resolves
+**Then** the player's health loss is applied host-side through a validated intent, never by the client
+**And** the effect is authored as a definition, not hard-coded per caller
+
+**Given** a vehicle's fear reaches one hundred percent
+**When** that vehicle is still circulating
+**Then** it takes the shortest path to the nearest exit portal at high speed, then despawns there
+**And** it despawns nowhere else
+
+**Given** the Rage Road event already exists (Story 5.6)
+**When** the pursuit succeeds
+**Then** the trigger request goes through the existing `Idle -> Triggered -> Confrontation` lifecycle without introducing a second one
+**And** confrontation resolution stays out of this story's scope
+
+### Story 5.22: Scale Validation and Network Budget
+
+> Renumbered from Story 5.17 on 2026-09-18. It was in `backlog`, so no work was attached to the renumbered key.
 
 **Implements:** FR24, FR27, AD-28, AD-32, NFR2, NFR5
 
@@ -1377,6 +1559,7 @@ So that the production target is chosen on evidence.
 **Then** measurement covers at least three distinct headcounts, one of them approximately thirty vehicles, driven purely by changing the lobby setting
 **And** per-object and total bandwidth are recorded in the validation log for each headcount
 **And** host CPU cost of the driving, perception, and pathfinding layers is recorded separately
+**And** the cost of the vehicle physics layer delivered by Stories 5.11 to 5.13 is recorded as its own line, since it now runs per wheel per vehicle
 
 **Given** the documented reduction levers exist
 **When** `NetworkTransform` is configured on AI vehicles
@@ -1388,11 +1571,11 @@ So that the production target is chosen on evidence.
 **Then** a ceiling-and-headroom statement is produced to support the fifty-or-one-hundred vehicle decision
 **And** no production scale decision is taken without this measurement
 
-### Story 5.18: Epic 5 AI Traffic Playable Checkpoint
+### Story 5.23: Epic 5 AI Traffic Playable Checkpoint
 
-> Replaces the former Story 5.8. Its sprint-status key was renumbered from `5-8-…` to `5-18-…`; the story was in `backlog`, so no work was attached to it.
+> Replaces the former Story 5.8. Its sprint-status key was renumbered from `5-8-…` to `5-18-…` on 2026-09-15, then to `5-23-…` on 2026-09-18; the story was in `backlog` throughout, so no work was ever attached to it.
 
-**Implements:** FR6, FR7, FR8, FR11, FR17, FR24, FR25, FR26, FR27
+**Implements:** FR1, FR6, FR7, FR8, FR11, FR17, FR24, FR25, FR26, FR27
 
 As a solo developer,
 I want a playable urban traffic and Rage Road checkpoint,
@@ -1400,7 +1583,7 @@ So that I can test the escalation path before building confrontation resolution.
 
 **Acceptance Criteria:**
 
-**Given** Stories 5.8 through 5.17 are delivered
+**Given** Stories 5.8 through 5.22 are delivered
 **When** the game is tested in `MVP_Run`
 **Then** the host sets the number of vehicles and litterers from the lobby, and the run respects those values
 **And** vehicles circulate in the greybox district, entering and leaving through portals, with none disappearing mid-road
@@ -1409,8 +1592,18 @@ So that I can test the escalation path before building confrontation resolution.
 **And** a vehicle whose fear saturates reaches a portal and despawns there
 **And** thrown litter is visible, physical, and attributed to the vehicle that threw it
 **And** a player can leave the run through the escape menu and return to the main menu, in solo and online alike
-**And** a local smoke test and a two-player online smoke test confirm that all of these states are host-authoritative and consistent on clients
-**And** the Story 5.17 measurements are recorded and the tuning assumptions for the Epic 6 confrontation are listed
+
+**Given** the vehicle physics foundation of Stories 5.11 to 5.15 is in place
+**When** driving is tested by hand
+**Then** the car has perceptible mass, grip, suspension, and impact, and a drift can be provoked and recovered
+**And** a vehicle crosses a curb rather than being launched by it or stopped dead against it
+**And** a crashed AI driver reacts to the crash and then finds its way back into traffic without teleporting
+**And** player and AI vehicles are visibly running the same physics
+
+**Given** the checkpoint must prove the network contract, not only the feel
+**When** the smoke tests run
+**Then** a local smoke test and a two-player online smoke test confirm that all of these states are host-authoritative and consistent on clients
+**And** the Story 5.22 measurements are recorded and the tuning assumptions for the Epic 6 confrontation are listed
 
 ## Epic 6: Individual Economy Foundation and Future On-Foot Assembly
 
@@ -1473,7 +1666,7 @@ So that road events can briefly become a different playable module.
 **And** the on-foot module can run in `Dev_OnFootSandbox` without requiring the full MVP run
 **And** the transition preserves player lifecycle and network ownership rules
 **And** a targeted AI vehicle whose rage reaches the confrontation-triggering state can dismount its occupant as a host-owned on-foot AI NPC combatant through the same on-foot spawn/transition system used for players
-**And** the AI-triggered confrontation entry comes from the maximum-rage pursuit state of Story 5.14, and the meter freeze of Story 5.13 holds that vehicle at maximum rage until the Rage Road event leaves the `Triggered` and `Confrontation` states
+**And** the AI-triggered confrontation entry comes from the maximum-rage pursuit state of Story 5.21 (ex-5.14), and the meter freeze of Story 5.19 (ex-5.13) holds that vehicle at maximum rage until the Rage Road event leaves the `Triggered` and `Confrontation` states
 
 ### Story 6.4: Compact Rage Road Confrontation Resolution
 
@@ -1589,7 +1782,7 @@ So that bad behaviour on the road has a consequence I can deliver myself.
 
 **Acceptance Criteria:**
 
-**Given** attributed litter exists in the world (Story 5.15)
+**Given** attributed litter exists in the world (Story 5.20, ex-5.15)
 **When** an on-foot player approaches a piece
 **Then** they can pick it up, and the carried piece occupies a slot in their inventory (Story 6.1)
 
@@ -1599,7 +1792,7 @@ So that bad behaviour on the road has a consequence I can deliver myself.
 
 **Given** a player is carrying a piece of litter whose throwing vehicle is still circulating
 **When** they throw it back into that vehicle
-**Then** the host-side intent exposed by Story 5.15 is invoked, and that vehicle heads for the nearest exit portal and stops throwing litter
+**Then** the host-side intent exposed by Story 5.20 (ex-5.15) is invoked, and that vehicle heads for the nearest exit portal and stops throwing litter
 **And** a return aimed at a vehicle whose thrower has despawned fails cleanly with player feedback
 
 ### Story 6.11: Epic 6 Economy Loop Playable Checkpoint

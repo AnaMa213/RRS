@@ -338,7 +338,7 @@ Si elle n'existe pas déjà, ajouter ou utiliser temporairement une visualisatio
 - destination/exit recherchée ;
 - état de progression.
 
-Cette instrumentation doit servir au diagnostic et peut rester comme outil de debug si elle est générique et utile aux Stories 5.11/5.12.
+Cette instrumentation doit servir au diagnostic et peut rester comme outil de debug si elle est générique et utile aux Stories 5.18/5.17 (ex-5.11 / ex-5.12).
 
 Elle ne doit pas devenir une dépendance fonctionnelle du système.
 
@@ -362,7 +362,7 @@ Déterminer si la cause appartient principalement :
 4. à la géométrie/navigation ;
 5. ou à l'interaction de plusieurs de ces systèmes.
 
-Avant d'effectuer un changement architectural important, expliquer la cause identifiée et vérifier que la correction reste compatible avec les futures Stories 5.11 et 5.12.
+Avant d'effectuer un changement architectural important, expliquer la cause identifiée et vérifier que la correction reste compatible avec les futures Stories 5.18 et 5.17 (ex-5.11 / ex-5.12).
 
 Après correction, documenter :
 
@@ -509,9 +509,10 @@ alternatives, le tirage pondéré aux jonctions et le déterminisme par graine s
   portail-à-portail — mais un trajet donné n'est plus identique à celui d'avant le correctif.
 - **La marge géométrique reste faible** : anneau 6,00 m contre R 5,09 m. Le correctif garantit la
   progression, pas une trajectoire élégante — un véhicule bousculé rejoint sa voie en élargissant.
-  Si la Story 5.11/5.12 augmente `desiredSpeed` au-delà de ~9,4 m/s, R dépasse le rayon de l'anneau
-  et les giratoires deviendront intraçables ; il faudra alors ralentir en courbure ou élargir les
-  anneaux.
+  Si la fondation physique des Stories 5.11 a 5.13 (course correction du 2026-09-18, precedemment
+  rattachee aux Stories 5.11/5.12) augmente `desiredSpeed` au-delà de ~9,4 m/s, R dépasse le rayon de
+  l'anneau et les giratoires deviendront intraçables ; il faudra alors ralentir en courbure ou élargir
+  les anneaux.
 - **92 arêtes de longueur nulle** (jointures de connecteurs, deux nœuds superposés). Sans effet sur
   cette anomalie, mais `ComputeSeekIntent` rend `Idle` sur ces nœuds : le véhicule s'immobilise
   ~2 frames physiques à chaque jointure de module. Cosmétique, hors périmètre de cette ANO.

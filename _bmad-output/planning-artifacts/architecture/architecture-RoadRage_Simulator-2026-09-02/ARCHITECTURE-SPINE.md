@@ -269,7 +269,7 @@ flowchart TD
 - **Binds:** Vehicles, Run, Lobby, AI traffic, Epic 5 scope.
 - **Supersedes:** the "three spawned enemy vehicles" clause of AD-16, which remains historical.
 - **Prevents:** the original MVP cardinality blocking urban traffic; headcounts hard-coded inside a controller; and, symmetrically, an unmeasured scale ambition being written down as a contract.
-- **Rule:** Traffic headcounts - the maximum number of circulating AI vehicles and the number of vehicles allowed to throw litter - are **configurable and never hard-coded**. Default values and minimum/maximum bounds are authored in a `Def` ScriptableObject (AD-12, AD-25); the value chosen for a session lives in `MatchSettings` and travels its existing synchronization path (Stories 1.2 and 2.4), never inside a ScriptableObject asset. Epic 5's validation target is approximately **30 simultaneous AI vehicles**. Any larger production scale is an **empirical decision** taken after the Story 5.17 measurement, and is never written into architecture before that measurement. AD-16's other cardinalities (one route, one player car, four players) are unchanged.
+- **Rule:** Traffic headcounts - the maximum number of circulating AI vehicles and the number of vehicles allowed to throw litter - are **configurable and never hard-coded**. Default values and minimum/maximum bounds are authored in a `Def` ScriptableObject (AD-12, AD-25); the value chosen for a session lives in `MatchSettings` and travels its existing synchronization path (Stories 1.2 and 2.4), never inside a ScriptableObject asset. Epic 5's validation target is approximately **30 simultaneous AI vehicles**. Any larger production scale is an **empirical decision** taken after the Story 5.22 measurement (ex-5.17), and is never written into architecture before that measurement. AD-16's other cardinalities (one route, one player car, four players) are unchanged.
 
 ### AD-33 - Parameterized Driving And Emotional Modulation [ADOPTED]
 
@@ -283,11 +283,21 @@ flowchart TD
 - **Prevents:** vehicles appearing or vanishing mid-road, and thrown objects accumulating without bound.
 - **Rule:** AI vehicles **spawn and despawn exclusively at authored entry/exit portals**. No mechanism - blockage, congestion, distance to player, or route failure - may remove a vehicle anywhere else. Route variation comes from a **per-junction turn draw** with authored ratios, not from a per-vehicle authored itinerary. A vehicle whose route exceeds an authored edge budget is redirected to the nearest exit. Objects thrown onto the street are host-owned NetworkObjects, reference their thrower through `NetworkObjectReference` (AD-20), and are bounded by a configured global cap with oldest-first recycling.
 
+### AD-35 - Raycast Wheel Model, One Physics Layer For Player And AI [ADOPTED]
+
+- **Binds:** CAP-1, CAP-3, Vehicles, AI traffic.
+- **Prevents:** the vehicle feel layer becoming a black box that can only be proven by running the simulation, and player and AI vehicles drifting into two different physical behaviours.
+- **Rule:** Ground contact, suspension, and tire force are computed from **per-wheel raycasts** driven by pure functions over an authored parameter struct carried by a `VehicleProfileDef` ScriptableObject (AD-12, AD-25). **`WheelCollider` is not used.** The player car and every AI vehicle run the **same** physics component; an AI driver emits a `VehicleDriveIntent` (steer, throttle, brake, handbrake) and **never** writes the `Rigidbody`'s velocity, position, or rotation. The physics layer reads `VehicleProfileDef` only, and never reads rage, fear, or any driver disposition - emotional modulation acts on the driver profile above it (AD-33). The host remains the sole simulator (AD-21).
+- **Why raycast and not `WheelCollider`:** suspension, slip, tire force, and grip stay **pure functions verifiable in EditMode**, where the suite is green and filterable; a `WheelCollider` model is only provable during a physics step, and the PlayMode suite is red and unfilterable. This is a testability decision, not a fidelity one.
+- **Relation to AD-7:** AD-7 is **unchanged and unsuperseded**. Its deferral entry reopens on "arcade driving is fun but lacks a specific feel that cannot be tuned simply"; that condition is *not* met - there is no wheel model to tune at all. AD-35 builds the arcade model AD-7 called for. Realistic tire simulation and `WheelCollider` tuning stay deferred.
+
 ### Course-correction supersessions
 
 AD-5, AD-6, AD-8, AD-15, AD-16, AD-17, AD-22, AD-24, and AD-26 remain historical design context only where they prescribe one integrated MVP route, team-wipe restart from the beginning, crew wallet, fixed Rage Road/boss cardinality, or transient profile state. AD-29 through AD-34 are the current binding interpretation; host authority, ScriptableObject authored data, local camera/input, prefab stability, and Steam networking remain unchanged.
 
 *2026-09-15 course correction (`planning-artifacts/sprint-change-proposal-2026-09-15.md`):* AD-16's "three spawned enemy vehicles" clause is superseded by AD-32. AD-33 and AD-34 bind AI traffic behaviour and vehicle lifecycle; where earlier text implies waypoint-loop traffic, rage expressed as a speed multiplier, or removal of a blocked vehicle, AD-33 and AD-34 win.
+
+*2026-09-18 course correction (`planning-artifacts/sprint-change-proposal-2026-09-18.md`):* AD-35 binds the vehicle physics layer. Where earlier text or code implies that a vehicle is driven by writing `Rigidbody.linearVelocity` directly, or that the AI integrates its own speed in open loop, AD-35 wins. AD-7 and AD-21 are unchanged. The `ADDON-003` register line ("asset vehicle controller or arcade driving helper", `Not Started`) is resolved by AD-35 in the negative: the model is written in-project, no third-party controller is adopted, and the register line is updated rather than left pending.
 
 ## Consistency Conventions
 

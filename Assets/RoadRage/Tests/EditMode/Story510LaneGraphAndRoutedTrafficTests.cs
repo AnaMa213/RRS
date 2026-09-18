@@ -386,14 +386,14 @@ namespace RoadRage.Tests.EditMode
             }
 
             // Geometrie seulement : aucune regle de cession du passage, aucune priorite aux engages.
-            // L'arbitrage d'intersection appartient a la Story 5.11.
+            // L'arbitrage d'intersection appartient a la Story 5.18 (ex-5.11).
             foreach (var path in new[] { DriverSourcePath, SpawnerSourcePath })
             {
                 var source = CodeOnly(File.ReadAllText(path));
                 foreach (var forbidden in new[] { "GiveWay", "Yield", "Priority", "Roundabout" })
                 {
                     Assert.That(source, Does.Not.Contain(forbidden),
-                        path + " : le rond-point est de la geometrie authoree, pas une regle de circulation (Story 5.11).");
+                        path + " : le rond-point est de la geometrie authoree, pas une regle de circulation (Story 5.18).");
                 }
             }
         }

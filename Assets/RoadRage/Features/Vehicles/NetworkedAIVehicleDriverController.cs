@@ -57,7 +57,7 @@ namespace RoadRage.Features.Vehicles
     {
         /// <summary>
         /// Marge dimensionnelle (sans unite) appliquee a la portee de detection de leader, deja
-        /// derivee du profil (s0 + v.T). Provisoire : la Story 5.12 remplace cette detection avant
+        /// derivee du profil (s0 + v.T). Provisoire : la Story 5.17 (ex-5.12) remplace cette detection avant
         /// minimale par une perception elargie.
         /// </summary>
         private const float LeaderDetectionRangeFactor = 2f;
@@ -117,7 +117,7 @@ namespace RoadRage.Features.Vehicles
         // tres au-dela de la densite actuelle de MVP_Run (9 colliders au total dans la scene) : sans
         // marge, un depassement ne plante pas mais tronque silencieusement les resultats -- soit un
         // leader plus proche non vu (pas de freinage), soit un joueur proche non vu (teleportation
-        // visible malgre le garde-fou). Les Stories 5.10 (district greybox) et 5.16/5.17 (~30
+        // visible malgre le garde-fou). Les Stories 5.10 (district greybox) et 5.16 / 5.22 (ex-5.17, ~30
         // vehicules) rapprocheront la densite reelle de ces marges ; un avertissement de saturation
         // rend tout depassement futur bruyant plutot que silencieux.
         private readonly RaycastHit[] leaderHits = new RaycastHit[32];
@@ -319,7 +319,7 @@ namespace RoadRage.Features.Vehicles
                 // teleportation reste interdite tant qu'un joueur est assez proche pour la voir --
                 // le vehicule patiente alors sans reinitialiser son compteur, et part des que la
                 // zone se degage. L'echelle de deblocage propre (klaxon, contournement) arrive avec
-                // les Stories 5.11 et 5.12 et retirera ce palier.
+                // les Stories 5.18 et 5.17 (ex-5.11 / ex-5.12) et retirera ce palier.
                 if (stuckElapsedSeconds >= stuckSustainedSeconds && !IsAnyPlayerWithinClearanceRadius())
                 {
                     RecoverAtWaypoint(waypointPosition);
@@ -576,7 +576,7 @@ namespace RoadRage.Features.Vehicles
 
         /// <summary>
         /// Detection de leader avant minimale, explicitement provisoire : un seul rayon devant le
-        /// vehicule, portee derivee du profil (s0 + v.T). La Story 5.12 la remplace par la perception
+        /// vehicule, portee derivee du profil (s0 + v.T). La Story 5.17 (ex-5.12) la remplace par la perception
         /// elargie ; aucun index spatial ni collection partagee n'est introduit ici.
         /// </summary>
         /// <summary>
@@ -645,7 +645,7 @@ namespace RoadRage.Features.Vehicles
             // Direction du BALAYAGE, pas du nez. Sur un virage la trajectoire s'ecarte de
             // transform.forward : viser a mi-chemin entre le nez et le cap vise rend l'obstacle en
             // sortie de courbe visible, alors qu'un rayon strictement droit le manque. La perception
-            // reellement geometrique (arc authore) reste la Story 5.12.
+            // reellement geometrique (arc authore) reste la Story 5.17 (ex-5.12).
             var forward = ResolveScanDirection();
 
             // Depart au PARE-CHOCS, pas au centre de masse : sinon hit.distance inclut la propre

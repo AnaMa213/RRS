@@ -29,12 +29,12 @@ context: []
 
 **Ask First:**
 - Toute modification du predicat de blocage / recuperation de la Story 5.2 (`IsStuck`, `RecoverAtWaypoint`) : la Story 5.10 doit les remplacer, pas cette story.
-- Tout changement du mode d'application du mouvement (passage de `linearVelocity` a des forces ou couples physiques).
+- Tout changement du mode d'application du mouvement (passage de `linearVelocity` a des forces ou couples physiques). **Leve par la course correction du 2026-09-18 : ce changement est desormais le perimetre de la Story 5.12 (Tire Forces and Steering).**
 
 **Never:**
 - Aucun graphe de voies, portail, ou candidat de voie reel (Story 5.10) : MOBIL est livre comme fonction pure plus minuteur cable sur une liste de candidats vide.
-- Aucune perception elargie multi-vehicules, index spatial ou arc authore (Story 5.12) : la detection de leader reste une detection avant minimale, explicitement provisoire.
-- Aucune modulation continue par les jauges de rage/peur (Story 5.13) : la re-expression se limite aux dispositions deja publiees dans `NetworkedAIVehicleState.Behavior`. Le bruit de personnalite est orthogonal a l'emotion et se compose apres elle, jamais a sa place.
+- Aucune perception elargie multi-vehicules, index spatial ou arc authore (Story 5.17, ex-5.12) : la detection de leader reste une detection avant minimale, explicitement provisoire.
+- Aucune modulation continue par les jauges de rage/peur (Story 5.19, ex-5.13) : la re-expression se limite aux dispositions deja publiees dans `NetworkedAIVehicleState.Behavior`. Le bruit de personnalite est orthogonal a l'emotion et se compose apres elle, jamais a sa place.
 - Aucun tampon d'historique de reaction (file de valeurs passees horodatees) : le lissage de premier ordre couvre l'intention sans etat suppose.
 - Aucune amplitude ou periode de bruit authoree par profil : l'enveloppe est une constante partagee dans `DriverModel` pour cette story ; seul `consistency` varie par profil.
 - Aucun bruit applique a un autre axe que la vitesse desiree (pas de gigue de direction, d'ecart ou de freinage).
@@ -66,7 +66,7 @@ context: []
 ## Code Map
 
 - `Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs:41` -- `cruiseSpeed` serialise a retirer ; `:124` appel du multiplicateur ; `:151-156` branche d'immobilisation ; `:180-181` calcul de l'intent puis `ApplyMovement` ; `:200-217` `ResolveCruiseSpeedMultiplier` a supprimer ; `:265-285` `ApplyMovement` ecrit `linearVelocity` en conservant la composante verticale (`+ verticalVelocity`, epingle par test) ; `:321-344` `CacheComponents`.
-- `Assets/RoadRage/Features/Rage/RageTuningDef.cs:16-48,140-210,269-275` -- gabarit exact a copier pour le nouveau `Def` : `CreateAssetMenu`, champ `id` minuscule stable, `DefinitionId Id`, `TryValidate(out string)`, `OnValidate` qui log un avertissement. Le `Def` de conduite n'a pas besoin de catalogue : aucun appelant ne fait de lookup par id avant les Stories 5.13 / 5.16.
+- `Assets/RoadRage/Features/Rage/RageTuningDef.cs:16-48,140-210,269-275` -- gabarit exact a copier pour le nouveau `Def` : `CreateAssetMenu`, champ `id` minuscule stable, `DefinitionId Id`, `TryValidate(out string)`, `OnValidate` qui log un avertissement. Le `Def` de conduite n'a pas besoin de catalogue : aucun appelant ne fait de lookup par id avant les Stories 5.19 (ex-5.13) / 5.16.
 - `Assets/RoadRage/Features/Vehicles/VehicleDriveIntent.cs` -- unite de commande existante, conservee.
 - `Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleState.cs:30` -- `Behavior`, seule entree de disposition consommee par la modulation.
 - `Assets/RoadRage/Prefabs/Greybox_AIVehicle.prefab:197-208` -- bloc `NetworkedAIVehicleDriverController` sans aucun champ serialise ecrit : ajouter la reference au `Def` ici, les trois instances de scene en heritent.
@@ -109,8 +109,8 @@ context: []
   un joueur proche silencieusement absent du resultat.
   Densite verifiee : `MVP_Run` ne porte que 9 colliders au total aujourd'hui, donc aucun des deux
   seuils ne peut deborder dans le perimetre jouable actuel de cette story. Le risque est reel mais
-  differe : la Story 5.10 (district greybox : routes, trottoirs, batiments) et les Stories 5.16/5.17
-  (~30 vehicules simultanes) rapprocheront la densite reelle de ces tailles, et un depassement futur
+  differe : la Story 5.10 (district greybox : routes, trottoirs, batiments) et les Stories 5.16 / 5.22
+  (ex-5.17, ~30 vehicules simultanes) rapprocheront la densite reelle de ces tailles, et un depassement futur
   serait silencieux -- exactement la classe de defaut la plus couteuse a diagnostiquer.
   Amende (patch, aucune decision humaine requise) : tampons marges tres au-dela de la densite
   actuelle (`RaycastHit[8]` -> `[32]`, `Collider[16]` -> `[48]`), et avertissement Console une seule
@@ -147,7 +147,7 @@ context: []
   entre le nez et le cap vise (`ResolveScanDirection`).
   KEEP : cela reste une detection AVANT MINIMALE a une seule cible -- aucun index spatial, aucun arc
   authore, aucune perception multi-vehicules. La couverture geometrique complete des virages reste
-  la Story 5.12, qui remplacera ce balayage.
+  la Story 5.17 (ex-5.12), qui remplacera ce balayage.
 
 - **2026-09-15 -- Detection de leader aveugle aux pietons (decision Ask First, approuvee par l'humain).**
   Declencheur : test Play Mode humain -- un vehicule IA devant lequel le joueur se place a pied
@@ -162,22 +162,23 @@ context: []
   `recoveryPlayerClearanceRadius` (40 m).
   Etat connu-mauvais evite : la contrainte d'epique « un vehicule bloque n'est jamais teleporte »
   etait violee a chaque freinage correct, soit exactement quand le modele fait son travail.
-  KEEP : le palier de recuperation reste present tant que les Stories 5.11 (echelle anti-blocage) et
-  5.12 (deblocage progressif : klaxon puis contournement) ne l'ont pas remplace -- le retirer
-  maintenant laisserait un vehicule reellement encastre bloque indefiniment. Le contournement propre
+  KEEP : le palier de recuperation reste present tant que les Stories 5.18 (ex-5.11, echelle
+  anti-blocage) et 5.17 (ex-5.12, deblocage progressif : klaxon puis contournement) ne l'ont pas
+  remplace -- le retirer maintenant laisserait un vehicule reellement encastre bloque indefiniment. Le contournement propre
   n'est PAS livre par cette story.
   Correction de la spec : la ligne `Ask First` attribuait le remplacement de `IsStuck` /
-  `RecoverAtWaypoint` a la Story 5.10 ; les proprietaires reels sont les Stories 5.11 et 5.12.
+  `RecoverAtWaypoint` a la Story 5.10 ; les proprietaires reels sont les Stories 5.14, 5.17 et 5.18
+  (ex-5.11 / ex-5.12).
 
 ## Design Notes
 
 - **Pourquoi une classe statique separee.** `Story52BasicAiRouteFollowingAndRecoveryTests` epingle le nombre de membres `static` du controleur comme garde d'absence d'etat partage entre vehicules. Loger IDM et MOBIL dans `DriverModel` conserve cette garde intacte (elle passe de 4 a 3) au lieu de la diluer, et donne aux fonctions pures un lieu testable sans `MonoBehaviour`.
 - **Integrer plutot que reecrire la physique.** `ApplyMovement` continue d'ecrire `linearVelocity` en preservant la composante verticale : contrat epingle par la Story 5.2, car l'ecraser annulerait la gravite et rendrait la recuperation hors-zone inatteignable. Le modele fournit une acceleration ; le controleur maintient une vitesse par instance, `vitesse = clamp(vitesse + a * dt, 0, +inf)`, et la projette sur l'avant. Passer a des forces physiques est un autre sujet, explicitement `Ask First`.
 - **Ecart nul.** L'IDM divise par l'ecart : celui-ci est clampe a un epsilon strictement positif avant la division, de sorte qu'un ecart nul produit une deceleration forte mais finie. Sans ce clamp, la matrice I/O produit `-Inf` puis un `linearVelocity` NaN qui contamine le `NetworkTransform`.
-- **Re-expression des dispositions.** `ResolveEffectiveProfile` remplace le multiplicateur par une modulation du profil : la rage baisse `T` et `s0`, monte `a`, `b` et `v0`, baisse `p` et `a_th`, monte `b_safe` (tableau des leviers de la recherche). `Block` et `ConfrontationCapable` mettent `v0` effectif a 0. C'est la forme minimale de `effectif = base x f(...)` exigee par l'AD-33 ; la Story 5.13 remplacera l'entree discrete par les jauges continues, entre cette modulation et le bruit de personnalite (voir ordre de composition ci-dessous).
+- **Re-expression des dispositions.** `ResolveEffectiveProfile` remplace le multiplicateur par une modulation du profil : la rage baisse `T` et `s0`, monte `a`, `b` et `v0`, baisse `p` et `a_th`, monte `b_safe` (tableau des leviers de la recherche). `Block` et `ConfrontationCapable` mettent `v0` effectif a 0. C'est la forme minimale de `effectif = base x f(...)` exigee par l'AD-33 ; la Story 5.19 (ex-5.13) remplacera l'entree discrete par les jauges continues, entre cette modulation et le bruit de personnalite (voir ordre de composition ci-dessous).
 - **Phase du minuteur.** La desynchronisation vient de l'instance (`GetInstanceID()` ou equivalent stable), pas d'un tirage aleatoire : deterministe, donc testable. Le meme scalaire de phase sert au minuteur de changement de voie et au bruit de `consistency`.
 - **Lissage plutot que tampon d'historique (reactionTime).** Un vrai modele a delai (file de valeurs passees horodatees) ajoute de l'etat et complique le test des cas limites. Une loi de premier ordre (`applique += (cible - applique) * (1 - exp(-dt / reactionTime))`) ne demande que le scalaire d'acceleration deja porte par instance, converge sans depassement et reste un predicat pur : `SmoothAcceleration(applique, cible, reactionTime, dt)`.
-- **Ordre de composition : disposition puis bruit.** `effectifV0 = ResolveEffectiveProfile(...).DesiredSpeed`, puis `ResolveNoisyDesiredSpeed(effectifV0, consistency, temps, phase)` juste avant l'appel a `ComputeAcceleration`. La Story 5.13 remplacera l'etape de disposition par une modulation continue rage/peur sans toucher au bruit, qui reste une couche de personnalite orthogonale a l'emotion.
+- **Ordre de composition : disposition puis bruit.** `effectifV0 = ResolveEffectiveProfile(...).DesiredSpeed`, puis `ResolveNoisyDesiredSpeed(effectifV0, consistency, temps, phase)` juste avant l'appel a `ComputeAcceleration`. La Story 5.19 (ex-5.13) remplacera l'etape de disposition par une modulation continue rage/peur sans toucher au bruit, qui reste une couche de personnalite orthogonale a l'emotion.
 - **Enveloppe de bruit partagee.** `ponytail:` l'amplitude maximale et la frequence du bruit de vitesse desiree sont des constantes uniques dans `DriverModel` (par ex. +/-6% de `v0`, deux termes sinusoidaux de frequence fixe combines avec la phase par instance) ; seul `consistency` varie par profil pour cette story. Si le playtest demande un archetype avec un tremblement plus ou moins large que les autres, faire de l'amplitude et de la frequence des champs du `Def`.
 
 ## Verification

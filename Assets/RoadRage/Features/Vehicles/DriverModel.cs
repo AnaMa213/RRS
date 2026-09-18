@@ -132,7 +132,7 @@ namespace RoadRage.Features.Vehicles
         /// (carte des leviers de la recherche). Block et ConfrontationCapable mettent v0 a 0 : le
         /// vehicule cesse de poursuivre la route. Les trois parametres de personnalite ne sont pas
         /// touches : ils sont orthogonaux a l'emotion.
-        /// La Story 5.13 remplacera cette entree discrete par les jauges continues rage/peur.
+        /// La Story 5.19 (ex-5.13) remplacera cette entree discrete par les jauges continues rage/peur.
         /// </summary>
         public static DriverProfile ResolveEffectiveProfile(DriverProfile profile, RageDisposition disposition)
         {

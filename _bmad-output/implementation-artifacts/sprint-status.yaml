@@ -29,7 +29,20 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 09-16-2026
+last_updated: 09-18-2026
+# 2026-09-18 course correction: Epic 5 gains a vehicle physics foundation (see
+# planning-artifacts/sprint-change-proposal-2026-09-18.md). Stories 5.11-5.15 are new:
+# chassis/wheels/suspension, tire forces and steering, arcade assists and uneven ground,
+# AI driving by intent, credible collisions. The former 5.11-5.18 shift to 5.16-5.23;
+# 5.16 keeps its number and slug. All shifted keys were in backlog, so this was a safe
+# rename. The former standalone trajectory-following story was folded into 5.12 - it is
+# the steering model, not an independently verifiable deliverable.
+# 5.10 moves in-progress -> review: it is delivered in substance, and its open anomaly
+# ANO-5.10-03 is transferred to 5.14, which owns the collision-response behaviour. The
+# anomaly stays `open` under its new owner.
+# Binding decision added: AD-35 (raycast wheel model, never WheelCollider).
+# Hard prerequisite recorded on 5.14: the PlayMode harness fix (red 3/33, unfilterable)
+# tracked in docs/setup/devworkflow-rollout.md.
 # 2026-09-15 course correction: Epic 5 scope expanded (see
 # planning-artifacts/sprint-change-proposal-2026-09-15.md). Stories 5.8-5.17 added.
 # The epic checkpoint moved from 5.8 to 5.18 so it sits last in its own epic; it was
@@ -112,15 +125,20 @@ development_status:
   5-7-ai-traffic-networking-and-client-presentation: review
   5-8-escape-menu-and-return-to-main-menu: review
   5-9-parameterized-driver-model: review
-  5-10-lane-graph-greybox-district-and-routed-traffic: in-progress
-  5-11-intersection-rules-and-deadlock-prevention: backlog
-  5-12-wider-perception-and-progressive-unblocking: backlog
-  5-13-rage-and-fear-as-driving-model-modulation: backlog
-  5-14-player-targeted-rage-ladder-and-rage-road-trigger: backlog
-  5-15-thrown-litter-foundation-and-attribution: backlog
+  5-10-lane-graph-greybox-district-and-routed-traffic: review
+  5-11-vehicle-chassis-wheels-and-suspension: backlog
+  5-12-tire-forces-and-steering: backlog
+  5-13-arcade-assists-and-uneven-ground: backlog
+  5-14-ai-drives-by-intent: backlog
+  5-15-credible-collisions-and-damage-integration: backlog
   5-16-lobby-configurable-traffic-settings: backlog
-  5-17-scale-validation-and-network-budget: backlog
-  5-18-epic-5-ai-traffic-playable-checkpoint: backlog
+  5-17-wider-perception-and-progressive-unblocking: backlog
+  5-18-intersection-rules-and-deadlock-prevention: backlog
+  5-19-rage-and-fear-as-driving-model-modulation: backlog
+  5-20-thrown-litter-foundation-and-attribution: backlog
+  5-21-player-targeted-rage-ladder-and-rage-road-trigger: backlog
+  5-22-scale-validation-and-network-budget: backlog
+  5-23-epic-5-ai-traffic-playable-checkpoint: backlog
   epic-5-retrospective: optional
 
   epic-6: backlog
