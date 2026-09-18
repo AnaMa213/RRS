@@ -6,9 +6,10 @@ namespace RoadRage.Features.Vehicles
     /// <summary>
     /// Story 5.9 : personnalite de conduite d'un vehicule IA, exprimee comme une petite structure de
     /// flottants (recherche du 2026-09-15, R2). Les huit premiers parametres sont ceux d'IDM (modele
-    /// de poursuite longitudinale) et de MOBIL (decision de changement de voie) ; les trois derniers
+    /// de poursuite longitudinale) et de MOBIL (decision de changement de voie) ; les trois suivants
     /// sont des leviers de personnalite qui permettent a deux archetypes partageant la meme vitesse
-    /// desiree de se sentir differents a conduire.
+    /// desiree de se sentir differents a conduire ; le dernier (Story 5.13) est la vitesse de rappel de
+    /// la cible de visee.
     ///
     /// Unite transportee entre le <see cref="DriverProfileDef"/> (authoring), la modulation par
     /// disposition (<see cref="DriverModel.ResolveEffectiveProfile"/>) et les fonctions pures du
@@ -77,6 +78,19 @@ namespace RoadRage.Features.Vehicles
         [Tooltip("Regularite du conducteur. 1 = parfaitement regulier (aucun bruit), 0 = vitesse desiree la plus flottante.")]
         private float consistency;
 
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("AIDE ARCADE (Story 5.13) -- vitesse de RAPPEL (m/s) du point de visee vers sa cible ideale : c'est elle qui rend la visee continue quand le vehicule franchit un noeud. Au-dessus de la vitesse de croisiere authoree (8 m/s), donc elle ne retarde pas la visee en conduite nominale. NUL : rappel inerte, la cible saute de nouveau a l'avancee de noeud.")]
+        private float aimPointRecallSpeed;
+
+        /// <summary>
+        /// Valeur de rappel de cible utilisee UNIQUEMENT quand un appelant ne la fournit pas : les
+        /// fixtures anterieures a la Story 5.13 construisent un profil a onze arguments, et leur
+        /// intention ne portait pas sur la visee. L'authoring reel l'ecrit toujours explicitement dans
+        /// <see cref="DriverProfileDef"/> -- ce n'est pas un repli de conduite.
+        /// </summary>
+        public const float DefaultAimPointRecallSpeed = 12f;
+
         public DriverProfile(
             float desiredSpeed,
             float timeHeadway,
@@ -88,7 +102,8 @@ namespace RoadRage.Features.Vehicles
             float safeBrakingLimit,
             float reactionTime,
             float laneChangeEvaluationInterval,
-            float consistency)
+            float consistency,
+            float aimPointRecallSpeed = DefaultAimPointRecallSpeed)
         {
             this.desiredSpeed = desiredSpeed;
             this.timeHeadway = timeHeadway;
@@ -101,6 +116,7 @@ namespace RoadRage.Features.Vehicles
             this.reactionTime = reactionTime;
             this.laneChangeEvaluationInterval = laneChangeEvaluationInterval;
             this.consistency = consistency;
+            this.aimPointRecallSpeed = aimPointRecallSpeed;
         }
 
         /// <summary>v0 -- vitesse desiree en flux libre (m/s). 0 signifie "cesse de poursuivre la route".</summary>
@@ -167,6 +183,12 @@ namespace RoadRage.Features.Vehicles
         public float Consistency
         {
             get { return consistency; }
+        }
+
+        /// <summary>Vitesse de rappel (m/s) du point de visee vers sa cible ideale. Nulle : rappel inerte (Story 5.13).</summary>
+        public float AimPointRecallSpeed
+        {
+            get { return aimPointRecallSpeed; }
         }
 
         /// <summary>

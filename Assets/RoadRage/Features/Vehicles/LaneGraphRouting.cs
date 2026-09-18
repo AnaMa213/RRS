@@ -272,25 +272,65 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
-        /// Predicat pur (Story 5.12) : point de visee anticipe du suivi de trajectoire. Viser la
-        /// POSITION d'un noeud fait basculer la cible d'un noeud au suivant d'un coup -- et comme le
-        /// basculement se produit a <c>arrivalRadius</c> du noeud, le vehicule se met a viser en
-        /// diagonale un point situe de l'autre cote de la jonction : il coupe l'interieur du virage,
-        /// d'une profondeur exactement bornee par ce rayon.
+        /// Predicat pur (Story 5.12, rendu CONTINU par la Story 5.13) : point de visee anticipe du suivi
+        /// de trajectoire. Viser la POSITION d'un noeud fait basculer la cible d'un noeud au suivant
+        /// d'un coup -- et comme le basculement se produit a <c>arrivalRadius</c> du noeud, le vehicule
+        /// se met a viser en diagonale un point situe de l'autre cote de la jonction : il coupe
+        /// l'interieur du virage, d'une profondeur exactement bornee par ce rayon.
         ///
-        /// Ici la cible se deplace CONTINUMENT : tant que le noeud vise est plus loin que la distance
-        /// de visee, la cible reste le noeud (viser un point de la meme droite ne change pas le cap) ;
-        /// des que le vehicule en est plus pres, la cible glisse au-dela du noeud, le long de son
+        /// Ici la cible IDEALE se deplace CONTINUMENT : tant que le noeud vise est plus loin que la
+        /// distance de visee, la cible reste le noeud (viser un point de la meme droite ne change pas le
+        /// cap) ; des que le vehicule en est plus pres, la cible glisse au-dela du noeud, le long de son
         /// SENS DE CIRCULATION authore. A la distance de visee exacte, les deux formules se rejoignent :
-        /// aucune discontinuite, donc aucun basculement.
+        /// aucune discontinuite dans la loi elle-meme.
+        ///
+        /// **Le saut qui restait, et d'ou il venait.** La loi ci-dessus est continue tant que le NOEUD
+        /// vise ne change pas -- et il change, par construction, quand le vehicule entre dans
+        /// <c>arrivalRadius</c>. A ce moment la cible ideale saute de la branche sortante du noeud
+        /// quitte a celle du noeud suivant : jusqu'a deux fois la distance de visee (4,8 m a 8 m/s avec
+        /// la duree livree), donc un echelon de consigne de direction d'un pas de physique a l'autre.
+        ///
+        /// <paramref name="previousAimPoint"/> et <paramref name="maximumStepDistance"/> referment cet
+        /// echelon : la cible rendue part du point precedent et avance VERS la cible ideale d'au plus un
+        /// pas. La continuite est alors une propriete de la fonction, pas une esperance -- la position
+        /// rendue ne peut jamais s'ecarter de plus d'un pas de la precedente, quelle que soit la
+        /// discontinuite de la cible ideale.
+        ///
+        /// Le rappel est INERTE a un pas maximal nul ou non fini : la cible rendue est alors exactement
+        /// la cible ideale, c'est-a-dire la loi de la Story 5.12. C'est le patron de desactivation deja
+        /// en place dans la couche (valeur nulle = terme inerte), et c'est ce qui permet de mesurer les
+        /// deux lois sur les memes trajectoires.
         ///
         /// Le sens de circulation vient du noeud lui-meme (<see cref="LaneGraph.GetNodeRotation"/>),
         /// pas d'un successeur tire : le tirage de virage n'est fait qu'a l'arrivee, et deviner
         /// maintenant lequel sera tire reviendrait a decider deux fois.
         ///
-        /// Aucune mutation : c'est une lecture de geometrie, appelable a chaque pas.
+        /// Aucune mutation : c'est une lecture de geometrie, et la memoire de la cible appartient a
+        /// l'appelant.
         /// </summary>
         public static Vector3 ResolveLookAheadPoint(
+            Vector3 position,
+            Vector3 waypointPosition,
+            Vector3 waypointForward,
+            float lookAheadDistance,
+            Vector3 previousAimPoint,
+            float maximumStepDistance)
+        {
+            var ideal = ResolveIdealLookAheadPoint(position, waypointPosition, waypointForward, lookAheadDistance);
+
+            // Un point IDEAL non fini ne peut venir que d'une ENTREE non finie : les operations de
+            // cette fonction sont bornees. Le repli rend la position du noeud (l'entree brute) plutot
+            // qu'une valeur inventee, et il evite qu'un rappel en fabrique une seconde a partir d'elle.
+            if (!float.IsFinite(ideal.x) || !float.IsFinite(ideal.y) || !float.IsFinite(ideal.z))
+            {
+                ideal = waypointPosition;
+            }
+
+            return RecallAimPoint(previousAimPoint, ideal, maximumStepDistance);
+        }
+
+        /// <summary>Point de visee IDEAL d'un noeud donne, sans memoire : la loi de la Story 5.12.</summary>
+        private static Vector3 ResolveIdealLookAheadPoint(
             Vector3 position,
             Vector3 waypointPosition,
             Vector3 waypointForward,
@@ -318,6 +358,39 @@ namespace RoadRage.Features.Vehicles
 
             flatForward.Normalize();
             return waypointPosition + (flatForward * (lookAheadDistance - distance));
+        }
+
+        /// <summary>
+        /// Rappel BORNE du point de visee vers sa cible ideale : c'est la partie de la fonction qui rend
+        /// la visee continue au passage de noeud. Le point rendu se deplace de la position precedente
+        /// vers la cible ideale, d'au plus <paramref name="maximumStepDistance"/> -- donc jamais d'un
+        /// saut, quelle que soit la discontinuite de la cible.
+        ///
+        /// Un pas maximal nul, negatif ou non fini rend le rappel INERTE (la cible ideale telle quelle),
+        /// et une memoire non finie est ignoree de la meme facon : dans les deux cas la fonction rend une
+        /// valeur utilisable plutot qu'un point invente ou un NaN.
+        /// </summary>
+        private static Vector3 RecallAimPoint(Vector3 previousAimPoint, Vector3 idealAimPoint, float maximumStepDistance)
+        {
+            if (!float.IsFinite(maximumStepDistance) || maximumStepDistance <= 0f)
+            {
+                return idealAimPoint;
+            }
+
+            if (!float.IsFinite(previousAimPoint.x) || !float.IsFinite(previousAimPoint.y) || !float.IsFinite(previousAimPoint.z))
+            {
+                return idealAimPoint;
+            }
+
+            var offset = idealAimPoint - previousAimPoint;
+            var distance = offset.magnitude;
+
+            if (!float.IsFinite(distance) || distance <= maximumStepDistance)
+            {
+                return idealAimPoint;
+            }
+
+            return previousAimPoint + (offset * (maximumStepDistance / distance));
         }
 
         /// <summary>

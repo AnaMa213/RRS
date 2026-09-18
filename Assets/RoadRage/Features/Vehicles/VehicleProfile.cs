@@ -170,6 +170,26 @@ namespace RoadRage.Features.Vehicles
         [Tooltip("Fraction du pic conservee en glissement total (0 a 1 exclus) : l'asymptote de la chute d'adherence. Elle doit rester STRICTEMENT positive -- une force qui tombe a zero serait un seuil binaire deguise, et la derive deviendrait irrecuperable.")]
         private float tireSlipFalloffFraction;
 
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("AIDE ARCADE (Story 5.13) -- abattement du lacet (N.m par degre par seconde de vitesse de lacet). Amortit la rotation de la caisse sans jamais la figer ni tenir un cap. NUL : terme inerte, le lacet est entierement rendu a la geometrie du pneu.")]
+        private float yawStabilityRate;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("AIDE ARCADE (Story 5.13) -- controle de traction : part du couple moteur d'une roue retiree quand son glissement depasse le pic author e (0 a 1 EXCLUS). NUL : terme inerte. STRICTEMENT inferieure a 1 : l'attenuation ne peut pas annuler le couple moteur.")]
+        private float tractionControlStrength;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("AIDE ARCADE (Story 5.13) -- recuperation de tete-a-queue (N.m par degre par seconde de derive au-dela du seuil). Dirige du cote demande par le conducteur : entree nulle, aucun couple. NUL : terme inerte.")]
+        private float spinRecoveryRate;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("AIDE ARCADE (Story 5.13) -- seuil de derive (degres par seconde) sous lequel la recuperation de tete-a-queue ne se declenche pas : une caisse qui tourne normalement dans un virage ne doit rien sentir. NUL : le terme agit des la moindre rotation, pourvu que son propre taux soit author e.")]
+        private float spinDriftThresholdDegreesPerSecond;
+
         public VehicleProfile(
             float mass,
             Vector3 centerOfMass,
@@ -201,7 +221,11 @@ namespace RoadRage.Features.Vehicles
             float steerReturnRateDegreesPerSecond,
             float tirePeakSlipRatio,
             float tirePeakSlipAngleDegrees,
-            float tireSlipFalloffFraction)
+            float tireSlipFalloffFraction,
+            float yawStabilityRate,
+            float tractionControlStrength,
+            float spinRecoveryRate,
+            float spinDriftThresholdDegreesPerSecond)
         {
             this.mass = mass;
             this.centerOfMass = centerOfMass;
@@ -234,6 +258,10 @@ namespace RoadRage.Features.Vehicles
             this.tirePeakSlipRatio = tirePeakSlipRatio;
             this.tirePeakSlipAngleDegrees = tirePeakSlipAngleDegrees;
             this.tireSlipFalloffFraction = tireSlipFalloffFraction;
+            this.yawStabilityRate = yawStabilityRate;
+            this.tractionControlStrength = tractionControlStrength;
+            this.spinRecoveryRate = spinRecoveryRate;
+            this.spinDriftThresholdDegreesPerSecond = spinDriftThresholdDegreesPerSecond;
         }
 
         /// <summary>Masse (kg).</summary>
@@ -422,6 +450,30 @@ namespace RoadRage.Features.Vehicles
             get { return tireSlipFalloffFraction; }
         }
 
+        /// <summary>Abattement du lacet (N.m par degre par seconde). Nul : terme inerte (Story 5.13).</summary>
+        public float YawStabilityRate
+        {
+            get { return yawStabilityRate; }
+        }
+
+        /// <summary>Part du couple moteur retiree en glissement excessif, dans <c>[0, 1[</c>. Nulle : terme inerte (Story 5.13).</summary>
+        public float TractionControlStrength
+        {
+            get { return tractionControlStrength; }
+        }
+
+        /// <summary>Couple de recuperation de tete-a-queue (N.m par degre par seconde de derive). Nul : terme inerte (Story 5.13).</summary>
+        public float SpinRecoveryRate
+        {
+            get { return spinRecoveryRate; }
+        }
+
+        /// <summary>Seuil de derive (degres par seconde) de la recuperation de tete-a-queue (Story 5.13).</summary>
+        public float SpinDriftThresholdDegreesPerSecond
+        {
+            get { return spinDriftThresholdDegreesPerSecond; }
+        }
+
         /// <summary>
         /// Roue d'index donne, ou <c>default</c> hors bornes. Lecture par valeur : le tableau authore
         /// n'est jamais expose, donc jamais mute par un appelant.
@@ -461,6 +513,31 @@ namespace RoadRage.Features.Vehicles
             anchorHeight /= WheelCount;
 
             return restLength - VehicleSuspensionModel.ResolveStaticCompression(mass, gravity, WheelCount, springRate) - anchorHeight;
+        }
+
+        /// <summary>
+        /// Demi-voie moyenne (m) : moyenne des <c>|x|</c> locaux des roues authorees. C'est la distance
+        /// a laquelle une force laterale produit un couple autour de l'axe vertical, donc l'echelle de
+        /// toute borne angulaire de la couche -- les aides de lacet de la Story 5.13 la lisent pour
+        /// borner leurs termes contre le budget de charge porte.
+        ///
+        /// Zero si le profil ne porte aucune roue : la borne qu'elle alimente est alors nulle, donc le
+        /// terme qu'elle borne est inerte plutot que non borne.
+        /// </summary>
+        public float ResolveMeanHalfTrack()
+        {
+            if (WheelCount == 0)
+            {
+                return 0f;
+            }
+
+            var halfTrack = 0f;
+            for (var i = 0; i < WheelCount; i++)
+            {
+                halfTrack += Mathf.Abs(GetWheel(i).LocalPosition.x);
+            }
+
+            return halfTrack / WheelCount;
         }
     }
 }

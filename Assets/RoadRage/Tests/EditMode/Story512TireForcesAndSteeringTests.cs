@@ -361,18 +361,22 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void LookAheadPointStaysCollinearOnAStraightAndSlidesPastTheNodeWhenClose()
         {
+            // Story 5.13 : la loi prend desormais une MEMOIRE de cible et un pas maximal de rappel.
+            // Les deux sont NEUTRES ici (pas maximal nul) : c'est exactement la loi livree en 5.12,
+            // que cette garde continue de verifier. La continuite du rappel elle-meme se prouve dans
+            // la fixture 5.13 et sur les trajectoires rejouees du district (Story510).
             var far = LaneGraphRouting.ResolveLookAheadPoint(
-                Vector3.zero, new Vector3(0f, 0f, 20f), Vector3.forward, 6f);
+                Vector3.zero, new Vector3(0f, 0f, 20f), Vector3.forward, 6f, Vector3.zero, 0f);
             Assert.That(far, Is.EqualTo(new Vector3(0f, 0f, 20f)),
                 "Noeud plus loin que la distance de visee : la cible reste le noeud -- viser un point de la meme droite ne change pas le cap.");
 
             var close = LaneGraphRouting.ResolveLookAheadPoint(
-                new Vector3(0f, 0f, 18f), new Vector3(0f, 0f, 20f), Vector3.forward, 6f);
+                new Vector3(0f, 0f, 18f), new Vector3(0f, 0f, 20f), Vector3.forward, 6f, Vector3.zero, 0f);
             Assert.That(close, Is.EqualTo(new Vector3(0f, 0f, 24f)),
                 "Noeud a moins de la distance de visee : la cible glisse AU-DELA du noeud, le long de son sens de circulation.");
 
             var turning = LaneGraphRouting.ResolveLookAheadPoint(
-                new Vector3(0f, 0f, 18f), new Vector3(0f, 0f, 20f), Vector3.right, 6f);
+                new Vector3(0f, 0f, 18f), new Vector3(0f, 0f, 20f), Vector3.right, 6f, Vector3.zero, 0f);
             Assert.That(turning, Is.EqualTo(new Vector3(4f, 0f, 20f)),
                 "Le point de visee suit le SENS DE CIRCULATION authore sur le noeud vise. A un carrefour, ce sens est la "
                 + "direction traversante du noeud, pas la sortie du virage : celle-ci n'est tiree qu'a l'arrivee, et la deviner "
@@ -385,18 +389,18 @@ namespace RoadRage.Tests.EditMode
             var waypoint = new Vector3(0f, 0f, 20f);
             const float LookAhead = 6f;
 
-            var justOutside = LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 13.999f), waypoint, Vector3.forward, LookAhead);
-            var justInside = LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 14.001f), waypoint, Vector3.forward, LookAhead);
+            var justOutside = LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 13.999f), waypoint, Vector3.forward, LookAhead, Vector3.zero, 0f);
+            var justInside = LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 14.001f), waypoint, Vector3.forward, LookAhead, Vector3.zero, 0f);
             Assert.That(Vector3.Distance(justOutside, justInside), Is.LessThan(0.01f),
                 "A la distance de visee exacte les deux formules se rejoignent : aucun basculement de cible, donc aucune a-coup de direction.");
 
             var unchanged = waypoint;
-            LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 19f), waypoint, Vector3.forward, LookAhead);
+            LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 19f), waypoint, Vector3.forward, LookAhead, Vector3.zero, 0f);
             Assert.That(waypoint, Is.EqualTo(unchanged), "Lecture de geometrie : la position du noeud n'est jamais mutee.");
 
-            Assert.That(LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 19f), waypoint, Vector3.forward, 0f),
+            Assert.That(LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 19f), waypoint, Vector3.forward, 0f, Vector3.zero, 0f),
                 Is.EqualTo(waypoint), "Distance de visee nulle : repli sur le noeud.");
-            Assert.That(LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 19f), waypoint, Vector3.zero, LookAhead),
+            Assert.That(LaneGraphRouting.ResolveLookAheadPoint(new Vector3(0f, 0f, 19f), waypoint, Vector3.zero, LookAhead, Vector3.zero, 0f),
                 Is.EqualTo(waypoint), "Sens de circulation degenere : repli sur le noeud, jamais un point invente.");
         }
 
@@ -570,6 +574,16 @@ namespace RoadRage.Tests.EditMode
             Assert.That(profile.HandbrakeTorque, Is.GreaterThan(0f));
             Assert.That(profile.WheelInertia, Is.GreaterThan(0f));
             Assert.That(profile.MinimumDirectionSpeed, Is.GreaterThan(0f));
+
+            // Story 5.13 : les aides arcade s'ajoutent au meme point de reglage unique, et le profil
+            // doit les porter sur SES DEUX copies (asset et valeurs par defaut du Def). Une aide
+            // authoree dans une seule des deux divergerait en silence des le prochain prefab.
+            Assert.That(profile.YawStabilityRate, Is.GreaterThan(0f), "L'abattement du lacet est authore (Story 5.13).");
+            Assert.That(profile.TractionControlStrength, Is.InRange(0f, 0.999f),
+                "Le controle de traction est authore et strictement sous 1 : l'attenuation ne peut pas annuler le couple.");
+            Assert.That(profile.SpinRecoveryRate, Is.GreaterThan(0f), "La recuperation de tete-a-queue est authoree (Story 5.13).");
+            Assert.That(profile.SpinDriftThresholdDegreesPerSecond, Is.GreaterThan(0f),
+                "Le seuil de derive est authore : sous lui, le terme de recuperation ne se declenche pas.");
 
             var expectedDriveForce = profile.EngineTorque / profile.GetWheel(0).Radius;
             Assert.That(expectedDriveForce, Is.GreaterThan(0f),

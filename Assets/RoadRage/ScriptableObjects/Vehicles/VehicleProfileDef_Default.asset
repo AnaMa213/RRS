@@ -67,3 +67,7 @@ MonoBehaviour:
     tirePeakSlipRatio: 0.14
     tirePeakSlipAngleDegrees: 8
     tireSlipFalloffFraction: 0.8
+    yawStabilityRate: 60
+    tractionControlStrength: 0.5
+    spinRecoveryRate: 40
+    spinDriftThresholdDegreesPerSecond: 30

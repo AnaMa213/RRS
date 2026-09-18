@@ -167,6 +167,20 @@ namespace RoadRage.Features.Vehicles
         private float scanRadius;
 
         /// <summary>
+        /// Memoire du point de visee (Story 5.13) : la cible rendue par
+        /// <see cref="LaneGraphRouting.ResolveLookAheadPoint"/> part de ce point et avance d'un pas
+        /// borne, au lieu de sauter sur la branche du noeud suivant.
+        ///
+        /// La memoire vit ICI et pas dans la fonction pure : celle-ci reste sans etat, donc sans second
+        /// chemin de verite. Elle est remise a zero aux deux seuls moments qui remettent le vehicule a un
+        /// point de depart connu -- l'insertion et la recuperation sur place -- exactement comme la
+        /// memoire de parcours, et jamais ailleurs : entre ces deux moments, un rappel qui repart de zero
+        /// serait un saut de plus, celui-la invisible.
+        /// </summary>
+        private Vector3 previousAimPoint;
+        private bool hasAimPoint;
+
+        /// <summary>
         /// Vrai des que ce vehicule a atteint un noeud de portail de sortie. C'est le SEUL signal de
         /// retrait du trafic (AD-34) : ni compteur, ni distance au joueur, ni echec de trajet, ni
         /// capot retourne ne le levent. Lu par le spawner hote, qui detient le despawn -- ce
@@ -358,12 +372,27 @@ namespace RoadRage.Features.Vehicles
             // s'en approche, le long du sens de circulation authore sur le noeud. La distance vient de
             // la vitesse et de la duree authoree -- la cible avance donc avec le vehicule, au lieu de
             // basculer d'un noeud au suivant et de le faire viser en diagonale a travers la jonction.
+            //
+            // Continuite de la visee (Story 5.13) : la cible IDEALE ci-dessus est continue tant que le
+            // noeud ne change pas, et elle saute au franchissement -- jusqu'a deux fois la distance de
+            // visee, soit 4,8 m a 8 m/s. Le point de visee rendu, lui, part de la cible precedente et
+            // avance d'au plus 'vitesse de rappel x pas de temps', donc il ne peut plus sauter. La
+            // vitesse de rappel est une donnee AUTHOREE du profil conducteur, jamais une constante de ce
+            // controleur (Story 5.9) ; au premier pas il n'y a pas de memoire, donc pas de rappel.
+            var nodeForward = laneGraph.GetNodeRotation(waypointIndex) * Vector3.forward;
             var lookAheadDistance = Mathf.Max(0f, currentSpeed) * lookAheadSeconds;
+            var recallStep = hasAimPoint ? Mathf.Max(0f, profile.AimPointRecallSpeed) * fixedDeltaTime : 0f;
+
             var aimPoint = LaneGraphRouting.ResolveLookAheadPoint(
                 transform.position,
                 waypointPosition,
-                laneGraph.GetNodeRotation(waypointIndex) * Vector3.forward,
-                lookAheadDistance);
+                nodeForward,
+                lookAheadDistance,
+                previousAimPoint,
+                recallStep);
+
+            previousAimPoint = aimPoint;
+            hasAimPoint = true;
 
             var intent = ComputeSeekIntent(transform.position, transform.forward, aimPoint, steerFullLockDegrees);
             ApplyMovement(intent, fixedDeltaTime, currentSpeed);
@@ -446,6 +475,12 @@ namespace RoadRage.Features.Vehicles
             {
                 System.Array.Clear(traversedNodes, 0, traversedNodes.Length);
             }
+
+            // La memoire de la CIBLE est effacee ici pour la meme raison que celle du parcours : c'est un
+            // point de depart connu, donc tout rappel qui repartirait d'une cible anterieure serait un
+            // saut de plus. Ailleurs la memoire doit survivre -- c'est elle qui porte la continuite.
+            hasAimPoint = false;
+            previousAimPoint = Vector3.zero;
 
             MarkNodeTraversed(nodeIndex);
         }
@@ -806,6 +841,16 @@ namespace RoadRage.Features.Vehicles
         /// </summary>
         public static VehicleDriveIntent ComputeSeekIntent(Vector3 position, Vector3 forward, Vector3 aimPoint, float steerFullLockDegrees)
         {
+            // Derniere barriere avant l'ecriture de vitesse, et elle seule : un point de visee non fini
+            // produirait un intent non fini, donc un `linearVelocity` non fini, donc un vehicule qui
+            // disparait. Le repli est « tout droit, plein gaz » -- un cap faux mais FINI, et que le
+            // parcours rattrape au noeud suivant.
+            if (!float.IsFinite(aimPoint.x) || !float.IsFinite(aimPoint.y) || !float.IsFinite(aimPoint.z)
+                || !float.IsFinite(position.x) || !float.IsFinite(position.y) || !float.IsFinite(position.z))
+            {
+                return new VehicleDriveIntent(1f, 0f, 0f, 0f);
+            }
+
             var toAimPoint = aimPoint - position;
             toAimPoint.y = 0f;
 

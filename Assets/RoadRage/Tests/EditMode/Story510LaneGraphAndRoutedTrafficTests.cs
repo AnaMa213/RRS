@@ -32,6 +32,9 @@ namespace RoadRage.Tests.EditMode
         private const string DriverSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs";
         private const string RunFlowSourcePath = "Assets/RoadRage/App/Run/RunFlowController.cs";
         private const string TrafficDefPath = "Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.asset";
+
+        /// <summary>Profil conducteur authore : c'est lui qui porte la vitesse de rappel de la cible (Story 5.13).</summary>
+        private const string DriverProfilePath = "Assets/RoadRage/ScriptableObjects/Vehicles/DriverProfileDef_Default.asset";
         private const string NavMeshAreasPath = "ProjectSettings/NavMeshAreas.asset";
 
         private const string SegmentPrefabPath = "Assets/RoadRage/Prefabs/Greybox_RoadSegment_TwoWay.prefab";
@@ -1255,10 +1258,108 @@ namespace RoadRage.Tests.EditMode
         }
 
         /// <summary>
+        /// Story 5.13 : la dette `deferred-work.md:278-280`. Le rejeu de la Story 5.12 appelait la visee
+        /// anticipee sur les fonctions pures reelles, mais il ne MESURAIT pas la continuite : la cible
+        /// ideale -- celle qui saute d'une branche a l'autre au franchissement de noeud, jusqu'a deux
+        /// fois la distance de visee, soit 9,6 m a 8 m/s -- etait la seule a etre calculee.
+        ///
+        /// Ici les deux lois sont mesurees SUR LE MEME PAS, avec exactement la meme entree : la cible
+        /// rendue est relevee sur les trajectoires reelles du district, et la cible ideale est relevee a
+        /// cote d'elle. La garde est alors non vide par construction :
+        ///
+        /// - la cible RENDUE ne s'ecarte jamais de la precedente de plus d'un pas de rappel, quelle que
+        ///   soit la discontinuite de la cible ideale ;
+        /// - la cible IDEALE, elle, saute de plus d'un pas au moins une fois AU FRANCHISSEMENT d'un
+        ///   noeud -- sans quoi la continuite mesuree ne serait pas une propriete, seulement une absence
+        ///   d'evenement.
+        ///
+        /// Le pas de rappel n'est pas un nombre du test : il est recalcule depuis la donnee AUTHOREE
+        /// (`DriverProfileDef_Default.aimPointRecallSpeed`) et le pas de physique, c'est-a-dire la meme
+        /// formule que le controleur IA. Le jour ou l'authoring change, cette garde suit.
+        /// </summary>
+        [Test]
+        public void TheAimPointStaysContinuousAcrossNodeChangesOnTheAuthoredDistrict()
+        {
+            WithMvpRun(scene =>
+            {
+                var graph = ResolveGraph(scene);
+                graph.Rebuild();
+
+                var curbs = CollectCurbBounds(scene);
+                Assert.That(curbs, Is.Not.Empty, "La bordure du carrefour doit exister : c'est elle qui borne le voisinage mesure.");
+
+                var local = NodesNearTheCrossroads(graph, curbs, 16f);
+                Assert.That(local, Is.Not.Empty, "Le carrefour doit etre entoure de noeuds : sans eux il n'y a aucune trajectoire a rejouer.");
+
+                var driver = AssetDatabase.LoadAssetAtPath<DriverProfileDef>(DriverProfilePath);
+                Assert.That(driver, Is.Not.Null, DriverProfilePath + " attendu");
+                Assert.That(driver.Profile.AimPointRecallSpeed, Is.GreaterThan(0f),
+                    "La vitesse de rappel de la cible est une donnee AUTHOREE : nulle, le rappel serait inerte et cette garde mesurerait "
+                    + "deux fois la meme loi.");
+
+                const float FixedDeltaTime = 0.02f; // NetworkedAIVehicleDriverController
+                var recallStep = driver.Profile.AimPointRecallSpeed * FixedDeltaTime;
+
+                var replayed = 0;
+                var nodeChanges = 0;
+                var largestRenderedStep = 0f;
+                var largestIdealStep = 0f;
+                var largestIdealStepAtANodeChange = 0f;
+
+                foreach (var entry in local)
+                {
+                    var trace = new ReplayTrace();
+                    if (!ReplayRoute(graph, entry, 0f, 0f, -1, null, 3f, 0.6f, recallStep, trace))
+                    {
+                        continue;
+                    }
+
+                    replayed++;
+
+                    for (var i = 1; i < trace.AimPoints.Count; i++)
+                    {
+                        var rendered = Vector3.Distance(trace.AimPoints[i - 1], trace.AimPoints[i]);
+                        var ideal = Vector3.Distance(trace.IdealAimPoints[i - 1], trace.IdealAimPoints[i]);
+
+                        largestRenderedStep = Mathf.Max(largestRenderedStep, rendered);
+                        largestIdealStep = Mathf.Max(largestIdealStep, ideal);
+
+                        if (trace.NodeChanged[i])
+                        {
+                            nodeChanges++;
+                            largestIdealStepAtANodeChange = Mathf.Max(largestIdealStepAtANodeChange, ideal);
+                        }
+                    }
+                }
+
+                Assert.That(replayed, Is.GreaterThan(0),
+                    "Aucune trajectoire rejouee n'atteint une sortie : la garde serait vide, donc faussement rassurante.");
+                Assert.That(nodeChanges, Is.GreaterThan(0),
+                    "Aucun franchissement de noeud dans les trajectoires mesurees : c'est justement le pas ou la continuite doit tenir.");
+
+                Assert.That(largestRenderedStep, Is.LessThanOrEqualTo(recallStep + 0.001f),
+                    "La cible rendue ne s'ecarte jamais de la precedente de plus d'un pas de rappel (mesure "
+                    + largestRenderedStep.ToString("F3") + " m pour un pas de " + recallStep.ToString("F3")
+                    + " m). C'est la continuite : une propriete de la fonction, pas une esperance.");
+
+                Assert.That(largestIdealStepAtANodeChange, Is.GreaterThan(recallStep),
+                    "Et la cible IDEALE saute bien plus qu'un pas au franchissement de noeud (mesure "
+                    + largestIdealStepAtANodeChange.ToString("F3") + " m). Si elle ne sautait pas, la ligne ci-dessus ne "
+                    + "prouverait rien : elle mesurerait l'absence d'evenement au lieu d'un rappel.");
+
+                Assert.That(largestIdealStep, Is.GreaterThan(recallStep),
+                    "Le saut de la cible ideale se retrouve sur l'ensemble des pas (mesure " + largestIdealStep.ToString("F3")
+                    + " m), donc il n'est pas confine au seul pas de franchissement.");
+            });
+        }
+
+        /// <summary>
         /// Rejoue la cinematique du driver IA sur le graphe reel. Depuis la Story 5.12, les equations
         /// de visee, de poursuite et d'arrivee ne sont plus RECOPIEES : elles sont appelees sur les
         /// fonctions pures reelles. La copie precedente avait deja diverge une fois, et c'est
-        /// exactement ce que la visee anticipee venait corriger.
+        /// exactement ce que la visee anticipee venait corriger. Depuis la Story 5.13, le RAPPEL de
+        /// cible l'est aussi : le rejeu porte la memoire de cible de l'appelant, exactement comme le
+        /// controleur, et appelle la fonction pure avec la nouvelle signature.
         ///
         /// Reste recopie, volontairement : l'integration du lacet et du deplacement. Elle appartient a
         /// <c>NetworkedAIVehicleDriverController.ApplyMovement</c>, qui ecrit la vitesse en bloc et
@@ -1272,7 +1373,8 @@ namespace RoadRage.Tests.EditMode
 
         private static bool ReplayRoute(
             LaneGraph graph, int entry, float lateral, float headingOffset, int bumpStep, List<Vector3> recordedPath,
-            float arrivalRadius = 3f, float lookAheadSeconds = 0.6f)
+            float arrivalRadius = 3f, float lookAheadSeconds = 0.6f, float aimPointRecallStep = 0f,
+            ReplayTrace trace = null)
         {
             const float SteerFullLockDegrees = 45f;   // Greybox_AIVehicle
             const float SteerDegreesPerSecond = 90f;  // Greybox_AIVehicle
@@ -1293,6 +1395,12 @@ namespace RoadRage.Tests.EditMode
             var target = graph.GetNodePosition(node);
             var lastNodeChangeStep = 0;
 
+            // Memoire de cible (Story 5.13) : elle appartient a l'APPELANT, comme dans le controleur.
+            // Au premier pas il n'y a pas de memoire, donc pas de rappel -- c'est le patron du
+            // controleur, reproduit ici pour que la mesure porte sur la meme loi.
+            var previousAimPoint = Vector3.zero;
+            var hasAimPoint = false;
+
             for (var step = 0; step < 12000; step++)
             {
                 if (bumpStep >= 0 && step == bumpStep)
@@ -1303,6 +1411,7 @@ namespace RoadRage.Tests.EditMode
 
                 var forward = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
 
+                var nodeChanged = false;
                 if (NetworkedAIVehicleDriverController.HasArrivedAtWaypoint(position, target, ArrivalRadius)
                     || LaneGraphRouting.HasPassedUnreachableWaypoint(
                         position, forward, target, Speed, SteerDegreesPerSecond))
@@ -1315,6 +1424,7 @@ namespace RoadRage.Tests.EditMode
                     node = ReplayResolveNextNode(graph, node, traversed, ref traversedEdges, ref departed, position);
                     target = graph.GetNodePosition(node);
                     lastNodeChangeStep = step;
+                    nodeChanged = true;
                 }
 
                 // Aucun noeud franchi depuis 18 s : le vehicule ne progresse plus, c'est l'orbite.
@@ -1323,11 +1433,28 @@ namespace RoadRage.Tests.EditMode
                     return false;
                 }
 
+                // Point de visee (Story 5.12) ET rappel de cible (Story 5.13), tous deux appeles sur la
+                // fonction pure REELLE. Les deux appels portent exactement la MEME entree et ne
+                // different que par le pas maximal : l'un rend la cible livree, l'autre la cible IDEALE
+                // -- celle qui saute au franchissement de noeud, et qui doit continuer de sauter pour
+                // que la garde de continuite ne soit pas vide.
+                var nodeForward = graph.GetNodeRotation(node) * Vector3.forward;
+                var lookAheadDistance = Mathf.Max(0f, Speed) * LookAheadSeconds;
+                var recallStep = hasAimPoint ? Mathf.Max(0f, aimPointRecallStep) : 0f;
+
                 var aimPoint = LaneGraphRouting.ResolveLookAheadPoint(
-                    position,
-                    target,
-                    graph.GetNodeRotation(node) * Vector3.forward,
-                    Mathf.Max(0f, Speed) * LookAheadSeconds);
+                    position, target, nodeForward, lookAheadDistance, previousAimPoint, recallStep);
+
+                if (trace != null)
+                {
+                    trace.AimPoints.Add(aimPoint);
+                    trace.IdealAimPoints.Add(LaneGraphRouting.ResolveLookAheadPoint(
+                        position, target, nodeForward, lookAheadDistance, previousAimPoint, 0f));
+                    trace.NodeChanged.Add(nodeChanged);
+                }
+
+                previousAimPoint = aimPoint;
+                hasAimPoint = true;
 
                 var intent = NetworkedAIVehicleDriverController.ComputeSeekIntent(
                     position, forward, aimPoint, SteerFullLockDegrees);
@@ -1342,6 +1469,17 @@ namespace RoadRage.Tests.EditMode
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Trace d'un rejeu : la cible RENDUE, la cible IDEALE du meme pas, et les pas ou le noeud
+        /// vise a change. Les trois listes sont paralleles, index par index.
+        /// </summary>
+        private sealed class ReplayTrace
+        {
+            public readonly List<Vector3> AimPoints = new List<Vector3>();
+            public readonly List<Vector3> IdealAimPoints = new List<Vector3>();
+            public readonly List<bool> NodeChanged = new List<bool>();
         }
 
         /// <summary>Resultat de mesure d'un rejeu de trafic : ce qui se compare entre deux candidats.</summary>

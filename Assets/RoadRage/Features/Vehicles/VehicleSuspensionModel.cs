@@ -129,21 +129,48 @@ namespace RoadRage.Features.Vehicles
         /// qu'il faut CHARGER (pousser vers le haut), et l'autre qu'il faut soulager (pousser vers le
         /// bas). Le couple s'annule exactement quand l'essieu est a plat.
         ///
-        /// Le terme est proportionnel a l'ECART de compression, sans plafond et sans seuil : c'est ce
-        /// qui fait qu'il REDUIT le roulis sans l'annuler. A l'equilibre en virage, le couple de roulis
-        /// reste contrebalance par un ecart non nul, donc la caisse s'incline toujours.
+        /// Story 5.13 : le terme est desormais BORNE par <paramref name="loadBudget"/>, la charge que
+        /// la roue porte. C'etait le SEUL terme de la couche sans plafond ni seuil, et c'est un fait de
+        /// code, pas une intuition : sa magnitude maximale atteignable
+        /// (<c>antiRollRate x travel</c> = 20 000 x 0,25 = 5 000 N) depassait la charge statique d'une
+        /// roue (2 943 N), donc il pouvait localement ANNULER la charge d'un coin et la RETOURNER.
+        /// Or une bordure franchie par une seule roue produit exactement l'ecart de compression qui
+        /// l'alimente : c'etait le suspect direct de la projection par une bordure.
         ///
-        /// Rendue en paire parce que le sens a deja ete inverse une fois : un scalaire signe se lit
-        /// aussi bien dans les deux sens, une paire non.
+        /// La borne ne change NI le sens NI la paire : les deux forces restent exactement opposees et
+        /// le cote le plus comprime reste celui qu'on charge. Elle ne change rien a l'equilibre non
+        /// plus : a l'equilibre en virage, l'ecart de compression reste non nul, donc la caisse
+        /// s'incline toujours -- l'anti-roulis REDUIT le roulis, il ne l'annule pas.
+        ///
+        /// Un budget nul ou non fini rend le terme INERTE plutot que non borne : un terme sans borne
+        /// est un defaut, pas un reglage, et le sens sur du garde-fou est toujours celui-la.
         /// </summary>
         public static void ResolveAntiRollForces(
             float leftCompression,
             float rightCompression,
             float antiRollRate,
+            float loadBudget,
             out float leftForce,
             out float rightForce)
         {
-            var magnitude = Mathf.Max(0f, antiRollRate) * (leftCompression - rightCompression);
+            if (!float.IsFinite(antiRollRate) || antiRollRate <= 0f)
+            {
+                leftForce = 0f;
+                rightForce = 0f;
+                return;
+            }
+
+            var magnitude = antiRollRate * (leftCompression - rightCompression);
+            if (!float.IsFinite(magnitude))
+            {
+                leftForce = 0f;
+                rightForce = 0f;
+                return;
+            }
+
+            var budget = float.IsFinite(loadBudget) ? Mathf.Max(0f, loadBudget) : 0f;
+            magnitude = Mathf.Clamp(magnitude, -budget, budget);
+
             leftForce = magnitude;
             rightForce = -magnitude;
         }

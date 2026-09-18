@@ -25,6 +25,13 @@ namespace RoadRage.Features.Vehicles
     /// by intent) supprime. La couche physique est deja la seule et la meme pour les deux -- c'est
     /// elle que la 5.14 consommera.
     ///
+    /// Story 5.13 : la couche porte les trois AIDES ARCADE et le facteur d'autorite par roues au sol,
+    /// tous calcules dans <see cref="VehicleArcadeAssist"/>. La stabilite en lacet et la recuperation de
+    /// tete-a-queue sont des couples de caisse bornes par le budget de lacet du vehicule ; le controle
+    /// de traction attenue le couple moteur d'une roue en glissement excessif sans jamais l'annuler ;
+    /// l'autorite de conduite et de direction est reduite dans la proportion du nombre de roues au sol.
+    /// Ce que la couche ne fait TOUJOURS pas, y compris en vol : ecrire la rotation ou la vitesse.
+    ///
     /// AUCUNE VERIFICATION D'AUTORITE, VOLONTAIREMENT. Les deux controleurs posent deja
     /// <c>body.isKinematic = !IsServer</c> : cote client un <c>AddForce</c> est sans effet. Ajouter ici
     /// un second test d'autorite creerait un second chemin de verite pour la meme regle (AD-21).
@@ -75,6 +82,24 @@ namespace RoadRage.Features.Vehicles
         {
             get { return wheelStates == null ? 0 : wheelStates.Length; }
         }
+
+        /// <summary>
+        /// Nombre de roues AU SOL au dernier pas simule (Story 5.13). Avant tout pas, il vaut le nombre
+        /// de roues authorees : rien n'a encore ete mesure, et supposer le vehicule pose sur ses roues
+        /// est la seule lecture qui ne degrade pas l'autorite avant d'avoir une mesure -- meme esprit que
+        /// l'echantillon de pneu, qui part d'un glissement nul. Publie en lecture seule pour la
+        /// telemetrie de developpement, qui ne recalcule rien.
+        /// </summary>
+        public int GroundedWheelCount { get; private set; }
+
+        /// <summary>
+        /// Facteur d'autorite de conduite et de direction APPLIQUE au dernier pas simule, dans
+        /// <c>[0, 1]</c> (Story 5.13). Il vaut exactement
+        /// <see cref="VehicleArcadeAssist.ResolveGroundedAuthorityFactor"/> du nombre de roues au sol
+        /// publie ci-dessus : c'est la meme valeur que celle utilisee par le pas, jamais un second
+        /// calcul. Lecture seule, pour la telemetrie.
+        /// </summary>
+        public float GroundedAuthorityFactor { get; private set; }
 
         /// <summary>Profil effectivement applique. Lu par la telemetrie de developpement (lecture seule).</summary>
         public VehicleProfile Profile
@@ -163,6 +188,12 @@ namespace RoadRage.Features.Vehicles
             driveBrakeTorque = profile.BrakeTorque;
             driveSteerRateDegreesPerSecond = profile.SteerRateDegreesPerSecond;
             currentSteerAngleDegrees = 0f;
+
+            // Aucun pas encore simule : le vehicule est suppose pose sur ses roues, donc aucune
+            // degradation d'autorite avant la premiere mesure. Le facteur reste la valeur de la
+            // fonction pure, jamais une valeur ecrite a la main ici.
+            GroundedWheelCount = profile.WheelCount;
+            GroundedAuthorityFactor = VehicleArcadeAssist.ResolveGroundedAuthorityFactor(GroundedWheelCount, profile.WheelCount);
             HasProfile = true;
         }
 
@@ -183,6 +214,8 @@ namespace RoadRage.Features.Vehicles
             hasPreviousCompression = false;
             driveIntent = VehicleDriveIntent.Idle;
             currentSteerAngleDegrees = 0f;
+            GroundedWheelCount = 0;
+            GroundedAuthorityFactor = 0f;
             HasProfile = false;
         }
 
@@ -225,6 +258,16 @@ namespace RoadRage.Features.Vehicles
         public void ResetSuspensionState()
         {
             hasPreviousCompression = false;
+
+            // Meme purge que ClearProfileState : apres un deplacement discontinu, le compte et le
+            // facteur publies decrivent une pose qui n'existe plus. Le vehicule est repose sur une pose
+            // connue, donc l'autorite repart entiere -- supposer le pire degraderait la conduite d'un
+            // pas sans aucune mesure pour le justifier.
+            if (HasProfile)
+            {
+                GroundedWheelCount = profile.WheelCount;
+                GroundedAuthorityFactor = VehicleArcadeAssist.ResolveGroundedAuthorityFactor(profile.WheelCount, profile.WheelCount);
+            }
 
             if (previousCompression != null && wheelWasGrounded != null)
             {
@@ -281,7 +324,14 @@ namespace RoadRage.Features.Vehicles
             // Direction : la consigne avance vers son angle cible a taux borne -- braquage ou rappel,
             // jamais un saut. Puis chaque roue prend cet angle si et seulement si elle est authoree
             // directrice (`VehicleWheel.IsSteering`, inerte depuis la Story 5.11).
-            UpdateSteeringState(current, fixedDeltaTime, longitudinalSpeed);
+            //
+            // Story 5.13 : l'AUTORITE de direction suit celle de la conduite. Le facteur APPLIQUE est
+            // celui publie par le pas precedent, et le champ en est l'unique source : recalculer un
+            // couple (compte, facteur) qui n'a jamais coexiste rendrait la telemetrie trompeuse, alors
+            // qu'elle est l'instrument des controles humains de cette story.
+            var groundedAuthority = GroundedAuthorityFactor;
+
+            UpdateSteeringState(current, fixedDeltaTime, longitudinalSpeed, groundedAuthority);
 
             // Train roulant : les couples d'un pas, identiques sur toutes les roues qui y ont droit.
             // La repartition par roue (motrice ; arriere pour le frein a main) se fait dans la boucle.
@@ -295,6 +345,11 @@ namespace RoadRage.Features.Vehicles
                 driveMaxForwardSpeed,
                 current.MaxReverseSpeed);
 
+            // L'autorite de conduite reduit ce que le vehicule demande a ses roues motrices : c'est de
+            // l'AUTORITE qui est retiree, jamais une vitesse ecrite. Quatre roues au sol : rien ne
+            // change. Aucune : plus aucun couple moteur, sans que rien ne gele le vehicule.
+            driveTorque *= groundedAuthority;
+
             var serviceBrakeTorque = VehicleTireModel.ResolveWheelBrakeTorque(
                 driveIntent.Throttle,
                 driveIntent.BrakeReverse,
@@ -305,6 +360,19 @@ namespace RoadRage.Features.Vehicles
 
             var handbrakeEngaged = driveIntent.Handbrake > 0.0001f;
             var adherence = current.LateralFrictionCoefficient;
+
+            // Borne de LACET de la couche (Story 5.13) : adherences x charge statique x demi-voie, soit
+            // le couple qu'un seul pneu peut produire autour de la verticale. Elle est derivee du
+            // vehicule, jamais un nombre absolu, et elle borne les DEUX aides de lacet.
+            // Le budget vient de l'adherence du PNEU : sans roue au sol il n'y a plus de pneu pour le
+            // produire, donc il suit l'autorite par roues au sol comme le reste de la couche. A quatre
+            // roues rien ne change ; en vol, les deux aides de lacet deviennent inertes au lieu
+            // d'appliquer un couple qu'aucun pneu ne pourrait tenir -- ce qui figerait la rotation au
+            // lieu de la laisser stable.
+            var yawTorqueBudget = VehicleArcadeAssist.ResolveYawTorqueBudget(
+                adherence * groundedAuthority,
+                staticLoad,
+                current.ResolveMeanHalfTrack());
 
             for (var i = 0; i < wheelStates.Length; i++)
             {
@@ -377,6 +445,20 @@ namespace RoadRage.Features.Vehicles
                 // et fait entrer le vehicule en derive.
                 var handbrakeOnThisWheel = handbrakeEngaged && !wheel.IsSteering;
                 var wheelDriveTorque = wheel.IsDriven && !handbrakeOnThisWheel ? driveTorque : 0f;
+
+                // Controle de traction (Story 5.13) : le glissement lu est celui du pas PRECEDENT, stocke
+                // dans l'echantillon de cette roue -- le glissement du pas courant n'existe qu'apres
+                // l'integration, donc une commande a un pas de retard est inherente, pas un raccourci.
+                // Au premier pas l'echantillon est neutre (glissement nul), donc l'attenuation est nulle :
+                // aucune valeur de repli n'est inventee.
+                var tractionFactor = wheelDriveTorque != 0f
+                    ? VehicleArcadeAssist.ResolveTractionControlFactor(
+                        tireSamples[i].SlipRatio,
+                        current.TirePeakSlipRatio,
+                        current.TractionControlStrength)
+                    : 1f;
+                wheelDriveTorque *= tractionFactor;
+
                 var wheelBrakeTorque = handbrakeOnThisWheel
                     ? Mathf.Max(serviceBrakeTorque, current.HandbrakeTorque)
                     : serviceBrakeTorque;
@@ -449,8 +531,15 @@ namespace RoadRage.Features.Vehicles
             }
 
             hasPreviousCompression = true;
-            ApplyAntiRoll(up);
+
+            // Compte ET facteur publies ensemble, derives une seule fois : c'est ce couple que la
+            // telemetrie lit, et c'est exactement lui que le pas suivant consommera comme autorite.
+            GroundedWheelCount = groundedWheels;
+            GroundedAuthorityFactor = VehicleArcadeAssist.ResolveGroundedAuthorityFactor(groundedWheels, current.WheelCount);
+
+            ApplyAntiRoll(up, staticLoad);
             ApplyAttitudeAssist(up, groundedWheels);
+            ApplyYawAssists(up, yawTorqueBudget);
         }
 
         /// <summary>
@@ -461,8 +550,13 @@ namespace RoadRage.Features.Vehicles
         /// Sous le seuil de vitesse authore, la consigne est nulle -- un vehicule quasi immobile ne
         /// braque pas ses roues, et l'angle ne s'accumule donc pas pour se liberer d'un coup au premier
         /// metre parcouru.
+        ///
+        /// Story 5.13 : les DEUX taux sont mis a l'echelle de l'autorite par roues au sol. Un vehicule
+        /// dont aucune roue ne touche le sol ne braque donc plus du tout, ni dans un sens ni dans
+        /// l'autre -- c'est la lecture litterale de « autorite de direction reduite a proportion (donc
+        /// nulle) », et elle n'ecrit toujours aucune rotation.
         /// </summary>
-        private void UpdateSteeringState(VehicleProfile current, float fixedDeltaTime, float longitudinalSpeed)
+        private void UpdateSteeringState(VehicleProfile current, float fixedDeltaTime, float longitudinalSpeed, float steerAuthority)
         {
             var target = VehicleSteeringModel.ResolveSteerAngleDegrees(
                 driveIntent.Steer,
@@ -472,11 +566,13 @@ namespace RoadRage.Features.Vehicles
                 current.HighSpeedSteerAngleDegrees,
                 current.SteerFullReductionSpeed);
 
+            var authority = float.IsFinite(steerAuthority) ? Mathf.Clamp01(steerAuthority) : 0f;
+
             var rate = VehicleSteeringModel.ResolveSteerRateDegreesPerSecond(
                 currentSteerAngleDegrees,
                 target,
-                driveSteerRateDegreesPerSecond,
-                current.SteerReturnRateDegreesPerSecond);
+                driveSteerRateDegreesPerSecond * authority,
+                current.SteerReturnRateDegreesPerSecond * authority);
 
             currentSteerAngleDegrees = VehicleSteeringModel.MoveSteerAngleDegrees(
                 currentSteerAngleDegrees,
@@ -486,28 +582,38 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
-        /// Assiette : rappel vers la verticale et amortissement du TANGAGE et du ROULIS. Applique
-        /// seulement quand au moins une roue touche -- en l'air, un vehicule garde son assiette, un saut
-        /// ne se redresse pas tout seul. Le LACET n'est jamais touche : il porte la direction.
+        /// Assiette : rappel vers la verticale et amortissement du TANGAGE et du ROULIS. Le LACET n'est
+        /// jamais touche : il porte la direction, et l'amortir retirerait au conducteur son autorite sur
+        /// le cap -- c'est <see cref="ApplyYawAssists"/> qui porte le lacet, sous une autre regle.
         ///
         /// Sans ce terme, la suspension ne peut pas redresser une caisse qui s'est couchee : au-dela
         /// d'une vingtaine de degres d'inclinaison, les ancrages de roue montent au-dessus de la
         /// longueur au repos, les rayons ne touchent plus le sol et la suspension cesse d'exister. Le
         /// vehicule restait alors couche indefiniment.
+        ///
+        /// Story 5.13 : l'amortissement n'est PLUS conditionne a un contact au sol. C'est lui qui tient
+        /// l'attitude d'un vehicule en vol -- sans lui, une caisse quittee par ses quatre roues gardait
+        /// la rotation qu'un choc lui avait donnee, et un saut se terminait sur le toit. Aucune rotation
+        /// n'est ecrite ni gelee pour autant : le terme s'OPPOSE a une vitesse angulaire de tangage ou de
+        /// roulis, donc il la ralentit sans l'arreter, et une caisse qui tournait sur elle-meme (lacet)
+        /// continue de tourner.
+        ///
+        /// Le RAPPEL d'assiette, lui, reste conditionne au contact : c'est une correction de GEOMETRIE
+        /// -- il redresse une caisse posee de travers sur ses roues -- et en l'air il n'y a pas de sol
+        /// a epouser. Un saut ne se redresse donc pas tout seul, mais il ne culbute plus.
         /// </summary>
         private void ApplyAttitudeAssist(Vector3 up, int groundedWheels)
         {
-            if (groundedWheels <= 0)
-            {
-                return;
-            }
+            var torque = VehicleSuspensionModel.ResolveAttitudeDampingTorque(
+                body.angularVelocity,
+                transform.forward,
+                transform.right,
+                profile.AttitudeDamping);
 
-            var torque = VehicleSuspensionModel.ResolveLevellingTorque(up, Vector3.up, profile.AttitudeLevellingRate)
-                + VehicleSuspensionModel.ResolveAttitudeDampingTorque(
-                    body.angularVelocity,
-                    transform.forward,
-                    transform.right,
-                    profile.AttitudeDamping);
+            if (groundedWheels > 0)
+            {
+                torque += VehicleSuspensionModel.ResolveLevellingTorque(up, Vector3.up, profile.AttitudeLevellingRate);
+            }
 
             if (torque.sqrMagnitude > 0f)
             {
@@ -522,8 +628,14 @@ namespace RoadRage.Features.Vehicles
         /// fonction pure, jamais reinterprete ici -- il avait deja ete inverse une fois, ce qui faisait
         /// pencher les vehicules au lieu de les redresser. Une roue en l'air garde une compression
         /// nulle, donc ne participe qu'en recevant la charge transferee.
+        ///
+        /// Story 5.13 : le transfert est BORNE par la charge qu'une roue porte
+        /// (<paramref name="loadBudget"/>). C'etait le seul terme de la couche sans plafond, et sa
+        /// magnitude maximale depassait la charge statique d'un coin : franchir une bordure d'une seule
+        /// roue produit exactement l'ecart de compression qui l'alimente, donc il pouvait annuler et
+        /// retourner la charge du coin oppose. Le sens et la paire sont inchanges.
         /// </summary>
-        private void ApplyAntiRoll(Vector3 up)
+        private void ApplyAntiRoll(Vector3 up, float loadBudget)
         {
             var rate = profile.AntiRollRate;
             if (rate <= 0f || antiRollPairs == null)
@@ -545,6 +657,7 @@ namespace RoadRage.Features.Vehicles
                     left.Compression,
                     right.Compression,
                     rate,
+                    loadBudget,
                     out var leftForce,
                     out var rightForce);
 
@@ -557,6 +670,52 @@ namespace RoadRage.Features.Vehicles
                 {
                     body.AddForceAtPosition(up * rightForce, right.ContactPoint, ForceMode.Force);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Aides de LACET (Story 5.13) : stabilite en lacet et recuperation de tete-a-queue, toutes
+        /// deux autour de l'axe haut de la caisse et bornees par <paramref name="yawTorqueBudget"/>.
+        ///
+        /// C'est ici, et nulle part ailleurs, que la couche touche au lacet : l'amortissement d'assiette
+        /// l'ignore volontairement (il porte la direction), donc sans ce terme rien n'amortissait la
+        /// rotation de la caisse autour de la verticale.
+        ///
+        /// Les deux termes sont bornes individuellement par la fonction pure ; leur SOMME l'est aussi,
+        /// pour qu'aucun chemin ne puisse depasser le budget. Aucune rotation n'est ecrite : la couche
+        /// ne fait que produire un couple, et une caisse qui tournait sur elle-meme continue de tourner
+        /// moins vite -- jamais de rotation gelee.
+        /// </summary>
+        private void ApplyYawAssists(Vector3 up, float yawTorqueBudget)
+        {
+            if (!float.IsFinite(yawTorqueBudget) || yawTorqueBudget <= 0f)
+            {
+                return;
+            }
+
+            var yawRateDegreesPerSecond = Vector3.Dot(body.angularVelocity, up) * Mathf.Rad2Deg;
+
+            var torque = VehicleArcadeAssist.ResolveYawStabilityTorque(
+                    yawRateDegreesPerSecond,
+                    profile.YawStabilityRate,
+                    yawTorqueBudget)
+                + VehicleArcadeAssist.ResolveSpinRecoveryTorque(
+                    yawRateDegreesPerSecond,
+                    driveIntent.Steer,
+                    profile.SpinDriftThresholdDegreesPerSecond,
+                    profile.SpinRecoveryRate,
+                    yawTorqueBudget);
+
+            if (!float.IsFinite(torque))
+            {
+                return;
+            }
+
+            torque = Mathf.Clamp(torque, -yawTorqueBudget, yawTorqueBudget);
+
+            if (torque != 0f)
+            {
+                body.AddTorque(up * torque, ForceMode.Force);
             }
         }
 

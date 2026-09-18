@@ -348,9 +348,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs": {
-    "mtime": 1789756005.8163815,
-    "seen": 1789756116.3486187,
-    "ast_hash": "ccb41ca3670def386b6c8f41e0facb87",
+    "mtime": 1789757944.6098883,
+    "seen": 1789758028.029406,
+    "ast_hash": "fadc3a9d5e6fd84cc79587f49142310c",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedVehicleState.cs": {
@@ -528,9 +528,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs": {
-    "mtime": 1788974584.097635,
-    "seen": 1789154390.8674018,
-    "ast_hash": "bb801acea41ab21cbe957f432e0ec57e",
+    "mtime": 1789757952.654886,
+    "seen": 1789758028.029437,
+    "ast_hash": "b089ca07cb2478a59785c139699c0948",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story33SeatEntryExitAndPassengerPresenceTests.cs": {
@@ -1020,9 +1020,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story512TireForcesAndSteeringTests.cs": {
-    "mtime": 1789756474.9792323,
-    "seen": 1789756558.1251407,
-    "ast_hash": "883ddccaa66da1cf4e92084387b2217e",
+    "mtime": 1789757959.1572833,
+    "seen": 1789758028.029447,
+    "ast_hash": "e7058c2f9977d4d3e34e9c923392357e",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story512TireForcesAndSteeringPlayModeTests.cs": {

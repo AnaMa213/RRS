@@ -15,6 +15,11 @@ namespace RoadRage.DevTools
     /// controles humains de la story -- « la derive est atteignable et se referme » ne se lit nulle
     /// part ailleurs, et l'angle de roue effectif n'est lisible que par cette vue.
     ///
+    /// Story 5.13 y ajoute le NOMBRE DE ROUES AU SOL et le FACTEUR D'AUTORITE effectivement applique :
+    /// sans ces deux lectures, « une roue delestee reduit l'autorite » et « un vehicule en vol ne peut
+    /// plus accelerer ni braquer » ne se liraient qu'a l'oeil. Les deux valeurs sont lues telles quelles
+    /// sur la couche physique, qui les publie : la vue ne recalcule ni le compte ni le facteur.
+    ///
     /// LECTURE SEULE, AUCUN ETAT DE GAMEPLAY. La vue ne detient rien et ne mute rien : elle interroge
     /// <see cref="VehiclePhysicsBody"/> (qui publie deja son etat en lecture seule) et
     /// <c>Rigidbody.linearVelocity</c> via la fonction pure d'echantillonnage. Motif de
@@ -95,7 +100,13 @@ namespace RoadRage.DevTools
         /// </summary>
         private string ComposeText()
         {
-            var text = name + "  (Story 5.12)";
+            var text = name + "  (Story 5.13)";
+
+            // Roues au sol et autorite appliquee : les deux grandeurs publiees par la couche physique,
+            // lues telles quelles. Le facteur est celui du PAS simule, donc il porte le retard d'un pas
+            // du compte de roues -- c'est le comportement applique, pas une seconde mesure.
+            text += "\nroues au sol " + target.GroundedWheelCount + " / " + target.WheelCount
+                + "   autorite " + (target.GroundedAuthorityFactor * 100f).ToString("F0") + " %";
 
             if (!target.TrySampleTelemetry(out var sample))
             {

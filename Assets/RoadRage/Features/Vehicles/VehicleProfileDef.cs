@@ -69,7 +69,17 @@ namespace RoadRage.Features.Vehicles
             steerReturnRateDegreesPerSecond: 260f,
             tirePeakSlipRatio: 0.14f,
             tirePeakSlipAngleDegrees: 8f,
-            tireSlipFalloffFraction: 0.8f);
+            tireSlipFalloffFraction: 0.8f,
+            // Aides arcade (Story 5.13), toutes actives et CHACUNE bornee par le vehicule : un
+            // abattement de lacet de 60 N.m par degre/s, une attenuation de traction de 50 %, un rappel
+            // de tete-a-queue de 40 N.m par degre/s au-dela de 30 deg/s de derive. Les bornes viennent du
+            // vehicule (adherence x charge x demi-voie, soit 7 504 N.m ici), donc ces valeurs restent
+            // un REGLAGE de ressenti, jamais une limite de la couche : les mesures de la recette
+            // humaine du 2026-09-18 les ajustent sans toucher au code.
+            yawStabilityRate: 60f,
+            tractionControlStrength: 0.5f,
+            spinRecoveryRate: 40f,
+            spinDriftThresholdDegreesPerSecond: 30f);
 
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
@@ -396,6 +406,39 @@ namespace RoadRage.Features.Vehicles
             if (!HasNonSteeringWheel(profile))
             {
                 error = "Wheels invalide : aucune roue non directrice, le frein a main n'aurait aucune roue a bloquer.";
+                return false;
+            }
+
+            // --------------------------------------------------------------- aides arcade (5.13)
+
+            // Trois aides et un seuil. Chacune est DESACTIVABLE par sa propre valeur authoree (nulle =
+            // terme inerte, patron deja en place dans la couche), donc aucune n'est exigee strictement
+            // positive : ce qui est exige est qu'elle soit FINIE et NON NEGATIVE. Une valeur negative
+            // inverserait le sens de l'aide au lieu de l'eteindre, ce qui serait un reglage casse.
+            if (!IsFiniteAndAtLeast(profile.YawStabilityRate, 0f))
+            {
+                error = "YawStabilityRate invalide : 'yawStabilityRate' (abattement du lacet) doit etre fini et superieur ou egal a 0 -- une valeur negative inverserait le sens de l'aide au lieu de l'eteindre.";
+                return false;
+            }
+
+            // A 1, une roue en glissement total perdrait tout son couple moteur : c'est un seuil binaire
+            // deguise, et la valeur doit rester STRICTEMENT sous 1 pour que l'attenuation ne puisse
+            // jamais annuler le couple.
+            if (!IsFiniteAndAtLeast(profile.TractionControlStrength, 0f) || profile.TractionControlStrength >= 1f)
+            {
+                error = "TractionControlStrength invalide : 'tractionControlStrength' doit etre fini, superieur ou egal a 0 et strictement inferieur a 1 -- une attenuation totale annulerait le couple moteur, ce qui est exactement le seuil binaire que la couche interdit.";
+                return false;
+            }
+
+            if (!IsFiniteAndAtLeast(profile.SpinRecoveryRate, 0f))
+            {
+                error = "SpinRecoveryRate invalide : 'spinRecoveryRate' (recuperation de tete-a-queue) doit etre fini et superieur ou egal a 0 -- une valeur negative inverserait le sens de l'aide au lieu de l'eteindre.";
+                return false;
+            }
+
+            if (!IsFiniteAndAtLeast(profile.SpinDriftThresholdDegreesPerSecond, 0f))
+            {
+                error = "SpinDriftThresholdDegreesPerSecond invalide : 'spinDriftThresholdDegreesPerSecond' doit etre fini et superieur ou egal a 0.";
                 return false;
             }
 

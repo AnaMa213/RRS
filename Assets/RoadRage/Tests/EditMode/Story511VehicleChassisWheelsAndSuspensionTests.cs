@@ -72,6 +72,7 @@ namespace RoadRage.Tests.EditMode
             "Assets/RoadRage/Features/Vehicles/VehicleSuspensionModel.cs",
             "Assets/RoadRage/Features/Vehicles/VehicleTireModel.cs",
             "Assets/RoadRage/Features/Vehicles/VehicleSteeringModel.cs",
+            "Assets/RoadRage/Features/Vehicles/VehicleArcadeAssist.cs",
             "Assets/RoadRage/Features/Vehicles/VehicleProfile.cs",
             "Assets/RoadRage/Features/Vehicles/VehicleWheel.cs",
             PlayerControllerSourcePath,
@@ -176,25 +177,63 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void AntiRollLoadsTheMostCompressedSideAndIsZeroWhenLevel()
         {
-            VehicleSuspensionModel.ResolveAntiRollForces(0.1f, 0.1f, 20000f, out var levelLeft, out var levelRight);
+            VehicleSuspensionModel.ResolveAntiRollForces(0.1f, 0.1f, 20000f, StaticLoad, out var levelLeft, out var levelRight);
             Assert.That(levelLeft, Is.EqualTo(0f), "Essieu a plat : l'anti-roulis ne fait rien.");
             Assert.That(levelRight, Is.EqualTo(0f));
 
-            VehicleSuspensionModel.ResolveAntiRollForces(0.12f, 0.10f, 20000f, out var leftForce, out var rightForce);
+            VehicleSuspensionModel.ResolveAntiRollForces(0.12f, 0.10f, 20000f, StaticLoad, out var leftForce, out var rightForce);
             Assert.That(leftForce, Is.GreaterThan(0f),
                 "Le cote le plus comprime est celui ou la caisse s'affaisse : c'est lui qu'il faut CHARGER.");
             Assert.That(rightForce, Is.EqualTo(-leftForce).Within(1e-4f),
                 "La paire est un couple : ce qui est charge d'un cote est soulage de l'autre.");
 
-            VehicleSuspensionModel.ResolveAntiRollForces(0.16f, 0.10f, 20000f, out var largeLeft, out _);
-            VehicleSuspensionModel.ResolveAntiRollForces(0.13f, 0.10f, 20000f, out var smallLeft, out _);
+            VehicleSuspensionModel.ResolveAntiRollForces(0.16f, 0.10f, 20000f, StaticLoad, out var largeLeft, out _);
+            VehicleSuspensionModel.ResolveAntiRollForces(0.13f, 0.10f, 20000f, StaticLoad, out var smallLeft, out _);
             Assert.That(largeLeft / smallLeft, Is.EqualTo(2f).Within(1e-4f),
                 "Le terme est strictement proportionnel a l'ecart. C'est ce qui fait qu'il REDUIT le roulis sans "
                 + "l'annuler : en virage l'equilibre s'etablit sur un ecart non nul, donc la caisse s'incline toujours.");
 
-            VehicleSuspensionModel.ResolveAntiRollForces(0.10f, 0.16f, 20000f, out var reversedLeft, out var reversedRight);
+            VehicleSuspensionModel.ResolveAntiRollForces(0.10f, 0.16f, 20000f, StaticLoad, out var reversedLeft, out var reversedRight);
             Assert.That(reversedLeft, Is.LessThan(0f), "Sens inverse quand la droite est la plus comprimee.");
             Assert.That(reversedRight, Is.GreaterThan(0f));
+        }
+
+        /// <summary>
+        /// Story 5.13 : l'anti-roulis etait le SEUL terme de la couche sans plafond, et sa magnitude
+        /// maximale atteignable (20 000 x 0,25 = 5 000 N) depassait la charge statique d'une roue
+        /// (2 943 N) : il pouvait localement annuler la charge d'un coin, et franchir une bordure d'une
+        /// seule roue produit exactement l'ecart de compression qui l'alimente. La borne ne touche NI le
+        /// sens NI la paire -- c'est ce que la garde ci-dessus continue de verifier.
+        /// </summary>
+        [Test]
+        public void TheAntiRollTransferIsBoundedByTheLoadTheWheelCarries()
+        {
+            // Ecart maximal atteignable pour le profil authore (debattement 0,25 m) : c'est le cas que
+            // la borne doit attraper, sinon elle ne garde rien.
+            var unbounded = 20000f * 0.25f;
+            Assert.That(unbounded, Is.GreaterThan(StaticLoad),
+                "Le cas de test doit vraiment depasser le budget, sinon il ne prouve rien : " + unbounded + " N pour "
+                + StaticLoad.ToString("F0") + " N de charge.");
+
+            VehicleSuspensionModel.ResolveAntiRollForces(0.25f, 0f, 20000f, StaticLoad, out var loaded, out var relieved);
+            Assert.That(loaded, Is.EqualTo(StaticLoad).Within(0.01f),
+                "Le transfert est plafonne a la charge que la roue porte : un corner peut etre entierement deleste, jamais pousse au-dela.");
+            Assert.That(relieved, Is.EqualTo(-StaticLoad).Within(0.01f),
+                "Et la paire reste exactement opposee : la borne ne change pas le sens de l'anti-roulis.");
+
+            // Sous la borne, rien ne change : le plafond ne fausse pas le reglage de roulis.
+            VehicleSuspensionModel.ResolveAntiRollForces(0.12f, 0.10f, 20000f, StaticLoad, out var small, out _);
+            Assert.That(small, Is.EqualTo(20000f * 0.02f).Within(0.01f),
+                "Sous le budget, le terme garde exactement sa valeur proportionnelle.");
+
+            // Un budget nul ou non fini rend le terme INERTE plutot que non borne.
+            VehicleSuspensionModel.ResolveAntiRollForces(0.25f, 0f, 20000f, 0f, out var noBudgetLeft, out var noBudgetRight);
+            Assert.That(noBudgetLeft, Is.EqualTo(0f), "Sans budget mesurable, aucun transfert : jamais un terme non borne.");
+            Assert.That(noBudgetRight, Is.EqualTo(0f));
+
+            VehicleSuspensionModel.ResolveAntiRollForces(0.25f, 0f, 20000f, float.NaN, out var nanLeft, out var nanRight);
+            Assert.That(nanLeft, Is.EqualTo(0f), "Budget non fini : meme repli, et jamais un NaN applique au Rigidbody.");
+            Assert.That(nanRight, Is.EqualTo(0f));
         }
 
         [Test]
@@ -205,7 +244,7 @@ namespace RoadRage.Tests.EditMode
             // touche restait couche sur le flanc. La paire rendue par la fonction pure ne doit donc etre
             // reinterprettee nulle part -- ni signe inverse, ni echange gauche/droite.
             var source = CodeWithoutComments(File.ReadAllText(PhysicsBodySourcePath));
-            var antiRoll = ExtractMethodBody(source, "private void ApplyAntiRoll(Vector3 up)");
+            var antiRoll = ExtractMethodBody(source, "private void ApplyAntiRoll(Vector3 up, float loadBudget)");
 
             Assert.That(antiRoll, Does.Contain("ResolveAntiRollForces("),
                 "Les forces viennent de la fonction pure, jamais d'un calcul refait sur place.");
@@ -366,6 +405,17 @@ namespace RoadRage.Tests.EditMode
             Assert.That(profile.MaxForwardSpeed, Is.GreaterThan(0f), "La pointe authoree est une valeur de profil, plus une borne serialisee sur un controleur.");
             Assert.That(profile.MaxReverseSpeed, Is.GreaterThan(0f), "La pointe de marche arriere aussi.");
             Assert.That(profile.MinimumDirectionSpeed, Is.GreaterThan(0f), "Le seuil de changement de sens est authore.");
+
+            // Story 5.13 : les trois aides arcade sont authorees, chacune desactivable par sa propre
+            // valeur (nulle = terme inerte), et le controle de traction reste STRICTEMENT sous 1 pour
+            // que l'attenuation ne puisse jamais annuler le couple moteur.
+            Assert.That(profile.YawStabilityRate, Is.GreaterThan(0f),
+                "L'abattement du lacet est author e : sans lui, rien n'amortit la rotation de la caisse autour de la verticale.");
+            Assert.That(profile.TractionControlStrength, Is.InRange(0f, 0.999f),
+                "Le controle de traction est author e et strictement sous 1 : l'attenuation ne peut pas annuler le couple.");
+            Assert.That(profile.SpinRecoveryRate, Is.GreaterThan(0f), "La recuperation de tete-a-queue est author ee.");
+            Assert.That(profile.SpinDriftThresholdDegreesPerSecond, Is.GreaterThan(0f),
+                "Le seuil de derive est author e : sans lui, le terme s'engagerait dans le moindre virage.");
 
             // Symetrie gauche/droite des drapeaux de roue. Un drapeau en alternance (une seule roue
             // motrice par essieu) produirait un couple de lacet permanent que rien ne compense : le

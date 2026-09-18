@@ -25,3 +25,4 @@ MonoBehaviour:
     reactionTime: 0.3
     laneChangeEvaluationInterval: 1
     consistency: 0.8
+    aimPointRecallSpeed: 12

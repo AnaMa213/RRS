@@ -151,7 +151,12 @@ namespace RoadRage.Features.Vehicles
                 profile.SafeBrakingLimit * (1f + intensity),
                 profile.ReactionTime,
                 profile.LaneChangeEvaluationInterval,
-                profile.Consistency);
+                profile.Consistency,
+                // Story 5.13 : la vitesse de rappel de cible traverse la modulation SANS etre modifiee.
+                // L'omettre laissait le defaut du constructeur (12 m/s) remplacer la valeur authoree :
+                // le reglage du Def serait alors sans effet, ce qui est exactement la valeur en dur que
+                // la Story 5.9 a supprimee.
+                profile.AimPointRecallSpeed);
         }
 
         /// <summary>

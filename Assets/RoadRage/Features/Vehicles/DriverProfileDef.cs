@@ -20,7 +20,7 @@ namespace RoadRage.Features.Vehicles
         private string id = string.Empty;
 
         [SerializeField]
-        [Tooltip("Les onze parametres de conduite. Point de reglage unique : aucune valeur de conduite ne vit dans le controleur.")]
+        [Tooltip("Les douze parametres de conduite. Point de reglage unique : aucune valeur de conduite ne vit dans le controleur.")]
         private DriverProfile profile = new DriverProfile(
             desiredSpeed: 8f,
             timeHeadway: 1.5f,
@@ -32,7 +32,12 @@ namespace RoadRage.Features.Vehicles
             safeBrakingLimit: 4f,
             reactionTime: 0.3f,
             laneChangeEvaluationInterval: 1f,
-            consistency: 0.8f);
+            consistency: 0.8f,
+            // Story 5.13 : au-dessus de la vitesse de croisiere authoree (8 m/s), donc le rappel ne
+            // retarde PAS la visee en conduite nominale -- il ne se voit que sur les 4,8 m d'echelon
+            // qu'un franchissement de noeud produit. En dessous de la pointe authoree (18 m/s), donc
+            // une visee rapide reste legerement lissee.
+            aimPointRecallSpeed: 12f);
 
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
@@ -125,6 +130,15 @@ namespace RoadRage.Features.Vehicles
             if (!float.IsFinite(profile.Consistency) || profile.Consistency < 0f || profile.Consistency > 1f)
             {
                 error = "Consistency invalide : 'consistency' doit etre fini et compris entre 0 et 1.";
+                return false;
+            }
+
+            // Story 5.13 : la vitesse de rappel de la cible est desactivable (nulle = rappel inerte),
+            // donc elle n'est pas exigee strictement positive -- mais une valeur negative inverserait le
+            // sens du rappel au lieu de l'eteindre.
+            if (!IsFiniteAndAtLeast(profile.AimPointRecallSpeed, 0f))
+            {
+                error = "AimPointRecallSpeed invalide : 'aimPointRecallSpeed' doit etre fini et superieur ou egal a 0 -- une valeur negative inverserait le sens du rappel de cible au lieu de l'eteindre.";
                 return false;
             }
 
