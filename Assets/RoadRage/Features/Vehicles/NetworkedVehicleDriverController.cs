@@ -76,7 +76,6 @@ namespace RoadRage.Features.Vehicles
 
         private ReactionChannel honkChannel = ReactionChannel.None;
 
-        private const float InputEpsilon = 0.0001f;
         private const float DirectionEpsilon = 0.05f;
 
         /// <summary>Vitesse d'impact minimale (Story 3.5) en dessous de laquelle aucun degat voiture n'est applique.</summary>
@@ -636,9 +635,11 @@ namespace RoadRage.Features.Vehicles
         /// joueur : il n'y a plus d'ecriture de vitesse ni de rotation de caisse nulle part dans ce
         /// fichier.
         ///
-        /// L'inversion marche arriere de la direction reste une propriete de l'INPUT, pas de la
-        /// physique : la roue garde le meme angle geometrique, c'est le sens de la consigne qui
-        /// s'inverse quand le vehicule recule (testee par la Story 3.2).
+        /// MARCHE ARRIERE : la consigne de direction n'est PAS inversee. La Story 3.2 inversait le sens
+        /// parce que le lacet etait IMPOSE a la caisse ; le modele a effort de la Story 5.12 le produit
+        /// par la geometrie du pneu (le glissement lateral garde son signe, donc la force laterale fait
+        /// deja pivoter le nez du bon cote). Inverser l'entree EN PLUS doublait l'inversion -- constat de
+        /// recette du 2026-09-18 : « en recule, les directions sont inversees ».
         /// </summary>
         private void ApplyPhysics(VehicleDriveIntent intent)
         {
@@ -649,23 +650,9 @@ namespace RoadRage.Features.Vehicles
             }
 
             forward.Normalize();
-            var longitudinalSpeed = Vector3.Dot(Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up), forward);
 
-            SubmitIntentToPhysicsLayer(ResolveSignedIntent(intent, longitudinalSpeed));
-        }
-
-        /// <summary>
-        /// Intention telle qu'elle part vers la couche physique : le sens de la direction est inverse
-        /// en marche arriere, le reste passe tel quel. Fonction PURE, donc verifiable en EditMode -- la
-        /// regle de la Story 3.2 n'est pas une ligne de code a retrouver, c'est un resultat a prouver.
-        /// </summary>
-        public static VehicleDriveIntent ResolveSignedIntent(VehicleDriveIntent intent, float longitudinalSpeed)
-        {
-            return new VehicleDriveIntent(
-                intent.Throttle,
-                intent.Steer * ResolveSteerDirectionMultiplier(longitudinalSpeed, intent.BrakeReverse),
-                intent.BrakeReverse,
-                intent.Handbrake);
+            // L'intent part tel quel : aucune couche de ce controleur ne reinterprete le sens demande.
+            SubmitIntentToPhysicsLayer(intent);
         }
 
         /// <summary>
@@ -690,21 +677,6 @@ namespace RoadRage.Features.Vehicles
             ResolveDriveAuthority(out var maxForwardSpeed, out var steerRateDegreesPerSecond, out var brakeTorque);
 
             physicsBody.ApplyDriveIntent(intent, maxForwardSpeed, steerRateDegreesPerSecond, brakeTorque);
-        }
-
-        public static float ResolveSteerDirectionMultiplier(float longitudinalSpeed, float brakeReverseInput)
-        {
-            if (longitudinalSpeed < -DirectionEpsilon)
-            {
-                return -1f;
-            }
-
-            if (Mathf.Abs(longitudinalSpeed) <= DirectionEpsilon && brakeReverseInput > InputEpsilon)
-            {
-                return -1f;
-            }
-
-            return 1f;
         }
 
         public void ClearServerDriverIfClient(ulong clientId)

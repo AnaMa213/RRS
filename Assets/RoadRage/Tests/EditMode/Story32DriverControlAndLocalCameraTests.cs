@@ -87,13 +87,24 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void ArcadeSteeringDirectionInvertsWhenVehicleIsReversing()
+        public void TheSteerInputIsNoLongerInvertedInReverseTheTireGeometryDoesIt()
         {
-            Assert.That(NetworkedVehicleDriverController.ResolveSteerDirectionMultiplier(5f, 0f), Is.EqualTo(1f));
-            Assert.That(NetworkedVehicleDriverController.ResolveSteerDirectionMultiplier(0f, 0f), Is.EqualTo(1f));
-            Assert.That(NetworkedVehicleDriverController.ResolveSteerDirectionMultiplier(0f, 1f), Is.EqualTo(-1f));
-            Assert.That(NetworkedVehicleDriverController.ResolveSteerDirectionMultiplier(-2f, 1f), Is.EqualTo(-1f));
+            // Story 3.2 inversait la consigne en marche arriere parce que le lacet etait IMPOSE a la
+            // caisse : sans cette inversion, reculer aurait braque a l'envers. Le modele a effort de la
+            // Story 5.12 produit ce sens par la GEOMETRIE du pneu (le glissement lateral garde son signe
+            // en marche arriere, donc la force laterale fait deja pivoter le nez du bon cote), donc
+            // inverser l'entree en plus la doublait. Recette du 2026-09-18 : « en recule, les directions
+            // sont inversees ».
+            var source = File.ReadAllText(DriverControllerSourcePath);
+
+            Assert.That(source, Does.Not.Contain("ResolveSteerDirectionMultiplier"),
+                "La consigne traverse le chemin d'intent SANS etre inversee : le sens en marche arriere vient de la "
+                + "geometrie du pneu, plus d'une correction d'entree.");
+            Assert.That(source, Does.Contain("SubmitIntentToPhysicsLayer(intent)"),
+                "L'intent est soumis tel quel, sans reinterpretation du sens demande.");
         }
+
+        private const string DriverControllerSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs";
 
         [Test]
         public void GreyboxPlayerCarHasCameraRigWithInactiveLocalCinemachineCameraTargetingRootAndUnclaimedDriverByDefault()

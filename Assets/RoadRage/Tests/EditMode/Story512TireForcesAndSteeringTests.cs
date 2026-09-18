@@ -465,8 +465,9 @@ namespace RoadRage.Tests.EditMode
                 "Et cette soumission passe par le point d'entree d'efforts de la couche physique, le meme que la 5.14 consommera.");
             Assert.That(controller, Does.Not.Contain("lateralGrip"),
                 "Plus de borne de vitesse ni de grip lateral serialises ici : tout vient du profil authore.");
-            Assert.That(controller, Does.Contain("ResolveSteerDirectionMultiplier("),
-                "L'inversion marche arriere de la direction reste une propriete de l'INPUT (Story 3.2), pas de la physique.");
+            Assert.That(controller, Does.Not.Contain("ResolveSteerDirectionMultiplier"),
+                "La consigne de direction n'est plus inversee en marche arriere : le modele a effort produit ce sens par "
+                + "la geometrie du pneu, donc une inversion d'entree la doublerait (retour de recette du 2026-09-18).");
             Assert.That(controller, Does.Contain("ResolveEffectiveMaxForwardSpeed()"),
                 "Les degats de la Story 3.5 reduisent l'AUTORITE de conduite, et gardent leur contrat de source.");
         }
@@ -611,23 +612,15 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void TheReverseAwareSteerInversionAndTheDamageAuthorityAreProvenRatherThanSearched()
+        public void TheDamageAuthorityIsProvenRatherThanSearched()
         {
-            // Revue du 2026-09-18 : ces deux decisions etaient gardees par des assertions de TEXTE, que
-            // trois mutations laissaient vertes (retirer l'inversion, neutraliser un multiplicateur,
-            // supprimer l'intent neutre). Elles sont desormais des fonctions pures, donc mesurables.
-            var reversing = NetworkedVehicleDriverController.ResolveSignedIntent(
-                new VehicleDriveIntent(0.5f, 1f, 1f, 0.2f), -5f);
-            Assert.That(reversing.Steer, Is.EqualTo(-1f).Within(Epsilon),
-                "En marche arriere, la consigne de direction s'inverse : c'est l'input, pas la geometrie de la roue (Story 3.2).");
-            Assert.That(reversing.Throttle, Is.EqualTo(0.5f).Within(Epsilon), "Le reste de l'intent passe tel quel.");
-            Assert.That(reversing.BrakeReverse, Is.EqualTo(1f).Within(Epsilon));
-            Assert.That(reversing.Handbrake, Is.EqualTo(0.2f).Within(Epsilon), "Le frein a main traverse la meme mise en forme.");
-
-            var forward = NetworkedVehicleDriverController.ResolveSignedIntent(
-                new VehicleDriveIntent(1f, 1f, 0f, 0f), 6f);
-            Assert.That(forward.Steer, Is.EqualTo(1f).Within(Epsilon), "En marche avant, aucune inversion.");
-
+            // Revue du 2026-09-18 : ces valeurs etaient gardees par des assertions de TEXTE, que deux
+            // mutations laissaient vertes (neutraliser un multiplicateur de degats, supprimer l'intent
+            // neutre pousse quand le conducteur est perdu). L'autorite de conduite est desormais une
+            // fonction pure, donc mesuree. Le troisieme cas de cette revue -- l'inversion de direction en
+            // marche arriere -- a lui ete SUPPRIME le meme jour : le modele a effort produisait deja ce
+            // sens par la geometrie du pneu, donc la consigne inversee le doublait (retour de recette :
+            // « en recule, les directions sont inversees »). Sa garde vit dans la Story 3.2.
             var profile = LoadDefaultProfile();
 
             NetworkedVehicleDriverController.ResolveDriveAuthority(

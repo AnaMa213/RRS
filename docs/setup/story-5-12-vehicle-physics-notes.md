@@ -137,6 +137,18 @@ visee anticipee reellement exercee, et pas de degradation du degagement.
   meme pour les deux vehicules -- c'est elle que la 5.14 consommera. Consequence assumee : les
   vehicules IA ne peuvent toujours pas etre pousses (entree `deferred-work.md` : les deux passages
   d'observation sont faits, l'entree reste ouverte sous la 5.14).
+- **Ce que la physique vaut pour les vehicules IA, exactement.** Le prefab IA porte **le meme**
+  `VehiclePhysicsBody` et **le meme** profil (garde EditMode 5.11), donc il a les memes roues, la meme
+  suspension, la meme masse authoree et le meme modele de pneu. Mais son **mode longitudinal et son
+  lacet ne passent pas par cette couche** : `NetworkedAIVehicleDriverController.ApplyMovement` ecrit
+  `body.linearVelocity` (`:849`) et impose la rotation (`:846`) a chaque pas, et l'IA n'appelle jamais
+  `ApplyDriveIntent`. Autrement dit : la couche physique **subit** ces vehicules au lieu de les
+  conduire. Trois consequences a connaitre en recette : (1) le reetalonnage arcade de la Story 5.12
+  n'a **presque aucun effet visible** sur les voitures IA -- leur vitesse et leur cap sont imposes, donc
+  adhesion et couples ne les atteignent pas ; (2) une IA ne peut ni deraper ni perdre son adherence :
+  elle tient sa ligne comme sur des rails ; (3) c'est exactement ce que la **Story 5.14 (AI drives by
+  intent)** leve, en branchant l'IA sur `ApplyDriveIntent`. La Story 5.14 porte aussi un prerequis
+  enregistre (harnais PlayMode), dont deux de ses criteres dependent.
 - **La porte Console de `validate.ps1` est rouge pour la session entiere.** `validate.ps1 -TestMode
   EditMode` a echoue sur 5 erreurs Console, toutes **historiques** : une commande Pipeline rejetee
   (`m_LocalRotation`), trois appels a une API de pneu intermediaire corrigee pendant l'implementation
@@ -223,6 +235,25 @@ a ete reduit.
 de stabilite en lacet est exactement l'outil prevu, et rien ne la remplace dans ce modele ; (2) faire
 monter l'adherence arriere au-dessus de l'avant (equilibre sous-vireur) pour que la limite se traduise
 par un elargissement de trajectoire plutot que par une rotation.
+
+### Troisieme retour (meme jour) : « en recule, les directions sont inversees »
+
+**Cause : une compensation devenue nuisible.** La Story 3.2 inversait le sens de la consigne quand le
+vehicule reculait (`ResolveSteerDirectionMultiplier`), parce que le lacet etait **impose** a la caisse :
+sans cette inversion, reculer aurait braque a l'envers. Le modele a effort de la 5.12 produit ce sens
+par la **geometrie du pneu** : le glissement lateral garde son signe en marche arriere
+(`ResolveSlipAngleDegrees` prend la composante longitudinale en valeur absolue), donc la force laterale
+fait deja pivoter le nez du bon cote. Inverser l'entree **en plus** doublait l'inversion -- ce que la
+recette a vu immediatement.
+
+**Correction : l'inversion est supprimee**, avec la fonction qui la portait. L'intent part tel quel vers
+la couche physique. Verification du sens obtenu : en reculant avec la roue braquee a droite, la force
+laterale avant pousse le nez vers la gauche, donc l'arriere part a droite et la trajectoire s'incurve a
+droite -- comportement d'une vraie voiture, sans aucune correction d'entree.
+
+**Gardes mises a jour** : le test de la Story 3.2 devient « la consigne n'est plus inversee, la
+geometrie du pneu s'en charge » (il verifie l'absence d'inversion dans le controleur et le passage de
+l'intent), et la garde 5.12 correspondante est alignee. Suite EditMode : **574/574 verts**.
 
 ### Les roues visuelles ne tournent pas : c'est voulu, et hors perimetre
 
