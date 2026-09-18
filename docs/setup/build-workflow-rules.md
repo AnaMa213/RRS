@@ -14,6 +14,21 @@ ne les remplace jamais ; en cas de divergence, le spec gagne.
 
 ---
 
+"""
+Subagent delegation policy:
+Prefer direct tool calls over subagent delegation for simple repository exploration,
+single-file inspection, searches, and sequential work.
+
+Spawn subagents only when at least one of these applies:
+- the work is genuinely independent and can benefit from parallel execution;
+- isolated context materially improves the result;
+- a specialized subagent provides capabilities or expertise useful to the task.
+
+Do not spawn general-purpose subagents solely for routine reconnaissance that can be
+completed with a small number of direct Graphify, search, or file-inspection calls.
+Avoid overlapping subagents investigating the same concern.
+"""
+
 ## 1. Recon conditionnelle
 
 Choisis le niveau de recon avant d'ouvrir quoi que ce soit. Le surcout d'une recon inutile est du
