@@ -10,6 +10,11 @@ namespace RoadRage.DevTools
     /// de la verification de bordure : sans lui, « le vehicule monte la bordure » et « il ne decolle
     /// pas » ne se liraient qu'a l'oeil.
     ///
+    /// Story 5.12 y ajoute la lecture de PNEU par roue : glissement longitudinal et angulaire, force
+    /// transmise et adherence disponible (charge portee x coefficient). C'est l'instrument des
+    /// controles humains de la story -- « la derive est atteignable et se referme » ne se lit nulle
+    /// part ailleurs, et l'angle de roue effectif n'est lisible que par cette vue.
+    ///
     /// LECTURE SEULE, AUCUN ETAT DE GAMEPLAY. La vue ne detient rien et ne mute rien : elle interroge
     /// <see cref="VehiclePhysicsBody"/> (qui publie deja son etat en lecture seule) et
     /// <c>Rigidbody.linearVelocity</c> via la fonction pure d'echantillonnage. Motif de
@@ -37,7 +42,7 @@ namespace RoadRage.DevTools
         private Vector3 worldOffset = new Vector3(0f, 2.4f, 0f);
 
         [SerializeField]
-        [Tooltip("Afficher le detail par roue (compression, contact).")]
+        [Tooltip("Afficher le detail par roue (compression, contact, glissement, force, adherence).")]
         private bool showWheels = true;
 
         private bool isEnabledForBuild;
@@ -90,7 +95,7 @@ namespace RoadRage.DevTools
         /// </summary>
         private string ComposeText()
         {
-            var text = name + "  (Story 5.11)";
+            var text = name + "  (Story 5.12)";
 
             if (!target.TrySampleTelemetry(out var sample))
             {
@@ -101,7 +106,8 @@ namespace RoadRage.DevTools
                 text += "\nvitesse " + sample.Speed.ToString("F2") + " m/s"
                     + "   laterale " + sample.LateralSpeed.ToString("F2") + " m/s"
                     + "\nglissement " + (sample.Slip * 100f).ToString("F0") + " %"
-                    + "   derive " + sample.SlipAngleDegrees.ToString("F1") + " deg";
+                    + "   derive " + sample.SlipAngleDegrees.ToString("F1") + " deg"
+                    + "   braquage " + target.CurrentSteerAngleDegrees.ToString("F1") + " deg";
             }
 
             if (!showWheels)
@@ -118,6 +124,22 @@ namespace RoadRage.DevTools
 
                 text += "\nroue " + i + " : " + (wheel.Grounded ? "au sol" : "en l'air")
                     + "   compression " + wheel.Compression.ToString("F3") + " m";
+
+                if (!target.TryGetTireSample(i, out var tire))
+                {
+                    continue;
+                }
+
+                // Les valeurs qui decident du ressenti sont ecrites telles quelles : glissement et
+                // force transmise pour la derive, adherence disponible pour lire a quel point la roue
+                // est saturee. Sans ces trois lectures, « la voiture derape » et « elle tient » ne se
+                // distinguent qu'a l'oeil.
+                text += "\n     glissement " + tire.SlipRatio.ToString("F3")
+                    + "   angle " + tire.SlipAngleDegrees.ToString("F1") + " deg"
+                    + "\n     charge " + tire.NormalLoad.ToString("F0") + " N"
+                    + "   force " + tire.ForceMagnitude.ToString("F0") + " N"
+                    + " / adherence " + tire.MaximumForce.ToString("F0") + " N"
+                    + " (" + (tire.GripUsage * 100f).ToString("F0") + " %)";
             }
 
             return text;

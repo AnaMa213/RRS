@@ -272,6 +272,55 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
+        /// Predicat pur (Story 5.12) : point de visee anticipe du suivi de trajectoire. Viser la
+        /// POSITION d'un noeud fait basculer la cible d'un noeud au suivant d'un coup -- et comme le
+        /// basculement se produit a <c>arrivalRadius</c> du noeud, le vehicule se met a viser en
+        /// diagonale un point situe de l'autre cote de la jonction : il coupe l'interieur du virage,
+        /// d'une profondeur exactement bornee par ce rayon.
+        ///
+        /// Ici la cible se deplace CONTINUMENT : tant que le noeud vise est plus loin que la distance
+        /// de visee, la cible reste le noeud (viser un point de la meme droite ne change pas le cap) ;
+        /// des que le vehicule en est plus pres, la cible glisse au-dela du noeud, le long de son
+        /// SENS DE CIRCULATION authore. A la distance de visee exacte, les deux formules se rejoignent :
+        /// aucune discontinuite, donc aucun basculement.
+        ///
+        /// Le sens de circulation vient du noeud lui-meme (<see cref="LaneGraph.GetNodeRotation"/>),
+        /// pas d'un successeur tire : le tirage de virage n'est fait qu'a l'arrivee, et deviner
+        /// maintenant lequel sera tire reviendrait a decider deux fois.
+        ///
+        /// Aucune mutation : c'est une lecture de geometrie, appelable a chaque pas.
+        /// </summary>
+        public static Vector3 ResolveLookAheadPoint(
+            Vector3 position,
+            Vector3 waypointPosition,
+            Vector3 waypointForward,
+            float lookAheadDistance)
+        {
+            var toWaypoint = waypointPosition - position;
+            toWaypoint.y = 0f;
+
+            if (!float.IsFinite(lookAheadDistance) || lookAheadDistance <= 0f)
+            {
+                return waypointPosition;
+            }
+
+            var distance = toWaypoint.magnitude;
+            if (!float.IsFinite(distance) || distance >= lookAheadDistance)
+            {
+                return waypointPosition;
+            }
+
+            var flatForward = new Vector3(waypointForward.x, 0f, waypointForward.z);
+            if (!float.IsFinite(flatForward.x) || !float.IsFinite(flatForward.z) || flatForward.sqrMagnitude <= 0.0001f)
+            {
+                return waypointPosition;
+            }
+
+            flatForward.Normalize();
+            return waypointPosition + (flatForward * (lookAheadDistance - distance));
+        }
+
+        /// <summary>
         /// Descente gloutonne vers une cible : parmi les successeurs, celui dont la position est la
         /// plus proche de <paramref name="target"/>. C'est la reorientation "vers la sortie la plus
         /// proche" -- un pas a la fois, sans A* ni itineraire pre-calcule. Rend la valeur d'un element

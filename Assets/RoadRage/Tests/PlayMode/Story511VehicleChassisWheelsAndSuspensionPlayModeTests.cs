@@ -233,9 +233,16 @@ namespace RoadRage.Tests.PlayMode
         }
 
         /// <summary>
-        /// Moteur du banc : meme partage que le vrai conducteur de la Story 5.11. La vitesse HORIZONTALE
-        /// est imposee (c'est ce que le controleur ecrit), et l'axe vertical est laisse a la couche
+        /// Moteur du banc : la vitesse HORIZONTALE est imposee, et l'axe vertical est laisse a la couche
         /// physique -- sinon le banc annulerait la gravite et ne prouverait plus rien de la suspension.
+        ///
+        /// Depuis la Story 5.12, ce partage N'EST PLUS celui du jeu : aucun controleur n'ecrit plus la
+        /// vitesse, le vehicule joueur passe par <c>VehiclePhysicsBody.ApplyDriveIntent</c>, et ce banc
+        /// exerce donc la couche physique sans le chemin de conduite. C'est volontaire -- il mesure la
+        /// MONTEE et la NON-PROJECTION sur la bordure, pas la conduite -- mais ses seuils portent
+        /// desormais sur une couche dont le frottement de contact a ete remplace par le modele de pneu ;
+        /// ils doivent etre re-executes et confirmes (voir la note de livraison 5.12, procedure de
+        /// recette).
         /// </summary>
         private static void DriveAt(Rigidbody body, float speed)
         {

@@ -10,12 +10,20 @@ namespace RoadRage.Features.Vehicles
     /// par roue** dans <see cref="VehicleSuspensionModel"/>. Jamais de <c>WheelCollider</c>, jamais un
     /// reglage de chassis en <c>[SerializeField]</c> sur un controleur.
     ///
-    /// ETAT INTERMEDIAIRE, NOMME ET DATTE -- 2026-09-18, Story 5.11. La couche physique propriete
-    /// l'axe VERTICAL : gravite, ressort, amortisseur et anti-roulis. Les controleurs, eux, ecrivent
-    /// encore la vitesse longitudinale et laterale en bloc et n'ecrivent plus la composante
-    /// verticale. Ce partage est volontairement provisoire : la Story 5.12 (Tire Forces and Steering)
-    /// remplace les ecritures de <c>linearVelocity</c> par des efforts aux roues et leve cet etat.
-    /// Il est ecrit ici pour etre lu, pas subi.
+    /// Story 5.12 : la couche propriete desormais le PLAN HORIZONTAL aussi. Le longitudinal et le
+    /// lateral ne viennent plus d'une ecriture de <c>linearVelocity</c> ni d'un <c>MoveRotation</c>,
+    /// mais d'efforts de pneu appliques au point de contact de chaque roue, calcules dans
+    /// <see cref="VehicleTireModel"/> (glissement, courbe de force avec pic puis chute, budget
+    /// d'adherence). La direction est un **angle de roue** (<see cref="VehicleSteeringModel"/>) suivi
+    /// par les roues marquees <see cref="VehicleWheel.IsSteering"/>, et le couple est envoye aux seules
+    /// roues marquees <see cref="VehicleWheel.IsDriven"/>.
+    ///
+    /// ETAT INTERMEDIAIRE, NOMME ET DATTE -- 2026-09-18, Story 5.12. Le vehicule JOUEUR passe
+    /// entierement par <see cref="ApplyDriveIntent"/> : il n'ecrit plus jamais la vitesse. Le vehicule
+    /// IA, lui, ecrit encore <c>linearVelocity</c> et <c>MoveRotation</c> dans
+    /// <c>NetworkedAIVehicleDriverController.ApplyMovement</c> : c'est ce que la Story 5.14 (AI drives
+    /// by intent) supprime. La couche physique est deja la seule et la meme pour les deux -- c'est
+    /// elle que la 5.14 consommera.
     ///
     /// AUCUNE VERIFICATION D'AUTORITE, VOLONTAIREMENT. Les deux controleurs posent deja
     /// <c>body.isKinematic = !IsServer</c> : cote client un <c>AddForce</c> est sans effet. Ajouter ici
@@ -41,12 +49,23 @@ namespace RoadRage.Features.Vehicles
         private Rigidbody body;
         private VehicleProfile profile;
         private VehicleSuspensionModel.WheelState[] wheelStates;
+        private VehicleTireModel.TireSample[] tireSamples;
         private float[] previousCompression;
         private bool[] wheelWasGrounded;
+        private float[] wheelAngularVelocity;
         private WheelPair[] antiRollPairs;
         private bool hasPreviousCompression;
         private bool warnedMissingProfile;
         private bool warnedInvalidProfile;
+
+        // Etat de conduite du pas courant. Il vit ici, et pas dans un controleur, parce que c'est la
+        // seule couche qui en fait quelque chose : un angle de roue, un couple par roue, une rotation
+        // par roue. Les valeurs par defaut viennent du profil (vehicule au repos, roues droites).
+        private VehicleDriveIntent driveIntent = VehicleDriveIntent.Idle;
+        private float driveMaxForwardSpeed;
+        private float driveBrakeTorque;
+        private float driveSteerRateDegreesPerSecond;
+        private float currentSteerAngleDegrees;
 
         /// <summary>Vrai quand un profil valide a effectivement ete applique. Faux : ce composant ne simule rien.</summary>
         public bool HasProfile { get; private set; }
@@ -130,10 +149,20 @@ namespace RoadRage.Features.Vehicles
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
             wheelStates = new VehicleSuspensionModel.WheelState[profile.WheelCount];
+            tireSamples = new VehicleTireModel.TireSample[profile.WheelCount];
             previousCompression = new float[profile.WheelCount];
             wheelWasGrounded = new bool[profile.WheelCount];
+            wheelAngularVelocity = new float[profile.WheelCount];
             hasPreviousCompression = false;
             antiRollPairs = BuildAntiRollPairs(profile);
+
+            // Etat de conduite remis au repos : aucun intent tant qu'un conducteur n'en a pas soumis
+            // un, roues droites, et les trois echelles prises dans le profil (une seule source).
+            driveIntent = VehicleDriveIntent.Idle;
+            driveMaxForwardSpeed = profile.MaxForwardSpeed;
+            driveBrakeTorque = profile.BrakeTorque;
+            driveSteerRateDegreesPerSecond = profile.SteerRateDegreesPerSecond;
+            currentSteerAngleDegrees = 0f;
             HasProfile = true;
         }
 
@@ -146,32 +175,74 @@ namespace RoadRage.Features.Vehicles
         {
             profile = default;
             wheelStates = null;
+            tireSamples = null;
             previousCompression = null;
             wheelWasGrounded = null;
+            wheelAngularVelocity = null;
             antiRollPairs = null;
             hasPreviousCompression = false;
+            driveIntent = VehicleDriveIntent.Idle;
+            currentSteerAngleDegrees = 0f;
             HasProfile = false;
         }
 
         /// <summary>
-        /// Remet a zero la memoire de suspension. A appeler par TOUT chemin qui deplace le vehicule
-        /// d'un coup -- recuperation, teleportation reseau -- : la vitesse de compression vient d'une
-        /// difference finie entre deux frames, et un deplacement discontinu lui ferait produire un pic
-        /// d'amortisseur que rien, physiquement, ne justifie.
+        /// Point d'entree d'intent de conduite (Story 5.12). C'est LE chemin par lequel un vehicule
+        /// joueur se deplace : le controleur soumet son intention, la couche physique la transforme en
+        /// couples aux roues et en angle de roue. Aucune ecriture de <c>linearVelocity</c> ni de
+        /// rotation de caisse n'existe plus dans ce chemin.
+        ///
+        /// L'intent est STOCKE et consomme par le prochain <c>FixedUpdate</c> de ce composant : l'ordre
+        /// d'execution entre le controleur et la couche physique n'a donc aucune importance, ce qui,
+        /// sans ce stockage, ferait dependre la conduite de l'ordre des scripts.
+        ///
+        /// <paramref name="maxForwardSpeed"/> et <paramref name="steerRateDegreesPerSecond"/> et
+        /// <paramref name="brakeTorque"/> viennent du profil, eventuellement reduits par les degats de
+        /// la Story 3.5 (moteur, roue, freins) : c'est l'autorite de conduite qui est reduite, jamais
+        /// une vitesse ecrite.
+        /// </summary>
+        public void ApplyDriveIntent(
+            VehicleDriveIntent intent,
+            float maxForwardSpeed,
+            float steerRateDegreesPerSecond,
+            float brakeTorque)
+        {
+            driveIntent = intent;
+            driveMaxForwardSpeed = maxForwardSpeed;
+            driveSteerRateDegreesPerSecond = steerRateDegreesPerSecond;
+            driveBrakeTorque = brakeTorque;
+        }
+
+        /// <summary>
+        /// Remet a zero la memoire de suspension et la rotation des roues. A appeler par TOUT chemin
+        /// qui deplace le vehicule d'un coup -- recuperation, teleportation reseau -- : la vitesse de
+        /// compression vient d'une difference finie entre deux frames, et un deplacement discontinu
+        /// lui ferait produire un pic d'amortisseur que rien, physiquement, ne justifie. La rotation
+        /// des roues est remise a zero pour la meme raison : sa valeur n'a plus aucun sens apres un
+        /// saut de position, et le glissement qu'elle produirait au pas suivant serait un glissement
+        /// invente.
         /// </summary>
         public void ResetSuspensionState()
         {
             hasPreviousCompression = false;
 
-            if (previousCompression == null || wheelWasGrounded == null)
+            if (previousCompression != null && wheelWasGrounded != null)
+            {
+                for (var i = 0; i < previousCompression.Length; i++)
+                {
+                    previousCompression[i] = 0f;
+                    wheelWasGrounded[i] = false;
+                }
+            }
+
+            if (wheelAngularVelocity == null)
             {
                 return;
             }
 
-            for (var i = 0; i < previousCompression.Length; i++)
+            for (var i = 0; i < wheelAngularVelocity.Length; i++)
             {
-                previousCompression[i] = 0f;
-                wheelWasGrounded[i] = false;
+                wheelAngularVelocity[i] = 0f;
             }
         }
 
@@ -205,6 +276,35 @@ namespace RoadRage.Features.Vehicles
 
             forward.Normalize();
             var right = Vector3.Cross(Vector3.up, forward).normalized;
+            var longitudinalSpeed = Vector3.Dot(planarVelocity, forward);
+
+            // Direction : la consigne avance vers son angle cible a taux borne -- braquage ou rappel,
+            // jamais un saut. Puis chaque roue prend cet angle si et seulement si elle est authoree
+            // directrice (`VehicleWheel.IsSteering`, inerte depuis la Story 5.11).
+            UpdateSteeringState(current, fixedDeltaTime, longitudinalSpeed);
+
+            // Train roulant : les couples d'un pas, identiques sur toutes les roues qui y ont droit.
+            // La repartition par roue (motrice ; arriere pour le frein a main) se fait dans la boucle.
+            var driveTorque = VehicleTireModel.ResolveWheelDriveTorque(
+                driveIntent.Throttle,
+                driveIntent.BrakeReverse,
+                longitudinalSpeed,
+                current.MinimumDirectionSpeed,
+                current.EngineTorque,
+                current.ReverseTorque,
+                driveMaxForwardSpeed,
+                current.MaxReverseSpeed);
+
+            var serviceBrakeTorque = VehicleTireModel.ResolveWheelBrakeTorque(
+                driveIntent.Throttle,
+                driveIntent.BrakeReverse,
+                longitudinalSpeed,
+                current.MinimumDirectionSpeed,
+                driveBrakeTorque,
+                current.CoastTorque);
+
+            var handbrakeEngaged = driveIntent.Handbrake > 0.0001f;
+            var adherence = current.LateralFrictionCoefficient;
 
             for (var i = 0; i < wheelStates.Length; i++)
             {
@@ -240,46 +340,149 @@ namespace RoadRage.Features.Vehicles
                     contactPoint,
                     contactPoint + (up * wheel.Radius));
 
-                if (!grounded)
+                // La charge normale portee par CETTE roue est la force que la suspension vient de
+                // calculer. C'est l'entree manquante du pneu : elle borne tout ce qu'il peut
+                // transmettre, et elle vaut zero des que la roue ne touche plus.
+                var normalLoad = grounded
+                    ? VehicleSuspensionModel.ResolveSuspensionForce(
+                        compression,
+                        compressionVelocity,
+                        current.SpringRate,
+                        current.Damper,
+                        staticLoad)
+                    : 0f;
+
+                // La roue AU SOL compte, meme si sa charge est nulle pour ce pas : c'est ce compte qui
+                // decide si l'assiette peut etre corrigee, et une caisse posee sur ses roues mais
+                // momentanement delestee doit continuer d'etre redressee. Le compter sur la charge
+                // ferait disparaitre la correction d'assiette exactement quand elle sert.
+                if (grounded)
                 {
-                    continue;
+                    groundedWheels++;
                 }
 
-                groundedWheels++;
-
-                var force = VehicleSuspensionModel.ResolveSuspensionForce(
-                    compression,
-                    compressionVelocity,
-                    current.SpringRate,
-                    current.Damper,
-                    staticLoad);
-
-                if (force > 0f)
+                if (normalLoad > 0f)
                 {
-                    body.AddForceAtPosition(up * force, contactPoint, ForceMode.Force);
+                    body.AddForceAtPosition(up * normalLoad, contactPoint, ForceMode.Force);
+                }
 
-                    // Frottement de contact, borne par la charge que CETTE roue porte : c'est un contact,
-                    // pas un modele de pneu (la Story 5.12 le remplace par un glissement progressif
-                    // pilote par le slip). Sans lui, un vehicule pose sur quatre rayons n'a aucun
-                    // frottement -- il glisse comme sur de la glace et un choc de flanc l'emporte.
-                    var friction = VehicleSuspensionModel.ResolveGroundFrictionForce(
-                        planarVelocity,
-                        forward,
-                        right,
-                        force,
-                        current.LateralFrictionCoefficient,
-                        current.RollingResistanceCoefficient);
+                // Repere de la roue : l'axe avant de la caisse tourne de l'angle de braquage effectif.
+                var steerAngleDegrees = VehicleSteeringModel.ResolveWheelSteerAngleDegrees(wheel.IsSteering, currentSteerAngleDegrees);
+                var steerRotation = Quaternion.AngleAxis(steerAngleDegrees, up);
+                var wheelForward = steerRotation * forward;
+                var wheelRight = steerRotation * right;
 
-                    if (friction.sqrMagnitude > 0f)
+                // Frein a main : il agit sur les roues ARRIERE, c'est-a-dire celles qui ne braquent pas.
+                // C'est le blocage de ces roues -- et lui seul -- qui effondre leur adherence laterale
+                // et fait entrer le vehicule en derive.
+                var handbrakeOnThisWheel = handbrakeEngaged && !wheel.IsSteering;
+                var wheelDriveTorque = wheel.IsDriven && !handbrakeOnThisWheel ? driveTorque : 0f;
+                var wheelBrakeTorque = handbrakeOnThisWheel
+                    ? Mathf.Max(serviceBrakeTorque, current.HandbrakeTorque)
+                    : serviceBrakeTorque;
+
+                var appliedLongitudinal = 0f;
+                var appliedLateral = 0f;
+                var slipRatio = 0f;
+                var slipAngleDegrees = 0f;
+
+                if (normalLoad > 0f)
+                {
+                    // La vitesse du point de contact -- et non celle du centre de masse : elle seule
+                    // contient la contribution du lacet et du roulis, qui est ce qui fait glisser une
+                    // roue quand la caisse tourne.
+                    var contactVelocity = body.GetPointVelocity(contactPoint);
+                    var contactLongitudinal = Vector3.Dot(contactVelocity, wheelForward);
+                    var contactLateral = Vector3.Dot(contactVelocity, wheelRight);
+
+                    slipRatio = VehicleTireModel.ResolveSlipRatio(wheelAngularVelocity[i] * wheel.Radius, contactLongitudinal);
+                    slipAngleDegrees = VehicleTireModel.ResolveSlipAngleDegrees(contactLongitudinal, contactLateral);
+
+                    // Un pneu n'a qu'UN budget d'adherence, et les deux glissements le partagent : c'est
+                    // la fonction pure qui le repartit (chaque glissement normalise par son propre pic,
+                    // une seule magnitude, une seule direction). Le sens des deux axes vient donc du
+                    // signe des glissements mesures, et rien n'est re-corrige ici : le longitudinal est
+                    // positif quand la bande de roulement avance plus vite que le sol (roue motrice),
+                    // et l'angle de glissement porte deja l'opposition au glissement lateral.
+                    var tireForces = VehicleTireModel.ResolveTireForces(
+                        slipRatio,
+                        current.TirePeakSlipRatio,
+                        slipAngleDegrees,
+                        current.TirePeakSlipAngleDegrees,
+                        current.TireSlipFalloffFraction,
+                        adherence,
+                        normalLoad);
+
+                    // Attenuation basse vitesse (equivalente a la rampe de 0,5 m/s de la Story 5.11) :
+                    // sans elle, la force laterale pleine a l'arret ferait brouter un vehicule gare au
+                    // lieu de l'immobiliser.
+                    var ramp = VehicleTireModel.ResolveLowSpeedRamp(Mathf.Sqrt((contactLongitudinal * contactLongitudinal) + (contactLateral * contactLateral)));
+                    appliedLongitudinal = tireForces.x * ramp;
+                    appliedLateral = tireForces.y * ramp;
+
+                    var tireForce = (wheelForward * appliedLongitudinal) + (wheelRight * appliedLateral);
+                    if (tireForce.sqrMagnitude > 0f)
                     {
-                        body.AddForceAtPosition(friction, contactPoint, ForceMode.Force);
+                        body.AddForceAtPosition(tireForce, contactPoint, ForceMode.Force);
                     }
                 }
+
+                // Rotation de la roue : couple moteur, reaction du pneu et frein. Elle est integree meme
+                // en l'air -- une roue motrice qui ne touche pas continue de tourner, et c'est
+                // exactement ce que le glissement de l'atterrissage doit retrouver.
+                wheelAngularVelocity[i] = VehicleTireModel.IntegrateWheelAngularVelocity(
+                    wheelAngularVelocity[i],
+                    wheelDriveTorque,
+                    wheelBrakeTorque,
+                    appliedLongitudinal,
+                    wheel.Radius,
+                    current.WheelInertia,
+                    fixedDeltaTime);
+
+                tireSamples[i] = VehicleTireModel.SampleTire(
+                    grounded,
+                    normalLoad,
+                    slipRatio,
+                    slipAngleDegrees,
+                    Mathf.Sqrt((appliedLongitudinal * appliedLongitudinal) + (appliedLateral * appliedLateral)),
+                    adherence);
             }
 
             hasPreviousCompression = true;
             ApplyAntiRoll(up);
             ApplyAttitudeAssist(up, groundedWheels);
+        }
+
+        /// <summary>
+        /// Avance la consigne d'angle de roue d'un pas. L'angle cible diminue avec la vitesse (la
+        /// direction reste lisible a vitesse elevee) et le retour au centre a son propre taux authore :
+        /// relacher la direction ne remet jamais les roues droites d'un coup.
+        ///
+        /// Sous le seuil de vitesse authore, la consigne est nulle -- un vehicule quasi immobile ne
+        /// braque pas ses roues, et l'angle ne s'accumule donc pas pour se liberer d'un coup au premier
+        /// metre parcouru.
+        /// </summary>
+        private void UpdateSteeringState(VehicleProfile current, float fixedDeltaTime, float longitudinalSpeed)
+        {
+            var target = VehicleSteeringModel.ResolveSteerAngleDegrees(
+                driveIntent.Steer,
+                longitudinalSpeed,
+                current.MinimumDirectionSpeed,
+                current.MaxSteerAngleDegrees,
+                current.HighSpeedSteerAngleDegrees,
+                current.SteerFullReductionSpeed);
+
+            var rate = VehicleSteeringModel.ResolveSteerRateDegreesPerSecond(
+                currentSteerAngleDegrees,
+                target,
+                driveSteerRateDegreesPerSecond,
+                current.SteerReturnRateDegreesPerSecond);
+
+            currentSteerAngleDegrees = VehicleSteeringModel.MoveSteerAngleDegrees(
+                currentSteerAngleDegrees,
+                target,
+                rate,
+                fixedDeltaTime);
         }
 
         /// <summary>
@@ -371,6 +574,30 @@ namespace RoadRage.Features.Vehicles
 
             state = wheelStates[index];
             return true;
+        }
+
+        /// <summary>
+        /// Echantillon de pneu de la roue d'index donne pour la derniere frame simulee : glissement
+        /// longitudinal et angulaire, charge portee, force transmise et adherence disponible. Lecture
+        /// seule, comme <see cref="TryGetWheelState"/> -- c'est la seconde fenetre de la telemetrie sur
+        /// la couche physique, et elle n'ecrit rien.
+        /// </summary>
+        public bool TryGetTireSample(int index, out VehicleTireModel.TireSample sample)
+        {
+            if (tireSamples == null || index < 0 || index >= tireSamples.Length)
+            {
+                sample = default;
+                return false;
+            }
+
+            sample = tireSamples[index];
+            return true;
+        }
+
+        /// <summary>Angle de roue courant des roues directrices (degres), signe. Lecture seule, pour la telemetrie.</summary>
+        public float CurrentSteerAngleDegrees
+        {
+            get { return currentSteerAngleDegrees; }
         }
 
         /// <summary>

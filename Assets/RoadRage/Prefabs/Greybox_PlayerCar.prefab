@@ -1058,15 +1058,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: RoadRage.Features.Vehicles::RoadRage.Features.Vehicles.NetworkedVehicleDriverController
   ShowTopMostFoldoutHeaderGroup: 1
-  maxForwardSpeed: 18
-  maxReverseSpeed: 7
-  acceleration: 28
-  reverseAcceleration: 18
-  brakeDeceleration: 42
-  coastDeceleration: 8
-  lateralGrip: 36
-  steerDegreesPerSecond: 125
-  minimumSteerSpeed: 0.25
   rolloverUprightDotThreshold: 0.35
   rolloverSustainedSeconds: 2
   voidHeightThreshold: -10

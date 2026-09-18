@@ -31,12 +31,17 @@ namespace RoadRage.Features.Vehicles
             mass: 1200f,
             centerOfMass: new Vector3(0f, -0.35f, 0f),
             inertiaTensor: new Vector3(2173f, 2396f, 626f),
+            // Roues avant directrices, roues arriere motrices. La repartition doit etre SYMETRIQUE
+            // gauche/droite : une seule roue motrice d'un cote produirait un couple de lacet permanent
+            // que rien ne compense (le vehicule tirerait d'un cote en acceleration). La Story 5.11
+            // avait author e un drapeau par roue en alternance ; le sens est corrige ici, ou les
+            // drapeaux sont enfin consommes.
             wheels: new[]
             {
-                new VehicleWheel(new Vector3(-0.85f, 0.22f, 1.55f), 0.33f, 0, true, true),
+                new VehicleWheel(new Vector3(-0.85f, 0.22f, 1.55f), 0.33f, 0, true, false),
                 new VehicleWheel(new Vector3(0.85f, 0.22f, 1.55f), 0.33f, 0, true, false),
                 new VehicleWheel(new Vector3(-0.85f, 0.22f, -1.55f), 0.33f, 1, false, true),
-                new VehicleWheel(new Vector3(0.85f, 0.22f, -1.55f), 0.33f, 1, false, false)
+                new VehicleWheel(new Vector3(0.85f, 0.22f, -1.55f), 0.33f, 1, false, true)
             },
             springRate: 32000f,
             damper: 1900f,
@@ -46,9 +51,25 @@ namespace RoadRage.Features.Vehicles
             attitudeLevellingRate: 18000f,
             attitudeDamping: 6000f,
             lateralFrictionCoefficient: 1.2f,
-            rollingResistanceCoefficient: 0.03f,
             groundMask: 1,
-            surfaceContactTolerance: 0.15f);
+            surfaceContactTolerance: 0.15f,
+            engineTorque: 900f,
+            reverseTorque: 700f,
+            brakeTorque: 700f,
+            coastTorque: 120f,
+            handbrakeTorque: 3000f,
+            wheelInertia: 3f,
+            maxForwardSpeed: 18f,
+            maxReverseSpeed: 7f,
+            minimumDirectionSpeed: 0.25f,
+            maxSteerAngleDegrees: 32f,
+            highSpeedSteerAngleDegrees: 10f,
+            steerFullReductionSpeed: 18f,
+            steerRateDegreesPerSecond: 180f,
+            steerReturnRateDegreesPerSecond: 140f,
+            tirePeakSlipRatio: 0.14f,
+            tirePeakSlipAngleDegrees: 8f,
+            tireSlipFalloffFraction: 0.7f);
 
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
@@ -134,11 +155,30 @@ namespace RoadRage.Features.Vehicles
             {
                 var axle = profile.GetWheel(i).AxleIndex;
                 var count = 0;
+                var driven = false;
+                var hasReference = false;
                 for (var j = 0; j < profile.WheelCount; j++)
                 {
-                    if (profile.GetWheel(j).AxleIndex == axle)
+                    if (profile.GetWheel(j).AxleIndex != axle)
                     {
-                        count++;
+                        continue;
+                    }
+
+                    count++;
+
+                    // Les deux roues d'un essieu partagent isDriven : une seule roue motrice produirait un
+                    // couple de lacet permanent, donc un vehicule qui tire d'un cote en acceleration -- un
+                    // reglage casse, jamais un reglage.
+                    if (!hasReference)
+                    {
+                        driven = profile.GetWheel(j).IsDriven;
+                        hasReference = true;
+                    }
+                    else if (profile.GetWheel(j).IsDriven != driven)
+                    {
+                        error = "Wheels invalide : les deux roues de l'essieu " + axle
+                            + " doivent partager 'isDriven', sinon le vehicule tire d'un cote en acceleration.";
+                        return false;
                     }
                 }
 
@@ -212,13 +252,7 @@ namespace RoadRage.Features.Vehicles
             // de la glace. C'est un contact, pas un confort -- donc il est exige.
             if (!IsFiniteAndAbove(profile.LateralFrictionCoefficient, 0f))
             {
-                error = "LateralFrictionCoefficient invalide : 'lateralFrictionCoefficient' doit etre fini et strictement positif, sinon un choc de flanc emporte le vehicule.";
-                return false;
-            }
-
-            if (!IsFiniteAndAtLeast(profile.RollingResistanceCoefficient, 0f))
-            {
-                error = "RollingResistanceCoefficient invalide : 'rollingResistanceCoefficient' doit etre fini et superieur ou egal a 0.";
+                error = "LateralFrictionCoefficient invalide : 'lateralFrictionCoefficient' (adherence du pneu) doit etre fini et strictement positif, sinon un choc de flanc emporte le vehicule.";
                 return false;
             }
 
@@ -228,8 +262,184 @@ namespace RoadRage.Features.Vehicles
                 return false;
             }
 
+            // --------------------------------------------------------------- modele de pneu (5.12)
+
+            // Un pic de glissement nul rendrait la courbe de force plate a l'infini : le pneu ne
+            // transmettrait jamais rien, ou transmettrait tout d'un coup -- exactement le seuil binaire
+            // que le modele interdit.
+            if (!IsFiniteAndAbove(profile.TirePeakSlipRatio, 0f))
+            {
+                error = "TirePeakSlipRatio invalide : 'tirePeakSlipRatio' doit etre fini et strictement positif, sinon le pneu n'a pas de courbe de force.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.TirePeakSlipAngleDegrees, 0f) || profile.TirePeakSlipAngleDegrees > 90f)
+            {
+                error = "TirePeakSlipAngleDegrees invalide : 'tirePeakSlipAngleDegrees' doit etre fini, strictement positif et au plus egal a 90 degres (au-dela, ce n'est plus un angle de glissement).";
+                return false;
+            }
+
+            // Une asymptote nulle serait un seuil binaire deguise : au-dela du pic, la force tomberait
+            // a zero et la derive deviendrait irrecuperable. Une asymptote de 1 supprimerait la chute.
+            if (!IsFiniteAndAtLeast(profile.TireSlipFalloffFraction, 0f) || profile.TireSlipFalloffFraction >= 1f)
+            {
+                error = "TireSlipFalloffFraction invalide : 'tireSlipFalloffFraction' doit etre fini, superieur ou egal a 0 et strictement inferieur a 1 -- la chute d'adherence doit etre progressive, jamais totale.";
+                return false;
+            }
+
+            // ------------------------------------------------------------ modele de direction (5.12)
+
+            if (!IsFiniteAndAbove(profile.MaxSteerAngleDegrees, 0f) || profile.MaxSteerAngleDegrees > 90f)
+            {
+                error = "MaxSteerAngleDegrees invalide : 'maxSteerAngleDegrees' doit etre fini, strictement positif et au plus egal a 90 degres (hors bornes).";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.HighSpeedSteerAngleDegrees, 0f)
+                || profile.HighSpeedSteerAngleDegrees > profile.MaxSteerAngleDegrees)
+            {
+                error = "HighSpeedSteerAngleDegrees invalide : 'highSpeedSteerAngleDegrees' doit etre fini, strictement positif et inferieur ou egal a 'maxSteerAngleDegrees' -- sinon la direction s'ouvrirait avec la vitesse.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.SteerFullReductionSpeed, 0f))
+            {
+                error = "SteerFullReductionSpeed invalide : 'steerFullReductionSpeed' doit etre fini et strictement positif.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.SteerRateDegreesPerSecond, 0f))
+            {
+                error = "SteerRateDegreesPerSecond invalide : 'steerRateDegreesPerSecond' doit etre fini et strictement positif, sinon les roues ne braquent jamais.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.SteerReturnRateDegreesPerSecond, 0f))
+            {
+                error = "SteerReturnRateDegreesPerSecond invalide : 'steerReturnRateDegreesPerSecond' doit etre fini et strictement positif, sinon une roue braquee ne revient jamais au centre.";
+                return false;
+            }
+
+            // ------------------------------------------------------------- train roulant (5.12)
+
+            if (!IsFiniteAndAbove(profile.EngineTorque, 0f))
+            {
+                error = "EngineTorque invalide : 'engineTorque' doit etre fini et strictement positif, sinon le vehicule ne peut pas demarrer.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.ReverseTorque, 0f))
+            {
+                error = "ReverseTorque invalide : 'reverseTorque' doit etre fini et strictement positif, sinon la marche arriere est inatteignable.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.BrakeTorque, 0f))
+            {
+                error = "BrakeTorque invalide : 'brakeTorque' doit etre fini et strictement positif, sinon le frein de service ne freine rien.";
+                return false;
+            }
+
+            if (!IsFiniteAndAtLeast(profile.CoastTorque, 0f))
+            {
+                error = "CoastTorque invalide : 'coastTorque' doit etre fini et superieur ou egal a 0.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.HandbrakeTorque, 0f))
+            {
+                error = "HandbrakeTorque invalide : 'handbrakeTorque' doit etre fini et strictement positif, sinon le frein a main ne bloque pas les roues arriere et ne fait pas entrer en derive.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.WheelInertia, 0f))
+            {
+                error = "WheelInertia invalide : 'wheelInertia' doit etre fini et strictement positif, sinon la rotation de la roue n'est pas integrable.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.MaxForwardSpeed, 0f))
+            {
+                error = "MaxForwardSpeed invalide : 'maxForwardSpeed' doit etre fini et strictement positif.";
+                return false;
+            }
+
+            if (!IsFiniteAndAbove(profile.MaxReverseSpeed, 0f))
+            {
+                error = "MaxReverseSpeed invalide : 'maxReverseSpeed' doit etre fini et strictement positif.";
+                return false;
+            }
+
+            if (!IsFiniteAndAtLeast(profile.MinimumDirectionSpeed, 0f))
+            {
+                error = "MinimumDirectionSpeed invalide : 'minimumDirectionSpeed' doit etre fini et superieur ou egal a 0.";
+                return false;
+            }
+
+            // Au moins une roue motrice et une roue directrice : un vehicule sans roue motrice ne peut
+            // pas bouger, un vehicule sans roue directrice ne peut pas tourner -- et les deux seraient
+            // des drapeaux authores inertes, exactement ce que la story consomme enfin.
+            if (!HasDrivenWheel(profile))
+            {
+                error = "Wheels invalide : aucune roue n'est motrice ('isDriven'), le vehicule ne pourrait pas se deplacer par ses roues.";
+                return false;
+            }
+
+            if (!HasSteeringWheel(profile))
+            {
+                error = "Wheels invalide : aucune roue n'est directrice ('isSteering'), le vehicule ne pourrait pas tourner.";
+                return false;
+            }
+
+            // Le frein a main agit sur les roues NON directrices : un profil ou toutes les roues braquent
+            // rendrait la voie de frein a main silencieusement inerte.
+            if (!HasNonSteeringWheel(profile))
+            {
+                error = "Wheels invalide : aucune roue non directrice, le frein a main n'aurait aucune roue a bloquer.";
+                return false;
+            }
+
             error = string.Empty;
             return true;
+        }
+
+        private static bool HasDrivenWheel(VehicleProfile candidate)
+        {
+            for (var i = 0; i < candidate.WheelCount; i++)
+            {
+                if (candidate.GetWheel(i).IsDriven)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasSteeringWheel(VehicleProfile candidate)
+        {
+            for (var i = 0; i < candidate.WheelCount; i++)
+            {
+                if (candidate.GetWheel(i).IsSteering)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasNonSteeringWheel(VehicleProfile candidate)
+        {
+            for (var i = 0; i < candidate.WheelCount; i++)
+            {
+                if (!candidate.GetWheel(i).IsSteering)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool IsFinite(Vector3 value)

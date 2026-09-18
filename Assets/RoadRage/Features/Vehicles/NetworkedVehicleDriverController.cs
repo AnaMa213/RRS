@@ -26,8 +26,14 @@ namespace RoadRage.Features.Vehicles
     /// recuperations sont exposees en evenements C# purs (aucune reference UI ici) pour rester
     /// consommables uniquement depuis App/Run, conformement a la frontiere du module Vehicules.
     /// Story 5.11 : la couche physique du vehicule vit dans <see cref="VehiclePhysicsBody"/> (AD-35),
-    /// porte par ce prefab comme par le prefab IA. Ce controleur ne garde que le longitudinal et le
-    /// lateral ; l'axe vertical appartient a la suspension et n'est plus ecrit ici.
+    /// porte par ce prefab comme par le prefab IA.
+    /// Story 5.12 : ce controleur ne simule plus rien. Il lit une intention, la soumet a la couche
+    /// physique (<see cref="VehiclePhysicsBody.ApplyDriveIntent"/>), et c'est tout : plus d'ecriture de
+    /// <c>Rigidbody.linearVelocity</c>, plus de <c>MoveRotation</c> de conduite, plus aucune borne de
+    /// vitesse serialisee ici. Acceleration, freinage, pointe, direction et frein a main sont authores
+    /// par <see cref="VehicleProfileDef"/> -- une seule source de verite, partagee avec le prefab IA.
+    /// Les resolveurs de degats de la Story 3.5 restent, mais ils reduisent desormais l'AUTORITE de
+    /// conduite (pointe, taux de braquage, couple de frein), jamais une vitesse ecrite.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
@@ -35,42 +41,6 @@ namespace RoadRage.Features.Vehicles
     [RequireComponent(typeof(Rigidbody))]
     public sealed class NetworkedVehicleDriverController : NetworkBehaviour
     {
-        [SerializeField]
-        [Min(0f)]
-        private float maxForwardSpeed = 18f;
-
-        [SerializeField]
-        [Min(0f)]
-        private float maxReverseSpeed = 7f;
-
-        [SerializeField]
-        [Min(0f)]
-        private float acceleration = 28f;
-
-        [SerializeField]
-        [Min(0f)]
-        private float reverseAcceleration = 18f;
-
-        [SerializeField]
-        [Min(0f)]
-        private float brakeDeceleration = 42f;
-
-        [SerializeField]
-        [Min(0f)]
-        private float coastDeceleration = 8f;
-
-        [SerializeField]
-        [Min(0f)]
-        private float lateralGrip = 36f;
-
-        [SerializeField]
-        [Min(0f)]
-        private float steerDegreesPerSecond = 125f;
-
-        [SerializeField]
-        [Min(0f)]
-        private float minimumSteerSpeed = 0.25f;
-
         [SerializeField]
         [Range(-1f, 1f)]
         private float rolloverUprightDotThreshold = 0.35f;
@@ -93,6 +63,7 @@ namespace RoadRage.Features.Vehicles
         private DevIndestructibleVehicle devIndestructible;
         private NetworkTransform networkTransform;
         private VehicleDriveIntent latestIntent = VehicleDriveIntent.Idle;
+        private bool warnedMissingPhysicsProfile;
         private float rolloverElapsedSeconds;
         private Vector3 fallbackRecoveryPosition;
         private Quaternion fallbackRecoveryRotation;
@@ -216,11 +187,16 @@ namespace RoadRage.Features.Vehicles
             if (state.IsInoperable())
             {
                 latestIntent = VehicleDriveIntent.Idle;
+                // L'intent neutre est POUSSE a la couche physique : sans cela, un vehicule dont le
+                // conducteur est ejecte pendant un plein gaz garderait l'intent precedent applique par
+                // la couche physique, et continuerait d'accelerer sans conducteur.
+                SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
                 return;
             }
 
             if (state.DriverClientId.Value == NetworkedVehicleState.UnclaimedDriverClientId)
             {
+                SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
                 return;
             }
 
@@ -577,54 +553,95 @@ namespace RoadRage.Features.Vehicles
             return Mathf.RoundToInt(Mathf.Lerp(minDamage, maxDamage, t));
         }
 
-        /// <summary>Moteur endommage (Story 3.5) : vitesse max reduite -- lu, jamais ecrit, depuis NetworkedVehicleState.</summary>
+        /// <summary>Moteur endommage (Story 3.5) : vitesse de pointe reduite -- lue sur le profil authore, jamais un champ de ce controleur.</summary>
         private float ResolveEffectiveMaxForwardSpeed()
         {
-            return state != null && state.IsEngineDamaged ? maxForwardSpeed * EngineDamageSpeedMultiplier : maxForwardSpeed;
+            ResolveDriveAuthority(out var maxForwardSpeed, out _, out _);
+            return maxForwardSpeed;
         }
 
-        /// <summary>Roue endommagee (Story 3.5) : maniabilite reduite.</summary>
+        /// <summary>Roue endommagee (Story 3.5) : taux de braquage reduit, donc maniabilite reduite.</summary>
         private float ResolveEffectiveSteerDegreesPerSecond()
         {
-            return state != null && state.IsWheelDamaged ? steerDegreesPerSecond * WheelDamageSteerMultiplier : steerDegreesPerSecond;
+            ResolveDriveAuthority(out _, out var steerRateDegreesPerSecond, out _);
+            return steerRateDegreesPerSecond;
         }
 
-        /// <summary>Freins endommages (Story 3.5) : deceleration de freinage reduite.</summary>
+        /// <summary>Freins endommages (Story 3.5) : couple de frein reduit, donc distance de freinage allongee.</summary>
         private float ResolveEffectiveBrakeDeceleration()
         {
-            return state != null && state.IsBrakeDamaged ? brakeDeceleration * BrakeDamageDecelerationMultiplier : brakeDeceleration;
+            ResolveDriveAuthority(out _, out _, out var brakeTorque);
+            return brakeTorque;
+        }
+
+        private void ResolveDriveAuthority(out float maxForwardSpeed, out float steerRateDegreesPerSecond, out float brakeTorque)
+        {
+            var profile = physicsBody != null && physicsBody.HasProfile ? physicsBody.Profile : default;
+            var engineDamaged = state != null && state.IsEngineDamaged;
+            var wheelDamaged = state != null && state.IsWheelDamaged;
+            var brakeDamaged = state != null && state.IsBrakeDamaged;
+
+            ResolveDriveAuthority(profile, engineDamaged, wheelDamaged, brakeDamaged, out maxForwardSpeed, out steerRateDegreesPerSecond, out brakeTorque);
+        }
+
+        /// <summary>
+        /// Autorite de conduite effective : les trois echelles viennent du profil authore et sont
+        /// reduites par les degats de la Story 3.5 -- jamais par une vitesse ecrite. Fonction PURE, donc
+        /// verifiable en EditMode : c'est la seule partie de ce controleur qui decide quelque chose, et
+        /// une garde de texte ne suffirait pas a montrer qu'une valeur transmise est la bonne.
+        /// </summary>
+        public static void ResolveDriveAuthority(
+            VehicleProfile profile,
+            bool engineDamaged,
+            bool wheelDamaged,
+            bool brakeDamaged,
+            out float maxForwardSpeed,
+            out float steerRateDegreesPerSecond,
+            out float brakeTorque)
+        {
+            maxForwardSpeed = engineDamaged ? profile.MaxForwardSpeed * EngineDamageSpeedMultiplier : profile.MaxForwardSpeed;
+            steerRateDegreesPerSecond = wheelDamaged ? profile.SteerRateDegreesPerSecond * WheelDamageSteerMultiplier : profile.SteerRateDegreesPerSecond;
+            brakeTorque = brakeDamaged ? profile.BrakeTorque * BrakeDamageDecelerationMultiplier : profile.BrakeTorque;
         }
 
         private void SubmitDriveIntent(VehicleDriveIntent intent, ulong localClientId)
         {
             if (IsServer)
             {
-                ApplyServerDriveIntent(intent.Throttle, intent.Steer, intent.BrakeReverse, localClientId);
+                ApplyServerDriveIntent(intent.Throttle, intent.Steer, intent.BrakeReverse, intent.Handbrake, localClientId);
                 return;
             }
 
-            SubmitDriveIntentRpc(intent.Throttle, intent.Steer, intent.BrakeReverse);
+            SubmitDriveIntentRpc(intent.Throttle, intent.Steer, intent.BrakeReverse, intent.Handbrake);
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void SubmitDriveIntentRpc(float throttle, float steer, float brakeReverse, RpcParams rpcParams = default)
+        private void SubmitDriveIntentRpc(float throttle, float steer, float brakeReverse, float handbrake, RpcParams rpcParams = default)
         {
-            ApplyServerDriveIntent(throttle, steer, brakeReverse, rpcParams.Receive.SenderClientId);
+            ApplyServerDriveIntent(throttle, steer, brakeReverse, handbrake, rpcParams.Receive.SenderClientId);
         }
 
-        private void ApplyServerDriveIntent(float throttle, float steer, float brakeReverse, ulong senderClientId)
+        private void ApplyServerDriveIntent(float throttle, float steer, float brakeReverse, float handbrake, ulong senderClientId)
         {
             if (!IsServer || state == null || state.IsInoperable() || state.DriverClientId.Value != senderClientId)
             {
                 return;
             }
 
-            latestIntent = new VehicleDriveIntent(throttle, steer, brakeReverse);
+            latestIntent = new VehicleDriveIntent(throttle, steer, brakeReverse, handbrake);
         }
 
+        /// <summary>
+        /// Soumet l'intention du pas a la couche physique. C'est LE chemin de deplacement du vehicule
+        /// joueur : il n'y a plus d'ecriture de vitesse ni de rotation de caisse nulle part dans ce
+        /// fichier.
+        ///
+        /// L'inversion marche arriere de la direction reste une propriete de l'INPUT, pas de la
+        /// physique : la roue garde le meme angle geometrique, c'est le sens de la consigne qui
+        /// s'inverse quand le vehicule recule (testee par la Story 3.2).
+        /// </summary>
         private void ApplyPhysics(VehicleDriveIntent intent)
         {
-            var fixedDeltaTime = Time.fixedDeltaTime;
             var forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
             if (forward.sqrMagnitude <= DirectionEpsilon * DirectionEpsilon)
             {
@@ -632,34 +649,47 @@ namespace RoadRage.Features.Vehicles
             }
 
             forward.Normalize();
-            var right = Vector3.Cross(Vector3.up, forward).normalized;
+            var longitudinalSpeed = Vector3.Dot(Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up), forward);
 
-            var currentVelocity = body.linearVelocity;
-            var planarVelocity = Vector3.ProjectOnPlane(currentVelocity, Vector3.up);
-            var verticalVelocity = currentVelocity - planarVelocity;
-            var longitudinalSpeed = Vector3.Dot(planarVelocity, forward);
-            var lateralSpeed = Vector3.Dot(planarVelocity, right);
+            SubmitIntentToPhysicsLayer(ResolveSignedIntent(intent, longitudinalSpeed));
+        }
 
-            var targetSpeed = ResolveTargetSpeed(intent, longitudinalSpeed);
-            var speedChangeRate = ResolveSpeedChangeRate(intent, longitudinalSpeed);
-            var nextLongitudinalSpeed = Mathf.MoveTowards(
-                longitudinalSpeed,
-                targetSpeed,
-                speedChangeRate * fixedDeltaTime);
+        /// <summary>
+        /// Intention telle qu'elle part vers la couche physique : le sens de la direction est inverse
+        /// en marche arriere, le reste passe tel quel. Fonction PURE, donc verifiable en EditMode -- la
+        /// regle de la Story 3.2 n'est pas une ligne de code a retrouver, c'est un resultat a prouver.
+        /// </summary>
+        public static VehicleDriveIntent ResolveSignedIntent(VehicleDriveIntent intent, float longitudinalSpeed)
+        {
+            return new VehicleDriveIntent(
+                intent.Throttle,
+                intent.Steer * ResolveSteerDirectionMultiplier(longitudinalSpeed, intent.BrakeReverse),
+                intent.BrakeReverse,
+                intent.Handbrake);
+        }
 
-            var nextLateralSpeed = Mathf.MoveTowards(
-                lateralSpeed,
-                0f,
-                lateralGrip * fixedDeltaTime);
+        /// <summary>
+        /// Chemin unique de l'intent vers la couche physique : les trois echelles authorees et leur
+        /// reduction par degats sont passees ensemble, jamais recalculees a chaque appel.
+        /// </summary>
+        private void SubmitIntentToPhysicsLayer(VehicleDriveIntent intent)
+        {
+            if (physicsBody == null || !physicsBody.HasProfile)
+            {
+                // Un prefab mal cable ne conduit nulle part : sans ce diagnostic, l'absence de
+                // mouvement n'aurait aucune trace, et le symptome se lirait comme un reglage.
+                if (!warnedMissingPhysicsProfile)
+                {
+                    warnedMissingPhysicsProfile = true;
+                    Debug.LogWarning("[Vehicles] " + name + " : aucun profil physique applique, conduite ignoree.", this);
+                }
 
-            // Story 5.11 : l'axe vertical appartient a VehiclePhysicsBody (gravite, ressort,
-            // amortisseur, anti-roulis). La composante verticale courante est donc relue et reecrite
-            // a l'identique -- un read-modify-write, jamais une decision de mouvement. L'ecriture en
-            // bloc disparait en Story 5.12, qui remplace le longitudinal et le lateral par des efforts
-            // aux roues.
-            body.linearVelocity = (forward * nextLongitudinalSpeed) + (right * nextLateralSpeed) + verticalVelocity;
+                return;
+            }
 
-            ApplySteering(intent, nextLongitudinalSpeed, fixedDeltaTime);
+            ResolveDriveAuthority(out var maxForwardSpeed, out var steerRateDegreesPerSecond, out var brakeTorque);
+
+            physicsBody.ApplyDriveIntent(intent, maxForwardSpeed, steerRateDegreesPerSecond, brakeTorque);
         }
 
         public static float ResolveSteerDirectionMultiplier(float longitudinalSpeed, float brakeReverseInput)
@@ -686,58 +716,6 @@ namespace RoadRage.Features.Vehicles
 
             state.DriverClientId.Value = NetworkedVehicleState.UnclaimedDriverClientId;
             latestIntent = VehicleDriveIntent.Idle;
-        }
-
-        private float ResolveTargetSpeed(VehicleDriveIntent intent, float longitudinalSpeed)
-        {
-            if (intent.BrakeReverse > InputEpsilon)
-            {
-                return longitudinalSpeed > minimumSteerSpeed ? 0f : -maxReverseSpeed * intent.BrakeReverse;
-            }
-
-            if (intent.Throttle > InputEpsilon)
-            {
-                return ResolveEffectiveMaxForwardSpeed() * intent.Throttle;
-            }
-
-            return 0f;
-        }
-
-        private float ResolveSpeedChangeRate(VehicleDriveIntent intent, float longitudinalSpeed)
-        {
-            if (intent.BrakeReverse > InputEpsilon)
-            {
-                return longitudinalSpeed > minimumSteerSpeed ? ResolveEffectiveBrakeDeceleration() : reverseAcceleration;
-            }
-
-            if (intent.Throttle > InputEpsilon)
-            {
-                return acceleration;
-            }
-
-            return coastDeceleration;
-        }
-
-        private void ApplySteering(VehicleDriveIntent intent, float longitudinalSpeed, float fixedDeltaTime)
-        {
-            if (Mathf.Abs(intent.Steer) <= InputEpsilon)
-            {
-                return;
-            }
-
-            var speedMagnitude = Mathf.Abs(longitudinalSpeed);
-            if (speedMagnitude < minimumSteerSpeed)
-            {
-                return;
-            }
-
-            var effectiveMaxForwardSpeed = ResolveEffectiveMaxForwardSpeed();
-            var speedFactor = Mathf.Clamp01(speedMagnitude / Mathf.Max(effectiveMaxForwardSpeed, 1f));
-            var lowSpeedAssist = Mathf.Lerp(0.45f, 1f, speedFactor);
-            var reverseAwareDirection = ResolveSteerDirectionMultiplier(longitudinalSpeed, intent.BrakeReverse);
-            var yawDegrees = intent.Steer * reverseAwareDirection * ResolveEffectiveSteerDegreesPerSecond() * lowSpeedAssist * fixedDeltaTime;
-
-            body.MoveRotation(Quaternion.AngleAxis(yawDegrees, Vector3.up) * body.rotation);
         }
 
         private VehicleDriveIntent ReadLocalDriveIntent()
@@ -771,7 +749,12 @@ namespace RoadRage.Features.Vehicles
                 steer += 1f;
             }
 
-            return new VehicleDriveIntent(throttle, steer, brakeReverse);
+            // Frein a main : espace, comme les quatre autres voies, lues directement sur Keyboard.current
+            // sous LocalInputGate. Aucune action dediee n'existe dans InputSystem_Actions.inputactions, et
+            // la touche n'est lue nulle part ailleurs dans le projet.
+            var handbrake = keyboard.spaceKey.isPressed ? 1f : 0f;
+
+            return new VehicleDriveIntent(throttle, steer, brakeReverse, handbrake);
         }
 
         private void CacheComponents()

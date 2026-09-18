@@ -168,7 +168,14 @@ poursuite de point a point. Un vehicule coupe toujours legerement a l'interieur 
 la profondeur de coupe est bornee par la distance au noeud vise (donc par `arrivalRadius`, 3 m). Sur
 la geometrie authoree ici la marge est confortable ; un trace plus serre demanderait un vrai suivi de
 courbe (poursuite pure, point de visee anticipe), ce qui est une mecanique de conduite, pas
-d'authoring -- a tracer pour la Story 5.18 ou 5.17 (ex-5.11 / ex-5.12).
+d'authoring.
+
+**Livree par la Story 5.12** (Tire Forces and Steering, 2026-09-18) : la poursuite point-a-point est
+remplacee par un point de visee anticipe (`LaneGraphRouting.ResolveLookAheadPoint`, duree de visee
+authoree a 0,6 s), et la dette de poursuite enregistree dans `deferred-work.md` est close. Le controle
+de bordure de la Story 5.11 -- les vehicules IA traversent le carrefour sans entrer dans l'emprise de
+`Col_Curb_*` en conduite nominale -- est desormais mesure par rejeu, et cette mesure, ainsi que ce
+qu'elle ne peut pas prouver, sont consignes dans `docs/setup/story-5-12-vehicle-physics-notes.md`.
 
 ## Authoring du graphe
 

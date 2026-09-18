@@ -73,13 +73,8 @@ namespace RoadRage.Features.Vehicles
 
         [SerializeField]
         [Min(0f)]
-        [Tooltip("Coefficient de frottement LATERAL de contact : resiste au glissement de travers. 1 = un pneu sur asphalte ; au-dela, c'est un choix arcade assume. Sans lui, un vehicule pose sur ses rayons glisse comme sur de la glace.")]
+        [Tooltip("ADHERENCE du pneu : coefficient sans unite. 1 = un pneu sur asphalte ; au-dela, c'est un choix arcade assume. C'est la borne dure du modele -- aucune force de pneu ne depasse 'adherence x charge portee par la roue'. Point d'ancrage d'une future table par surface (report enregistre), mais une seule valeur aujourd'hui : une table indexee par un type de surface qu'aucun materiau ne porte serait de la configuration morte.")]
         private float lateralFrictionCoefficient;
-
-        [SerializeField]
-        [Min(0f)]
-        [Tooltip("Coefficient de resistance au ROULEMENT, dans l'axe de la roue. Volontairement faible : il ne doit pas lutter contre la conduite (Story 5.12).")]
-        private float rollingResistanceCoefficient;
 
         [SerializeField]
         [Tooltip("Masque de sol des raycasts de roue. Vide : le composant refuse de s'activer, aucune roue ne peut toucher.")]
@@ -89,6 +84,91 @@ namespace RoadRage.Features.Vehicles
         [Min(0f)]
         [Tooltip("Tolerance de hauteur (m) sous laquelle un contact ne touche que le dessous du vehicule -- donc franchit un relief (trottoir, levre de dalle, bordure authoree) au lieu de percuter un obstacle. Doit couvrir la bordure authoree (0,12 m) sans couvrir la face d'un mur.")]
         private float surfaceContactTolerance;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Couple moteur par roue MOTRICE (N.m). Reparti sur les seules roues marquees IsDriven : une roue non motrice ne recoit jamais d'effort moteur.")]
+        private float engineTorque;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Couple moteur de marche arriere par roue motrice (N.m). Il ne s'engage que sous 'minimumDirectionSpeed' : au-dessus, l'entree de frein freine et ne recule pas.")]
+        private float reverseTorque;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Couple de frein de service par roue, en freinage (N.m).")]
+        private float brakeTorque;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Couple de frein moteur par roue quand aucune entree n'est donnee (N.m). Volontairement faible : il ne doit pas lutter contre la conduite, seulement retenir un vehicule gare sans conducteur.")]
+        private float coastTorque;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Couple de frein a main par roue ARRIERE (N.m). Il doit bloquer la roue, pas seulement la ralentir : c'est le blocage qui effondre l'adherence laterale arriere et fait entrer en derive.")]
+        private float handbrakeTorque;
+
+        [SerializeField]
+        [Min(0.01f)]
+        [Tooltip("Inertie de rotation d'une roue (kg.m2). Elle fixe la vitesse avec laquelle le glissement longitudinal s'installe : trop grande, la roue ne patine jamais ; trop petite, elle se bloque sur la moindre sollicitation.")]
+        private float wheelInertia;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Vitesse de pointe en marche avant (m/s). Elle est APPROCHEE par l'extinction progressive de l'effort moteur, jamais posee par une ecriture de vitesse. Le facteur de degats de la Story 3.5 la reduit.")]
+        private float maxForwardSpeed;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Vitesse de pointe en marche arriere (m/s).")]
+        private float maxReverseSpeed;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Vitesse sous laquelle le vehicule est traite comme quasi immobile (m/s) : seuil de changement de sens (frein -> marche arriere) et plancher de braquage. C'est le seuil 'minimumSteerSpeed' de la Story 3.4, deplace ici avec les autres reglages de conduite.")]
+        private float minimumDirectionSpeed;
+
+        [SerializeField]
+        [Min(0.01f)]
+        [Tooltip("Angle de roue maximal a l'arret (degres).")]
+        private float maxSteerAngleDegrees;
+
+        [SerializeField]
+        [Min(0.01f)]
+        [Tooltip("Angle de roue maximal a la vitesse de reduction complete (degres). Doit rester sous l'angle maximal a l'arret : c'est ce qui garde la direction lisible a vitesse elevee.")]
+        private float highSpeedSteerAngleDegrees;
+
+        [SerializeField]
+        [Min(0.01f)]
+        [Tooltip("Vitesse (m/s) a laquelle la reduction d'angle est complete. Au-dela, l'angle ne diminue plus.")]
+        private float steerFullReductionSpeed;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Vitesse de braquage des roues directrices (degres par seconde).")]
+        private float steerRateDegreesPerSecond;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Vitesse de RETOUR AU CENTRE des roues directrices (degres par seconde). Le rappel a son propre taux : un retour trop lent se lit comme une roue bloquee, un retour instantane comme une remise sur rails.")]
+        private float steerReturnRateDegreesPerSecond;
+
+        [SerializeField]
+        [Min(0.0001f)]
+        [Tooltip("Glissement longitudinal auquel le pneu atteint son pic d'adherence. Au-dela, la force decroit progressivement.")]
+        private float tirePeakSlipRatio;
+
+        [SerializeField]
+        [Min(0.01f)]
+        [Tooltip("Angle de glissement (degres) auquel le pneu atteint son pic d'adherence lateral. Au-dela, la force decroit progressivement jusqu'a la fraction de chute authoree.")]
+        private float tirePeakSlipAngleDegrees;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Fraction du pic conservee en glissement total (0 a 1 exclus) : l'asymptote de la chute d'adherence. Elle doit rester STRICTEMENT positive -- une force qui tombe a zero serait un seuil binaire deguise, et la derive deviendrait irrecuperable.")]
+        private float tireSlipFalloffFraction;
 
         public VehicleProfile(
             float mass,
@@ -103,9 +183,25 @@ namespace RoadRage.Features.Vehicles
             float attitudeLevellingRate,
             float attitudeDamping,
             float lateralFrictionCoefficient,
-            float rollingResistanceCoefficient,
             LayerMask groundMask,
-            float surfaceContactTolerance)
+            float surfaceContactTolerance,
+            float engineTorque,
+            float reverseTorque,
+            float brakeTorque,
+            float coastTorque,
+            float handbrakeTorque,
+            float wheelInertia,
+            float maxForwardSpeed,
+            float maxReverseSpeed,
+            float minimumDirectionSpeed,
+            float maxSteerAngleDegrees,
+            float highSpeedSteerAngleDegrees,
+            float steerFullReductionSpeed,
+            float steerRateDegreesPerSecond,
+            float steerReturnRateDegreesPerSecond,
+            float tirePeakSlipRatio,
+            float tirePeakSlipAngleDegrees,
+            float tireSlipFalloffFraction)
         {
             this.mass = mass;
             this.centerOfMass = centerOfMass;
@@ -119,9 +215,25 @@ namespace RoadRage.Features.Vehicles
             this.attitudeLevellingRate = attitudeLevellingRate;
             this.attitudeDamping = attitudeDamping;
             this.lateralFrictionCoefficient = lateralFrictionCoefficient;
-            this.rollingResistanceCoefficient = rollingResistanceCoefficient;
             this.groundMask = groundMask;
             this.surfaceContactTolerance = surfaceContactTolerance;
+            this.engineTorque = engineTorque;
+            this.reverseTorque = reverseTorque;
+            this.brakeTorque = brakeTorque;
+            this.coastTorque = coastTorque;
+            this.handbrakeTorque = handbrakeTorque;
+            this.wheelInertia = wheelInertia;
+            this.maxForwardSpeed = maxForwardSpeed;
+            this.maxReverseSpeed = maxReverseSpeed;
+            this.minimumDirectionSpeed = minimumDirectionSpeed;
+            this.maxSteerAngleDegrees = maxSteerAngleDegrees;
+            this.highSpeedSteerAngleDegrees = highSpeedSteerAngleDegrees;
+            this.steerFullReductionSpeed = steerFullReductionSpeed;
+            this.steerRateDegreesPerSecond = steerRateDegreesPerSecond;
+            this.steerReturnRateDegreesPerSecond = steerReturnRateDegreesPerSecond;
+            this.tirePeakSlipRatio = tirePeakSlipRatio;
+            this.tirePeakSlipAngleDegrees = tirePeakSlipAngleDegrees;
+            this.tireSlipFalloffFraction = tireSlipFalloffFraction;
         }
 
         /// <summary>Masse (kg).</summary>
@@ -190,16 +302,10 @@ namespace RoadRage.Features.Vehicles
             get { return attitudeDamping; }
         }
 
-        /// <summary>Coefficient de frottement lateral de contact.</summary>
+        /// <summary>Adherence du pneu (coefficient sans unite) : la borne dure du modele.</summary>
         public float LateralFrictionCoefficient
         {
             get { return lateralFrictionCoefficient; }
-        }
-
-        /// <summary>Coefficient de resistance au roulement, dans l'axe de la roue.</summary>
-        public float RollingResistanceCoefficient
-        {
-            get { return rollingResistanceCoefficient; }
         }
 
         /// <summary>Tolerance de hauteur sous laquelle un contact ne touche que le dessous du vehicule (m).</summary>
@@ -212,6 +318,108 @@ namespace RoadRage.Features.Vehicles
         public LayerMask GroundMask
         {
             get { return groundMask; }
+        }
+
+        /// <summary>Couple moteur par roue motrice (N.m).</summary>
+        public float EngineTorque
+        {
+            get { return engineTorque; }
+        }
+
+        /// <summary>Couple moteur de marche arriere par roue motrice (N.m).</summary>
+        public float ReverseTorque
+        {
+            get { return reverseTorque; }
+        }
+
+        /// <summary>Couple de frein de service par roue (N.m).</summary>
+        public float BrakeTorque
+        {
+            get { return brakeTorque; }
+        }
+
+        /// <summary>Couple de frein moteur par roue quand aucune entree n'est donnee (N.m).</summary>
+        public float CoastTorque
+        {
+            get { return coastTorque; }
+        }
+
+        /// <summary>Couple de frein a main par roue arriere (N.m).</summary>
+        public float HandbrakeTorque
+        {
+            get { return handbrakeTorque; }
+        }
+
+        /// <summary>Inertie de rotation d'une roue (kg.m2).</summary>
+        public float WheelInertia
+        {
+            get { return wheelInertia; }
+        }
+
+        /// <summary>Vitesse de pointe en marche avant (m/s), approchee par une pente de force.</summary>
+        public float MaxForwardSpeed
+        {
+            get { return maxForwardSpeed; }
+        }
+
+        /// <summary>Vitesse de pointe en marche arriere (m/s).</summary>
+        public float MaxReverseSpeed
+        {
+            get { return maxReverseSpeed; }
+        }
+
+        /// <summary>Vitesse sous laquelle le vehicule est quasi immobile (m/s).</summary>
+        public float MinimumDirectionSpeed
+        {
+            get { return minimumDirectionSpeed; }
+        }
+
+        /// <summary>Angle de roue maximal a l'arret (degres).</summary>
+        public float MaxSteerAngleDegrees
+        {
+            get { return maxSteerAngleDegrees; }
+        }
+
+        /// <summary>Angle de roue maximal a la vitesse de reduction complete (degres).</summary>
+        public float HighSpeedSteerAngleDegrees
+        {
+            get { return highSpeedSteerAngleDegrees; }
+        }
+
+        /// <summary>Vitesse a laquelle la reduction d'angle de roue est complete (m/s).</summary>
+        public float SteerFullReductionSpeed
+        {
+            get { return steerFullReductionSpeed; }
+        }
+
+        /// <summary>Vitesse de braquage des roues directrices (degres par seconde).</summary>
+        public float SteerRateDegreesPerSecond
+        {
+            get { return steerRateDegreesPerSecond; }
+        }
+
+        /// <summary>Vitesse de retour au centre des roues directrices (degres par seconde).</summary>
+        public float SteerReturnRateDegreesPerSecond
+        {
+            get { return steerReturnRateDegreesPerSecond; }
+        }
+
+        /// <summary>Glissement longitudinal du pic d'adherence.</summary>
+        public float TirePeakSlipRatio
+        {
+            get { return tirePeakSlipRatio; }
+        }
+
+        /// <summary>Angle de glissement du pic d'adherence (degres).</summary>
+        public float TirePeakSlipAngleDegrees
+        {
+            get { return tirePeakSlipAngleDegrees; }
+        }
+
+        /// <summary>Fraction du pic conservee en glissement total : l'asymptote de la chute d'adherence.</summary>
+        public float TireSlipFalloffFraction
+        {
+            get { return tireSlipFalloffFraction; }
         }
 
         /// <summary>

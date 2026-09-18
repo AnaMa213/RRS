@@ -89,6 +89,11 @@ namespace RoadRage.Features.Vehicles
         private float steerDegreesPerSecond = 90f;
 
         [SerializeField]
+        [Min(0f)]
+        [Tooltip("Duree de visee (s) : la distance du point anticipe vaut vitesse x cette duree. A l'arret la visee retombe sur le noeud lui-meme, et c'est voulu -- un vehicule immobile n'a pas de trajectoire a anticiper.")]
+        private float lookAheadSeconds = 0.6f;
+
+        [SerializeField]
         [Range(-1f, 1f)]
         private float rolloverUprightDotThreshold = 0.35f;
 
@@ -349,7 +354,18 @@ namespace RoadRage.Features.Vehicles
             IntegrateLongitudinalSpeed(profile, fixedDeltaTime, hasLeader, leaderGap, leaderSpeed);
             TickLaneChangeEvaluation(profile, fixedDeltaTime);
 
-            var intent = ComputeSeekIntent(transform.position, transform.forward, waypointPosition, arrivalRadius, steerFullLockDegrees);
+            // Visee anticipee (Story 5.12) : le point vise glisse au-dela du noeud quand le vehicule
+            // s'en approche, le long du sens de circulation authore sur le noeud. La distance vient de
+            // la vitesse et de la duree authoree -- la cible avance donc avec le vehicule, au lieu de
+            // basculer d'un noeud au suivant et de le faire viser en diagonale a travers la jonction.
+            var lookAheadDistance = Mathf.Max(0f, currentSpeed) * lookAheadSeconds;
+            var aimPoint = LaneGraphRouting.ResolveLookAheadPoint(
+                transform.position,
+                waypointPosition,
+                laneGraph.GetNodeRotation(waypointIndex) * Vector3.forward,
+                lookAheadDistance);
+
+            var intent = ComputeSeekIntent(transform.position, transform.forward, aimPoint, steerFullLockDegrees);
             ApplyMovement(intent, fixedDeltaTime, currentSpeed);
         }
 
@@ -779,20 +795,19 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
-        /// Predicat pur (Story 5.2) : intent de poursuite deterministe vers le waypoint -- plein gaz
-        /// et direction bornee par steerFullLockDegrees tant que le waypoint est hors du rayon
-        /// d'arrivee, sinon Idle (l'appelant avance alors WaypointIndex avant de rappeler avec le
-        /// waypoint suivant).
+        /// Predicat pur (Story 5.2, revise en 5.12) : intent de poursuite deterministe vers le POINT DE
+        /// VISEE -- plein gaz et direction bornee par steerFullLockDegrees. Le point vient de
+        /// <see cref="LaneGraphRouting.ResolveLookAheadPoint"/> et non plus de la position du noeud :
+        /// c'est ce qui remplace la poursuite point-a-point.
+        ///
+        /// L'arrivee au noeud n'est plus testee ici : elle l'est par <see cref="HasArrivedAtWaypoint"/> a
+        /// l'endroit ou la decision se prend, donc la fonction n'a plus a rendre un intent neutre qui
+        /// signifiait "je suis arrive" et que l'appelant devait interpreter.
         /// </summary>
-        public static VehicleDriveIntent ComputeSeekIntent(Vector3 position, Vector3 forward, Vector3 waypointPosition, float arrivalRadius, float steerFullLockDegrees)
+        public static VehicleDriveIntent ComputeSeekIntent(Vector3 position, Vector3 forward, Vector3 aimPoint, float steerFullLockDegrees)
         {
-            var toWaypoint = waypointPosition - position;
-            toWaypoint.y = 0f;
-
-            if (toWaypoint.sqrMagnitude <= arrivalRadius * arrivalRadius)
-            {
-                return VehicleDriveIntent.Idle;
-            }
+            var toAimPoint = aimPoint - position;
+            toAimPoint.y = 0f;
 
             var flatForward = new Vector3(forward.x, 0f, forward.z);
             if (flatForward.sqrMagnitude <= 0.0001f)
@@ -802,12 +817,17 @@ namespace RoadRage.Features.Vehicles
 
             flatForward.Normalize();
 
-            var direction = toWaypoint.normalized;
+            if (toAimPoint.sqrMagnitude <= 0.0001f)
+            {
+                return new VehicleDriveIntent(1f, 0f, 0f, 0f);
+            }
+
+            var direction = toAimPoint.normalized;
             var signedAngle = Vector3.SignedAngle(flatForward, direction, Vector3.up);
             var steerLock = Mathf.Max(steerFullLockDegrees, 0.0001f);
             var steer = Mathf.Clamp(signedAngle / steerLock, -1f, 1f);
 
-            return new VehicleDriveIntent(1f, steer, 0f);
+            return new VehicleDriveIntent(1f, steer, 0f, 0f);
         }
 
         /// <summary>Predicat pur (Story 5.2) : arrivee des lors que la distance planaire au waypoint passe sous le rayon d'arrivee.</summary>
@@ -826,13 +846,14 @@ namespace RoadRage.Features.Vehicles
 
         private void ApplyMovement(VehicleDriveIntent intent, float fixedDeltaTime, float longitudinalSpeed)
         {
-            // Story 5.11 : l'axe vertical appartient a VehiclePhysicsBody (gravite, ressort,
-            // amortisseur, anti-roulis). La composante verticale courante est donc relue et reecrite
-            // a l'identique -- un read-modify-write, jamais une decision de mouvement. L'ecraser
-            // annulerait la gravite : le vehicule leviterait et ne pourrait plus jamais franchir le
-            // seuil de vide, ce qui rendrait la recuperation hors-zone inatteignable. L'ecriture en
-            // bloc disparait en Story 5.14, qui remplace l'integration en boucle ouverte par une
-            // intention de conduite.
+            // ETAT INTERMEDIAIRE, NOMME ET DATTE -- 2026-09-18, Story 5.12. Ce chemin ecrit encore la
+            // vitesse en bloc et impose le lacet par MoveRotation : c'est exactement ce que la Story
+            // 5.14 (AI drives by intent) supprime, en remplacant l'integration en boucle ouverte par
+            // une intention de conduite soumise a la couche physique -- la meme que celle du joueur.
+            //
+            // Tant que ce chemin existe, il faut conserver le read-modify-write de la composante
+            // verticale : l'ecraser annulerait la gravite, le vehicule leviterait et ne pourrait plus
+            // jamais franchir le seuil de vide, ce qui rendrait la recuperation hors-zone inatteignable.
             var verticalVelocity = Vector3.up * body.linearVelocity.y;
 
             if (intent.IsIdle)

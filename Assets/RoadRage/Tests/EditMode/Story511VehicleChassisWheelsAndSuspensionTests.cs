@@ -63,12 +63,15 @@ namespace RoadRage.Tests.EditMode
         private const string RunFlowSourcePath = "Assets/RoadRage/App/Run/RunFlowController.cs";
         private const string PhysicsBodySourcePath = "Assets/RoadRage/Features/Vehicles/VehiclePhysicsBody.cs";
         private const string SuspensionModelSourcePath = "Assets/RoadRage/Features/Vehicles/VehicleSuspensionModel.cs";
+        private const string TireModelSourcePath = "Assets/RoadRage/Features/Vehicles/VehicleTireModel.cs";
         private const string TelemetryViewSourcePath = "Assets/RoadRage/DevTools/VehiclePhysicsTelemetryView.cs";
 
         private static readonly string[] PhysicsLayerSourcePaths =
         {
             "Assets/RoadRage/Features/Vehicles/VehiclePhysicsBody.cs",
             "Assets/RoadRage/Features/Vehicles/VehicleSuspensionModel.cs",
+            "Assets/RoadRage/Features/Vehicles/VehicleTireModel.cs",
+            "Assets/RoadRage/Features/Vehicles/VehicleSteeringModel.cs",
             "Assets/RoadRage/Features/Vehicles/VehicleProfile.cs",
             "Assets/RoadRage/Features/Vehicles/VehicleWheel.cs",
             PlayerControllerSourcePath,
@@ -143,38 +146,31 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void GroundFrictionOpposesASlideAndIsCappedByTheLoadCarried()
+        public void TheProvisionalContactFrictionIsReplacedByTheTireModel()
         {
-            var forward = Vector3.forward;
-            var right = Vector3.right;
+            // Le frottement de contact de la Story 5.11 etait un contact borne par la charge : aucune
+            // perte d'adherence progressive, donc ni derive controlee ni glissement. La Story 5.12 le
+            // remplace par le modele de pneu, qui devient le SEUL chemin par lequel une roue transmet
+            // une force au sol -- le laisser en place laisserait deux chemins de force concurrents,
+            // dont l'un sans glissement.
+            Assert.That(CodeWithoutComments(File.ReadAllText(SuspensionModelSourcePath)), Does.Not.Contain("ResolveGroundFrictionForce"),
+                "Le frottement provisoire a disparu de la couche de suspension.");
 
-            // Glissement de flanc a 8 m/s : le frottement lateral s'y oppose, borne par la charge.
-            var sliding = VehicleSuspensionModel.ResolveGroundFrictionForce(
-                right * 8f, forward, right, StaticLoad, 1.2f, 0.03f);
+            var body = CodeWithoutComments(File.ReadAllText(PhysicsBodySourcePath));
+            Assert.That(body, Does.Not.Contain("ResolveGroundFrictionForce"),
+                "Et son appel a disparu du composant physique.");
+            Assert.That(body, Does.Contain("VehicleTireModel."),
+                "La force de contact vient desormais du modele de pneu.");
 
-            Assert.That(Vector3.Dot(sliding, right), Is.LessThan(0f),
-                "Le frottement lateral s'oppose au glissement de travers : sans lui, un choc de flanc emporte le vehicule sur des metres.");
-            Assert.That(Vector3.Dot(sliding, right), Is.EqualTo(-1.2f * StaticLoad).Within(0.5f),
-                "Un pneu ne transmet pas plus que ce que le sol lui rend : la force est bornee par la charge portee.");
-            Assert.That(Vector3.Dot(sliding, forward), Is.EqualTo(0f).Within(0.01f),
-                "Pas de vitesse dans l'axe : pas de resistance au roulement.");
-
-            // A l'arret, aucun frottement : sinon le vehicule brouterait au lieu de s'immobiliser.
-            Assert.That(VehicleSuspensionModel.ResolveGroundFrictionForce(
-                Vector3.zero, forward, right, StaticLoad, 1.2f, 0.03f), Is.EqualTo(Vector3.zero));
-
-            // Pres de l'arret, le frottement s'attenue progressivement.
-            var creeping = VehicleSuspensionModel.ResolveGroundFrictionForce(
-                right * 0.05f, forward, right, StaticLoad, 1.2f, 0.03f);
-            Assert.That(Mathf.Abs(Vector3.Dot(creeping, right)), Is.LessThan(1.2f * StaticLoad * 0.2f),
+            // La protection basse vitesse survit, sous une forme equivalente : sans elle, un vehicule
+            // gare brouterait au lieu de s'immobiliser, et un choc de flanc l'emporterait (mesure 5.11).
+            Assert.That(VehicleTireModel.ResolveLowSpeedRamp(0f), Is.EqualTo(0f));
+            Assert.That(VehicleTireModel.ResolveLowSpeedRamp(VehicleTireModel.SlipReferenceSpeed), Is.EqualTo(1f),
+                "A la vitesse de reference, la force est pleine.");
+            Assert.That(VehicleTireModel.ResolveLowSpeedRamp(0.05f), Is.LessThan(0.2f),
                 "Sous la vitesse d'attenuation, la force decroit avec la vitesse : c'est ce qui evite le broutement a l'arret.");
-
-            // Resistance au roulement : faible, et elle ne doit pas lutter contre la conduite.
-            var rolling = VehicleSuspensionModel.ResolveGroundFrictionForce(
-                forward * 8f, forward, right, StaticLoad, 1.2f, 0.03f);
-            Assert.That(Vector3.Dot(rolling, forward), Is.LessThan(0f));
-            Assert.That(Mathf.Abs(Vector3.Dot(rolling, forward)), Is.LessThan(0.05f * StaticLoad),
-                "La resistance au roulement reste marginale devant la poussee du moteur : c'est un contact, pas un frein.");
+            Assert.That(VehicleTireModel.ResolveLowSpeedRamp(8f), Is.EqualTo(1f),
+                "Au-dela, la rampe n'a plus aucun effet : elle ne bride pas la conduite.");
         }
 
         [Test]
@@ -345,10 +341,44 @@ namespace RoadRage.Tests.EditMode
                 + "rayons de roue ne touchent plus des que la caisse s'incline trop.");
             Assert.That(profile.AttitudeDamping, Is.GreaterThan(0f), "Le tangage et le roulis sont amortis.");
             Assert.That(profile.LateralFrictionCoefficient, Is.GreaterThan(0f),
-                "Un frottement lateral nul laisse le vehicule glisser comme sur de la glace des qu'un choc le prend de flanc.");
-            Assert.That(profile.RollingResistanceCoefficient, Is.GreaterThan(0f), "La resistance au roulement est author ee.");
+                "L'adherence du pneu est authoree : sans elle, un choc de flanc emporte le vehicule (Story 5.12).");
             Assert.That(profile.SurfaceContactTolerance, Is.GreaterThanOrEqualTo(CurbHeight),
                 "La tolerance de contact de surface doit couvrir la bordure authoree, sinon monter une bordure blesse.");
+
+            // Story 5.12 : les parametres de pneu, de direction et de train roulant sont authores, dans
+            // le profil et nulle part ailleurs.
+            Assert.That(profile.TirePeakSlipRatio, Is.GreaterThan(0f), "Le pic de glissement longitudinal est authore.");
+            Assert.That(profile.TirePeakSlipAngleDegrees, Is.GreaterThan(0f), "Le pic de glissement lateral est authore.");
+            Assert.That(profile.TireSlipFalloffFraction, Is.GreaterThan(0f), "La chute d'adherence conserve une part non nulle du pic.");
+            Assert.That(profile.TireSlipFalloffFraction, Is.LessThan(1f), "Et elle decroit vraiment : une asymptote de 1 supprimerait la chute.");
+            Assert.That(profile.MaxSteerAngleDegrees, Is.GreaterThan(0f), "L'angle de roue maximal est authore.");
+            Assert.That(profile.HighSpeedSteerAngleDegrees, Is.LessThan(profile.MaxSteerAngleDegrees),
+                "L'angle de roue diminue avec la vitesse : sinon la direction s'ouvrirait a haute vitesse.");
+            Assert.That(profile.SteerRateDegreesPerSecond, Is.GreaterThan(0f), "Le taux de braquage est authore.");
+            Assert.That(profile.SteerReturnRateDegreesPerSecond, Is.GreaterThan(0f),
+                "Le retour au centre a son propre taux : relacher la direction ne remet pas les roues droites d'un coup.");
+            Assert.That(profile.EngineTorque, Is.GreaterThan(0f), "Le couple moteur par roue motrice est authore.");
+            Assert.That(profile.ReverseTorque, Is.GreaterThan(0f), "Le couple de marche arriere est authore.");
+            Assert.That(profile.BrakeTorque, Is.GreaterThan(0f), "Le couple de freinage est authore.");
+            Assert.That(profile.HandbrakeTorque, Is.GreaterThan(profile.BrakeTorque),
+                "Le frein a main doit BLOQUER la roue, pas seulement la ralentir : c'est le blocage qui effondre l'adherence laterale arriere.");
+            Assert.That(profile.WheelInertia, Is.GreaterThan(0f), "L'inertie de rotation d'une roue est author ee.");
+            Assert.That(profile.MaxForwardSpeed, Is.GreaterThan(0f), "La pointe authoree est une valeur de profil, plus une borne serialisee sur un controleur.");
+            Assert.That(profile.MaxReverseSpeed, Is.GreaterThan(0f), "La pointe de marche arriere aussi.");
+            Assert.That(profile.MinimumDirectionSpeed, Is.GreaterThan(0f), "Le seuil de changement de sens est authore.");
+
+            // Symetrie gauche/droite des drapeaux de roue. Un drapeau en alternance (une seule roue
+            // motrice par essieu) produirait un couple de lacet permanent que rien ne compense : le
+            // vehicule tirerait d'un cote en acceleration. C'est ce que la Story 5.12 corrige en
+            // consommant enfin ces drapeaux.
+            Assert.That(profile.GetWheel(0).IsDriven, Is.EqualTo(profile.GetWheel(1).IsDriven),
+                "Les deux roues d'un meme essieu sont motrices ou ne le sont pas : jamais une seule.");
+            Assert.That(profile.GetWheel(2).IsDriven, Is.EqualTo(profile.GetWheel(3).IsDriven));
+            Assert.That(profile.GetWheel(0).IsSteering, Is.EqualTo(profile.GetWheel(1).IsSteering),
+                "Les deux roues directrices d'un meme essieu braquent ensemble.");
+            Assert.That(profile.GetWheel(2).IsSteering, Is.EqualTo(profile.GetWheel(3).IsSteering));
+            Assert.That(profile.GetWheel(0).IsSteering, Is.Not.EqualTo(profile.GetWheel(2).IsSteering),
+                "Un essieu avant directrice et un essieu arriere moteur : le frein a main agit sur les roues non directrices.");
         }
 
         [Test]
@@ -391,6 +421,34 @@ namespace RoadRage.Tests.EditMode
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 Assert.That(def.TryValidate(out var maskError), Is.False);
                 Assert.That(maskError, Does.Contain("GroundMask"), "Un masque de sol vide est refuse : aucune roue ne toucherait jamais le sol.");
+
+                // Story 5.12 : les parametres de pneu et de direction sont refuses en nommant le champ
+                // fautif, et jamais remplaces par une valeur de repli silencieuse.
+                profileProperty.FindPropertyRelative("groundMask").intValue = 1;
+                profileProperty.FindPropertyRelative("tirePeakSlipRatio").floatValue = 0f;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Assert.That(def.TryValidate(out var peakSlipError), Is.False);
+                Assert.That(peakSlipError, Does.Contain("TirePeakSlipRatio"),
+                    "Une pointe de glissement nulle est refusee : le pneu n'aurait pas de courbe de force.");
+
+                profileProperty.FindPropertyRelative("tirePeakSlipRatio").floatValue = 0.14f;
+                profileProperty.FindPropertyRelative("tireSlipFalloffFraction").floatValue = 1f;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Assert.That(def.TryValidate(out var falloffError), Is.False);
+                Assert.That(falloffError, Does.Contain("TireSlipFalloffFraction"),
+                    "Une asymptote de chute egale a 1 supprime la chute : la force ne decroitrait plus du tout.");
+
+                profileProperty.FindPropertyRelative("tireSlipFalloffFraction").floatValue = 0.7f;
+                profileProperty.FindPropertyRelative("maxSteerAngleDegrees").floatValue = 120f;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Assert.That(def.TryValidate(out var steerError), Is.False);
+                Assert.That(steerError, Does.Contain("MaxSteerAngleDegrees"),
+                    "Un angle de roue maximal hors bornes est refuse en nommant le champ.");
+
+                profileProperty.FindPropertyRelative("maxSteerAngleDegrees").floatValue = 32f;
+                profileProperty.FindPropertyRelative("engineTorque").floatValue = -1f;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Assert.That(def.TryValidate(out _), Is.False, "Une raideur de pneu negative (couple moteur negatif) est refusee.");
             }
             finally
             {
@@ -682,6 +740,11 @@ namespace RoadRage.Tests.EditMode
                 "Elle n'ecrit jamais dans la simulation qu'elle observe.");
             Assert.That(source, Does.Contain("TryGetWheelState"),
                 "Elle lit l'etat publie par la couche physique au lieu de recalculer une seconde verite.");
+
+            // Story 5.12 : la vue etendue au pneu lit la charge, la force et l'adherence par roue par
+            // le meme chemin de lecture seule -- c'est l'instrument des controles humains de la story.
+            Assert.That(source, Does.Contain("TryGetTireSample"),
+                "Glissement, force et adherence par roue se lisent sur l'echantillon publie, jamais recalcules ici.");
         }
 
         private static VehicleProfileDef ResolveSerializedProfile(VehiclePhysicsBody body)

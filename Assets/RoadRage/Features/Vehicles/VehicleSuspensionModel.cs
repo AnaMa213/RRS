@@ -8,6 +8,11 @@ namespace RoadRage.Features.Vehicles
     /// c'est deliberé : <c>WheelCollider</c> ne se prouverait que pendant un pas de physique, alors
     /// qu'une fonction pure se prouve en EditMode (AD-35 : decision de testabilite, pas de fidelite).
     ///
+    /// Story 5.12 : le frottement de contact provisoire a disparu. Ce n'etait qu'un contact borne par
+    /// la charge -- aucune perte d'adherence progressive, donc ni derive controlee ni glissement. Il
+    /// est remplace par le modele de pneu (<see cref="VehicleTireModel"/>), qui est le seul endroit ou
+    /// une force est transmise par une roue vers le sol.
+    ///
     /// Conventions, valables partout dans la couche :
     /// - une force de suspension est un **scalaire positif vers le haut**, applique par l'appelant au
     ///   point de contact le long de l'axe haut du vehicule ;
@@ -32,9 +37,6 @@ namespace RoadRage.Features.Vehicles
         /// nombre absolu : elle s'adapte a la masse sans reglage.
         /// </summary>
         private const float MaxSuspensionForceMultiple = 4f;
-
-        /// <summary>Vitesse sous laquelle le frottement de contact s'attenue, pour ne pas faire broutter un vehicule a l'arret.</summary>
-        private const float FrictionRampSpeed = 0.5f;
 
         /// <summary>Charge statique portee par une roue (N) : le poids du vehicule reparti sur ses roues.</summary>
         public static float ResolveStaticLoad(float mass, float gravity, int wheelCount)
@@ -119,52 +121,6 @@ namespace RoadRage.Features.Vehicles
             }
 
             return Mathf.Min(force, staticLoad * MaxSuspensionForceMultiple);
-        }
-
-        /// <summary>
-        /// Force de contact au sol : frottement LATERAL (la bande de roulement resiste au glissement de
-        /// travers) et resistance au roulement (faible, dans l'axe de la roue), appliquees le long des
-        /// axes donnes. Les deux sont bornees par la charge que la roue porte -- un pneu ne transmet pas
-        /// plus que ce que le sol lui rend -- avec une attenuation sous <see cref="FrictionRampSpeed"/>,
-        /// sinon le vehicule brouterait a l'arret au lieu de s'immobiliser.
-        ///
-        /// Sans ce terme, un vehicule pose sur quatre rayons n'a AUCUN frottement : il glisse comme sur
-        /// de la glace, et un choc lateral l'emporte sur plusieurs metres. C'est un contact, pas un
-        /// modele de pneu : la Story 5.12 le remplace par un glissement progressif pilote par le slip.
-        /// </summary>
-        public static Vector3 ResolveGroundFrictionForce(
-            Vector3 velocity,
-            Vector3 forward,
-            Vector3 right,
-            float normalLoad,
-            float lateralCoefficient,
-            float rollingCoefficient)
-        {
-            if (!float.IsFinite(normalLoad) || normalLoad <= 0f)
-            {
-                return Vector3.zero;
-            }
-
-            return (right * ResolveFrictionAlong(velocity, right, normalLoad, lateralCoefficient))
-                + (forward * ResolveFrictionAlong(velocity, forward, normalLoad, rollingCoefficient));
-        }
-
-        /// <summary>Frottement le long d'un axe, borne par la charge portee et attenue pres de l'arret.</summary>
-        private static float ResolveFrictionAlong(Vector3 velocity, Vector3 axis, float normalLoad, float coefficient)
-        {
-            if (!float.IsFinite(coefficient) || coefficient <= 0f)
-            {
-                return 0f;
-            }
-
-            var speed = Vector3.Dot(velocity, axis);
-            if (Mathf.Abs(speed) <= 0.0001f)
-            {
-                return 0f;
-            }
-
-            var ramp = Mathf.Min(1f, Mathf.Abs(speed) / FrictionRampSpeed);
-            return -Mathf.Sign(speed) * coefficient * normalLoad * ramp;
         }
 
         /// <summary>

@@ -1201,18 +1201,86 @@ namespace RoadRage.Tests.EditMode
         }
 
         /// <summary>
-        /// Rejoue la cinematique du driver IA sur le graphe reel. Volontairement une copie des seules
-        /// equations de <c>NetworkedAIVehicleDriverController</c> qui decident du franchissement de
-        /// noeud (arrivee, depassement irrattrapable, poursuite, lacet borne) : la garde doit tomber
-        /// si l'une d'elles change, pas si le reste du controleur bouge.
+        /// Controle de bordure de la Story 5.11, resté sans assertion a sa livraison faute de modele de
+        /// direction : « les vehicules IA traversent le module sans toucher la bordure en conduite
+        /// nominale ». La Story 5.12 livre le point de visee anticipe, donc ce controle se mesure --
+        /// et la mesure dit ce qu'elle peut dire, pas plus.
+        ///
+        /// CE QU'ELLE DIT. Depuis les noeuds qui entourent le carrefour, la visee anticipee change
+        /// reellement les trajectoires, tous les vehicules atteignent leur sortie, et le nombre de pas
+        /// passes dans l'emprise d'une bordure n'est pas degrade par rapport a la poursuite
+        /// point-a-point qu'elle remplace.
+        ///
+        /// CE QU'ELLE NE DIT PAS. Le rejeu est une cinematique pure -- vitesse constante, lacet borne,
+        /// ni pneu, ni suspension, ni contact. Il ne peut pas decider si un vehicule REEL touche une
+        /// bordure : le chiffre ne bouge pas d'un couple (rayon d'arrivee, visee) a l'autre, et il
+        /// EMPIRE quand le rayon d'arrivee diminue (mesure : 104 pas dans l'emprise a rayon 3,0 m avec
+        /// comme sans visee anticipee, 126 a rayon 2,5 m, 180 a rayon 1,5 m). Une assertion absolue
+        /// ecrite la-dessus serait une garde qui ne garde rien. L'absolu reste tenu par l'observation
+        /// humaine en Play Mode, comme la Story 5.11 l'a enregistre, et la mesure complete est
+        /// consignee dans la note de livraison 5.12 et dans le registre de travail differe.
+        /// </summary>
+        [Test]
+        public void NominalAiTrafficCrossesTheCurbedCrossroadsWithoutEnteringTheCurbFootprint()
+        {
+            WithMvpRun(scene =>
+            {
+                var graph = ResolveGraph(scene);
+                graph.Rebuild();
+
+                var curbs = CollectCurbBounds(scene);
+                Assert.That(curbs, Is.Not.Empty,
+                    "La bordure prototype de la Story 5.11 doit exister dans MVP_Run pour que ce controle ait un sens.");
+
+                var local = NodesNearTheCrossroads(graph, curbs, 16f);
+                Assert.That(local, Is.Not.Empty,
+                    "Le carrefour a bordure doit etre entoure de noeuds : sans eux, il n'y a rien a mesurer.");
+
+                var baseline = MeasureCurbTraffic(graph, curbs, local, 0f, null);
+                var authored = MeasureCurbTraffic(graph, curbs, local, 0.6f, baseline.Paths);
+
+                Assert.That(authored.Trajectories, Is.GreaterThan(0),
+                    "Aucune trajectoire rejouee n'atteint une sortie : le controle serait vide, donc faussement rassurant.");
+                Assert.That(authored.Trajectories, Is.EqualTo(baseline.Trajectories),
+                    "La visee anticipee ne doit pas empecher un vehicule d'atteindre sa sortie (meme compte des deux cotes).");
+                Assert.That(authored.DivergentPaths, Is.GreaterThan(0),
+                    "La visee anticipee doit REELLEMENT changer la trajectoire dans le district authore : sans cela elle serait "
+                    + "inerte, et cette garde mesurerait deux fois la meme chose.");
+                Assert.That(authored.StepsInsideCurbFootprint, Is.LessThanOrEqualTo(baseline.StepsInsideCurbFootprint),
+                    "Mesure : " + baseline.StepsInsideCurbFootprint + " pas dans l'emprise d'une bordure avec la poursuite "
+                    + "point-a-point d'avant 5.12, " + authored.StepsInsideCurbFootprint + " avec la visee anticipee "
+                    + "(distance minimale mesuree " + authored.Closest.ToString("F2") + " m). Le point de visee anticipe est "
+                    + "la correction privilegiee par l'AC : il ne doit pas degrader ce controle.");
+            });
+        }
+
+        /// <summary>
+        /// Rejoue la cinematique du driver IA sur le graphe reel. Depuis la Story 5.12, les equations
+        /// de visee, de poursuite et d'arrivee ne sont plus RECOPIEES : elles sont appelees sur les
+        /// fonctions pures reelles. La copie precedente avait deja diverge une fois, et c'est
+        /// exactement ce que la visee anticipee venait corriger.
+        ///
+        /// Reste recopie, volontairement : l'integration du lacet et du deplacement. Elle appartient a
+        /// <c>NetworkedAIVehicleDriverController.ApplyMovement</c>, qui ecrit la vitesse en bloc et
+        /// impose le lacet -- l'etat intermediaire que la Story 5.14 leve. Le jour ou il tombe, ces
+        /// deux lignes tombent avec lui.
         /// </summary>
         private static bool ReplayReachesExit(LaneGraph graph, int entry, float lateral, float headingOffset, int bumpStep)
         {
-            const float ArrivalRadius = 3f;          // Greybox_AIVehicle
-            const float SteerFullLockDegrees = 45f;  // Greybox_AIVehicle
-            const float SteerDegreesPerSecond = 90f; // Greybox_AIVehicle
-            const float Speed = 8f;                  // DriverProfileDef_Default.desiredSpeed
+            return ReplayRoute(graph, entry, lateral, headingOffset, bumpStep, null);
+        }
+
+        private static bool ReplayRoute(
+            LaneGraph graph, int entry, float lateral, float headingOffset, int bumpStep, List<Vector3> recordedPath,
+            float arrivalRadius = 3f, float lookAheadSeconds = 0.6f)
+        {
+            const float SteerFullLockDegrees = 45f;   // Greybox_AIVehicle
+            const float SteerDegreesPerSecond = 90f;  // Greybox_AIVehicle
+            const float Speed = 8f;                   // DriverProfileDef_Default.desiredSpeed
             const float FixedDeltaTime = 0.02f;
+
+            var ArrivalRadius = arrivalRadius;
+            var LookAheadSeconds = lookAheadSeconds;
 
             var traversed = new bool[graph.NodeCount];
             var node = entry;
@@ -1227,18 +1295,16 @@ namespace RoadRage.Tests.EditMode
 
             for (var step = 0; step < 12000; step++)
             {
-                if (step == bumpStep)
+                if (bumpStep >= 0 && step == bumpStep)
                 {
                     position += Quaternion.Euler(0f, yaw, 0f) * Vector3.right * lateral;
                     yaw += headingOffset;
                 }
 
                 var forward = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
-                var toWaypoint = target - position;
-                toWaypoint.y = 0f;
 
-                var arrived = toWaypoint.sqrMagnitude <= ArrivalRadius * ArrivalRadius;
-                if (arrived || LaneGraphRouting.HasPassedUnreachableWaypoint(
+                if (NetworkedAIVehicleDriverController.HasArrivedAtWaypoint(position, target, ArrivalRadius)
+                    || LaneGraphRouting.HasPassedUnreachableWaypoint(
                         position, forward, target, Speed, SteerDegreesPerSecond))
                 {
                     if (graph.IsExitPortal(node) && departed)
@@ -1249,10 +1315,6 @@ namespace RoadRage.Tests.EditMode
                     node = ReplayResolveNextNode(graph, node, traversed, ref traversedEdges, ref departed, position);
                     target = graph.GetNodePosition(node);
                     lastNodeChangeStep = step;
-
-                    toWaypoint = target - position;
-                    toWaypoint.y = 0f;
-                    arrived = toWaypoint.sqrMagnitude <= ArrivalRadius * ArrivalRadius;
                 }
 
                 // Aucun noeud franchi depuis 18 s : le vehicule ne progresse plus, c'est l'orbite.
@@ -1261,17 +1323,144 @@ namespace RoadRage.Tests.EditMode
                     return false;
                 }
 
-                if (arrived)
+                var aimPoint = LaneGraphRouting.ResolveLookAheadPoint(
+                    position,
+                    target,
+                    graph.GetNodeRotation(node) * Vector3.forward,
+                    Mathf.Max(0f, Speed) * LookAheadSeconds);
+
+                var intent = NetworkedAIVehicleDriverController.ComputeSeekIntent(
+                    position, forward, aimPoint, SteerFullLockDegrees);
+
+                yaw += intent.Steer * SteerDegreesPerSecond * FixedDeltaTime;
+                position += Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * (Speed * FixedDeltaTime);
+
+                if (recordedPath != null)
+                {
+                    recordedPath.Add(position);
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Resultat de mesure d'un rejeu de trafic : ce qui se compare entre deux candidats.</summary>
+        private sealed class CurbTrafficMeasurement
+        {
+            public int Trajectories;
+            public int StepsInsideCurbFootprint;
+            public int DivergentPaths;
+            public float Closest;
+            public List<Vector3>[] Paths;
+        }
+
+        private static List<int> NodesNearTheCrossroads(LaneGraph graph, List<Bounds> curbs, float radius)
+        {
+            var centre = Vector3.zero;
+            foreach (var curb in curbs)
+            {
+                centre += curb.center;
+            }
+
+            centre /= curbs.Count;
+
+            var local = new List<int>();
+            for (var i = 0; i < graph.NodeCount; i++)
+            {
+                var planar = graph.GetNodePosition(i) - centre;
+                planar.y = 0f;
+                if (planar.magnitude <= radius)
+                {
+                    local.Add(i);
+                }
+            }
+
+            return local;
+        }
+
+        /// <summary>
+        /// Rejoue le carrefour a bordure depuis chaque noeud qui l'entoure et compte ce qui se compare :
+        /// pas passes dans l'emprise d'une bordure, distance minimale, et -- quand une reference est
+        /// fournie -- nombre de trajectoires que la visee anticipee deplace vraiment.
+        /// </summary>
+        private static CurbTrafficMeasurement MeasureCurbTraffic(
+            LaneGraph graph, List<Bounds> curbs, List<int> entries, float lookAheadSeconds, List<Vector3>[] reference)
+        {
+            var measurement = new CurbTrafficMeasurement
+            {
+                Closest = float.MaxValue,
+                Paths = new List<Vector3>[entries.Count]
+            };
+
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var path = new List<Vector3>();
+                if (!ReplayRoute(graph, entries[i], 0f, 0f, -1, path, 3f, lookAheadSeconds))
                 {
                     continue;
                 }
 
-                var signedAngle = Vector3.SignedAngle(forward, toWaypoint.normalized, Vector3.up);
-                yaw += Mathf.Clamp(signedAngle / SteerFullLockDegrees, -1f, 1f) * SteerDegreesPerSecond * FixedDeltaTime;
-                position += Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * (Speed * FixedDeltaTime);
+                measurement.Trajectories++;
+                measurement.Paths[i] = path;
+
+                foreach (var point in path)
+                {
+                    foreach (var curb in curbs)
+                    {
+                        var distance = PlanarDistanceToFootprint(point, curb);
+                        measurement.Closest = Mathf.Min(measurement.Closest, distance);
+                        if (distance < VehicleHalfWidth)
+                        {
+                            measurement.StepsInsideCurbFootprint++;
+                            break;
+                        }
+                    }
+                }
+
+                if (reference != null && reference[i] != null)
+                {
+                    var count = Mathf.Min(reference[i].Count, path.Count);
+                    for (var step = 0; step < count; step++)
+                    {
+                        if (Vector3.Distance(reference[i][step], path[step]) > 0.5f)
+                        {
+                            measurement.DivergentPaths++;
+                            break;
+                        }
+                    }
+                }
             }
 
-            return false;
+            return measurement;
+        }
+
+        /// <summary>Demi-largeur du collider du vehicule (cote figee de la Story 5.10, NFR18 : elle ne bouge pas).</summary>
+        private const float VehicleHalfWidth = 2.06f / 2f;
+
+        /// <summary>Emprises monde des bordures du district, relevees sur les instances posees en scene.</summary>
+        private static List<Bounds> CollectCurbBounds(Scene scene)
+        {
+            var bounds = new List<Bounds>();
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                foreach (var collider in root.GetComponentsInChildren<Collider>(true))
+                {
+                    if (collider.name.StartsWith("Col_Curb", StringComparison.Ordinal))
+                    {
+                        bounds.Add(collider.bounds);
+                    }
+                }
+            }
+
+            return bounds;
+        }
+
+        /// <summary>Distance planaire d'un point a l'emprise d'une bordure : la hauteur n'entre pas dans le contact lateral.</summary>
+        private static float PlanarDistanceToFootprint(Vector3 point, Bounds footprint)
+        {
+            var dx = Mathf.Max(footprint.min.x - point.x, 0f, point.x - footprint.max.x);
+            var dz = Mathf.Max(footprint.min.z - point.z, 0f, point.z - footprint.max.z);
+            return Mathf.Sqrt((dx * dx) + (dz * dz));
         }
 
         /// <summary>Tirage auto-evitant puis reorientation gloutonne : la resolution de noeud du driver.</summary>

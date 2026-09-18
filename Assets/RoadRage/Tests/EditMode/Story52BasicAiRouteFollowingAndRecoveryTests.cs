@@ -12,41 +12,54 @@ namespace RoadRage.Tests.EditMode
     /// RouteWaypoints vers LaneGraphRouting en Story 5.10 (la boucle a disparu, ces garanties non),
     /// de la reutilisation (sans modification) des predicats retournement/hors-zone de la Story 3.4,
     /// et de l'absence d'etat partage entre vehicules IA -- tout testable sans Netcode.
+    ///
+    /// Story 5.12 : <c>ComputeSeekIntent</c> vise desormais un POINT DE VISEE ANTICIPE et non plus la
+    /// position du noeud. L'arrivee au noeud n'est donc plus de son ressort (elle se decide la ou la
+    /// decision se prend, <c>HasArrivedAtWaypoint</c>) et la fonction ne rend plus d'intent neutre qui
+    /// signifiait "je suis arrive". Les tests de visee sont adaptes en consequence ; ceux du point
+    /// anticipe lui-meme vivent dans la fixture 5.12, avec la fonction pure qui le calcule.
     /// </summary>
     public sealed class Story52BasicAiRouteFollowingAndRecoveryTests
     {
         private const string DriverControllerSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs";
 
         [Test]
-        public void ComputeSeekIntentAdvancesTowardWaypointOutsideArrivalRadius()
+        public void ComputeSeekIntentAdvancesTowardTheAimPointAtFullThrottle()
         {
             var intent = NetworkedAIVehicleDriverController.ComputeSeekIntent(
-                Vector3.zero, Vector3.forward, new Vector3(0f, 0f, 10f), arrivalRadius: 3f, steerFullLockDegrees: 45f);
+                Vector3.zero, Vector3.forward, new Vector3(0f, 0f, 10f), steerFullLockDegrees: 45f);
 
             Assert.That(intent.IsIdle, Is.False);
-            Assert.That(intent.Throttle, Is.EqualTo(1f), "Poursuite : plein gaz tant que hors du rayon d'arrivee.");
-            Assert.That(intent.Steer, Is.EqualTo(0f).Within(0.0001f), "Waypoint droit devant : pas de correction de direction.");
+            Assert.That(intent.Throttle, Is.EqualTo(1f), "Poursuite : plein gaz vers le point de visee.");
+            Assert.That(intent.Steer, Is.EqualTo(0f).Within(0.0001f), "Point de visee droit devant : pas de correction de direction.");
         }
 
         [Test]
-        public void ComputeSeekIntentSteersTowardOffCenterWaypointConsistentlyWithYawConvention()
+        public void ComputeSeekIntentSteersTowardAnOffCenterAimPointConsistentlyWithYawConvention()
         {
-            // Waypoint a droite de l'avant (Vector3.forward) : Steer positif = droite (meme convention que VehicleDriveIntent
+            // Point de visee a droite de l'avant (Vector3.forward) : Steer positif = droite (meme convention que VehicleDriveIntent
             // et que la rotation appliquee par ApplyMovement, Quaternion.AngleAxis(yaw, Vector3.up) avec yaw = Steer * ...).
             var intent = NetworkedAIVehicleDriverController.ComputeSeekIntent(
-                Vector3.zero, Vector3.forward, new Vector3(10f, 0f, 0f), arrivalRadius: 3f, steerFullLockDegrees: 45f);
+                Vector3.zero, Vector3.forward, new Vector3(10f, 0f, 0f), steerFullLockDegrees: 45f);
 
-            Assert.That(intent.Steer, Is.GreaterThan(0f), "Waypoint a droite doit produire un Steer positif (droite).");
+            Assert.That(intent.Steer, Is.GreaterThan(0f), "Point de visee a droite doit produire un Steer positif (droite).");
             Assert.That(intent.Steer, Is.EqualTo(1f).Within(0.0001f), "90 degres hors axe avec un plein-lock de 45 doit saturer a 1.");
         }
 
         [Test]
-        public void ComputeSeekIntentIsIdleWithinArrivalRadius()
+        public void ComputeSeekIntentKeepsFullThrottleAndAStraightSteerOnACoincidentAimPoint()
         {
+            // Un point de visee confondu avec la position (vehicule pile sur le noeud vise, distance de
+            // visee nulle) ne doit pas rendre un intent neutre : ce n'etait pas "je suis arrive", c'etait
+            // "je ne sais pas ou aller", et l'appelant le lisait comme un arret. La poursuite continue,
+            // tout droit, et c'est l'arrivee au noeud qui decide de la suite.
             var intent = NetworkedAIVehicleDriverController.ComputeSeekIntent(
-                Vector3.zero, Vector3.forward, new Vector3(0f, 0f, 2f), arrivalRadius: 3f, steerFullLockDegrees: 45f);
+                Vector3.zero, Vector3.forward, Vector3.zero, steerFullLockDegrees: 45f);
 
-            Assert.That(intent.IsIdle, Is.True, "Waypoint dans le rayon d'arrivee : plus de poursuite, l'appelant avance WaypointIndex.");
+            Assert.That(intent.IsIdle, Is.False,
+                "Le point de visee confondu ne doit plus etre un signal d'arret : l'arrivee se decide par le rayon d'arrivee.");
+            Assert.That(intent.Throttle, Is.EqualTo(1f));
+            Assert.That(intent.Steer, Is.EqualTo(0f).Within(0.0001f), "Cible confondue : aucun cap a corriger, le vehicule va droit.");
         }
 
         [Test]
