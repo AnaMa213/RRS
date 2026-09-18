@@ -34,8 +34,13 @@
 
 # lus directement par BMAD, pas via le graphe de code.
 
-\_bmad/
-\_bmad-output/
+# Motifs ecrits sans echappement. La premiere redaction les ecrivait `\_bmad/`
+# et `\_bmad-output/` ; mesure du 2026-09-18 : 121 entrees `_bmad*` etaient
+# restees dans le manifeste et pesaient 1 214 noeuds, soit 30 % du graphe. Une
+# forme non echappee est celle que git et Graphify lisent de la meme facon. Git, lui, lit les deux formes de la meme facon.
+
+_bmad/
+_bmad-output/
 
 # --- Sortie de Graphify lui-meme ---
 
@@ -48,6 +53,7 @@ graphify-out/
 # du graphe ne depende pas d'une decision de versionnement.
 
 Assets/Synty/
+Assets/Awbmecreations/
 
 # --- Second passage (2026-09-18) : fuites mesurees apres le premier rescope ---
 
@@ -76,6 +82,28 @@ Assets/Synty/
 # les manifestes Unity, la documentation et le contenu livre par Unity restaient
 
 # dans le corpus, avec le meme effet mecanique qu'AD-2 cherchait a supprimer.
+
+# --- Resolution (2026-09-18) : le manifeste est cumulatif ---
+#
+# Ajouter ou corriger un motif ne suffit pas : `graphify update` n'elague pas un
+# fichier deja present dans `graphify-out/manifest.json`, il garde ses noeuds
+# jusqu'a ce qu'il en soit retire. `--force` ne corrige pas cela non plus — ce
+# drapeau autorise seulement un rebuild qui perd des noeuds.
+#
+# Reparation appliquee : suppression des 122 entrees `_bmad*` et
+# `graphify-out/` du manifeste, puis `graphify update . --force`, qui a purge
+# 1 214 noeuds issus de 107 fichiers.
+#
+# Resultat verifie : 159 fichiers / 2 820 noeuds / 6 762 liens / 120
+# communautes, 156/156 `.cs` de `Assets/RoadRage` conserves, aucune occurrence
+# `_bmad` dans `graph.json`, et les 12 noeuds les plus connectes sont tous du
+# code RoadRage.
+#
+# Residu connu : `graphify-out/memory/` est ecrit par `graphify save-result` et
+# echappe a la regle `graphify-out/` ; le fichier present porte 5 noeuds.
+#
+# Regle pour la suite : apres tout changement de perimetre, verifier le
+# manifeste, pas seulement ce fichier.
 
 # --- Manifestes et configuration Unity : listes de packages, pas du code ---
 
