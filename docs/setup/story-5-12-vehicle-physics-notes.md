@@ -57,19 +57,19 @@ ouvert. Les mesures sont citees telles qu'elles sont sorties des commandes.
 **Valeurs FINALES**, apres les deux retours de recette du 2026-09-18 (voir section 8 pour l'historique
 et les raisons de chaque correction).
 
-| Parametre | Valeur | Pourquoi |
-| --- | --- | --- |
-| Train roulant | avant directrice **et** motrice, arriere motrice : **quatre roues motrices** | repartir l'effort sur quatre pneus garde chaque roue loin de sa limite : c'est le patinage qui faisait deraper la voiture |
-| `engineTorque` / `reverseTorque` | 1 600 / 1 400 N.m **par roue motrice** | 4 x 1 600 / 0,33 = 19 394 N, soit 16,2 m/s2, avec 55 % d'adherence utilisee par roue |
-| `brakeTorque` / `coastTorque` / `handbrakeTorque` | 2 000 / 260 / 4 500 N.m | le frein a main doit BLOQUER les roues non directrices malgre l'adherence authoree ; le frein moteur retient un vehicule gare sans conducteur |
-| `wheelInertia` | 3 kg.m2 | integre la rotation de roue sans la rendre instantanee |
-| `maxForwardSpeed` / `maxReverseSpeed` | 18 / 7 m/s | **les memes valeurs qu'avant**, desormais lues sur le profil : la pointe est approchee par une pente d'effort, jamais posee |
-| `minimumDirectionSpeed` | 0,25 m/s | le seuil de changement de sens de la Story 3.2, conserve |
-| `maxSteerAngleDegrees` / `highSpeedSteerAngleDegrees` / `steerFullReductionSpeed` | 40 / 16 / 26 | debattement utile a basse vitesse, et la direction tourne encore a vitesse de conduite |
-| `steerRateDegreesPerSecond` / `steerReturnRateDegreesPerSecond` | 300 / 260 | la roue atteint son angle tout de suite ; le rappel reste plus lent que le braquage |
-| `tirePeakSlipRatio` / `tirePeakSlipAngleDegrees` / `tireSlipFalloffFraction` | 0,14 / 8 / 0,8 | pic a 14 % de glissement longitudinal et 8 deg d'angle, puis chute vers 80 % : la perte d'adherence est progressive, ne tombe jamais a zero, et se rattrape vite |
-| `lateralFrictionCoefficient` | 3,0 | **reutilise** comme adherence du pneu, pas renomme (aucune table par surface : cf. section 9) |
-| `lookAheadSeconds` (IA) | 0,6 s | distance de visee = vitesse x duree, soit ~4,8 m a 8 m/s |
+| Parametre                                                                         | Valeur                                                                       | Pourquoi                                                                                                                                                         |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Train roulant                                                                     | avant directrice **et** motrice, arriere motrice : **quatre roues motrices** | repartir l'effort sur quatre pneus garde chaque roue loin de sa limite : c'est le patinage qui faisait deraper la voiture                                        |
+| `engineTorque` / `reverseTorque`                                                  | 1 600 / 1 400 N.m **par roue motrice**                                       | 4 x 1 600 / 0,33 = 19 394 N, soit 16,2 m/s2, avec 55 % d'adherence utilisee par roue                                                                             |
+| `brakeTorque` / `coastTorque` / `handbrakeTorque`                                 | 2 000 / 260 / 4 500 N.m                                                      | le frein a main doit BLOQUER les roues non directrices malgre l'adherence authoree ; le frein moteur retient un vehicule gare sans conducteur                    |
+| `wheelInertia`                                                                    | 3 kg.m2                                                                      | integre la rotation de roue sans la rendre instantanee                                                                                                           |
+| `maxForwardSpeed` / `maxReverseSpeed`                                             | 18 / 7 m/s                                                                   | **les memes valeurs qu'avant**, desormais lues sur le profil : la pointe est approchee par une pente d'effort, jamais posee                                      |
+| `minimumDirectionSpeed`                                                           | 0,25 m/s                                                                     | le seuil de changement de sens de la Story 3.2, conserve                                                                                                         |
+| `maxSteerAngleDegrees` / `highSpeedSteerAngleDegrees` / `steerFullReductionSpeed` | 40 / 16 / 26                                                                 | debattement utile a basse vitesse, et la direction tourne encore a vitesse de conduite                                                                           |
+| `steerRateDegreesPerSecond` / `steerReturnRateDegreesPerSecond`                   | 300 / 260                                                                    | la roue atteint son angle tout de suite ; le rappel reste plus lent que le braquage                                                                              |
+| `tirePeakSlipRatio` / `tirePeakSlipAngleDegrees` / `tireSlipFalloffFraction`      | 0,14 / 8 / 0,8                                                               | pic a 14 % de glissement longitudinal et 8 deg d'angle, puis chute vers 80 % : la perte d'adherence est progressive, ne tombe jamais a zero, et se rattrape vite |
+| `lateralFrictionCoefficient`                                                      | 3,0                                                                          | **reutilise** comme adherence du pneu, pas renomme (aucune table par surface : cf. section 9)                                                                    |
+| `lookAheadSeconds` (IA)                                                           | 0,6 s                                                                        | distance de visee = vitesse x duree, soit ~4,8 m a 8 m/s                                                                                                         |
 
 ## 3. Mesures
 
@@ -96,12 +96,12 @@ Balayage complet des couples (rayon d'arrivee, duree de visee) -- pas passes dan
 bordure, sur 20 trajectoires qui atteignent toutes une sortie :
 
 | Rayon d'arrivee | visee 0 s | 0,3 s | 0,6 s (livree) | 1,0 s |
-| --- | --- | --- | --- | --- |
-| 3,0 m | 104 | 104 | **104** | 102 |
-| 2,5 m | 126 | 126 | 132 | 102 |
-| 2,0 m | 154 | 154 | 152 | 142 |
-| 1,5 m | 180 | 190 | 176 | 156 |
-| 1,0 m | 198 | 208 | 202 | 190 |
+| --------------- | --------- | ----- | -------------- | ----- |
+| 3,0 m           | 104       | 104   | **104**        | 102   |
+| 2,5 m           | 126       | 126   | 132            | 102   |
+| 2,0 m           | 154       | 154   | 152            | 142   |
+| 1,5 m           | 180       | 190   | 176            | 156   |
+| 1,0 m           | 198       | 208   | 202            | 190   |
 
 Deux lectures, et une conclusion :
 
@@ -150,12 +150,12 @@ visee anticipee reellement exercee, et pas de degradation du degagement.
   intent)** leve, en branchant l'IA sur `ApplyDriveIntent`. La Story 5.14 porte aussi un prerequis
   enregistre (harnais PlayMode), dont deux de ses criteres dependent.
 - **La porte Console de `validate.ps1` est rouge pour la session entiere.** `validate.ps1 -TestMode
-  EditMode` a echoue sur 5 erreurs Console, toutes **historiques** : une commande Pipeline rejetee
+EditMode` a echoue sur 5 erreurs Console, toutes **historiques** : une commande Pipeline rejetee
   (`m_LocalRotation`), trois appels a une API de pneu intermediaire corrigee pendant l'implementation
   (`ResolveTireForce` / `ResolveCombinedForces`), et une reference de test corrigee dans la meme
   session. Le script appelle `console --level error` **sans `--since`** et rejoue donc tout le journal.
   La mesure de repli prevue par les regles de build a ete utilisee : `unity cmd run_tests --mode
-  EditMode` + lecture du rapport, soit **569/569 verts**. Une session d'Editeur neuve remettrait la
+EditMode` + lecture du rapport, soit **569/569 verts**. Une session d'Editeur neuve remettrait la
   porte au vert sans rien changer au code.
 - **Un fichier de test a ete ecrit puis corrige** : la premiere version de la fixture 5.12 utilisait un
   type d'acces inexistant et une garde de source trop large (`"Rage"` matchait le namespace
@@ -177,18 +177,18 @@ pas un defaut, c'etait un reglage trop bas pour le style du jeu.
 
 **Reetalonnage livre** (profil et valeurs par defaut du Def, les deux copies alignees) :
 
-| Parametre | Avant | Apres | Effet |
-| --- | --- | --- | --- |
-| `lateralFrictionCoefficient` | 1,2 | **2,5** | seule vraie limite de l'acceleration ET du virage : sans elle, monter le couple ne fait que faire patiner |
-| `engineTorque` | 900 | **2 600** N.m | depart limite par l'adherence : 12,3 m/s2 |
-| `brakeTorque` | 700 | **2 000** N.m | freinage limite par l'adherence : 20,2 m/s2 |
-| `handbrakeTorque` | 3 000 | **4 500** N.m | bloque l'essieu arriere avec la nouvelle adherence |
-| `coastTorque` | 120 | **260** N.m | frein moteur perceptible |
-| `reverseTorque` | 700 | **1 800** N.m | marche arriere utilisable |
-| `maxSteerAngleDegrees` | 32 | **40** | debattement a basse vitesse |
-| `highSpeedSteerAngleDegrees` | 10 | **16** | la voiture tourne encore a vitesse de conduite |
-| `steerFullReductionSpeed` | 18 | **26** | la reduction d'angle arrive plus tard |
-| `steerRateDegreesPerSecond` / `steerReturnRateDegreesPerSecond` | 180 / 140 | **300 / 260** | la roue atteint son angle tout de suite |
+| Parametre                                                       | Avant     | Apres         | Effet                                                                                                     |
+| --------------------------------------------------------------- | --------- | ------------- | --------------------------------------------------------------------------------------------------------- |
+| `lateralFrictionCoefficient`                                    | 1,2       | **2,5**       | seule vraie limite de l'acceleration ET du virage : sans elle, monter le couple ne fait que faire patiner |
+| `engineTorque`                                                  | 900       | **2 600** N.m | depart limite par l'adherence : 12,3 m/s2                                                                 |
+| `brakeTorque`                                                   | 700       | **2 000** N.m | freinage limite par l'adherence : 20,2 m/s2                                                               |
+| `handbrakeTorque`                                               | 3 000     | **4 500** N.m | bloque l'essieu arriere avec la nouvelle adherence                                                        |
+| `coastTorque`                                                   | 120       | **260** N.m   | frein moteur perceptible                                                                                  |
+| `reverseTorque`                                                 | 700       | **1 800** N.m | marche arriere utilisable                                                                                 |
+| `maxSteerAngleDegrees`                                          | 32        | **40**        | debattement a basse vitesse                                                                               |
+| `highSpeedSteerAngleDegrees`                                    | 10        | **16**        | la voiture tourne encore a vitesse de conduite                                                            |
+| `steerFullReductionSpeed`                                       | 18        | **26**        | la reduction d'angle arrive plus tard                                                                     |
+| `steerRateDegreesPerSecond` / `steerReturnRateDegreesPerSecond` | 180 / 140 | **300 / 260** | la roue atteint son angle tout de suite                                                                   |
 
 Enveloppe obtenue : **12,3 m/s2 en acceleration, 20,2 m/s2 au freinage, 12,3 m/s2 en appui**
 (contre 4,5 / 7,1 / 5,9 avant). Une garde EditMode (`TheAuthoredProfileKeepsAnArcadeEnvelope`) fige
@@ -211,13 +211,13 @@ de la courbe, 0,7 x adherence x charge) et le derapage permanent de l'arriere.
 
 **Correction : repartir l'effort sur quatre roues, et donner de la marge au pneu.**
 
-| Parametre | Avant | Apres | Effet |
-| --- | --- | --- | --- |
-| Roues motrices (`isDriven`) | 2 (arriere) | **4** (quatre roues motrices) | meme effort total avec la moitie par roue : le pneu reste loin de sa limite |
-| `lateralFrictionCoefficient` | 2,5 | **3,0** | marge d'adherence supplementaire |
-| `engineTorque` | 2 600 N.m sur 2 roues | **1 600 N.m sur 4** | 4 x 1 600/0,33 = 19 394 N, soit **16,2 m/s2** |
-| `reverseTorque` | 1 800 N.m sur 2 | **1 400 N.m sur 4** | meme repartition en marche arriere |
-| `tireSlipFalloffFraction` | 0,7 | **0,8** | si un pneu glisse quand meme, il perd moins d'adherence et se rattrape plus vite |
+| Parametre                    | Avant                 | Apres                         | Effet                                                                            |
+| ---------------------------- | --------------------- | ----------------------------- | -------------------------------------------------------------------------------- |
+| Roues motrices (`isDriven`)  | 2 (arriere)           | **4** (quatre roues motrices) | meme effort total avec la moitie par roue : le pneu reste loin de sa limite      |
+| `lateralFrictionCoefficient` | 2,5                   | **3,0**                       | marge d'adherence supplementaire                                                 |
+| `engineTorque`               | 2 600 N.m sur 2 roues | **1 600 N.m sur 4**           | 4 x 1 600/0,33 = 19 394 N, soit **16,2 m/s2**                                    |
+| `reverseTorque`              | 1 800 N.m sur 2       | **1 400 N.m sur 4**           | meme repartition en marche arriere                                               |
+| `tireSlipFalloffFraction`    | 0,7                   | **0,8**                       | si un pneu glisse quand meme, il perd moins d'adherence et se rattrape plus vite |
 
 **Mesure qui encode le ressenti demande.** Chaque roue motrice utilise **55 %** de son adherence au
 depart (4 848 N demandes pour 8 829 N disponibles). La garde `TheAuthoredProfileKeepsAnArcadeEnvelope`
