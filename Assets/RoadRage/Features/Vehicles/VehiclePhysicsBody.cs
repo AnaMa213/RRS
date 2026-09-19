@@ -18,12 +18,13 @@ namespace RoadRage.Features.Vehicles
     /// par les roues marquees <see cref="VehicleWheel.IsSteering"/>, et le couple est envoye aux seules
     /// roues marquees <see cref="VehicleWheel.IsDriven"/>.
     ///
-    /// ETAT INTERMEDIAIRE, NOMME ET DATTE -- 2026-09-18, Story 5.12. Le vehicule JOUEUR passe
-    /// entierement par <see cref="ApplyDriveIntent"/> : il n'ecrit plus jamais la vitesse. Le vehicule
-    /// IA, lui, ecrit encore <c>linearVelocity</c> et <c>MoveRotation</c> dans
-    /// <c>NetworkedAIVehicleDriverController.ApplyMovement</c> : c'est ce que la Story 5.14 (AI drives
-    /// by intent) supprime. La couche physique est deja la seule et la meme pour les deux -- c'est
-    /// elle que la 5.14 consommera.
+    /// Story 5.14 : l'ETAT INTERMEDIAIRE de la 5.12 est LEVE (2026-09-19). Le vehicule IA passait
+    /// encore par une ecriture directe de sa vitesse et de son lacet dans
+    /// <c>NetworkedAIVehicleDriverController.ApplyMovement</c> ; ce chemin n'existe plus : le
+    /// controleur soumet un <see cref="VehicleDriveIntent"/> et relit sa vitesse sur le
+    /// <c>Rigidbody</c>, comme le vehicule joueur. Les deux passent donc tous les deux, et pour de bon,
+    /// par <see cref="ApplyDriveIntent"/> : c'est cette couche, et elle seule, qui produit du
+    /// mouvement -- pour aucun des deux vehicules un controleur n'ecrit vitesse, position ou rotation.
     ///
     /// Story 5.13 : la couche porte les trois AIDES ARCADE et le facteur d'autorite par roues au sol,
     /// tous calcules dans <see cref="VehicleArcadeAssist"/>. La stabilite en lacet et la recuperation de

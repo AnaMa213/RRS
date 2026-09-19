@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 09-18-2026
+last_updated: 09-19-2026
 # 2026-09-18 course correction: Epic 5 gains a vehicle physics foundation (see
 # planning-artifacts/sprint-change-proposal-2026-09-18.md). Stories 5.11-5.15 are new:
 # chassis/wheels/suspension, tire forces and steering, arcade assists and uneven ground,
@@ -129,7 +129,7 @@ development_status:
   5-11-vehicle-chassis-wheels-and-suspension: review
   5-12-tire-forces-and-steering: review
   5-13-arcade-assists-and-uneven-ground: review
-  5-14-ai-drives-by-intent: backlog
+  5-14-ai-drives-by-intent: in-progress
   5-15-credible-collisions-and-damage-integration: backlog
   5-16-lobby-configurable-traffic-settings: backlog
   5-17-wider-perception-and-progressive-unblocking: backlog

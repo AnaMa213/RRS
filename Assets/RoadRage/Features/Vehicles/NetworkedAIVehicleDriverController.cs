@@ -25,12 +25,12 @@ namespace RoadRage.Features.Vehicles
     /// ni une jauge globale) et le publie dans <see cref="NetworkedAIVehicleState.Behavior"/>.
     ///
     /// Story 5.9 : le style de conduite n'est plus un multiplicateur de vitesse cable ici. Ce
-    /// composant est devenu un integrateur -- il lit un <see cref="DriverProfileDef"/> authore, le
-    /// module par la disposition publiee (<see cref="DriverModel.ResolveEffectiveProfile"/>), detecte
-    /// un leader devant lui, integre l'acceleration IDM lissee par le temps de reaction du profil, et
-    /// cadence l'evaluation de changement de voie sur l'intervalle du profil avec une phase propre a
-    /// l'instance. Toutes les decisions vivent dans <see cref="DriverModel"/> : aucune valeur de
-    /// conduite n'est litterale dans ce fichier.
+    /// composant lit un <see cref="DriverProfileDef"/> authore, le module par la disposition publiee
+    /// (<see cref="DriverModel.ResolveEffectiveProfile"/>), detecte un leader devant lui, derive
+    /// l'acceleration IDM lissee par le temps de reaction du profil, et cadence l'evaluation de
+    /// changement de voie sur l'intervalle du profil avec une phase propre a l'instance. Toutes les
+    /// decisions vivent dans <see cref="DriverModel"/> : aucune valeur de conduite n'est litterale
+    /// dans ce fichier.
     ///
     /// Story 5.10 : la boucle de waypoints est remplacee par un graphe de voies authore. A chaque
     /// jonction le successeur sort d'un tirage de virage pondere par les ratios authores sur le noeud
@@ -47,8 +47,22 @@ namespace RoadRage.Features.Vehicles
     /// la derniere branche) et aucun circuit autour d'une jonction carree n'est atteignable. Quand
     /// plus aucun successeur n'est eligible, la reorientation gloutonne vers la sortie la plus proche
     /// reprend la main -- elle peut re-accepter un noeud parcouru, c'est l'echappatoire, bornee par le
-    /// budget d'aretes.
-    /// </summary>
+    /// budget d'aretes.    ///
+    /// Story 5.14 : ce controleur cesse d'ECRIRE le mouvement. Il emet un
+    /// <see cref="VehicleDriveIntent"/> (direction, accelerateur, frein) et le soumet a
+    /// <see cref="VehiclePhysicsBody.ApplyDriveIntent"/> -- la MEME couche que le vehicule joueur
+    /// (AD-35), par un chemin unique et sans jumeau local. Sa vitesse n'est plus une entree entretenue
+    /// en boucle ouverte : elle est RELUE du <c>Rigidbody</c> a chaque pas (projection planaire).
+    /// Consequences voulues : une IA peut etre poussee (ce que la physique a gagne pendant un contact
+    /// n'est plus efface au pas suivant), la gravite redevient effective (plus de decollage sur le
+    /// relief de recette), et les aides arcade et la reduction d'autorite de la Story 5.13
+    /// s'appliquent au trafic par construction. Le suivi de route, la visee anticipee et la
+    /// reorientation des Stories 5.10 a 5.13 restent inchanges : seule change la maniere de traduire
+    /// une decision deja prise en mouvement du vehicule.
+    ///
+    /// <see cref="RecoverAtWaypoint"/> reste le seul chemin qui repositionne le vehicule. Ce n'est pas
+    /// de la conduite, et la reaction au choc comme la recuperation physique vers une voie valide
+    /// restent hors du perimetre de cette story.    /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(NetworkedAIVehicleState))]
@@ -131,11 +145,37 @@ namespace RoadRage.Features.Vehicles
         private NetworkedAIVehicleState state;
         private Rigidbody body;
         private NetworkTransform networkTransform;
+        private VehiclePhysicsBody physicsBody;
         private IRageDispositionSource rageSource;
         private float rolloverElapsedSeconds;
         private float stuckElapsedSeconds;
-        private float currentSpeed;
+
+        /// <summary>
+        /// Filtre de REACTION du conducteur (Story 5.9) : l'acceleration lissee qui a produit la pedale
+        /// du pas -- c'est elle, et non plus une vitesse, qui est conservee d'un pas a l'autre. La
+        /// vitesse, elle, n'existe plus comme champ de ce controleur (Story 5.14) : elle est relue du
+        /// <c>Rigidbody</c> a chaque pas. Le filtre reste parce que
+        /// <see cref="DriverModel.SmoothAcceleration"/> est un lissage a memoire, et que le supprimer
+        /// supprimerait le temps de reaction du profil -- c'est-a-dire une decision.
+        /// </summary>
         private float appliedAcceleration;
+
+        /// <summary>
+        /// Pedale pleine echelle de CE vehicule, derivee de son profil physique (Story 5.14) : couple
+        /// moteur total des roues motrices rapporte a la masse et au rayon de roue, soit l'acceleration
+        /// que la couche physique produit a plein gaz et a l'arret. C'est l'echelle qui permet de
+        /// traduire une acceleration DEMANDEE par le modele de conduite (m/s2) en position de pedale
+        /// ([0, 1]) sans multiplier l'intention du conducteur par la capacite du moteur.
+        ///
+        /// Elle est DERIVEE, jamais authoree : les trois grandeurs viennent du meme profil que celui
+        /// que la couche lit, et le facteur de vitesse vient de la fonction pure de la couche
+        /// (<see cref="VehicleTireModel.ResolveDriveTorqueFactor"/>). Pour le profil livre, elle
+        /// reproduit l'enveloppe MESUREE de la Story 5.12 (16,2 m/s2 a plein gaz, 20,2 m/s2 au frein).
+        /// </summary>
+        private float driveAccelerationCapacity;
+        private float brakeAccelerationCapacity;
+        private bool hasDriveCapacity;
+
         private float laneChangeElapsedSeconds;
         private float instancePhase;
         private readonly List<Vector3> redirectCandidatePositions = new List<Vector3>();
@@ -161,6 +201,7 @@ namespace RoadRage.Features.Vehicles
         private bool warnedDeadEnd;
         private bool warnedNoReachableExit;
         private bool warnedMissingDriverProfile;
+        private bool warnedMissingPhysicsProfile;
         private bool warnedLeaderBufferSaturated;
         private bool warnedClearanceBufferSaturated;
         private float frontOffset;
@@ -263,6 +304,10 @@ namespace RoadRage.Features.Vehicles
 
             if (laneGraph == null || laneGraph.NodeCount <= 0)
             {
+                // Aucune route : vehicule inerte. L'intent IDLE est repose explicitement parce que la
+                // couche physique CONSOMME le dernier intent recu a chaque pas : ne rien soumettre
+                // laisserait courir celui du pas precedent.
+                SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
                 return;
             }
 
@@ -276,6 +321,7 @@ namespace RoadRage.Features.Vehicles
                     Debug.LogWarning("[Vehicles] " + name + " : aucun DriverProfileDef assigne, le vehicule IA reste inerte.", this);
                 }
 
+                SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
                 return;
             }
 
@@ -311,17 +357,25 @@ namespace RoadRage.Features.Vehicles
             if (profile.DesiredSpeed <= 0f)
             {
                 stuckElapsedSeconds = 0f;
-                currentSpeed = 0f;
                 appliedAcceleration = 0f;
-                ApplyMovement(VehicleDriveIntent.Idle, fixedDeltaTime, 0f);
+                SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
                 return;
             }
 
+            // LA VITESSE EST RELUE, PLUS JAMAIS ENTRETENUE (Story 5.14). Les deux termes viennent du
+            // MEME vecteur : la norme planaire est la vitesse que le modele de conduite utilise depuis
+            // toujours (`v` de l'IDM, portee de detection de leader, budget de virage), et la composante
+            // longitudinale signee est celle que la couche physique lit pour choisir entre freiner et
+            // reculer. Aucun des deux n'est conserve d'un pas a l'autre : c'est ce qui rend le vehicule
+            // poussable et la gravite effective.
+            var planarVelocity = Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up);
+            var currentSpeed = planarVelocity.magnitude;
+            var longitudinalSpeed = Vector3.Dot(planarVelocity, ResolvePlanarForward());
+
             // Detection hissee avant le test de blocage : le meme resultat sert a decider si l'arret
             // est voulu ET a nourrir l'IDM plus bas -- un seul rayon par frame, comme avant.
-            var hasLeader = TryDetectLeader(profile, out var leaderGap, out var leaderSpeed);
+            var hasLeader = TryDetectLeader(profile, currentSpeed, out var leaderGap, out var leaderSpeed);
 
-            var planarSpeed = Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up).magnitude;
             if (DriverModel.IsDeliberateStop(hasLeader, leaderGap, profile.MinimumGap))
             {
                 // Arret voulu derriere un leader : ce n'est pas un blocage. Sans cette remise a zero,
@@ -329,7 +383,7 @@ namespace RoadRage.Features.Vehicles
                 // ce que la contrainte d'epique interdit explicitement.
                 stuckElapsedSeconds = 0f;
             }
-            else if (IsStuck(planarSpeed, stuckSpeedThreshold))
+            else if (IsStuck(currentSpeed, stuckSpeedThreshold))
             {
                 stuckElapsedSeconds += fixedDeltaTime;
 
@@ -365,7 +419,7 @@ namespace RoadRage.Features.Vehicles
                 waypointPosition = laneGraph.GetNodePosition(waypointIndex);
             }
 
-            IntegrateLongitudinalSpeed(profile, fixedDeltaTime, hasLeader, leaderGap, leaderSpeed);
+            var pedal = ResolveLongitudinalPedal(profile, fixedDeltaTime, currentSpeed, longitudinalSpeed, hasLeader, leaderGap, leaderSpeed);
             TickLaneChangeEvaluation(profile, fixedDeltaTime);
 
             // Visee anticipee (Story 5.12) : le point vise glisse au-dela du noeud quand le vehicule
@@ -394,8 +448,11 @@ namespace RoadRage.Features.Vehicles
             previousAimPoint = aimPoint;
             hasAimPoint = true;
 
-            var intent = ComputeSeekIntent(transform.position, transform.forward, aimPoint, steerFullLockDegrees);
-            ApplyMovement(intent, fixedDeltaTime, currentSpeed);
+            // Composition du pas (Story 5.14) : la POURSUITE donne la direction, la decision
+            // LONGITUDINALE du modele donne les deux pedales. Le tout part sous forme d'INTENTION -- ce
+            // controleur ne convertit plus rien en vitesse ni en rotation.
+            var seekIntent = ComputeSeekIntent(transform.position, transform.forward, aimPoint, steerFullLockDegrees);
+            SubmitIntentToPhysicsLayer(new VehicleDriveIntent(pedal.Throttle, seekIntent.Steer, pedal.BrakeReverse, 0f));
         }
 
         /// <summary>
@@ -598,14 +655,20 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
-        /// Integration (Story 5.9) : le modele fournit une acceleration, le controleur maintient la
-        /// vitesse longitudinale de son instance. Ordre de composition impose par la spec --
-        /// disposition (deja appliquee par l'appelant) puis bruit de personnalite sur la seule
-        /// vitesse desiree, juste avant le calcul d'acceleration.
+        /// Decision longitudinale (Story 5.9, INCHANGEE) traduite en position de pedale (Story 5.14).
+        /// L'ordre de composition impose par la spec est conserve -- disposition (deja appliquee par
+        /// l'appelant) puis bruit de personnalite sur la seule vitesse desiree, juste avant le calcul
+        /// d'acceleration -- et les quatre appels du modele restent les memes.
+        ///
+        /// Ce qui change est la SORTIE : plus une vitesse entretenue ici, mais un intent. La vitesse est
+        /// un ARGUMENT, relu du <c>Rigidbody</c> par l'appelant : c'est elle qui rend le vehicule
+        /// poussable, puisque plus rien ne la reimpose au pas suivant.
         /// </summary>
-        private void IntegrateLongitudinalSpeed(
+        private VehicleDriveIntent ResolveLongitudinalPedal(
             DriverProfile profile,
             float fixedDeltaTime,
+            float speed,
+            float longitudinalSpeed,
             bool hasLeader,
             float detectedGap,
             float detectedLeaderSpeed)
@@ -617,12 +680,98 @@ namespace RoadRage.Features.Vehicles
             var leaderSpeed = hasLeader ? detectedLeaderSpeed : 0f;
 
             var targetAcceleration = DriverModel.ComputeAcceleration(
-                profile.WithDesiredSpeed(noisyDesiredSpeed), currentSpeed, leaderSpeed, gap);
+                profile.WithDesiredSpeed(noisyDesiredSpeed), speed, leaderSpeed, gap);
 
             appliedAcceleration = DriverModel.SmoothAcceleration(
                 appliedAcceleration, targetAcceleration, profile.ReactionTime, fixedDeltaTime);
 
-            currentSpeed = Mathf.Max(0f, currentSpeed + (appliedAcceleration * fixedDeltaTime));
+            return ResolvePedalIntent(appliedAcceleration, longitudinalSpeed);
+        }
+
+        /// <summary>
+        /// Traduction d'une acceleration DEMANDEE par le modele de conduite en position de pedale.
+        ///
+        /// Elle est necessaire parce que les deux grandeurs ne sont pas dans la meme unite : l'IDM
+        /// demande des m/s2, la couche physique attend une position de pedale dans [0, 1]. Sans
+        /// echelle, une pedale a 1 transformerait une demande de 1,5 m/s2 en 16,2 m/s2 reels : le
+        /// conducteur ne serait plus conduit, il serait multiplie par la capacite du moteur, et sa
+        /// vitesse desiree serait atteinte par une poussee que sa personnalite ne decrit pas. La pedale
+        /// est donc la FRACTION de la capacite disponible du vehicule -- capacite a plein gaz modulee
+        /// par le facteur de vitesse de la couche, braquet constant au frein.
+        ///
+        /// Frein : sous le seuil de changement de sens du profil, la couche physique ne lit plus le
+        /// meme axe -- l'entree de frein y devient une MARCHE ARRIERE
+        /// (<see cref="VehicleTireModel.ResolveWheelDriveTorque"/>). Le modele de conduite IA n'a
+        /// aucune decision de recul : sous ce seuil, la seule demande possible est de s'arreter, et
+        /// l'intent rendu est <see cref="VehicleDriveIntent.Idle"/> (frein moteur authore), jamais une
+        /// marche arriere inventee.
+        /// </summary>
+        private VehicleDriveIntent ResolvePedalIntent(float acceleration, float longitudinalSpeed)
+        {
+            EnsureDriveCapacity();
+
+            var vehicle = physicsBody != null && physicsBody.HasProfile ? physicsBody.Profile : default;
+
+            if (acceleration > 0f)
+            {
+                var available = driveAccelerationCapacity
+                    * VehicleTireModel.ResolveDriveTorqueFactor(longitudinalSpeed, vehicle.MaxForwardSpeed);
+                var throttle = available > 0f ? Mathf.Clamp01(acceleration / available) : 0f;
+
+                return new VehicleDriveIntent(throttle, 0f, 0f, 0f);
+            }
+
+            if (acceleration >= 0f)
+            {
+                return VehicleDriveIntent.Idle;
+            }
+
+            if (longitudinalSpeed <= vehicle.MinimumDirectionSpeed)
+            {
+                return VehicleDriveIntent.Idle;
+            }
+
+            var brake = brakeAccelerationCapacity > 0f
+                ? Mathf.Clamp01(-acceleration / brakeAccelerationCapacity)
+                : 0f;
+
+            return new VehicleDriveIntent(0f, 0f, brake, 0f);
+        }
+
+        /// <summary>
+        /// Derive une seule fois les deux echelles de pedale du vehicule, depuis le profil physique que
+        /// la couche lit deja. Appelee paresseusement : l'ordre d'execution des <c>Awake</c> entre ce
+        /// controleur et la couche n'est pas defini, donc l'echelle ne peut pas etre calculee a la
+        /// construction. Sans couche physique, ou sans profil applique, rien n'est mis en cache -- et la
+        /// conversion retombe alors sur un intent neutre, jamais sur un repli numerique invente.
+        /// </summary>
+        private void EnsureDriveCapacity()
+        {
+            if (hasDriveCapacity || physicsBody == null || !physicsBody.HasProfile)
+            {
+                return;
+            }
+
+            var vehicle = physicsBody.Profile;
+            var drivenWheels = 0;
+            var radiusSum = 0f;
+
+            for (var i = 0; i < vehicle.WheelCount; i++)
+            {
+                var wheel = vehicle.GetWheel(i);
+                radiusSum += wheel.Radius;
+                if (wheel.IsDriven)
+                {
+                    drivenWheels++;
+                }
+            }
+
+            var meanRadius = vehicle.WheelCount > 0 ? radiusSum / vehicle.WheelCount : 0f;
+            var massLoad = vehicle.Mass > 0f && meanRadius > 0f ? 1f / (vehicle.Mass * meanRadius) : 0f;
+
+            driveAccelerationCapacity = drivenWheels * Mathf.Max(0f, vehicle.EngineTorque) * massLoad;
+            brakeAccelerationCapacity = vehicle.WheelCount * Mathf.Max(0f, vehicle.BrakeTorque) * massLoad;
+            hasDriveCapacity = true;
         }
 
         /// <summary>
@@ -636,14 +785,7 @@ namespace RoadRage.Features.Vehicles
         /// </summary>
         private Vector3 ResolveScanDirection()
         {
-            var forward = transform.forward;
-            forward.y = 0f;
-            if (forward.sqrMagnitude <= 0.0001f)
-            {
-                forward = Vector3.forward;
-            }
-
-            forward.Normalize();
+            var forward = ResolvePlanarForward();
 
             if (laneGraph == null || laneGraph.NodeCount <= 0 || state == null)
             {
@@ -682,12 +824,29 @@ namespace RoadRage.Features.Vehicles
             scanRadius = Mathf.Max(0f, box.size.x * 0.5f * Mathf.Abs(scale.x) * ScanWidthFactor);
         }
 
-        private bool TryDetectLeader(DriverProfile profile, out float gap, out float leaderSpeed)
+        /// <summary>
+        /// Avant du vehicule projete sur le plan et normalise. Meme axe que celui que la couche physique
+        /// derive de <c>transform.forward</c> : c'est ce qui rend la vitesse longitudinale lue ici
+        /// comparable a celle qu'elle lit pour choisir entre freiner et reculer.
+        /// </summary>
+        private Vector3 ResolvePlanarForward()
+        {
+            var forward = transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude <= 0.0001f)
+            {
+                forward = Vector3.forward;
+            }
+
+            return forward.normalized;
+        }
+
+        private bool TryDetectLeader(DriverProfile profile, float speed, out float gap, out float leaderSpeed)
         {
             gap = DriverModel.NoLeaderGap;
             leaderSpeed = 0f;
 
-            var range = (profile.MinimumGap + (currentSpeed * profile.TimeHeadway)) * LeaderDetectionRangeFactor;
+            var range = (profile.MinimumGap + (speed * profile.TimeHeadway)) * LeaderDetectionRangeFactor;
             if (range <= 0f)
             {
                 return false;
@@ -831,9 +990,14 @@ namespace RoadRage.Features.Vehicles
 
         /// <summary>
         /// Predicat pur (Story 5.2, revise en 5.12) : intent de poursuite deterministe vers le POINT DE
-        /// VISEE -- plein gaz et direction bornee par steerFullLockDegrees. Le point vient de
+        /// VISEE -- direction bornee par steerFullLockDegrees. Le point vient de
         /// <see cref="LaneGraphRouting.ResolveLookAheadPoint"/> et non plus de la position du noeud :
         /// c'est ce qui remplace la poursuite point-a-point.
+        ///
+        /// Story 5.14 : de ce que cette fonction rend, seule la DIRECTION est consommee par le chemin de
+        /// conduite -- la pedale, elle, vient de la decision longitudinale du modele
+        /// (<see cref="DriverModel.ComputeAcceleration"/> lissee par le temps de reaction). Le throttle
+        /// pose ici reste un repli FINI, pas une consigne de puissance : il n'est plus lu.
         ///
         /// L'arrivee au noeud n'est plus testee ici : elle l'est par <see cref="HasArrivedAtWaypoint"/> a
         /// l'endroit ou la decision se prend, donc la fonction n'a plus a rendre un intent neutre qui
@@ -841,9 +1005,9 @@ namespace RoadRage.Features.Vehicles
         /// </summary>
         public static VehicleDriveIntent ComputeSeekIntent(Vector3 position, Vector3 forward, Vector3 aimPoint, float steerFullLockDegrees)
         {
-            // Derniere barriere avant l'ecriture de vitesse, et elle seule : un point de visee non fini
-            // produirait un intent non fini, donc un `linearVelocity` non fini, donc un vehicule qui
-            // disparait. Le repli est « tout droit, plein gaz » -- un cap faux mais FINI, et que le
+            // Derniere barriere avant la couche physique, et elle seule : un point de visee non fini
+            // produirait un intent non fini, donc une vitesse non finie dans la couche, donc un vehicule
+            // qui disparait. Le repli est « tout droit, plein gaz » -- un cap faux mais FINI, et que le
             // parcours rattrape au noeud suivant.
             if (!float.IsFinite(aimPoint.x) || !float.IsFinite(aimPoint.y) || !float.IsFinite(aimPoint.z)
                 || !float.IsFinite(position.x) || !float.IsFinite(position.y) || !float.IsFinite(position.z))
@@ -889,30 +1053,36 @@ namespace RoadRage.Features.Vehicles
             return planarSpeed <= stuckSpeedThreshold;
         }
 
-        private void ApplyMovement(VehicleDriveIntent intent, float fixedDeltaTime, float longitudinalSpeed)
+        /// <summary>
+        /// Chemin UNIQUE de l'intent IA vers la couche physique, sur le patron du vehicule joueur
+        /// (<c>NetworkedVehicleDriverController.SubmitIntentToPhysicsLayer</c>) : diagnostic d'absence
+        /// de profil applique, emis une seule fois, puis soumission.
+        ///
+        /// Les trois echelles viennent du profil PHYSIQUE, sans reduction de degats : l'IA n'a pas
+        /// d'etat de degats, et elle ne recoit pas ici l'autorite du joueur
+        /// (<c>NetworkedVehicleDriverController.ResolveDriveAuthority</c>, Story 3.5).
+        ///
+        /// Aucun second chemin : ce controleur n'ecrit ni vitesse, ni position, ni rotation de caisse.
+        /// La seule ecriture de vitesse qui lui reste est la remise a zero de
+        /// <see cref="RecoverAtWaypoint"/>, qui n'est pas de la conduite.
+        /// </summary>
+        private void SubmitIntentToPhysicsLayer(VehicleDriveIntent intent)
         {
-            // ETAT INTERMEDIAIRE, NOMME ET DATTE -- 2026-09-18, Story 5.12. Ce chemin ecrit encore la
-            // vitesse en bloc et impose le lacet par MoveRotation : c'est exactement ce que la Story
-            // 5.14 (AI drives by intent) supprime, en remplacant l'integration en boucle ouverte par
-            // une intention de conduite soumise a la couche physique -- la meme que celle du joueur.
-            //
-            // Tant que ce chemin existe, il faut conserver le read-modify-write de la composante
-            // verticale : l'ecraser annulerait la gravite, le vehicule leviterait et ne pourrait plus
-            // jamais franchir le seuil de vide, ce qui rendrait la recuperation hors-zone inatteignable.
-            var verticalVelocity = Vector3.up * body.linearVelocity.y;
-
-            if (intent.IsIdle)
+            if (physicsBody == null || !physicsBody.HasProfile)
             {
-                body.linearVelocity = verticalVelocity;
+                // Un prefab mal cable ne conduit nulle part : sans ce diagnostic, l'absence de
+                // mouvement n'aurait aucune trace, et le symptome se lirait comme un reglage.
+                if (!warnedMissingPhysicsProfile)
+                {
+                    warnedMissingPhysicsProfile = true;
+                    Debug.LogWarning("[Vehicles] " + name + " : aucun profil physique applique, la conduite IA est ignoree.", this);
+                }
+
                 return;
             }
 
-            var yawDegrees = intent.Steer * steerDegreesPerSecond * fixedDeltaTime;
-            var rotation = Quaternion.AngleAxis(yawDegrees, Vector3.up) * body.rotation;
-            body.MoveRotation(rotation);
-
-            var forward = rotation * Vector3.forward;
-            body.linearVelocity = (forward * longitudinalSpeed * intent.Throttle) + verticalVelocity;
+            var vehicle = physicsBody.Profile;
+            physicsBody.ApplyDriveIntent(intent, vehicle.MaxForwardSpeed, vehicle.SteerRateDegreesPerSecond, vehicle.BrakeTorque);
         }
 
         /// <summary>
@@ -931,7 +1101,6 @@ namespace RoadRage.Features.Vehicles
             transform.SetPositionAndRotation(waypointPosition, rotation);
             rolloverElapsedSeconds = 0f;
             stuckElapsedSeconds = 0f;
-            currentSpeed = 0f;
             appliedAcceleration = 0f;
 
             // Deplacement discontinu : meme purge que cote joueur, sinon le pic d'amortisseur de la
@@ -981,6 +1150,13 @@ namespace RoadRage.Features.Vehicles
             if (networkTransform == null)
             {
                 networkTransform = GetComponent<NetworkTransform>();
+            }
+
+            // La couche physique unique (AD-35), la meme que celle du vehicule joueur. Absente du
+            // prefab, le diagnostic de SubmitIntentToPhysicsLayer parle et le vehicule reste inerte.
+            if (physicsBody == null)
+            {
+                physicsBody = GetComponent<VehiclePhysicsBody>();
             }
 
             // Sa propre rage uniquement : GetComponent sur ce GameObject, jamais une recherche de

@@ -42,6 +42,18 @@ Objectif : `bmad-build <story>` doit appliquer le routing sans qu'on le rappelle
 - [x] **Pilote Microsoft.Unity.Analyzers** (ADDON-019) — baseline complete : `docs/setup/audit-microsoft-unity-analyzers-baseline.md`. DLL recuperee localement (VS Tools for Unity deja installe), copiee dans `Assets/Editor/Analyzers/`, chargee via le label `RoslynAnalyzer` (jamais via `.csproj`, AD-14 confirme : le `.csproj` genere ne reference meme pas la copie projet et pourtant l'analyzer tourne). Catalogue reel lu par reflexion sur le DLL : 43 regles, 3 en `Warning` par defaut, 40 en `Info` (invisibles en Console quel que soit `--level`, comportement Unity/Roslyn standard). Pipeline verifie actif via une sonde jetable (`UNT0033` confirme puis fichier supprime). `.editorconfig` cree : 5 regles en `warning` (3 par defaut + `UNT0007` null-coalescing sur `UnityEngine.Object`, `UNT0004` `Time.fixedDeltaTime` dans `Update`), 38 en `silent`. **Decision : `Adopt`** — 0/10 warnings, 0 faux positif sur le code reel (sous le seuil de rollback) ; valeur preventive plutot que corrective.
 - [x] **Cloture** : ADDON-018 (`Adopt`, opt-in via `-Audit`) et ADDON-019 (`Adopt`, `.editorconfig` + analyzer actifs) mis a jour avec leur decision finale dans le registre.
 
+## P2 — harnais PlayMode (prerequis DUR, non traite)
+
+Declare par l'epic 5 (« tracked as tooling in `docs/setup/devworkflow-rollout.md` ») et cite par
+`sprint-status.yaml`, mais **absent de ce fichier jusqu'au 2026-09-19** : le suivi etait declare et
+n'existait pas. Ligne creee par la Story 5.14, qui en depend directement -- le domaine de la story
+touche un des fixtures rouges (`Story57AiTrafficClientPresentationPlayModeTests`).
+
+- [ ] **Rendre la suite PlayMode executable par l'agent, et filtrable.** Mesure du 2026-09-18 : `RoadRage.Tests.PlayMode` est rouge (**3/33**) et `-TestFilter` n'y matche ni par classe, ni par nom complet de methode, ni par assemblage -- quatre tentatives renvoient « aucun test execute » alors que la meme forme matche en EditMode. `unity cmd run_tests --mode PlayMode` en synchrone **ne peut pas** fonctionner (le passage en Play Mode declenche un domain reload qui abandonne la requete) et `--async_tests true` + `test_status` a rendu une fois **0 test**. Les trois echecs partagent la signature de la pollution entre fixtures, coherente avec la sensibilite a l'ordre deja documentee (fixtures partageant le process et le `RoadRageBootstrap` en `DontDestroyOnLoad`).
+  - Consequence : **aucune story classee PlayMode ne peut etre prouvee par la porte automatisee**, et 11 bancs PlayMode sont deja en attente (2 pour la 5.11, 2 pour la 5.12, 5 pour la 5.13, plus les deux `[UnityTest]` ecartes de la 5.14 avec le perimetre reaction-au-choc). Depuis la Story 5.14, la recette humaine est la **seule** mesure de plusieurs criteres d'acceptation.
+  - Surfaces a regarder en premier, dans cet ordre : (1) isolation des fixtures -- le `RoadRageBootstrap` en `DontDestroyOnLoad` est le suspect nomme, et une fixture qui charge `MVP_Run` pollue les suivantes ; (2) support du filtrage PlayMode, cote `unity cmd run_tests` ou cote NUnit ; (3) chemin asynchrone (`--async_tests` + `test_status`), qui rend aujourd'hui 0 test.
+  - Aucun contournement accepte : `scripts/validate.ps1` echoue ferme sur « aucun test execute » (AD-8), et une absence de resultat ne doit **jamais** etre lue comme un succes.
+
 ## Reste hors stack (pour memoire, voir ADDON-020 a 025)
 
 Serena, RTK — reportes avec declencheur comportemental, pas de seuil arbitraire.

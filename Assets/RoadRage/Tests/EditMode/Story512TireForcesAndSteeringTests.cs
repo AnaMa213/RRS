@@ -503,24 +503,26 @@ namespace RoadRage.Tests.EditMode
             Assert.That(steering, Does.Not.Contain("Rigidbody"));
         }
 
-        [Test]
-        public void TheTransientStateIsNamedAndTheStoryThatLiftsItIsNotThisOne()
-        {
-            // Le source BRUT ici : ce que cette garde cherche est justement un commentaire -- l'etat
-            // intermediaire est documente, pas silencieux.
-            var ai = File.ReadAllText(AiControllerSourcePath);
-            var aiCode = CodeWithoutComments(ai);
+        // ------------------------------------------- Passation a la Story 5.14
 
-            Assert.That(ai, Does.Contain("5.14"),
-                "L'IA ecrit encore sa vitesse et impose son lacet : c'est l'etat intermediaire nomme, et la 5.14 le leve.");
-            Assert.That(aiCode, Does.Contain("body.linearVelocity = "),
-                "Tant que la 5.14 n'est pas livree, l'ecriture de l'IA existe : la nier ici rendrait le changement invisible.");
-            Assert.That(aiCode, Does.Contain("body.MoveRotation("),
-                "Le lacet de l'IA reste impose : la 5.12 ne fait bouger que sa visee.");
-
-            var body = File.ReadAllText(PhysicsBodySourcePath);
-            Assert.That(body, Does.Contain("5.14"), "La couche physique date et nomme l'etat intermediaire qu'elle porte.");
-        }
+        // La garde `TheTransientStateIsNamedAndTheStoryThatLiftsItIsNotThisOne` a vecu ici du
+        // 2026-09-18 au 2026-09-19, et elle a fait exactement son travail : elle exigeait que le
+        // controleur IA ecrive encore sa vitesse en bloc et impose son lacet, en documentant que c'est
+        // l'etat intermediaire NOMME et que la Story 5.14 le leverait. La Story 5.14 l'a leve --
+        // `ApplyMovement` est supprime, l'IA soumet un `VehicleDriveIntent` a la couche physique et
+        // relit sa vitesse sur le `Rigidbody` -- donc la garde est devenue rouge le jour ou elle
+        // devait le devenir, et son objet a disparu avec l'ecriture qu'elle protegeait.
+        //
+        // Elle est RETIREE, et non rearmee sur l'autre versant (decision humaine du 2026-09-19) :
+        // l'invariant qu'elle portait -- aucune ecriture de vitesse, de position ni de rotation depuis
+        // un chemin de conduite -- est desormais tenu par
+        // `RoadRage.Tests.EditMode.Story514AiDrivesByIntentTests`, qui l'assere sur le PAS DE CONDUITE
+        // de `FixedUpdate` au lieu du fichier entier. Deux copies de la meme assertion dans deux
+        // fixtures de stories differentes divergeraient au premier changement.
+        //
+        // La lecon de cette garde est gardee ici parce qu'elle est reutilisable : rendre un etat
+        // intermediaire VISIBLE et DATE est ce qui a permis de savoir, sans lire le code, que la 5.14
+        // n'avait pas ete livree pendant trois stories, puis qu'elle l'etait.
 
         [Test]
         public void ThePhysicsBodySimulatesNothingWithoutAValidProfileAndFourWheelsWithOne()

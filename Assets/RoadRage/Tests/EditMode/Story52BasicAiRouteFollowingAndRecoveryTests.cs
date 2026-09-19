@@ -18,6 +18,14 @@ namespace RoadRage.Tests.EditMode
     /// decision se prend, <c>HasArrivedAtWaypoint</c>) et la fonction ne rend plus d'intent neutre qui
     /// signifiait "je suis arrive". Les tests de visee sont adaptes en consequence ; ceux du point
     /// anticipe lui-meme vivent dans la fixture 5.12, avec la fonction pure qui le calcule.
+    ///
+    /// Story 5.14 : la garde du <c>+ verticalVelocity</c> a ete RETIREE, et non deplacee. Elle
+    /// protegeait exactement le read-modify-write de la composante verticale du chemin d'ecriture du
+    /// controleur IA ; ce chemin a disparu (le controleur soumet un intent a la couche physique), donc
+    /// la garde n'avait plus d'objet a proteger. L'absence d'ecriture de mouvement est desormais tenue
+    /// par <c>Story514AiDrivesByIntentTests</c>. Aucune autre assertion n'a bouge : les deux autres
+    /// gardes de source de cette fixture restent vraies sans modification (Story 5.14 n'ajoute aucune
+    /// methode statique et ne touche pas <c>RecoverAtWaypoint</c> au-dela de ce qu'il faisait deja).
     /// </summary>
     public sealed class Story52BasicAiRouteFollowingAndRecoveryTests
     {
@@ -37,8 +45,9 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void ComputeSeekIntentSteersTowardAnOffCenterAimPointConsistentlyWithYawConvention()
         {
-            // Point de visee a droite de l'avant (Vector3.forward) : Steer positif = droite (meme convention que VehicleDriveIntent
-            // et que la rotation appliquee par ApplyMovement, Quaternion.AngleAxis(yaw, Vector3.up) avec yaw = Steer * ...).
+            // Point de visee a droite de l'avant (Vector3.forward) : Steer positif = droite. C'est la convention de
+            // VehicleDriveIntent, et depuis la Story 5.14 elle atteint les roues par l'ANGLE DE BRAQUAGE de la couche
+            // physique -- il n'y a plus de lacet impose a la caisse (ApplyMovement) dont il faudrait reproduire la loi.
             var intent = NetworkedAIVehicleDriverController.ComputeSeekIntent(
                 Vector3.zero, Vector3.forward, new Vector3(10f, 0f, 0f), steerFullLockDegrees: 45f);
 
@@ -119,9 +128,12 @@ namespace RoadRage.Tests.EditMode
                 "Hors-zone : reutilise le predicat existant plutot qu'une nouvelle geometrie de bornes (spec Design Notes).");
             Assert.That(source, Does.Contain("NetworkedVehicleDriverController.IsRolledOver("),
                 "Capote : reutilise le predicat existant de la Story 3.4.");
-            Assert.That(source, Does.Contain("+ verticalVelocity"),
-                "La conduite IA ne pilote que le plan horizontal : ecraser la composante verticale annulerait "
-                + "la gravite, le vehicule leviterait et le seuil de vide ne pourrait plus jamais etre franchi.");
+
+            // Story 5.14 : la garde qui exigeait ici `Does.Contain("+ verticalVelocity")` est RETIREE,
+            // et non deplacee. Elle protegeait le read-modify-write de la composante verticale -- donc
+            // exactement l'ecriture que la 5.14 supprime. La conserver aurait interdit la correction du
+            // decollage sur le relief, et l'absence d'ecriture de mouvement est desormais tenue par
+            // Story514AiDrivesByIntentTests (garde de source, commentaires retires).
         }
 
         [Test]

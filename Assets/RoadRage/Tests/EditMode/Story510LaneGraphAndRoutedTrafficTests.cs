@@ -1361,10 +1361,12 @@ namespace RoadRage.Tests.EditMode
         /// cible l'est aussi : le rejeu porte la memoire de cible de l'appelant, exactement comme le
         /// controleur, et appelle la fonction pure avec la nouvelle signature.
         ///
-        /// Reste recopie, volontairement : l'integration du lacet et du deplacement. Elle appartient a
-        /// <c>NetworkedAIVehicleDriverController.ApplyMovement</c>, qui ecrit la vitesse en bloc et
-        /// impose le lacet -- l'etat intermediaire que la Story 5.14 leve. Le jour ou il tombe, ces
-        /// deux lignes tombent avec lui.
+        /// Reste recopie, volontairement : l'integration du lacet et du deplacement. Depuis la Story
+        /// 5.14, <c>NetworkedAIVehicleDriverController.ApplyMovement</c> n'existe plus : le controleur
+        /// soumet un `VehicleDriveIntent` a la couche physique et ne produit plus lui-meme ni lacet ni
+        /// deplacement. Ce que ce rejeu recopie n'est donc plus la loi d'une methode vivante, mais une
+        /// cinematique TYPIQUE : il reste valide comme instrument de trajectoire, et il ne depend plus
+        /// de l'existence d'aucun code de conduite.
         /// </summary>
         private static bool ReplayReachesExit(LaneGraph graph, int entry, float lateral, float headingOffset, int bumpStep)
         {
