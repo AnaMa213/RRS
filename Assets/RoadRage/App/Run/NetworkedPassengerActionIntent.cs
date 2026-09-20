@@ -14,7 +14,8 @@ using UnityEngine;
 namespace RoadRage.App.Run
 {
     [DisallowMultipleComponent]
-    [RequireComponent(typeof(NetworkObject))]
+    // Also used by the offline local actor. Only the authored network player root owns
+    // a NetworkObject; adding an offline action handler must not manufacture one.
     public sealed class NetworkedPassengerActionIntent : NetworkBehaviour
     {
         [SerializeField]

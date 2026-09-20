@@ -263,9 +263,10 @@ namespace RoadRage.Tests.EditMode
                 var intent = InvokePrivate<VehicleDriveIntent>(controller, "ResolvePedalIntent", 1.5f, 3f);
 
                 Assert.That(intent.Throttle, Is.GreaterThan(0f), "Une demande positive donne un accelerateur engage.");
-                Assert.That(intent.Throttle, Is.EqualTo(1.5f / capacity).Within(0.001f),
-                    "La pedale vaut la FRACTION de la capacite : la demande de 1,5 m/s2 doit se realiser en 1,5 m/s2, pas en "
-                    + capacity.ToString("F1") + " m/s2.");
+                var damping = controller.GetComponent<Rigidbody>().linearDamping;
+                var netAcceleration = intent.Throttle * capacity * (1f - damping * Time.fixedDeltaTime) - damping * 3f;
+                Assert.That(netAcceleration, Is.EqualTo(1.5f).Within(0.01f),
+                    "La conversion doit conserver la demande NETTE apres l'amortissement du prefab.");
                 Assert.That(intent.Throttle, Is.LessThan(0.25f),
                     "Donc tres loin du plein gaz -- c'est tout l'objet de cette echelle.");
                 Assert.That(intent.BrakeReverse, Is.EqualTo(0f), "Accelerer et freiner ne se demandent pas ensemble.");
@@ -287,7 +288,10 @@ namespace RoadRage.Tests.EditMode
 
                 Assert.That(intent.Throttle, Is.EqualTo(0f), "Freiner ne demande pas d'accelerateur.");
                 Assert.That(intent.BrakeReverse, Is.GreaterThan(0f), "Au-dessus du seuil de changement de sens, la demande de ralentissement freine.");
-                Assert.That(intent.BrakeReverse, Is.EqualTo(2f / capacity).Within(0.001f), "Et elle vaut la fraction de la capacite de freinage.");
+                var damping = controller.GetComponent<Rigidbody>().linearDamping;
+                var netAcceleration = -intent.BrakeReverse * capacity * (1f - damping * Time.fixedDeltaTime)
+                    - damping * vehicle.MinimumDirectionSpeed * 4f;
+                Assert.That(netAcceleration, Is.EqualTo(-2f).Within(0.01f));
                 Assert.That(intent.BrakeReverse, Is.LessThan(0.25f), "Donc tres loin du freinage d'urgence.");
                 return true;
             });
@@ -389,7 +393,7 @@ namespace RoadRage.Tests.EditMode
 
                 // Le controleur met sa couche en cache dans Awake, qui ne tourne pas sur une instance
                 // d'asset : ce cablage nominal est repose explicitement, comme le fait OnNetworkSpawn.
-                SetPrivateField(controller, "physicsBody", physics);
+                InvokePrivate<object>(controller, "CacheComponents");
 
                 return inspect(controller, physics);
             }

@@ -345,6 +345,43 @@ namespace RoadRage.Features.Vehicles
                 grip);
         }
 
+        /// <summary>
+        /// Integrates wheel/contact exchange on substeps sized from tire stiffness. The returned
+        /// mean force is applied by the shared body; no chassis velocity is assigned here.
+        /// </summary>
+        public static Vector2 IntegrateDrivenContact(
+            ref float angularVelocity, float driveTorque, float brakeTorque,
+            float groundSpeed, float lateralSpeed, float normalLoad, float radius,
+            float inertia, float supportedMass, float peakSlip, float peakAngle,
+            float falloff, float adherence, float deltaTime)
+        {
+            if (deltaTime <= 0f || inertia <= 0f || supportedMass <= 0f || peakSlip <= 0f)
+            {
+                return Vector2.zero;
+            }
+
+            var stiffness = adherence * normalLoad / (peakSlip * Mathf.Max(Mathf.Abs(groundSpeed), SlipReferenceSpeed));
+            var response = radius * radius / inertia + 1f / supportedMass;
+            // ponytail: capped at 512 substeps; revisit the solver for substantially stiffer profiles.
+            var steps = Mathf.Clamp(Mathf.CeilToInt(deltaTime * stiffness * response * 2f), 1, 512);
+            var step = deltaTime / steps;
+            var impulse = Vector2.zero;
+            for (var i = 0; i < steps; i++)
+            {
+                var slip = ResolveSlipRatio(angularVelocity * radius, groundSpeed);
+                var angle = ResolveSlipAngleDegrees(groundSpeed, lateralSpeed);
+                var force = ResolveTireForces(slip, peakSlip, angle, peakAngle, falloff, adherence, normalLoad);
+                force.y *= ResolveLowSpeedRamp(Mathf.Sqrt(groundSpeed * groundSpeed + lateralSpeed * lateralSpeed));
+                angularVelocity = IntegrateWheelAngularVelocity(
+                    angularVelocity, driveTorque, brakeTorque, force.x, radius, inertia, step);
+                groundSpeed += force.x / supportedMass * step;
+                lateralSpeed += force.y / supportedMass * step;
+                impulse += force * step;
+            }
+
+            return impulse / deltaTime;
+        }
+
         /// <summary>Lecture de pneu publiee en lecture seule par <see cref="VehiclePhysicsBody"/>.</summary>
         public readonly struct TireSample
         {

@@ -100,8 +100,9 @@ namespace RoadRage.Tests.EditMode
             var action = NewAction();
             var catalog = NewCatalog(action);
             var actor = NewObject("Actor");
-            actor.AddComponent<NetworkObject>();
             var component = actor.AddComponent<NetworkedPassengerActionIntent>();
+            Assert.That(actor.GetComponent<NetworkObject>(), Is.Null,
+                "Un acteur local hors reseau ne doit pas devenir un objet reseau dynamique.");
             var targetObject = NewObject("Target");
             targetObject.AddComponent<NetworkObject>();
             targetObject.AddComponent<NetworkedAIVehicleState>();
@@ -126,6 +127,7 @@ namespace RoadRage.Tests.EditMode
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
             Assert.That(prefab, Is.Not.Null);
             Assert.That(prefab.GetComponent<NetworkedPassengerActionIntent>(), Is.Not.Null);
+            Assert.That(prefab.GetComponent<NetworkObject>(), Is.Not.Null);
         }
 
         private PassengerActionDef NewAction()

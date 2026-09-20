@@ -287,6 +287,21 @@ namespace RoadRage.Features.Vehicles
             }
         }
 
+        private void OnDisable()
+        {
+            appliedAcceleration = 0f;
+            if (physicsBody != null && physicsBody.HasProfile)
+            {
+                SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
+            }
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            OnDisable();
+            base.OnNetworkDespawn();
+        }
+
         private void FixedUpdate()
         {
             if (!IsServer || body == null || state == null)
@@ -711,6 +726,14 @@ namespace RoadRage.Features.Vehicles
             EnsureDriveCapacity();
 
             var vehicle = physicsBody != null && physicsBody.HasProfile ? physicsBody.Profile : default;
+
+            // DriverModel requests net acceleration. PhysX damping acts after tire forces,
+            // so include that resistance when converting the request to wheel torque.
+            if (body != null && longitudinalSpeed > 0f)
+            {
+                var retained = Mathf.Max(0.01f, 1f - body.linearDamping * Time.fixedDeltaTime);
+                acceleration = (acceleration + body.linearDamping * longitudinalSpeed) / retained;
+            }
 
             if (acceleration > 0f)
             {

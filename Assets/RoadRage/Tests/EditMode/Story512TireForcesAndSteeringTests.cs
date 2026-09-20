@@ -40,6 +40,42 @@ namespace RoadRage.Tests.EditMode
 
         private const float Epsilon = 0.0001f;
 
+        [Test]
+        public void DrivenContactDepartsFromExactRestAndIsStableAcrossPhysicsSteps()
+        {
+            var speeds = new List<float>();
+            foreach (var dt in new[] { 0.02f, 0.01f, 0.005f })
+            {
+                var spin = 0f;
+                var speed = 0f;
+                for (var i = 0; i < Mathf.RoundToInt(5f / dt); i++)
+                {
+                    var force = VehicleTireModel.IntegrateDrivenContact(
+                        ref spin, 148.5f, 0f, speed, 0f, StaticLoad, 0.33f,
+                        3f, 300f, 0.14f, 8f, 0.8f, 3f, dt);
+                    Assert.That(force.x, Is.GreaterThanOrEqualTo(-0.01f), "Steady throttle must not alternate propulsion and braking.");
+                    Assert.That(force.magnitude, Is.LessThanOrEqualTo(StaticLoad * 3f + 0.01f));
+                    speed += force.x / 300f * dt;
+                }
+
+                Assert.That(speed, Is.InRange(6f, 7.5f), "Modest torque must launch from zero without external motion.");
+                speeds.Add(speed);
+            }
+
+            Assert.That(speeds[0], Is.EqualTo(speeds[2]).Within(0.15f));
+        }
+
+        [Test]
+        public void UnpoweredContactRemainsAtExactRest()
+        {
+            var spin = 0f;
+            var force = VehicleTireModel.IntegrateDrivenContact(
+                ref spin, 0f, 260f, 0f, 0f, StaticLoad, 0.33f,
+                3f, 300f, 0.14f, 8f, 0.8f, 3f, 0.02f);
+            Assert.That(force, Is.EqualTo(Vector2.zero));
+            Assert.That(spin, Is.Zero);
+        }
+
         // ------------------------------------------------------------------ le pneu
 
         [Test]

@@ -136,6 +136,21 @@ namespace RoadRage.Features.Vehicles
             }
         }
 
+        private void OnDisable()
+        {
+            latestIntent = VehicleDriveIntent.Idle;
+            if (physicsBody != null && physicsBody.HasProfile)
+            {
+                SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
+            }
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            OnDisable();
+            base.OnNetworkDespawn();
+        }
+
         private void Update()
         {
             if (!IsSpawned || state == null)

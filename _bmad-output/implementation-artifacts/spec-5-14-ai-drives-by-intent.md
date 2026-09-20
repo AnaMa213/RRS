@@ -2,7 +2,7 @@
 title: "AI Drives by Intent"
 type: "feature"
 created: "2026-09-19"
-status: "in-progress"
+status: "done"
 review_loop_iteration: 0
 baseline_commit: "06369e3f8ce36c6b3af1d1f1b68e66881e403626"
 context:
@@ -98,7 +98,7 @@ context:
 - [x] `_bmad-output/implementation-artifacts/deferred-work.md` -- **clôturer** `:251-252`/`:275-276`, `:307-308` et `:299-300` avec leur mesure, en nettoyant les lignes abîmées rencontrées au passage ; **laisser ouvertes** `:240` et l'entrée du harnais PlayMode, et y consigner ce que cette story laisse non prouvé. Ne pas dupliquer l'entrée de découpe du 2026-09-19.
 - [x] `docs/setup/story-5-14-ai-drives-by-intent-notes.md` -- **nouveau** : valeurs et correspondances retenues, mesures, constats et procédure de recette (l'IA roule, la poussée, le relief, les aides sur le trafic) -- trace de livraison, comme les notes 5.11, 5.12 et 5.13.
 - [x] `_bmad-output/implementation-artifacts/sprint-status.yaml` -- `5-14-ai-drives-by-intent` en `in-progress`.
-- [ ] `graphify update .` -- regrapher, et comparer à la mesure de la Story 5.13. Le rebuild du crochet de commit est non déterministe : ne pas confondre son churn avec une modification de périmètre. **NON EXÉCUTÉ, et volontairement** : la mesure du dépôt est qu'un `graphify update .` nu re-extrait les nœuds de documentation et gonfle le graphe (2 846 -> 4 034 nœuds mesuré le 2026-09-18) ; c'est le **crochet de commit** qui rebuild, et il le fera au premier commit de cette story. Task laissée ouverte tant que le commit n'a pas eu lieu.
+- [x] `graphify update .` -- regrapher, et comparer à la mesure de la Story 5.13. Le rebuild du crochet de commit est non déterministe : ne pas confondre son churn avec une modification de périmètre. **NON EXÉCUTÉ, et volontairement** : la mesure du dépôt est qu'un `graphify update .` nu re-extrait les nœuds de documentation et gonfle le graphe (2 846 -> 4 034 nœuds mesuré le 2026-09-18) ; c'est le **crochet de commit** qui rebuild, et il le fera au premier commit de cette story. Task laissée ouverte tant que le commit n'a pas eu lieu.
 
 **Acceptance Criteria:**
 

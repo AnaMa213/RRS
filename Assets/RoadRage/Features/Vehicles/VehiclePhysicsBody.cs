@@ -481,27 +481,16 @@ namespace RoadRage.Features.Vehicles
                     slipRatio = VehicleTireModel.ResolveSlipRatio(wheelAngularVelocity[i] * wheel.Radius, contactLongitudinal);
                     slipAngleDegrees = VehicleTireModel.ResolveSlipAngleDegrees(contactLongitudinal, contactLateral);
 
-                    // Un pneu n'a qu'UN budget d'adherence, et les deux glissements le partagent : c'est
-                    // la fonction pure qui le repartit (chaque glissement normalise par son propre pic,
-                    // une seule magnitude, une seule direction). Le sens des deux axes vient donc du
-                    // signe des glissements mesures, et rien n'est re-corrige ici : le longitudinal est
-                    // positif quand la bande de roulement avance plus vite que le sol (roue motrice),
-                    // et l'angle de glissement porte deja l'opposition au glissement lateral.
-                    var tireForces = VehicleTireModel.ResolveTireForces(
-                        slipRatio,
-                        current.TirePeakSlipRatio,
-                        slipAngleDegrees,
-                        current.TirePeakSlipAngleDegrees,
-                        current.TireSlipFalloffFraction,
-                        adherence,
-                        normalLoad);
-
-                    // Attenuation basse vitesse (equivalente a la rampe de 0,5 m/s de la Story 5.11) :
-                    // sans elle, la force laterale pleine a l'arret ferait brouter un vehicule gare au
-                    // lieu de l'immobiliser.
-                    var ramp = VehicleTireModel.ResolveLowSpeedRamp(Mathf.Sqrt((contactLongitudinal * contactLongitudinal) + (contactLateral * contactLateral)));
-                    appliedLongitudinal = tireForces.x * ramp;
-                    appliedLateral = tireForces.y * ramp;
+                    // Resolve wheel spin and contact together. Only lateral friction fades at rest:
+                    // driven wheels must transmit traction before the chassis starts moving.
+                    var tireForces = VehicleTireModel.IntegrateDrivenContact(
+                        ref wheelAngularVelocity[i], wheelDriveTorque, wheelBrakeTorque,
+                        contactLongitudinal, contactLateral, normalLoad, wheel.Radius,
+                        current.WheelInertia, current.Mass / current.WheelCount,
+                        current.TirePeakSlipRatio, current.TirePeakSlipAngleDegrees,
+                        current.TireSlipFalloffFraction, adherence, fixedDeltaTime);
+                    appliedLongitudinal = tireForces.x;
+                    appliedLateral = tireForces.y;
 
                     var tireForce = (wheelForward * appliedLongitudinal) + (wheelRight * appliedLateral);
                     if (tireForce.sqrMagnitude > 0f)
@@ -513,14 +502,17 @@ namespace RoadRage.Features.Vehicles
                 // Rotation de la roue : couple moteur, reaction du pneu et frein. Elle est integree meme
                 // en l'air -- une roue motrice qui ne touche pas continue de tourner, et c'est
                 // exactement ce que le glissement de l'atterrissage doit retrouver.
-                wheelAngularVelocity[i] = VehicleTireModel.IntegrateWheelAngularVelocity(
-                    wheelAngularVelocity[i],
-                    wheelDriveTorque,
-                    wheelBrakeTorque,
-                    appliedLongitudinal,
-                    wheel.Radius,
-                    current.WheelInertia,
-                    fixedDeltaTime);
+                if (normalLoad <= 0f)
+                {
+                    wheelAngularVelocity[i] = VehicleTireModel.IntegrateWheelAngularVelocity(
+                        wheelAngularVelocity[i],
+                        wheelDriveTorque,
+                        wheelBrakeTorque,
+                        appliedLongitudinal,
+                        wheel.Radius,
+                        current.WheelInertia,
+                        fixedDeltaTime);
+                }
 
                 tireSamples[i] = VehicleTireModel.SampleTire(
                     grounded,

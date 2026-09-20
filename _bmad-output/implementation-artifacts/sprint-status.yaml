@@ -126,10 +126,10 @@ development_status:
   5-8-escape-menu-and-return-to-main-menu: review
   5-9-parameterized-driver-model: review
   5-10-lane-graph-greybox-district-and-routed-traffic: review
-  5-11-vehicle-chassis-wheels-and-suspension: review
-  5-12-tire-forces-and-steering: review
-  5-13-arcade-assists-and-uneven-ground: review
-  5-14-ai-drives-by-intent: in-progress
+  5-11-vehicle-chassis-wheels-and-suspension: done
+  5-12-tire-forces-and-steering: done
+  5-13-arcade-assists-and-uneven-ground: done
+  5-14-ai-drives-by-intent: done
   5-15-credible-collisions-and-damage-integration: backlog
   5-16-lobby-configurable-traffic-settings: backlog
   5-17-wider-perception-and-progressive-unblocking: backlog
