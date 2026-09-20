@@ -1,0 +1,4408 @@
+﻿### BUNDLE DE REVUE -- Story 5.16 (Lobby-Configurable Traffic Settings)
+### Reference : git diff 9078d7accc49f0c0d5433936ddb1c40c0019a571 (baseline_commit du spec), arbre de travail du 2026-09-20.
+### Genere apres les correctifs de revue ET apres les corrections de tests hors perimetre.
+### Les artefacts regeneres graphify-out/ sont exclus ; les autres fichiers non suivis sont inclus en entier.
+### Spec : _bmad-output/implementation-artifacts/spec-5-16-lobby-configurable-traffic-settings.md
+### Etat de verification honnete : voir la section '## Verification' du spec et deferred-work.md.
+
+### DIFF SUIVI (hors graphify-out/) depuis 9078d7accc49f0c0d5433936ddb1c40c0019a571
+diff --git a/Assets/RoadRage/App/Lobby/LobbyFlowController.cs b/Assets/RoadRage/App/Lobby/LobbyFlowController.cs
+index 06aeed3..d2a5591 100644
+--- a/Assets/RoadRage/App/Lobby/LobbyFlowController.cs
++++ b/Assets/RoadRage/App/Lobby/LobbyFlowController.cs
+@@ -5,6 +5,7 @@
+ using RoadRage.Features.Online;
+ using RoadRage.Features.Players;
+ using RoadRage.Features.UI;
++using RoadRage.Features.Vehicles;
+ using RoadRage.Shared.Definitions;
+ using RoadRage.Shared.Domain;
+ using RoadRage.Shared.Presentation;
+@@ -73,6 +74,13 @@ public sealed class LobbyFlowController : MonoBehaviour
+ 
+         public const string StartRefusedWaitingForHostMessage = "Start Game en attente : seul l'hote peut lancer la session reseau.";
+ 
++        /// <summary>
++        /// Story 5.16 : seul refus reellement atteignable des reglages de trafic. Les bornes sont des
++        /// butees structurelles (le bouton de pas est inactif), mais baisser l'effectif sous le nombre
++        /// de jeteurs demande bien un arbitrage : le nombre de jeteurs ne depasse jamais le total.
++        /// </summary>
++        public const string TrafficLitterersExceedVehiclesMessage = "Reglage refuse : le nombre de jeteurs de detritus ne peut pas depasser le nombre de vehicules.";
++
+         public const string NetworkStartFailedMessage = "Start Game refuse : impossible de demarrer la session reseau (Steamworks Networking Sockets).";
+ 
+         public const string ApprovalRejectedInvalidPayloadReason = "Connexion refusee : payload de profil invalide.";
+@@ -90,6 +98,10 @@ public sealed class LobbyFlowController : MonoBehaviour
+         [SerializeField]
+         private CharacterCatalog catalog;
+ 
++        [SerializeField]
++        [Tooltip("Def auteur des bornes et defauts de trafic (Story 5.16). Non assigne : les reglages de trafic restent non editables et aucun repli code n'est invente.")]
++        private TrafficSettingsDef trafficSettings;
++
+         [SerializeField]
+         private NetworkPrefabsList defaultNetworkPrefabs;
+ 
+@@ -113,6 +125,7 @@ private void Awake()
+         {
+             bootstrap = RoadRageBootstrap.EnsureInstance();
+             Settings = new MatchSettings();
++            SeedTrafficSettingsFromDef();
+ 
+             if (bootstrap != null && bootstrap.OnlineServices != null)
+             {
+@@ -173,6 +186,8 @@ private void Awake()
+             {
+                 lobbyRosterScreen.ReadyToggleRequested += HandleReadyToggleRequested;
+                 lobbyRosterScreen.DifficultyChanged += HandleDifficultyChanged;
++                lobbyRosterScreen.AiVehicleTargetStepRequested += HandleAiVehicleTargetStepRequested;
++                lobbyRosterScreen.LitterThrowerStepRequested += HandleLitterThrowerStepRequested;
+                 lobbyRosterScreen.SoloTestExceptionToggleRequested += HandleSoloTestExceptionToggleRequested;
+                 lobbyRosterScreen.StartGameRequested += HandleStartGameRequested;
+                 lobbyRosterScreen.CloseRoomRequested += HandleCloseRoomRequested;
+@@ -182,6 +197,7 @@ private void Awake()
+                 lobbyRosterScreen.ShowSoloTestException(false);
+                 lobbyRosterScreen.ShowRoster(null);
+                 lobbyRosterScreen.Hide();
++                RefreshTrafficSettingsPresentation();
+             }
+             else
+             {
+@@ -306,6 +322,8 @@ private void OnDestroy()
+             {
+                 lobbyRosterScreen.ReadyToggleRequested -= HandleReadyToggleRequested;
+                 lobbyRosterScreen.DifficultyChanged -= HandleDifficultyChanged;
++                lobbyRosterScreen.AiVehicleTargetStepRequested -= HandleAiVehicleTargetStepRequested;
++                lobbyRosterScreen.LitterThrowerStepRequested -= HandleLitterThrowerStepRequested;
+                 lobbyRosterScreen.SoloTestExceptionToggleRequested -= HandleSoloTestExceptionToggleRequested;
+                 lobbyRosterScreen.StartGameRequested -= HandleStartGameRequested;
+                 lobbyRosterScreen.CloseRoomRequested -= HandleCloseRoomRequested;
+@@ -658,6 +676,121 @@ private void HandleDifficultyChanged(Difficulty difficulty)
+             }
+         }
+ 
++        /// <summary>
++        /// Story 5.16 : amorce les valeurs de session depuis le Def auteur, seule source des defauts et
++        /// des bornes. Sans Def, les valeurs restent <see cref="SessionTrafficValue.Unresolved"/> et
++        /// l'edition est desactivee : aucune borne n'est inventee en code, et l'avertissement n'est
++        /// emis qu'une fois.
++        /// </summary>
++        private void SeedTrafficSettingsFromDef()
++        {
++            if (trafficSettings == null)
++            {
++                Debug.LogWarning("[Lobby] LobbyFlowController sans TrafficSettingsDef : les reglages de trafic restent non editables et aucun trafic n'est compose.");
++                return;
++            }
++
++            Settings.AiVehicleTargetCount = trafficSettings.DefaultTargetPopulation;
++            Settings.LitterThrowerCount = Mathf.Min(trafficSettings.DefaultLitterThrowers, Settings.AiVehicleTargetCount);
++        }
++
++        /// <summary>
++        /// Story 5.16 : pas sur l'effectif de vehicules IA. Deux refus distincts, jamais confondus :
++        /// une butee de borne est structurelle et silencieuse (le bouton est deja inactif), tandis que
++        /// passer sous le nombre de jeteurs est un arbitrage reel qui merite un retour visible.
++        /// </summary>
++        private void HandleAiVehicleTargetStepRequested(int step)
++        {
++            if (!CanEditTrafficSettings())
++            {
++                return;
++            }
++
++            var candidate = Settings.AiVehicleTargetCount + step;
++            if (candidate < trafficSettings.MinTargetPopulation || candidate > trafficSettings.MaxTargetPopulation)
++            {
++                return;
++            }
++
++            if (candidate < Settings.LitterThrowerCount)
++            {
++                Debug.LogWarning("[Lobby] Reglage de trafic refuse : l'effectif passerait sous le nombre de jeteurs.");
++                PublishUnavailable(TrafficLitterersExceedVehiclesMessage);
++                return;
++            }
++
++            ApplyTrafficSettings(candidate, Settings.LitterThrowerCount);
++        }
++
++        /// <summary>Story 5.16 : pas sur le nombre de jeteurs, borne haute plafonnee par l'effectif courant.</summary>
++        private void HandleLitterThrowerStepRequested(int step)
++        {
++            if (!CanEditTrafficSettings())
++            {
++                return;
++            }
++
++            var candidate = Settings.LitterThrowerCount + step;
++            if (candidate < trafficSettings.MinLitterThrowers || candidate > EffectiveMaxLitterThrowers())
++            {
++                return;
++            }
++
++            ApplyTrafficSettings(Settings.AiVehicleTargetCount, candidate);
++        }
++
++        /// <summary>
++        /// Borne haute EFFECTIVE des jeteurs : la borne author├®e, plafonnee par l'effectif courant. C'est
++        /// elle, et non la borne author├®e seule, qui rend l'invariant "jeteurs &lt;= effectif" visible a
++        /// l'ecran sous forme de butee.
++        /// </summary>
++        private int EffectiveMaxLitterThrowers()
++        {
++            return Mathf.Min(trafficSettings.MaxLitterThrowers, Settings.AiVehicleTargetCount);
++        }
++
++        private void ApplyTrafficSettings(int aiVehicleTargetCount, int litterThrowerCount)
++        {
++            Settings.AiVehicleTargetCount = aiVehicleTargetCount;
++            Settings.LitterThrowerCount = litterThrowerCount;
++            RefreshTrafficSettingsPresentation();
++
++            if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open && lobbyRoster != null)
++            {
++                lobbyRoster.PublishTrafficSettings(aiVehicleTargetCount, litterThrowerCount);
++            }
++        }
++
++        /// <summary>
++        /// Seul l'hote d'une room ouverte edite les reglages de trafic, exactement comme la difficulte.
++        /// Sans Def il n'existe aucune borne, donc aucune edition plutot qu'une borne inventee.
++        /// </summary>
++        private bool CanEditTrafficSettings()
++        {
++            return trafficSettings != null && lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open;
++        }
++
++        /// <summary>
++        /// Pousse a l'ecran les valeurs et leurs bornes EFFECTIVES. Sans Def, rien n'est affiche : les
++        /// libelles gardent leur texte authore et aucune borne n'est inventee.
++        /// </summary>
++        private void RefreshTrafficSettingsPresentation()
++        {
++            if (lobbyRosterScreen == null || trafficSettings == null)
++            {
++                return;
++            }
++
++            lobbyRosterScreen.ShowTrafficSettings(
++                Settings.AiVehicleTargetCount,
++                trafficSettings.MinTargetPopulation,
++                trafficSettings.MaxTargetPopulation,
++                Settings.LitterThrowerCount,
++                trafficSettings.MinLitterThrowers,
++                EffectiveMaxLitterThrowers(),
++                CanEditTrafficSettings());
++        }
++
+         private void HandleReadyToggleRequested()
+         {
+             if (lobbyRoster == null)
+@@ -761,6 +894,38 @@ private void HandleRosterChanged(LobbyRosterSnapshot snapshot)
+                 }
+             }
+ 
++            // Story 5.16 (AC3) : les reglages de trafic de l'hote arrivent par le meme instantane, donc
++            // AVANT le chargement du monde. Meme regle que la difficulte : jamais appliques cote hote,
++            // qui reste la source de verite de ses propres valeurs.
++            if (isJoinedClient && snapshot.HasLobby && ApplyHostTrafficSettings(snapshot))
++            {
++                RefreshTrafficSettingsPresentation();
++            }
++
++        }
++
++        /// <summary>
++        /// Reprend les reglages de trafic publies par l'hote quand ils sont resolus, et dit si quelque
++        /// chose a change. <see cref="SessionTrafficValue.Unresolved"/> n'ecrase jamais une valeur deja
++        /// resolue : un hote qui n'a rien publie ne remet pas le client a zero.
++        /// </summary>
++        private bool ApplyHostTrafficSettings(LobbyRosterSnapshot snapshot)
++        {
++            var changed = false;
++
++            if (snapshot.AiVehicleTargetCount >= 0 && snapshot.AiVehicleTargetCount != Settings.AiVehicleTargetCount)
++            {
++                Settings.AiVehicleTargetCount = snapshot.AiVehicleTargetCount;
++                changed = true;
++            }
++
++            if (snapshot.LitterThrowerCount >= 0 && snapshot.LitterThrowerCount != Settings.LitterThrowerCount)
++            {
++                Settings.LitterThrowerCount = snapshot.LitterThrowerCount;
++                changed = true;
++            }
++
++            return changed;
+         }
+ 
+         /// <summary>
+@@ -854,8 +1019,17 @@ private void HandleRoomStatusChanged(LobbyRoomStatus status)
+                     if (lobbyRoster != null)
+                     {
+                         lobbyRoster.PublishDifficulty(Settings.Difficulty);
++
++                        // Story 5.16 : l'ouverture de la room est le premier instant ou la publication
++                        // atteint les invites. Les valeurs sont deja resolues depuis le Def a l'Awake.
++                        if (Settings.AiVehicleTargetCount >= 0 && Settings.LitterThrowerCount >= 0)
++                        {
++                            lobbyRoster.PublishTrafficSettings(Settings.AiVehicleTargetCount, Settings.LitterThrowerCount);
++                        }
+                     }
+ 
++                    RefreshTrafficSettingsPresentation();
++
+                     PublishLocalProfile();
+ 
+                     Publish(UserNoticeSeverity.Info, RoomOpenMessage);
+diff --git a/Assets/RoadRage/App/Run/PortalTrafficSpawner.cs b/Assets/RoadRage/App/Run/PortalTrafficSpawner.cs
+index 64ba832..1d7be76 100644
+--- a/Assets/RoadRage/App/Run/PortalTrafficSpawner.cs
++++ b/Assets/RoadRage/App/Run/PortalTrafficSpawner.cs
+@@ -1,6 +1,9 @@
+ using System.Collections;
+ using System.Collections.Generic;
++using RoadRage.Features.Online;
++using RoadRage.Features.Run;
+ using RoadRage.Features.Vehicles;
++using RoadRage.Shared.Domain;
+ using Unity.Netcode;
+ using UnityEngine;
+ 
+@@ -51,6 +54,12 @@ public sealed class PortalTrafficSpawner : MonoBehaviour
+         private bool warnedPrefabWithoutDriverController;
+         private int insertionCounter;
+ 
++        /// <summary>Etat de run hote-owned, resolu paresseusement : seule surface de lecture de la valeur de session resolue.</summary>
++        private NetworkedRunState runState;
++
++        /// <summary>Vrai des que la valeur de session a ete depossee dans l'etat de run, ou qu'il a ete etabli qu'aucune session n'en portait.</summary>
++        private bool sessionSettingsPublished;
++
+         /// <summary>Effectif actuellement en jeu : lu par les tests d'integration.</summary>
+         public int LivePopulation
+         {
+@@ -115,6 +124,8 @@ private void FixedUpdate()
+                 return;
+             }
+ 
++            PublishSessionTrafficSettingsOnce(settings);
++
+             var deficit = ResolveSessionTargetPopulation(settings) - liveVehicles.Count;
+             if (deficit <= 0)
+             {
+@@ -147,14 +158,78 @@ private void FixedUpdate()
+         }
+ 
+         /// <summary>
+-        /// Point de branchement UNIQUE de l'effectif cible. La Story 5.16 branchera ici la valeur de
+-        /// session (MatchSettings) ; tant qu'elle n'existe pas, la valeur par defaut authoree du Def
++        /// Point de branchement UNIQUE de l'effectif cible (Story 5.16). La valeur de session resolue
++        /// vit dans <see cref="NetworkedRunState"/> : elle y a ete deposee par l'hote depuis la valeur
++        /// publiee au lobby, qui est le seul chemin de livraison. Tant qu'aucune session ne l'a
++        /// resolue (<see cref="SessionTrafficValue.Unresolved"/>), la valeur par defaut authoree du Def
+         /// est la seule source. Aucun autre endroit du code, du prefab ou de la scene ne porte
+         /// d'effectif (AD-32).
+         /// </summary>
+         private int ResolveSessionTargetPopulation(TrafficSettingsDef settings)
+         {
+-            return settings.ClampTargetPopulation(settings.DefaultTargetPopulation);
++            var sessionValue = runState != null ? runState.AiVehicleTargetCount.Value : SessionTrafficValue.Unresolved;
++            if (sessionValue < 0)
++            {
++                return settings.ClampTargetPopulation(settings.DefaultTargetPopulation);
++            }
++
++            return settings.ClampTargetPopulation(sessionValue);
++        }
++
++        /// <summary>
++        /// Story 5.16 : depose une seule fois dans l'etat de run la valeur de session resolue par le
++        /// lobby. La source est l'instantane du service de roster, qui vit sur le bootstrap persistant
++        /// et survit donc au chargement de MVP_Run : aucun troisieme porteur n'est introduit, et le
++        /// chemin de la Story 2.4 reste le seul par lequel une valeur franchit le chargement.
++        ///
++        /// Sans room ouverte, aucune valeur n'a ete publiee : l'etat de run garde
++        /// <see cref="SessionTrafficValue.Unresolved"/> et le repli sur le defaut authore s'applique.
++        /// Si l'etat de run n'est pas encore apparu, la tentative est simplement reportee.
++        /// </summary>
++        private void PublishSessionTrafficSettingsOnce(TrafficSettingsDef settings)
++        {
++            if (sessionSettingsPublished)
++            {
++                return;
++            }
++
++            if (runState == null)
++            {
++                runState = FindAnyObjectByType<NetworkedRunState>();
++                if (runState == null)
++                {
++                    return;
++                }
++            }
++
++            var bootstrap = RoadRageBootstrap.Instance;
++            var roster = bootstrap != null ? bootstrap.LobbyRoster : null;
++            if (roster == null)
++            {
++                // Aucun service de roster : aucune valeur de session n'existe ni n'existera.
++                sessionSettingsPublished = true;
++                return;
++            }
++
++            var snapshot = roster.Current;
++            if (snapshot.HasLobby && snapshot.AiVehicleTargetCount >= 0 && snapshot.LitterThrowerCount >= 0)
++            {
++                runState.AiVehicleTargetCount.Value = settings.ClampTargetPopulation(snapshot.AiVehicleTargetCount);
++                runState.LitterThrowerCount.Value = settings.ClampLitterThrowers(snapshot.LitterThrowerCount);
++                sessionSettingsPublished = true;
++                return;
++            }
++
++            // L'instantane du roster est lu par polling (LobbyRosterService.Tick) : tant qu'une room hote
++            // est ouverte, un instantane encore non resolu peut simplement vouloir dire qu'aucun Tick n'a
++            // eu lieu depuis le chargement de la scene. Renoncer ici figerait le trafic sur le defaut
++            // authore pour TOUTE la run, alors que la valeur publiee arrive une frame plus tard. Seule
++            // l'absence certaine de session autorise a renoncer.
++            var lobbyRoom = bootstrap.LobbyRoom;
++            if (lobbyRoom == null || lobbyRoom.Status != LobbyRoomStatus.Open)
++            {
++                sessionSettingsPublished = true;
++            }
+         }
+ 
+         /// <summary>
+diff --git a/Assets/RoadRage/App/Scenes/MainMenuLobby.unity b/Assets/RoadRage/App/Scenes/MainMenuLobby.unity
+index 1584ebc..d3362bf 100644
+--- a/Assets/RoadRage/App/Scenes/MainMenuLobby.unity
++++ b/Assets/RoadRage/App/Scenes/MainMenuLobby.unity
+@@ -456,6 +456,127 @@ MonoBehaviour:
+   m_Script: {fileID: 11500000, guid: 8b4008dfb7a401e41ad01777decaa7f9, type: 3}
+   m_Name: 
+   m_EditorClassIdentifier: RoadRage.Features.UI::RoadRage.Features.UI.MenuCharacterPreview
++--- !u!1 &84499733
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 84499734}
++  - component: {fileID: 84499737}
++  - component: {fileID: 84499736}
++  - component: {fileID: 84499735}
++  m_Layer: 0
++  m_Name: LobbyTrafficLitterThrowersDecreaseButton
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &84499734
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 84499733}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children:
++  - {fileID: 928622841}
++  m_Father: {fileID: 635093933}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0.5, y: 0.5}
++  m_AnchorMax: {x: 0.5, y: 0.5}
++  m_AnchoredPosition: {x: -250, y: -405}
++  m_SizeDelta: {x: 60, y: 60}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &84499735
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 84499733}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
++  m_Navigation:
++    m_Mode: 3
++    m_WrapAround: 0
++    m_SelectOnUp: {fileID: 0}
++    m_SelectOnDown: {fileID: 0}
++    m_SelectOnLeft: {fileID: 0}
++    m_SelectOnRight: {fileID: 0}
++  m_Transition: 1
++  m_Colors:
++    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
++    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
++    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
++    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
++    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
++    m_ColorMultiplier: 1
++    m_FadeDuration: 0.1
++  m_SpriteState:
++    m_HighlightedSprite: {fileID: 0}
++    m_PressedSprite: {fileID: 0}
++    m_SelectedSprite: {fileID: 0}
++    m_DisabledSprite: {fileID: 0}
++  m_AnimationTriggers:
++    m_NormalTrigger: Normal
++    m_HighlightedTrigger: Highlighted
++    m_PressedTrigger: Pressed
++    m_SelectedTrigger: Selected
++    m_DisabledTrigger: Disabled
++  m_Interactable: 1
++  m_TargetGraphic: {fileID: 84499736}
++  m_OnClick:
++    m_PersistentCalls:
++      m_Calls: []
++--- !u!114 &84499736
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 84499733}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_Sprite: {fileID: 0}
++  m_Type: 0
++  m_PreserveAspect: 0
++  m_FillCenter: 1
++  m_FillMethod: 4
++  m_FillAmount: 1
++  m_FillClockwise: 1
++  m_FillOrigin: 0
++  m_UseSpriteMesh: 0
++  m_PixelsPerUnitMultiplier: 1
++--- !u!222 &84499737
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 84499733}
++  m_CullTransparentMesh: 1
+ --- !u!1 &95202417
+ GameObject:
+   m_ObjectHideFlags: 0
+@@ -488,6 +609,7 @@ MonoBehaviour:
+   screen: {fileID: 2097947415}
+   lobbyRosterScreen: {fileID: 635093934}
+   catalog: {fileID: 11400000, guid: 090dcb6cd5516654e99a45174314c148, type: 2}
++  trafficSettings: {fileID: 11400000, guid: fb8c6321a2d8dd44f8876e0b2ef40970, type: 2}
+   defaultNetworkPrefabs: {fileID: 11400000, guid: 84da7a27ce5bf1540ac19f27ffb55411, type: 2}
+ --- !u!4 &95202419
+ Transform:
+@@ -504,6 +626,143 @@ Transform:
+   m_Children: []
+   m_Father: {fileID: 0}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++--- !u!1 &109640600
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 109640601}
++  - component: {fileID: 109640603}
++  - component: {fileID: 109640602}
++  m_Layer: 0
++  m_Name: LobbyTrafficLitterThrowersLabel
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &109640601
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 109640600}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children: []
++  m_Father: {fileID: 635093933}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0.5, y: 0.5}
++  m_AnchorMax: {x: 0.5, y: 0.5}
++  m_AnchoredPosition: {x: -10, y: -405}
++  m_SizeDelta: {x: 380, y: 50}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &109640602
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 109640600}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_text: Jeteurs de detritus
++  m_isRightToLeft: 0
++  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_fontSharedMaterials: []
++  m_fontMaterial: {fileID: 0}
++  m_fontMaterials: []
++  m_fontColor32:
++    serializedVersion: 2
++    rgba: 4294967295
++  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
++  m_enableVertexGradient: 0
++  m_colorMode: 3
++  m_fontColorGradient:
++    topLeft: {r: 1, g: 1, b: 1, a: 1}
++    topRight: {r: 1, g: 1, b: 1, a: 1}
++    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
++    bottomRight: {r: 1, g: 1, b: 1, a: 1}
++  m_fontColorGradientPreset: {fileID: 0}
++  m_spriteAsset: {fileID: 0}
++  m_tintAllSprites: 0
++  m_StyleSheet: {fileID: 0}
++  m_TextStyleHashCode: -1183493901
++  m_overrideHtmlColors: 0
++  m_faceColor:
++    serializedVersion: 2
++    rgba: 4294967295
++  m_fontSize: 32
++  m_fontSizeBase: 32
++  m_fontWeight: 400
++  m_enableAutoSizing: 0
++  m_fontSizeMin: 0
++  m_fontSizeMax: 0
++  m_fontStyle: 0
++  m_HorizontalAlignment: 2
++  m_VerticalAlignment: 512
++  m_textAlignment: 65535
++  m_characterSpacing: 0
++  m_characterHorizontalScale: 1
++  m_wordSpacing: 0
++  m_lineSpacing: 0
++  m_lineSpacingMax: 0
++  m_paragraphSpacing: 0
++  m_charWidthMaxAdj: 0
++  m_TextWrappingMode: 0
++  m_wordWrappingRatios: 0.4
++  m_overflowMode: 0
++  m_linkedTextComponent: {fileID: 0}
++  parentLinkedComponent: {fileID: 0}
++  m_enableKerning: 0
++  m_ActiveFontFeatures: 
++  m_enableExtraPadding: 0
++  checkPaddingRequired: 0
++  m_isRichText: 1
++  m_EmojiFallbackSupport: 1
++  m_parseCtrlCharacters: 1
++  m_isOrthographic: 1
++  m_isCullingEnabled: 0
++  m_horizontalMapping: 0
++  m_verticalMapping: 0
++  m_uvLineOffset: 0
++  m_geometrySortingOrder: 0
++  m_IsTextObjectScaleStatic: 0
++  m_VertexBufferAutoSizeReduction: 0
++  m_useMaxVisibleDescender: 1
++  m_pageToDisplay: 1
++  m_margin: {x: 0, y: 0, z: 0, w: 0}
++  m_isUsingLegacyAnimationComponent: 0
++  m_isVolumetricText: 0
++  m_hasFontAssetChanged: 0
++  m_baseMaterial: {fileID: 0}
++  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
++--- !u!222 &109640603
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 109640600}
++  m_CullTransparentMesh: 1
+ --- !u!1 &143466979
+ GameObject:
+   m_ObjectHideFlags: 0
+@@ -1887,7 +2146,7 @@ CanvasRenderer:
+   m_PrefabAsset: {fileID: 0}
+   m_GameObject: {fileID: 410340940}
+   m_CullTransparentMesh: 1
+---- !u!1 &531096993
++--- !u!1 &446417807
+ GameObject:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+@@ -1895,42 +2154,42 @@ GameObject:
+   m_PrefabAsset: {fileID: 0}
+   serializedVersion: 6
+   m_Component:
+-  - component: {fileID: 531096994}
+-  - component: {fileID: 531096996}
+-  - component: {fileID: 531096995}
++  - component: {fileID: 446417808}
++  - component: {fileID: 446417810}
++  - component: {fileID: 446417809}
+   m_Layer: 0
+-  m_Name: NameLabel
++  m_Name: LobbyTrafficVehiclesDecreaseButtonLabel
+   m_TagString: Untagged
+   m_Icon: {fileID: 0}
+   m_NavMeshLayer: 0
+   m_StaticEditorFlags: 0
+   m_IsActive: 1
+---- !u!224 &531096994
++--- !u!224 &446417808
+ RectTransform:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 531096993}
++  m_GameObject: {fileID: 446417807}
+   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+   m_LocalPosition: {x: 0, y: 0, z: 0}
+   m_LocalScale: {x: 1, y: 1, z: 1}
+   m_ConstrainProportionsScale: 0
+   m_Children: []
+-  m_Father: {fileID: 1996077567}
++  m_Father: {fileID: 1378991761}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+-  m_AnchorMin: {x: 0.5, y: 0.5}
+-  m_AnchorMax: {x: 0.5, y: 0.5}
+-  m_AnchoredPosition: {x: 60, y: 0}
+-  m_SizeDelta: {x: 500, y: 50}
++  m_AnchorMin: {x: 0, y: 0}
++  m_AnchorMax: {x: 1, y: 1}
++  m_AnchoredPosition: {x: 0, y: 0}
++  m_SizeDelta: {x: 0, y: 0}
+   m_Pivot: {x: 0.5, y: 0.5}
+---- !u!114 &531096995
++--- !u!114 &446417809
+ MonoBehaviour:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 531096993}
++  m_GameObject: {fileID: 446417807}
+   m_Enabled: 1
+   m_EditorHideFlags: 0
+   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+@@ -1944,7 +2203,7 @@ MonoBehaviour:
+   m_OnCullStateChanged:
+     m_PersistentCalls:
+       m_Calls: []
+-  m_text: -- emplacement libre --
++  m_text: '-'
+   m_isRightToLeft: 0
+   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+@@ -1953,8 +2212,8 @@ MonoBehaviour:
+   m_fontMaterials: []
+   m_fontColor32:
+     serializedVersion: 2
+-    rgba: 4294967295
+-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
++    rgba: 4278190080
++  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+   m_enableVertexGradient: 0
+   m_colorMode: 3
+   m_fontColorGradient:
+@@ -1971,13 +2230,150 @@ MonoBehaviour:
+   m_faceColor:
+     serializedVersion: 2
+     rgba: 4294967295
+-  m_fontSize: 32
+-  m_fontSizeBase: 32
++  m_fontSize: 36
++  m_fontSizeBase: 36
+   m_fontWeight: 400
+   m_enableAutoSizing: 0
+-  m_fontSizeMin: 0
+-  m_fontSizeMax: 0
+-  m_fontStyle: 0
++  m_fontSizeMin: 18
++  m_fontSizeMax: 72
++  m_fontStyle: 0
++  m_HorizontalAlignment: 2
++  m_VerticalAlignment: 512
++  m_textAlignment: 65535
++  m_characterSpacing: 0
++  m_characterHorizontalScale: 1
++  m_wordSpacing: 0
++  m_lineSpacing: 0
++  m_lineSpacingMax: 0
++  m_paragraphSpacing: 0
++  m_charWidthMaxAdj: 0
++  m_TextWrappingMode: 1
++  m_wordWrappingRatios: 0.4
++  m_overflowMode: 0
++  m_linkedTextComponent: {fileID: 0}
++  parentLinkedComponent: {fileID: 0}
++  m_enableKerning: 0
++  m_ActiveFontFeatures: 6e72656bu
++  m_enableExtraPadding: 0
++  checkPaddingRequired: 0
++  m_isRichText: 1
++  m_EmojiFallbackSupport: 1
++  m_parseCtrlCharacters: 1
++  m_isOrthographic: 1
++  m_isCullingEnabled: 0
++  m_horizontalMapping: 0
++  m_verticalMapping: 0
++  m_uvLineOffset: 0
++  m_geometrySortingOrder: 0
++  m_IsTextObjectScaleStatic: 0
++  m_VertexBufferAutoSizeReduction: 0
++  m_useMaxVisibleDescender: 1
++  m_pageToDisplay: 1
++  m_margin: {x: 0, y: 0, z: 0, w: 0}
++  m_isUsingLegacyAnimationComponent: 0
++  m_isVolumetricText: 0
++  m_hasFontAssetChanged: 0
++  m_baseMaterial: {fileID: 0}
++  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
++--- !u!222 &446417810
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 446417807}
++  m_CullTransparentMesh: 1
++--- !u!1 &531096993
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 531096994}
++  - component: {fileID: 531096996}
++  - component: {fileID: 531096995}
++  m_Layer: 0
++  m_Name: NameLabel
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &531096994
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 531096993}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children: []
++  m_Father: {fileID: 1996077567}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0.5, y: 0.5}
++  m_AnchorMax: {x: 0.5, y: 0.5}
++  m_AnchoredPosition: {x: 60, y: 0}
++  m_SizeDelta: {x: 500, y: 50}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &531096995
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 531096993}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_text: -- emplacement libre --
++  m_isRightToLeft: 0
++  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_fontSharedMaterials: []
++  m_fontMaterial: {fileID: 0}
++  m_fontMaterials: []
++  m_fontColor32:
++    serializedVersion: 2
++    rgba: 4294967295
++  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
++  m_enableVertexGradient: 0
++  m_colorMode: 3
++  m_fontColorGradient:
++    topLeft: {r: 1, g: 1, b: 1, a: 1}
++    topRight: {r: 1, g: 1, b: 1, a: 1}
++    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
++    bottomRight: {r: 1, g: 1, b: 1, a: 1}
++  m_fontColorGradientPreset: {fileID: 0}
++  m_spriteAsset: {fileID: 0}
++  m_tintAllSprites: 0
++  m_StyleSheet: {fileID: 0}
++  m_TextStyleHashCode: -1183493901
++  m_overrideHtmlColors: 0
++  m_faceColor:
++    serializedVersion: 2
++    rgba: 4294967295
++  m_fontSize: 32
++  m_fontSizeBase: 32
++  m_fontWeight: 400
++  m_enableAutoSizing: 0
++  m_fontSizeMin: 0
++  m_fontSizeMax: 0
++  m_fontStyle: 0
+   m_HorizontalAlignment: 1
+   m_VerticalAlignment: 512
+   m_textAlignment: 65535
+@@ -2498,6 +2894,12 @@ RectTransform:
+   - {fileID: 1303693693}
+   - {fileID: 842561042}
+   - {fileID: 1276055763}
++  - {fileID: 1378991761}
++  - {fileID: 1437980122}
++  - {fileID: 802268852}
++  - {fileID: 84499734}
++  - {fileID: 109640601}
++  - {fileID: 714618836}
+   m_Father: {fileID: 27721528}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+   m_AnchorMin: {x: 0, y: 0}
+@@ -2527,6 +2929,12 @@ MonoBehaviour:
+   readyButtonLabel: {fileID: 2130831786}
+   difficultyButton: {fileID: 571930984}
+   settingsSummaryLabel: {fileID: 968808274}
++  trafficVehiclesLabel: {fileID: 1437980123}
++  trafficVehiclesDecreaseButton: {fileID: 1378991762}
++  trafficVehiclesIncreaseButton: {fileID: 802268853}
++  litterThrowersLabel: {fileID: 109640602}
++  litterThrowersDecreaseButton: {fileID: 84499735}
++  litterThrowersIncreaseButton: {fileID: 714618837}
+   soloTestExceptionButton: {fileID: 1303693694}
+   soloTestExceptionButtonLabel: {fileID: 2039078689}
+   startGameButton: {fileID: 842561043}
+@@ -2833,6 +3241,127 @@ CanvasRenderer:
+   m_PrefabAsset: {fileID: 0}
+   m_GameObject: {fileID: 669677096}
+   m_CullTransparentMesh: 1
++--- !u!1 &714618835
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 714618836}
++  - component: {fileID: 714618839}
++  - component: {fileID: 714618838}
++  - component: {fileID: 714618837}
++  m_Layer: 0
++  m_Name: LobbyTrafficLitterThrowersIncreaseButton
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &714618836
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 714618835}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children:
++  - {fileID: 1202633096}
++  m_Father: {fileID: 635093933}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0.5, y: 0.5}
++  m_AnchorMax: {x: 0.5, y: 0.5}
++  m_AnchoredPosition: {x: 240, y: -405}
++  m_SizeDelta: {x: 60, y: 60}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &714618837
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 714618835}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
++  m_Navigation:
++    m_Mode: 3
++    m_WrapAround: 0
++    m_SelectOnUp: {fileID: 0}
++    m_SelectOnDown: {fileID: 0}
++    m_SelectOnLeft: {fileID: 0}
++    m_SelectOnRight: {fileID: 0}
++  m_Transition: 1
++  m_Colors:
++    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
++    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
++    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
++    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
++    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
++    m_ColorMultiplier: 1
++    m_FadeDuration: 0.1
++  m_SpriteState:
++    m_HighlightedSprite: {fileID: 0}
++    m_PressedSprite: {fileID: 0}
++    m_SelectedSprite: {fileID: 0}
++    m_DisabledSprite: {fileID: 0}
++  m_AnimationTriggers:
++    m_NormalTrigger: Normal
++    m_HighlightedTrigger: Highlighted
++    m_PressedTrigger: Pressed
++    m_SelectedTrigger: Selected
++    m_DisabledTrigger: Disabled
++  m_Interactable: 1
++  m_TargetGraphic: {fileID: 714618838}
++  m_OnClick:
++    m_PersistentCalls:
++      m_Calls: []
++--- !u!114 &714618838
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 714618835}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_Sprite: {fileID: 0}
++  m_Type: 0
++  m_PreserveAspect: 0
++  m_FillCenter: 1
++  m_FillMethod: 4
++  m_FillAmount: 1
++  m_FillClockwise: 1
++  m_FillOrigin: 0
++  m_UseSpriteMesh: 0
++  m_PixelsPerUnitMultiplier: 1
++--- !u!222 &714618839
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 714618835}
++  m_CullTransparentMesh: 1
+ --- !u!1 &731557874
+ GameObject:
+   m_ObjectHideFlags: 0
+@@ -3228,7 +3757,7 @@ CanvasRenderer:
+   m_PrefabAsset: {fileID: 0}
+   m_GameObject: {fileID: 770815460}
+   m_CullTransparentMesh: 1
+---- !u!1 &809238384
++--- !u!1 &802268851
+ GameObject:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+@@ -3236,42 +3765,163 @@ GameObject:
+   m_PrefabAsset: {fileID: 0}
+   serializedVersion: 6
+   m_Component:
+-  - component: {fileID: 809238385}
+-  - component: {fileID: 809238387}
+-  - component: {fileID: 809238386}
++  - component: {fileID: 802268852}
++  - component: {fileID: 802268855}
++  - component: {fileID: 802268854}
++  - component: {fileID: 802268853}
+   m_Layer: 0
+-  m_Name: NameLabel
++  m_Name: LobbyTrafficVehiclesIncreaseButton
+   m_TagString: Untagged
+   m_Icon: {fileID: 0}
+   m_NavMeshLayer: 0
+   m_StaticEditorFlags: 0
+   m_IsActive: 1
+---- !u!224 &809238385
++--- !u!224 &802268852
+ RectTransform:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 809238384}
++  m_GameObject: {fileID: 802268851}
+   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+   m_LocalPosition: {x: 0, y: 0, z: 0}
+   m_LocalScale: {x: 1, y: 1, z: 1}
+   m_ConstrainProportionsScale: 0
+-  m_Children: []
+-  m_Father: {fileID: 630558358}
++  m_Children:
++  - {fileID: 1858389193}
++  m_Father: {fileID: 635093933}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+   m_AnchorMin: {x: 0.5, y: 0.5}
+   m_AnchorMax: {x: 0.5, y: 0.5}
+-  m_AnchoredPosition: {x: 60, y: 0}
+-  m_SizeDelta: {x: 500, y: 50}
++  m_AnchoredPosition: {x: 240, y: -335}
++  m_SizeDelta: {x: 60, y: 60}
+   m_Pivot: {x: 0.5, y: 0.5}
+---- !u!114 &809238386
++--- !u!114 &802268853
+ MonoBehaviour:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 809238384}
++  m_GameObject: {fileID: 802268851}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
++  m_Navigation:
++    m_Mode: 3
++    m_WrapAround: 0
++    m_SelectOnUp: {fileID: 0}
++    m_SelectOnDown: {fileID: 0}
++    m_SelectOnLeft: {fileID: 0}
++    m_SelectOnRight: {fileID: 0}
++  m_Transition: 1
++  m_Colors:
++    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
++    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
++    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
++    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
++    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
++    m_ColorMultiplier: 1
++    m_FadeDuration: 0.1
++  m_SpriteState:
++    m_HighlightedSprite: {fileID: 0}
++    m_PressedSprite: {fileID: 0}
++    m_SelectedSprite: {fileID: 0}
++    m_DisabledSprite: {fileID: 0}
++  m_AnimationTriggers:
++    m_NormalTrigger: Normal
++    m_HighlightedTrigger: Highlighted
++    m_PressedTrigger: Pressed
++    m_SelectedTrigger: Selected
++    m_DisabledTrigger: Disabled
++  m_Interactable: 1
++  m_TargetGraphic: {fileID: 802268854}
++  m_OnClick:
++    m_PersistentCalls:
++      m_Calls: []
++--- !u!114 &802268854
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 802268851}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_Sprite: {fileID: 0}
++  m_Type: 0
++  m_PreserveAspect: 0
++  m_FillCenter: 1
++  m_FillMethod: 4
++  m_FillAmount: 1
++  m_FillClockwise: 1
++  m_FillOrigin: 0
++  m_UseSpriteMesh: 0
++  m_PixelsPerUnitMultiplier: 1
++--- !u!222 &802268855
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 802268851}
++  m_CullTransparentMesh: 1
++--- !u!1 &809238384
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 809238385}
++  - component: {fileID: 809238387}
++  - component: {fileID: 809238386}
++  m_Layer: 0
++  m_Name: NameLabel
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &809238385
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 809238384}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children: []
++  m_Father: {fileID: 630558358}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0.5, y: 0.5}
++  m_AnchorMax: {x: 0.5, y: 0.5}
++  m_AnchoredPosition: {x: 60, y: 0}
++  m_SizeDelta: {x: 500, y: 50}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &809238386
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 809238384}
+   m_Enabled: 1
+   m_EditorHideFlags: 0
+   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+@@ -3672,6 +4322,143 @@ CanvasRenderer:
+   m_PrefabAsset: {fileID: 0}
+   m_GameObject: {fileID: 907587048}
+   m_CullTransparentMesh: 1
++--- !u!1 &928622840
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 928622841}
++  - component: {fileID: 928622843}
++  - component: {fileID: 928622842}
++  m_Layer: 0
++  m_Name: LobbyTrafficLitterThrowersDecreaseButtonLabel
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &928622841
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 928622840}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children: []
++  m_Father: {fileID: 84499734}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0, y: 0}
++  m_AnchorMax: {x: 1, y: 1}
++  m_AnchoredPosition: {x: 0, y: 0}
++  m_SizeDelta: {x: 0, y: 0}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &928622842
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 928622840}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_text: '-'
++  m_isRightToLeft: 0
++  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_fontSharedMaterials: []
++  m_fontMaterial: {fileID: 0}
++  m_fontMaterials: []
++  m_fontColor32:
++    serializedVersion: 2
++    rgba: 4278190080
++  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
++  m_enableVertexGradient: 0
++  m_colorMode: 3
++  m_fontColorGradient:
++    topLeft: {r: 1, g: 1, b: 1, a: 1}
++    topRight: {r: 1, g: 1, b: 1, a: 1}
++    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
++    bottomRight: {r: 1, g: 1, b: 1, a: 1}
++  m_fontColorGradientPreset: {fileID: 0}
++  m_spriteAsset: {fileID: 0}
++  m_tintAllSprites: 0
++  m_StyleSheet: {fileID: 0}
++  m_TextStyleHashCode: -1183493901
++  m_overrideHtmlColors: 0
++  m_faceColor:
++    serializedVersion: 2
++    rgba: 4294967295
++  m_fontSize: 36
++  m_fontSizeBase: 36
++  m_fontWeight: 400
++  m_enableAutoSizing: 0
++  m_fontSizeMin: 18
++  m_fontSizeMax: 72
++  m_fontStyle: 0
++  m_HorizontalAlignment: 2
++  m_VerticalAlignment: 512
++  m_textAlignment: 65535
++  m_characterSpacing: 0
++  m_characterHorizontalScale: 1
++  m_wordSpacing: 0
++  m_lineSpacing: 0
++  m_lineSpacingMax: 0
++  m_paragraphSpacing: 0
++  m_charWidthMaxAdj: 0
++  m_TextWrappingMode: 1
++  m_wordWrappingRatios: 0.4
++  m_overflowMode: 0
++  m_linkedTextComponent: {fileID: 0}
++  parentLinkedComponent: {fileID: 0}
++  m_enableKerning: 0
++  m_ActiveFontFeatures: 6e72656bu
++  m_enableExtraPadding: 0
++  checkPaddingRequired: 0
++  m_isRichText: 1
++  m_EmojiFallbackSupport: 1
++  m_parseCtrlCharacters: 1
++  m_isOrthographic: 1
++  m_isCullingEnabled: 0
++  m_horizontalMapping: 0
++  m_verticalMapping: 0
++  m_uvLineOffset: 0
++  m_geometrySortingOrder: 0
++  m_IsTextObjectScaleStatic: 0
++  m_VertexBufferAutoSizeReduction: 0
++  m_useMaxVisibleDescender: 1
++  m_pageToDisplay: 1
++  m_margin: {x: 0, y: 0, z: 0, w: 0}
++  m_isUsingLegacyAnimationComponent: 0
++  m_isVolumetricText: 0
++  m_hasFontAssetChanged: 0
++  m_baseMaterial: {fileID: 0}
++  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
++--- !u!222 &928622843
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 928622840}
++  m_CullTransparentMesh: 1
+ --- !u!1 &932316457
+ GameObject:
+   m_ObjectHideFlags: 0
+@@ -4341,7 +5128,7 @@ CanvasRenderer:
+   m_PrefabAsset: {fileID: 0}
+   m_GameObject: {fileID: 1132288053}
+   m_CullTransparentMesh: 1
+---- !u!1 &1276055762
++--- !u!1 &1202633095
+ GameObject:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+@@ -4349,38 +5136,175 @@ GameObject:
+   m_PrefabAsset: {fileID: 0}
+   serializedVersion: 6
+   m_Component:
+-  - component: {fileID: 1276055763}
+-  - component: {fileID: 1276055766}
+-  - component: {fileID: 1276055765}
+-  - component: {fileID: 1276055764}
++  - component: {fileID: 1202633096}
++  - component: {fileID: 1202633098}
++  - component: {fileID: 1202633097}
+   m_Layer: 0
+-  m_Name: LobbyCloseRoomButton
++  m_Name: LobbyTrafficLitterThrowersIncreaseButtonLabel
+   m_TagString: Untagged
+   m_Icon: {fileID: 0}
+   m_NavMeshLayer: 0
+   m_StaticEditorFlags: 0
+   m_IsActive: 1
+---- !u!224 &1276055763
++--- !u!224 &1202633096
+ RectTransform:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1276055762}
++  m_GameObject: {fileID: 1202633095}
+   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+   m_LocalPosition: {x: 0, y: 0, z: 0}
+   m_LocalScale: {x: 1, y: 1, z: 1}
+   m_ConstrainProportionsScale: 0
+-  m_Children:
+-  - {fileID: 2060858781}
+-  m_Father: {fileID: 635093933}
++  m_Children: []
++  m_Father: {fileID: 714618836}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+-  m_AnchorMin: {x: 0.5, y: 0.5}
+-  m_AnchorMax: {x: 0.5, y: 0.5}
+-  m_AnchoredPosition: {x: 140, y: -250}
+-  m_SizeDelta: {x: 240, y: 60}
+-  m_Pivot: {x: 0.5, y: 0.5}
+---- !u!114 &1276055764
++  m_AnchorMin: {x: 0, y: 0}
++  m_AnchorMax: {x: 1, y: 1}
++  m_AnchoredPosition: {x: 0, y: 0}
++  m_SizeDelta: {x: 0, y: 0}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &1202633097
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1202633095}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_text: +
++  m_isRightToLeft: 0
++  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_fontSharedMaterials: []
++  m_fontMaterial: {fileID: 0}
++  m_fontMaterials: []
++  m_fontColor32:
++    serializedVersion: 2
++    rgba: 4278190080
++  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
++  m_enableVertexGradient: 0
++  m_colorMode: 3
++  m_fontColorGradient:
++    topLeft: {r: 1, g: 1, b: 1, a: 1}
++    topRight: {r: 1, g: 1, b: 1, a: 1}
++    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
++    bottomRight: {r: 1, g: 1, b: 1, a: 1}
++  m_fontColorGradientPreset: {fileID: 0}
++  m_spriteAsset: {fileID: 0}
++  m_tintAllSprites: 0
++  m_StyleSheet: {fileID: 0}
++  m_TextStyleHashCode: -1183493901
++  m_overrideHtmlColors: 0
++  m_faceColor:
++    serializedVersion: 2
++    rgba: 4294967295
++  m_fontSize: 36
++  m_fontSizeBase: 36
++  m_fontWeight: 400
++  m_enableAutoSizing: 0
++  m_fontSizeMin: 18
++  m_fontSizeMax: 72
++  m_fontStyle: 0
++  m_HorizontalAlignment: 2
++  m_VerticalAlignment: 512
++  m_textAlignment: 65535
++  m_characterSpacing: 0
++  m_characterHorizontalScale: 1
++  m_wordSpacing: 0
++  m_lineSpacing: 0
++  m_lineSpacingMax: 0
++  m_paragraphSpacing: 0
++  m_charWidthMaxAdj: 0
++  m_TextWrappingMode: 1
++  m_wordWrappingRatios: 0.4
++  m_overflowMode: 0
++  m_linkedTextComponent: {fileID: 0}
++  parentLinkedComponent: {fileID: 0}
++  m_enableKerning: 0
++  m_ActiveFontFeatures: 6e72656bu
++  m_enableExtraPadding: 0
++  checkPaddingRequired: 0
++  m_isRichText: 1
++  m_EmojiFallbackSupport: 1
++  m_parseCtrlCharacters: 1
++  m_isOrthographic: 1
++  m_isCullingEnabled: 0
++  m_horizontalMapping: 0
++  m_verticalMapping: 0
++  m_uvLineOffset: 0
++  m_geometrySortingOrder: 0
++  m_IsTextObjectScaleStatic: 0
++  m_VertexBufferAutoSizeReduction: 0
++  m_useMaxVisibleDescender: 1
++  m_pageToDisplay: 1
++  m_margin: {x: 0, y: 0, z: 0, w: 0}
++  m_isUsingLegacyAnimationComponent: 0
++  m_isVolumetricText: 0
++  m_hasFontAssetChanged: 0
++  m_baseMaterial: {fileID: 0}
++  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
++--- !u!222 &1202633098
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1202633095}
++  m_CullTransparentMesh: 1
++--- !u!1 &1276055762
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 1276055763}
++  - component: {fileID: 1276055766}
++  - component: {fileID: 1276055765}
++  - component: {fileID: 1276055764}
++  m_Layer: 0
++  m_Name: LobbyCloseRoomButton
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &1276055763
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1276055762}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children:
++  - {fileID: 2060858781}
++  m_Father: {fileID: 635093933}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0.5, y: 0.5}
++  m_AnchorMax: {x: 0.5, y: 0.5}
++  m_AnchoredPosition: {x: 140, y: -250}
++  m_SizeDelta: {x: 240, y: 60}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &1276055764
+ MonoBehaviour:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+@@ -4755,38 +5679,371 @@ GameObject:
+   - component: {fileID: 1325308139}
+   - component: {fileID: 1325308138}
+   m_Layer: 0
+-  m_Name: Label
++  m_Name: Label
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &1325308137
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1325308136}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children: []
++  m_Father: {fileID: 34595703}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0, y: 0}
++  m_AnchorMax: {x: 1, y: 1}
++  m_AnchoredPosition: {x: 0, y: 0}
++  m_SizeDelta: {x: 0, y: 0}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &1325308138
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1325308136}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_text: Quit
++  m_isRightToLeft: 0
++  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_fontSharedMaterials: []
++  m_fontMaterial: {fileID: 0}
++  m_fontMaterials: []
++  m_fontColor32:
++    serializedVersion: 2
++    rgba: 4278190080
++  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
++  m_enableVertexGradient: 0
++  m_colorMode: 3
++  m_fontColorGradient:
++    topLeft: {r: 1, g: 1, b: 1, a: 1}
++    topRight: {r: 1, g: 1, b: 1, a: 1}
++    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
++    bottomRight: {r: 1, g: 1, b: 1, a: 1}
++  m_fontColorGradientPreset: {fileID: 0}
++  m_spriteAsset: {fileID: 0}
++  m_tintAllSprites: 0
++  m_StyleSheet: {fileID: 0}
++  m_TextStyleHashCode: -1183493901
++  m_overrideHtmlColors: 0
++  m_faceColor:
++    serializedVersion: 2
++    rgba: 4294967295
++  m_fontSize: 36
++  m_fontSizeBase: 36
++  m_fontWeight: 400
++  m_enableAutoSizing: 0
++  m_fontSizeMin: 18
++  m_fontSizeMax: 72
++  m_fontStyle: 0
++  m_HorizontalAlignment: 2
++  m_VerticalAlignment: 512
++  m_textAlignment: 65535
++  m_characterSpacing: 0
++  m_characterHorizontalScale: 1
++  m_wordSpacing: 0
++  m_lineSpacing: 0
++  m_lineSpacingMax: 0
++  m_paragraphSpacing: 0
++  m_charWidthMaxAdj: 0
++  m_TextWrappingMode: 1
++  m_wordWrappingRatios: 0.4
++  m_overflowMode: 0
++  m_linkedTextComponent: {fileID: 0}
++  parentLinkedComponent: {fileID: 0}
++  m_enableKerning: 0
++  m_ActiveFontFeatures: 6e72656bu
++  m_enableExtraPadding: 0
++  checkPaddingRequired: 0
++  m_isRichText: 1
++  m_EmojiFallbackSupport: 1
++  m_parseCtrlCharacters: 1
++  m_isOrthographic: 1
++  m_isCullingEnabled: 0
++  m_horizontalMapping: 0
++  m_verticalMapping: 0
++  m_uvLineOffset: 0
++  m_geometrySortingOrder: 0
++  m_IsTextObjectScaleStatic: 0
++  m_VertexBufferAutoSizeReduction: 0
++  m_useMaxVisibleDescender: 1
++  m_pageToDisplay: 1
++  m_margin: {x: 0, y: 0, z: 0, w: 0}
++  m_isUsingLegacyAnimationComponent: 0
++  m_isVolumetricText: 0
++  m_hasFontAssetChanged: 0
++  m_baseMaterial: {fileID: 0}
++  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
++--- !u!222 &1325308139
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1325308136}
++  m_CullTransparentMesh: 1
++--- !u!1 &1371204028
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 1371204029}
++  - component: {fileID: 1371204031}
++  - component: {fileID: 1371204030}
++  m_Layer: 0
++  m_Name: Portrait
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &1371204029
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1371204028}
++  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children: []
++  m_Father: {fileID: 630558358}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0.5, y: 0.5}
++  m_AnchorMax: {x: 0.5, y: 0.5}
++  m_AnchoredPosition: {x: -300, y: 0}
++  m_SizeDelta: {x: 50, y: 50}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &1371204030
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1371204028}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
++  m_Material: {fileID: 0}
++  m_Color: {r: 0.5, g: 0.5, b: 0.5, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_Sprite: {fileID: 0}
++  m_Type: 0
++  m_PreserveAspect: 0
++  m_FillCenter: 1
++  m_FillMethod: 4
++  m_FillAmount: 1
++  m_FillClockwise: 1
++  m_FillOrigin: 0
++  m_UseSpriteMesh: 0
++  m_PixelsPerUnitMultiplier: 1
++--- !u!222 &1371204031
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1371204028}
++  m_CullTransparentMesh: 1
++--- !u!1 &1378991760
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 1378991761}
++  - component: {fileID: 1378991764}
++  - component: {fileID: 1378991763}
++  - component: {fileID: 1378991762}
++  m_Layer: 0
++  m_Name: LobbyTrafficVehiclesDecreaseButton
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &1378991761
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1378991760}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children:
++  - {fileID: 446417808}
++  m_Father: {fileID: 635093933}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0.5, y: 0.5}
++  m_AnchorMax: {x: 0.5, y: 0.5}
++  m_AnchoredPosition: {x: -250, y: -335}
++  m_SizeDelta: {x: 60, y: 60}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &1378991762
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1378991760}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
++  m_Navigation:
++    m_Mode: 3
++    m_WrapAround: 0
++    m_SelectOnUp: {fileID: 0}
++    m_SelectOnDown: {fileID: 0}
++    m_SelectOnLeft: {fileID: 0}
++    m_SelectOnRight: {fileID: 0}
++  m_Transition: 1
++  m_Colors:
++    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
++    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
++    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
++    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
++    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
++    m_ColorMultiplier: 1
++    m_FadeDuration: 0.1
++  m_SpriteState:
++    m_HighlightedSprite: {fileID: 0}
++    m_PressedSprite: {fileID: 0}
++    m_SelectedSprite: {fileID: 0}
++    m_DisabledSprite: {fileID: 0}
++  m_AnimationTriggers:
++    m_NormalTrigger: Normal
++    m_HighlightedTrigger: Highlighted
++    m_PressedTrigger: Pressed
++    m_SelectedTrigger: Selected
++    m_DisabledTrigger: Disabled
++  m_Interactable: 1
++  m_TargetGraphic: {fileID: 1378991763}
++  m_OnClick:
++    m_PersistentCalls:
++      m_Calls: []
++--- !u!114 &1378991763
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1378991760}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_Sprite: {fileID: 0}
++  m_Type: 0
++  m_PreserveAspect: 0
++  m_FillCenter: 1
++  m_FillMethod: 4
++  m_FillAmount: 1
++  m_FillClockwise: 1
++  m_FillOrigin: 0
++  m_UseSpriteMesh: 0
++  m_PixelsPerUnitMultiplier: 1
++--- !u!222 &1378991764
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1378991760}
++  m_CullTransparentMesh: 1
++--- !u!1 &1386878514
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 1386878515}
++  - component: {fileID: 1386878517}
++  - component: {fileID: 1386878516}
++  m_Layer: 0
++  m_Name: LobbyDifficultyButtonLabel
+   m_TagString: Untagged
+   m_Icon: {fileID: 0}
+   m_NavMeshLayer: 0
+   m_StaticEditorFlags: 0
+   m_IsActive: 1
+---- !u!224 &1325308137
++--- !u!224 &1386878515
+ RectTransform:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1325308136}
++  m_GameObject: {fileID: 1386878514}
+   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+   m_LocalPosition: {x: 0, y: 0, z: 0}
+   m_LocalScale: {x: 1, y: 1, z: 1}
+   m_ConstrainProportionsScale: 0
+   m_Children: []
+-  m_Father: {fileID: 34595703}
++  m_Father: {fileID: 571930983}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+   m_AnchorMin: {x: 0, y: 0}
+   m_AnchorMax: {x: 1, y: 1}
+   m_AnchoredPosition: {x: 0, y: 0}
+   m_SizeDelta: {x: 0, y: 0}
+   m_Pivot: {x: 0.5, y: 0.5}
+---- !u!114 &1325308138
++--- !u!114 &1386878516
+ MonoBehaviour:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1325308136}
++  m_GameObject: {fileID: 1386878514}
+   m_Enabled: 1
+   m_EditorHideFlags: 0
+   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+@@ -4800,7 +6057,7 @@ MonoBehaviour:
+   m_OnCullStateChanged:
+     m_PersistentCalls:
+       m_Calls: []
+-  m_text: Quit
++  m_text: Difficulte
+   m_isRightToLeft: 0
+   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+@@ -4872,15 +6129,15 @@ MonoBehaviour:
+   m_hasFontAssetChanged: 0
+   m_baseMaterial: {fileID: 0}
+   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+---- !u!222 &1325308139
++--- !u!222 &1386878517
+ CanvasRenderer:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1325308136}
++  m_GameObject: {fileID: 1386878514}
+   m_CullTransparentMesh: 1
+---- !u!1 &1371204028
++--- !u!1 &1437980121
+ GameObject:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+@@ -4888,117 +6145,42 @@ GameObject:
+   m_PrefabAsset: {fileID: 0}
+   serializedVersion: 6
+   m_Component:
+-  - component: {fileID: 1371204029}
+-  - component: {fileID: 1371204031}
+-  - component: {fileID: 1371204030}
++  - component: {fileID: 1437980122}
++  - component: {fileID: 1437980124}
++  - component: {fileID: 1437980123}
+   m_Layer: 0
+-  m_Name: Portrait
++  m_Name: LobbyTrafficVehiclesLabel
+   m_TagString: Untagged
+   m_Icon: {fileID: 0}
+   m_NavMeshLayer: 0
+   m_StaticEditorFlags: 0
+   m_IsActive: 1
+---- !u!224 &1371204029
++--- !u!224 &1437980122
+ RectTransform:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1371204028}
+-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
++  m_GameObject: {fileID: 1437980121}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+   m_LocalPosition: {x: 0, y: 0, z: 0}
+   m_LocalScale: {x: 1, y: 1, z: 1}
+   m_ConstrainProportionsScale: 0
+   m_Children: []
+-  m_Father: {fileID: 630558358}
++  m_Father: {fileID: 635093933}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+   m_AnchorMin: {x: 0.5, y: 0.5}
+   m_AnchorMax: {x: 0.5, y: 0.5}
+-  m_AnchoredPosition: {x: -300, y: 0}
+-  m_SizeDelta: {x: 50, y: 50}
+-  m_Pivot: {x: 0.5, y: 0.5}
+---- !u!114 &1371204030
+-MonoBehaviour:
+-  m_ObjectHideFlags: 0
+-  m_CorrespondingSourceObject: {fileID: 0}
+-  m_PrefabInstance: {fileID: 0}
+-  m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1371204028}
+-  m_Enabled: 1
+-  m_EditorHideFlags: 0
+-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+-  m_Name: 
+-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+-  m_Material: {fileID: 0}
+-  m_Color: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+-  m_RaycastTarget: 1
+-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+-  m_Maskable: 1
+-  m_OnCullStateChanged:
+-    m_PersistentCalls:
+-      m_Calls: []
+-  m_Sprite: {fileID: 0}
+-  m_Type: 0
+-  m_PreserveAspect: 0
+-  m_FillCenter: 1
+-  m_FillMethod: 4
+-  m_FillAmount: 1
+-  m_FillClockwise: 1
+-  m_FillOrigin: 0
+-  m_UseSpriteMesh: 0
+-  m_PixelsPerUnitMultiplier: 1
+---- !u!222 &1371204031
+-CanvasRenderer:
+-  m_ObjectHideFlags: 0
+-  m_CorrespondingSourceObject: {fileID: 0}
+-  m_PrefabInstance: {fileID: 0}
+-  m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1371204028}
+-  m_CullTransparentMesh: 1
+---- !u!1 &1386878514
+-GameObject:
+-  m_ObjectHideFlags: 0
+-  m_CorrespondingSourceObject: {fileID: 0}
+-  m_PrefabInstance: {fileID: 0}
+-  m_PrefabAsset: {fileID: 0}
+-  serializedVersion: 6
+-  m_Component:
+-  - component: {fileID: 1386878515}
+-  - component: {fileID: 1386878517}
+-  - component: {fileID: 1386878516}
+-  m_Layer: 0
+-  m_Name: LobbyDifficultyButtonLabel
+-  m_TagString: Untagged
+-  m_Icon: {fileID: 0}
+-  m_NavMeshLayer: 0
+-  m_StaticEditorFlags: 0
+-  m_IsActive: 1
+---- !u!224 &1386878515
+-RectTransform:
+-  m_ObjectHideFlags: 0
+-  m_CorrespondingSourceObject: {fileID: 0}
+-  m_PrefabInstance: {fileID: 0}
+-  m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1386878514}
+-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+-  m_LocalPosition: {x: 0, y: 0, z: 0}
+-  m_LocalScale: {x: 1, y: 1, z: 1}
+-  m_ConstrainProportionsScale: 0
+-  m_Children: []
+-  m_Father: {fileID: 571930983}
+-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+-  m_AnchorMin: {x: 0, y: 0}
+-  m_AnchorMax: {x: 1, y: 1}
+-  m_AnchoredPosition: {x: 0, y: 0}
+-  m_SizeDelta: {x: 0, y: 0}
++  m_AnchoredPosition: {x: -10, y: -335}
++  m_SizeDelta: {x: 380, y: 50}
+   m_Pivot: {x: 0.5, y: 0.5}
+---- !u!114 &1386878516
++--- !u!114 &1437980123
+ MonoBehaviour:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1386878514}
++  m_GameObject: {fileID: 1437980121}
+   m_Enabled: 1
+   m_EditorHideFlags: 0
+   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+@@ -5012,7 +6194,7 @@ MonoBehaviour:
+   m_OnCullStateChanged:
+     m_PersistentCalls:
+       m_Calls: []
+-  m_text: Difficulte
++  m_text: Vehicules IA
+   m_isRightToLeft: 0
+   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+@@ -5021,8 +6203,8 @@ MonoBehaviour:
+   m_fontMaterials: []
+   m_fontColor32:
+     serializedVersion: 2
+-    rgba: 4278190080
+-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
++    rgba: 4294967295
++  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+   m_enableVertexGradient: 0
+   m_colorMode: 3
+   m_fontColorGradient:
+@@ -5039,12 +6221,12 @@ MonoBehaviour:
+   m_faceColor:
+     serializedVersion: 2
+     rgba: 4294967295
+-  m_fontSize: 36
+-  m_fontSizeBase: 36
++  m_fontSize: 32
++  m_fontSizeBase: 32
+   m_fontWeight: 400
+   m_enableAutoSizing: 0
+-  m_fontSizeMin: 18
+-  m_fontSizeMax: 72
++  m_fontSizeMin: 0
++  m_fontSizeMax: 0
+   m_fontStyle: 0
+   m_HorizontalAlignment: 2
+   m_VerticalAlignment: 512
+@@ -5056,13 +6238,13 @@ MonoBehaviour:
+   m_lineSpacingMax: 0
+   m_paragraphSpacing: 0
+   m_charWidthMaxAdj: 0
+-  m_TextWrappingMode: 1
++  m_TextWrappingMode: 0
+   m_wordWrappingRatios: 0.4
+   m_overflowMode: 0
+   m_linkedTextComponent: {fileID: 0}
+   parentLinkedComponent: {fileID: 0}
+   m_enableKerning: 0
+-  m_ActiveFontFeatures: 6e72656bu
++  m_ActiveFontFeatures: 
+   m_enableExtraPadding: 0
+   checkPaddingRequired: 0
+   m_isRichText: 1
+@@ -5084,13 +6266,13 @@ MonoBehaviour:
+   m_hasFontAssetChanged: 0
+   m_baseMaterial: {fileID: 0}
+   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+---- !u!222 &1386878517
++--- !u!222 &1437980124
+ CanvasRenderer:
+   m_ObjectHideFlags: 0
+   m_CorrespondingSourceObject: {fileID: 0}
+   m_PrefabInstance: {fileID: 0}
+   m_PrefabAsset: {fileID: 0}
+-  m_GameObject: {fileID: 1386878514}
++  m_GameObject: {fileID: 1437980121}
+   m_CullTransparentMesh: 1
+ --- !u!1 &1438881235
+ GameObject:
+@@ -6445,6 +7627,143 @@ CanvasRenderer:
+   m_PrefabAsset: {fileID: 0}
+   m_GameObject: {fileID: 1851246550}
+   m_CullTransparentMesh: 1
++--- !u!1 &1858389192
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 1858389193}
++  - component: {fileID: 1858389195}
++  - component: {fileID: 1858389194}
++  m_Layer: 0
++  m_Name: LobbyTrafficVehiclesIncreaseButtonLabel
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &1858389193
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1858389192}
++  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 1, y: 1, z: 1}
++  m_ConstrainProportionsScale: 0
++  m_Children: []
++  m_Father: {fileID: 802268852}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0, y: 0}
++  m_AnchorMax: {x: 1, y: 1}
++  m_AnchoredPosition: {x: 0, y: 0}
++  m_SizeDelta: {x: 0, y: 0}
++  m_Pivot: {x: 0.5, y: 0.5}
++--- !u!114 &1858389194
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1858389192}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
++  m_Material: {fileID: 0}
++  m_Color: {r: 1, g: 1, b: 1, a: 1}
++  m_RaycastTarget: 1
++  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
++  m_Maskable: 1
++  m_OnCullStateChanged:
++    m_PersistentCalls:
++      m_Calls: []
++  m_text: +
++  m_isRightToLeft: 0
++  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
++  m_fontSharedMaterials: []
++  m_fontMaterial: {fileID: 0}
++  m_fontMaterials: []
++  m_fontColor32:
++    serializedVersion: 2
++    rgba: 4278190080
++  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
++  m_enableVertexGradient: 0
++  m_colorMode: 3
++  m_fontColorGradient:
++    topLeft: {r: 1, g: 1, b: 1, a: 1}
++    topRight: {r: 1, g: 1, b: 1, a: 1}
++    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
++    bottomRight: {r: 1, g: 1, b: 1, a: 1}
++  m_fontColorGradientPreset: {fileID: 0}
++  m_spriteAsset: {fileID: 0}
++  m_tintAllSprites: 0
++  m_StyleSheet: {fileID: 0}
++  m_TextStyleHashCode: -1183493901
++  m_overrideHtmlColors: 0
++  m_faceColor:
++    serializedVersion: 2
++    rgba: 4294967295
++  m_fontSize: 36
++  m_fontSizeBase: 36
++  m_fontWeight: 400
++  m_enableAutoSizing: 0
++  m_fontSizeMin: 18
++  m_fontSizeMax: 72
++  m_fontStyle: 0
++  m_HorizontalAlignment: 2
++  m_VerticalAlignment: 512
++  m_textAlignment: 65535
++  m_characterSpacing: 0
++  m_characterHorizontalScale: 1
++  m_wordSpacing: 0
++  m_lineSpacing: 0
++  m_lineSpacingMax: 0
++  m_paragraphSpacing: 0
++  m_charWidthMaxAdj: 0
++  m_TextWrappingMode: 1
++  m_wordWrappingRatios: 0.4
++  m_overflowMode: 0
++  m_linkedTextComponent: {fileID: 0}
++  parentLinkedComponent: {fileID: 0}
++  m_enableKerning: 0
++  m_ActiveFontFeatures: 6e72656bu
++  m_enableExtraPadding: 0
++  checkPaddingRequired: 0
++  m_isRichText: 1
++  m_EmojiFallbackSupport: 1
++  m_parseCtrlCharacters: 1
++  m_isOrthographic: 1
++  m_isCullingEnabled: 0
++  m_horizontalMapping: 0
++  m_verticalMapping: 0
++  m_uvLineOffset: 0
++  m_geometrySortingOrder: 0
++  m_IsTextObjectScaleStatic: 0
++  m_VertexBufferAutoSizeReduction: 0
++  m_useMaxVisibleDescender: 1
++  m_pageToDisplay: 1
++  m_margin: {x: 0, y: 0, z: 0, w: 0}
++  m_isUsingLegacyAnimationComponent: 0
++  m_isVolumetricText: 0
++  m_hasFontAssetChanged: 0
++  m_baseMaterial: {fileID: 0}
++  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
++--- !u!222 &1858389195
++CanvasRenderer:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 1858389192}
++  m_CullTransparentMesh: 1
+ --- !u!1 &1887979866
+ GameObject:
+   m_ObjectHideFlags: 0
+diff --git a/Assets/RoadRage/Features/Lobby/MatchSettings.cs b/Assets/RoadRage/Features/Lobby/MatchSettings.cs
+index 169b331..a74dfc2 100644
+--- a/Assets/RoadRage/Features/Lobby/MatchSettings.cs
++++ b/Assets/RoadRage/Features/Lobby/MatchSettings.cs
+@@ -13,6 +13,20 @@ public sealed class MatchSettings
+     {
+         public Difficulty Difficulty { get; set; } = Difficulty.Normal;
+ 
++        /// <summary>
++        /// Story 5.16 : effectif de vehicules IA choisi pour la session. Vaut
++        /// <see cref="SessionTrafficValue.Unresolved"/> tant qu'aucune session ne l'a resolu ; les
++        /// bornes autorisees viennent du <c>TrafficSettingsDef</c>, jamais d'ici.
++        /// </summary>
++        public int AiVehicleTargetCount { get; set; } = SessionTrafficValue.Unresolved;
++
++        /// <summary>
++        /// Story 5.16 : nombre de vehicules qui jettent des detritus, toujours inferieur ou egal a
++        /// <see cref="AiVehicleTargetCount"/>. Aucun systeme de detritus ne vit ici : la Story 5.20
++        /// consommera la valeur resolue.
++        /// </summary>
++        public int LitterThrowerCount { get; set; } = SessionTrafficValue.Unresolved;
++
+         // Emplacement reserve aux futurs parametres de partie extensibles (ex. carte, nombre de joueurs
+         // max, regles de session). Ajouter ici au fur et a mesure des besoins, en gardant la mappabilite
+         // vers un futur NetworkedLobbyState.
+diff --git a/Assets/RoadRage/Features/Online/FacepunchSteamLobbyPlatform.cs b/Assets/RoadRage/Features/Online/FacepunchSteamLobbyPlatform.cs
+index bc369aa..f567682 100644
+--- a/Assets/RoadRage/Features/Online/FacepunchSteamLobbyPlatform.cs
++++ b/Assets/RoadRage/Features/Online/FacepunchSteamLobbyPlatform.cs
+@@ -32,6 +32,10 @@ public sealed class FacepunchSteamLobbyPlatform : ISteamLobbyPlatform
+ 
+         private const string DifficultyDataKey = "difficulty";
+ 
++        private const string AiVehicleTargetCountDataKey = "aiVehicleTargetCount";
++
++        private const string LitterThrowerCountDataKey = "litterThrowerCount";
++
+         private const string DisplayNameDataKey = "displayName";
+ 
+         private const string CharacterIdDataKey = "characterId";
+@@ -130,6 +134,11 @@ public LobbyRosterSnapshot GetRosterSnapshot()
+             var difficulty = ParseDifficulty(lobby.GetData(DifficultyDataKey));
+             var runLaunchRequested = lobby.GetData(RunLaunchRequestedDataKey) == ReadyValue;
+ 
++            // Story 5.16 : meme forme que la difficulte -- une valeur absente ou illisible reste
++            // "non publiee" (-1), jamais une valeur de repli inventee ici.
++            var aiVehicleTargetCount = ParseTrafficValue(lobby.GetData(AiVehicleTargetCountDataKey));
++            var litterThrowerCount = ParseTrafficValue(lobby.GetData(LitterThrowerCountDataKey));
++
+             var members = new List<LobbyMemberSnapshot>();
+             foreach (var member in lobby.Members)
+             {
+@@ -140,7 +149,7 @@ public LobbyRosterSnapshot GetRosterSnapshot()
+                 members.Add(new LobbyMemberSnapshot(member.Id, displayName, characterId, ready));
+             }
+ 
+-            return new LobbyRosterSnapshot(true, lobby.Owner.Id, difficulty, members.ToArray(), runLaunchRequested);
++            return new LobbyRosterSnapshot(true, lobby.Owner.Id, difficulty, members.ToArray(), runLaunchRequested, aiVehicleTargetCount, litterThrowerCount);
+         }
+ 
+         public void SetLocalMemberReady(bool ready)
+@@ -174,6 +183,18 @@ public void SetLobbyDifficulty(Difficulty difficulty)
+             currentLobby.Value.SetData(DifficultyDataKey, ((int)difficulty).ToString(CultureInfo.InvariantCulture));
+         }
+ 
++        /// <summary>Story 5.16 : deux cles de lobby distinctes, meme porteur que la difficulte.</summary>
++        public void SetLobbyTrafficSettings(int aiVehicleTargetCount, int litterThrowerCount)
++        {
++            if (!currentLobby.HasValue)
++            {
++                return;
++            }
++
++            currentLobby.Value.SetData(AiVehicleTargetCountDataKey, aiVehicleTargetCount.ToString(CultureInfo.InvariantCulture));
++            currentLobby.Value.SetData(LitterThrowerCountDataKey, litterThrowerCount.ToString(CultureInfo.InvariantCulture));
++        }
++
+         public void SetLobbyRunLaunchRequested(bool launchRequested)
+         {
+             if (!currentLobby.HasValue)
+@@ -194,6 +215,21 @@ private static Difficulty ParseDifficulty(string raw)
+             return Difficulty.Normal;
+         }
+ 
++        /// <summary>
++        /// Story 5.16 : valeur de trafic publiee, ou <see cref="SessionTrafficValue.Unresolved"/> quand la
++        /// cle est absente ou illisible. Aucune borne n'est inventee ici : le clamp appartient au
++        /// TrafficSettingsDef.
++        /// </summary>
++        private static int ParseTrafficValue(string raw)
++        {
++            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) && value >= 0)
++            {
++                return value;
++            }
++
++            return SessionTrafficValue.Unresolved;
++        }
++
+         private static LobbyJoinFailureReason MapFailureReason(RoomEnter enter)
+         {
+             switch (enter)
+diff --git a/Assets/RoadRage/Features/Online/ISteamLobbyPlatform.cs b/Assets/RoadRage/Features/Online/ISteamLobbyPlatform.cs
+index 7d9b9e7..599e2e1 100644
+--- a/Assets/RoadRage/Features/Online/ISteamLobbyPlatform.cs
++++ b/Assets/RoadRage/Features/Online/ISteamLobbyPlatform.cs
+@@ -40,6 +40,15 @@ Task<LobbyJoinOutcome> JoinLobbyByCodeAsync(string joinCode)
+         /// <summary>Publie la difficulte choisie dans les donnees du lobby courant (Story 2.4). Sans effet hors lobby actif ; reserve a l'hote par l'appelant.</summary>
+         void SetLobbyDifficulty(Difficulty difficulty);
+ 
++        /// <summary>
++        /// Publie les reglages de trafic choisis par l'hote dans les donnees du lobby courant
++        /// (Story 5.16). Sans effet hors lobby actif ; reserve a l'hote par l'appelant. Corps par
++        /// defaut vide pour que les doubles de test existants compilent sans modification.
++        /// </summary>
++        void SetLobbyTrafficSettings(int aiVehicleTargetCount, int litterThrowerCount)
++        {
++        }
++
+         /// <summary>Publie le signal de lancement reseau dans les donnees du lobby courant. Sans effet hors lobby actif ; reserve a l'hote par l'appelant.</summary>
+         void SetLobbyRunLaunchRequested(bool launchRequested);
+     }
+@@ -115,13 +124,22 @@ public LobbyMemberSnapshot(ulong steamId, string displayName, string characterId
+     {
+         public static readonly LobbyRosterSnapshot Empty = new LobbyRosterSnapshot(false, 0, Difficulty.Normal, System.Array.Empty<LobbyMemberSnapshot>());
+ 
+-        public LobbyRosterSnapshot(bool hasLobby, ulong ownerId, Difficulty difficulty, LobbyMemberSnapshot[] members, bool runLaunchRequested = false)
++        public LobbyRosterSnapshot(
++            bool hasLobby,
++            ulong ownerId,
++            Difficulty difficulty,
++            LobbyMemberSnapshot[] members,
++            bool runLaunchRequested = false,
++            int aiVehicleTargetCount = SessionTrafficValue.Unresolved,
++            int litterThrowerCount = SessionTrafficValue.Unresolved)
+         {
+             HasLobby = hasLobby;
+             OwnerId = ownerId;
+             Difficulty = difficulty;
+             Members = members;
+             RunLaunchRequested = runLaunchRequested;
++            AiVehicleTargetCount = aiVehicleTargetCount;
++            LitterThrowerCount = litterThrowerCount;
+         }
+ 
+         public bool HasLobby { get; }
+@@ -133,5 +151,15 @@ public LobbyRosterSnapshot(bool hasLobby, ulong ownerId, Difficulty difficulty,
+         public LobbyMemberSnapshot[] Members { get; }
+ 
+         public bool RunLaunchRequested { get; }
++
++        /// <summary>
++        /// Effectif de vehicules IA publie par l'hote (Story 5.16), ou
++        /// <see cref="SessionTrafficValue.Unresolved"/> si l'hote n'en a publie aucun. L'instantane ne
++        /// porte que la valeur brute publiee : les bornes restent dans le Def.
++        /// </summary>
++        public int AiVehicleTargetCount { get; }
++
++        /// <summary>Nombre de jeteurs publie par l'hote (Story 5.16), ou <see cref="SessionTrafficValue.Unresolved"/>.</summary>
++        public int LitterThrowerCount { get; }
+     }
+ }
+diff --git a/Assets/RoadRage/Features/Online/LobbyRosterService.cs b/Assets/RoadRage/Features/Online/LobbyRosterService.cs
+index 6d3a989..6e47bdf 100644
+--- a/Assets/RoadRage/Features/Online/LobbyRosterService.cs
++++ b/Assets/RoadRage/Features/Online/LobbyRosterService.cs
+@@ -126,6 +126,23 @@ public void PublishDifficulty(Difficulty difficulty)
+             platform.SetLobbyDifficulty(difficulty);
+         }
+ 
++        /// <summary>
++        /// Story 5.16 : publie les reglages de trafic resolus par l'hote (effectif de vehicules IA et
++        /// nombre de jeteurs de detritus) dans les donnees de lobby, meme forme et meme porteuse que la
++        /// difficulte. Sans effet hors room hote ouverte ; reserve a l'hote par l'appelant. C'est le SEUL
++        /// chemin qui livre ces valeurs aux invites, et il le fait avant le chargement du monde.
++        /// L'invariant "jeteurs &lt;= effectif" est porte par la valeur de session, jamais par ce service.
++        /// </summary>
++        public void PublishTrafficSettings(int aiVehicleTargetCount, int litterThrowerCount)
++        {
++            if (lobbyRoom.Status != LobbyRoomStatus.Open)
++            {
++                return;
++            }
++
++            platform.SetLobbyTrafficSettings(aiVehicleTargetCount, litterThrowerCount);
++        }
++
+         /// <summary>
+         /// Story 5.3 (AD-26) : signal explicite du lancement de la partie, ecrit dans les donnees de
+         /// lobby Steam par l'hote des que StartHost() reussit, pour que chaque invite deja rejoint
+@@ -210,8 +227,13 @@ private void RaiseRosterChanged(LobbyRosterSnapshot snapshot)
+ 
+         private static bool SnapshotsEqual(LobbyRosterSnapshot a, LobbyRosterSnapshot b)
+         {
++            // Story 5.16 : les reglages de trafic font partie de l'instantane partage. Sans leur
++            // comparaison ici, un changement de trafic publie par l'hote ne leverait jamais
++            // RosterChanged et l'invite ne recevrait donc jamais la nouvelle valeur.
+             if (a.HasLobby != b.HasLobby || a.OwnerId != b.OwnerId || a.Difficulty != b.Difficulty
+-                || a.RunLaunchRequested != b.RunLaunchRequested)
++                || a.RunLaunchRequested != b.RunLaunchRequested
++                || a.AiVehicleTargetCount != b.AiVehicleTargetCount
++                || a.LitterThrowerCount != b.LitterThrowerCount)
+             {
+                 return false;
+             }
+diff --git a/Assets/RoadRage/Features/Run/NetworkedRunState.cs b/Assets/RoadRage/Features/Run/NetworkedRunState.cs
+index c5e0156..2ace296 100644
+--- a/Assets/RoadRage/Features/Run/NetworkedRunState.cs
++++ b/Assets/RoadRage/Features/Run/NetworkedRunState.cs
+@@ -21,6 +21,27 @@ public sealed class NetworkedRunState : HostOwnedNetworkStateBehaviour
+             NetworkVariableReadPermission.Everyone,
+             NetworkVariableWritePermission.Server);
+ 
++        /// <summary>
++        /// Story 5.16 : effectif de vehicules IA resolu par la session. Server-write : seul l'hote
++        /// reprend la valeur publiee par le lobby. <see cref="SessionTrafficValue.Unresolved"/> veut
++        /// dire qu'aucune session ne l'a resolue (run lance hors lobby) et que le defaut authore du
++        /// TrafficSettingsDef s'applique alors. Aucune borne n'est portee ici : elle vit dans le Def.
++        /// </summary>
++        public NetworkVariable<int> AiVehicleTargetCount = new NetworkVariable<int>(
++            SessionTrafficValue.Unresolved,
++            NetworkVariableReadPermission.Everyone,
++            NetworkVariableWritePermission.Server);
++
++        /// <summary>
++        /// Story 5.16 : nombre de vehicules jeteurs de detritus resolu par la session, toujours
++        /// inferieur ou egal a <see cref="AiVehicleTargetCount"/>. Aucun systeme de detritus n'existe
++        /// encore : la Story 5.20 consommera cette valeur resolue.
++        /// </summary>
++        public NetworkVariable<int> LitterThrowerCount = new NetworkVariable<int>(
++            SessionTrafficValue.Unresolved,
++            NetworkVariableReadPermission.Everyone,
++            NetworkVariableWritePermission.Server);
++
+         /// <summary>
+         /// Story 5.6 (AD-17/AD-22) : etat de l'UNIQUE evenement Rage Road du run (AD-16). Vit ici et
+         /// nulle part ailleurs -- ni champ local, ni seconde source de verite. Server-write : seul
+diff --git a/Assets/RoadRage/Features/UI/LobbyRosterScreen.cs b/Assets/RoadRage/Features/UI/LobbyRosterScreen.cs
+index d6b33bc..e7eedcb 100644
+--- a/Assets/RoadRage/Features/UI/LobbyRosterScreen.cs
++++ b/Assets/RoadRage/Features/UI/LobbyRosterScreen.cs
+@@ -37,6 +37,24 @@ public sealed class LobbyRosterScreen : MonoBehaviour
+         [SerializeField]
+         private TMP_Text settingsSummaryLabel;
+ 
++        [SerializeField]
++        private TMP_Text trafficVehiclesLabel;
++
++        [SerializeField]
++        private Button trafficVehiclesDecreaseButton;
++
++        [SerializeField]
++        private Button trafficVehiclesIncreaseButton;
++
++        [SerializeField]
++        private TMP_Text litterThrowersLabel;
++
++        [SerializeField]
++        private Button litterThrowersDecreaseButton;
++
++        [SerializeField]
++        private Button litterThrowersIncreaseButton;
++
+         [SerializeField]
+         private Button soloTestExceptionButton;
+ 
+@@ -55,6 +73,15 @@ public sealed class LobbyRosterScreen : MonoBehaviour
+ 
+         public event Action<Difficulty> DifficultyChanged;
+ 
++        /// <summary>
++        /// Story 5.16 : pas demande sur l'effectif de vehicules IA (+1 ou -1). L'ecran ne decide ni
++        /// borne ni refus : LobbyFlowController valide contre le Def et publie un refus visible.
++        /// </summary>
++        public event Action<int> AiVehicleTargetStepRequested;
++
++        /// <summary>Story 5.16 : pas demande sur le nombre de jeteurs de detritus (+1 ou -1).</summary>
++        public event Action<int> LitterThrowerStepRequested;
++
+         /// <summary>Demande de bascule de l'exception de test solo qui contourne le gate "tous prets" (Story 2.4).</summary>
+         public event Action SoloTestExceptionToggleRequested;
+ 
+@@ -92,6 +119,42 @@ private void Awake()
+                 Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers soloTestExceptionButton.");
+             }
+ 
++            if (trafficVehiclesDecreaseButton != null)
++            {
++                trafficVehiclesDecreaseButton.onClick.AddListener(RaiseAiVehicleTargetDecreaseRequested);
++            }
++            else
++            {
++                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers trafficVehiclesDecreaseButton.");
++            }
++
++            if (trafficVehiclesIncreaseButton != null)
++            {
++                trafficVehiclesIncreaseButton.onClick.AddListener(RaiseAiVehicleTargetIncreaseRequested);
++            }
++            else
++            {
++                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers trafficVehiclesIncreaseButton.");
++            }
++
++            if (litterThrowersDecreaseButton != null)
++            {
++                litterThrowersDecreaseButton.onClick.AddListener(RaiseLitterThrowerDecreaseRequested);
++            }
++            else
++            {
++                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers litterThrowersDecreaseButton.");
++            }
++
++            if (litterThrowersIncreaseButton != null)
++            {
++                litterThrowersIncreaseButton.onClick.AddListener(RaiseLitterThrowerIncreaseRequested);
++            }
++            else
++            {
++                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers litterThrowersIncreaseButton.");
++            }
++
+             if (startGameButton != null)
+             {
+                 startGameButton.onClick.AddListener(RaiseStartGameRequested);
+@@ -125,6 +188,16 @@ private void Awake()
+                 Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers settingsSummaryLabel.");
+             }
+ 
++            if (trafficVehiclesLabel == null)
++            {
++                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers trafficVehiclesLabel.");
++            }
++
++            if (litterThrowersLabel == null)
++            {
++                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers litterThrowersLabel.");
++            }
++
+             if (soloTestExceptionButtonLabel == null)
+             {
+                 Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers soloTestExceptionButtonLabel.");
+@@ -192,6 +265,49 @@ public void SetDifficultyEditable(bool editable)
+             }
+         }
+ 
++        /// <summary>
++        /// Story 5.16 : affiche les deux reglages de trafic avec leurs bornes EFFECTIVES, et n'active
++        /// un bouton de pas que si la valeur courante n'est pas deja a la borne correspondante. Les
++        /// bornes sont fournies par l'appelant : l'ecran n'en invente aucune et ne connait ni le
++        /// TrafficSettingsDef ni l'invariant "jeteurs &lt;= effectif". La borne haute des jeteurs est
++        /// deja minoree par l'appelant, ce qui rend cet invariant visible par la butee.
++        /// </summary>
++        public void ShowTrafficSettings(
++            int aiVehicleTargetCount,
++            int minAiVehicleTargetCount,
++            int maxAiVehicleTargetCount,
++            int litterThrowerCount,
++            int minLitterThrowerCount,
++            int maxLitterThrowerCount,
++            bool editable)
++        {
++            if (trafficVehiclesLabel != null)
++            {
++                trafficVehiclesLabel.text = "Vehicules IA : " + aiVehicleTargetCount
++                    + "  (" + minAiVehicleTargetCount + "-" + maxAiVehicleTargetCount + ")";
++            }
++
++            if (litterThrowersLabel != null)
++            {
++                litterThrowersLabel.text = "Jeteurs de detritus : " + litterThrowerCount
++                    + "  (" + minLitterThrowerCount + "-" + maxLitterThrowerCount + ")";
++            }
++
++            SetSteppable(trafficVehiclesDecreaseButton, editable && aiVehicleTargetCount > minAiVehicleTargetCount);
++            SetSteppable(trafficVehiclesIncreaseButton, editable && aiVehicleTargetCount < maxAiVehicleTargetCount);
++            SetSteppable(litterThrowersDecreaseButton, editable && litterThrowerCount > minLitterThrowerCount);
++            SetSteppable(litterThrowersIncreaseButton, editable && litterThrowerCount < maxLitterThrowerCount);
++        }
++
++        /// <summary>Un bouton de pas n'est actif que si l'appelant autorise l'edition ET que la valeur n'est pas en butee.</summary>
++        private static void SetSteppable(Button button, bool steppable)
++        {
++            if (button != null)
++            {
++                button.interactable = steppable;
++            }
++        }
++
+         /// <summary>
+         /// Cette exception locale contourne uniquement le gate "tous prets" de Start Game, jamais les
+         /// autres conditions (services en ligne, roster synchronise).
+@@ -267,6 +383,26 @@ private void RaiseReadyToggleRequested()
+             ReadyToggleRequested?.Invoke();
+         }
+ 
++        private void RaiseAiVehicleTargetDecreaseRequested()
++        {
++            AiVehicleTargetStepRequested?.Invoke(-1);
++        }
++
++        private void RaiseAiVehicleTargetIncreaseRequested()
++        {
++            AiVehicleTargetStepRequested?.Invoke(1);
++        }
++
++        private void RaiseLitterThrowerDecreaseRequested()
++        {
++            LitterThrowerStepRequested?.Invoke(-1);
++        }
++
++        private void RaiseLitterThrowerIncreaseRequested()
++        {
++            LitterThrowerStepRequested?.Invoke(1);
++        }
++
+         private void RaiseSoloTestExceptionToggleRequested()
+         {
+             SoloTestExceptionToggleRequested?.Invoke();
+diff --git a/Assets/RoadRage/Features/Vehicles/TrafficSettingsDef.cs b/Assets/RoadRage/Features/Vehicles/TrafficSettingsDef.cs
+index d3ec5c0..c713cd5 100644
+--- a/Assets/RoadRage/Features/Vehicles/TrafficSettingsDef.cs
++++ b/Assets/RoadRage/Features/Vehicles/TrafficSettingsDef.cs
+@@ -36,6 +36,21 @@ public sealed class TrafficSettingsDef : ScriptableObject
+         [Tooltip("Borne haute de l'effectif cible.")]
+         private int maxTargetPopulation = 30;
+ 
++        [SerializeField]
++        [Min(0)]
++        [Tooltip("Nombre de jeteurs de detritus par defaut (Story 5.16). Valeur utilisee tant qu'aucune valeur de session n'existe. Aucun systeme de detritus n'est livre ici : la Story 5.20 consommera la valeur resolue.")]
++        private int defaultLitterThrowers = 2;
++
++        [SerializeField]
++        [Min(0)]
++        [Tooltip("Borne basse du nombre de jeteurs. 0 est legal : un run sans jeteur est un reglage valide.")]
++        private int minLitterThrowers;
++
++        [SerializeField]
++        [Min(0)]
++        [Tooltip("Borne haute du nombre de jeteurs. Le nombre de jeteurs ne depasse jamais l'effectif cible de la session.")]
++        private int maxLitterThrowers = 8;
++
+         [SerializeField]
+         [Min(0f)]
+         [Tooltip("Budget d'aretes, en multiples du nombre de noeuds du graphe (--max-edges-factor de jtrrouter, defaut 2). Au-dela, le parcours est reoriente vers la sortie la plus proche -- jamais retire.")]
+@@ -79,6 +94,22 @@ public int MaxTargetPopulation
+             get { return maxTargetPopulation; }
+         }
+ 
++        /// <summary>Nombre de jeteurs authore, deja ramene dans ses propres bornes (Story 5.16).</summary>
++        public int DefaultLitterThrowers
++        {
++            get { return ClampLitterThrowers(defaultLitterThrowers); }
++        }
++
++        public int MinLitterThrowers
++        {
++            get { return minLitterThrowers; }
++        }
++
++        public int MaxLitterThrowers
++        {
++            get { return maxLitterThrowers; }
++        }
++
+         public float EdgeBudgetFactor
+         {
+             get { return edgeBudgetFactor; }
+@@ -102,6 +133,18 @@ public int ClampTargetPopulation(int population)
+             return Mathf.Clamp(population, low, high);
+         }
+ 
++        /// <summary>
++        /// Story 5.16 : ramene un nombre de jeteurs (authore ou de session) dans les bornes authorees.
++        /// L'invariant "jeteurs &lt;= effectif cible" n'est PAS applique ici : il depend de l'effectif
++        /// courant de la session, que ce Def ne connait pas. Son porteur est la valeur de session.
++        /// </summary>
++        public int ClampLitterThrowers(int litterThrowers)
++        {
++            var low = Mathf.Max(0, minLitterThrowers);
++            var high = Mathf.Max(low, maxLitterThrowers);
++            return Mathf.Clamp(litterThrowers, low, high);
++        }
++
+         public bool TryValidate(out string error)
+         {
+             if (string.IsNullOrWhiteSpace(RawId) || RawId != RawId.Trim() || RawId != RawId.ToLowerInvariant())
+@@ -128,6 +171,41 @@ public bool TryValidate(out string error)
+                 return false;
+             }
+ 
++            if (minLitterThrowers < 0)
++            {
++                error = "MinLitterThrowers invalide : 'minLitterThrowers' doit etre superieur ou egal a 0.";
++                return false;
++            }
++
++            if (maxLitterThrowers < minLitterThrowers)
++            {
++                error = "MaxLitterThrowers invalide : 'maxLitterThrowers' doit etre superieur ou egal a 'minLitterThrowers'.";
++                return false;
++            }
++
++            if (defaultLitterThrowers < minLitterThrowers || defaultLitterThrowers > maxLitterThrowers)
++            {
++                error = "DefaultLitterThrowers invalide : 'defaultLitterThrowers' doit tomber dans [min, max].";
++                return false;
++            }
++
++            // Story 5.16 : l'invariant "jeteurs <= effectif" est une regle de SESSION, que ce Def ne peut
++            // pas appliquer. En revanche il peut refuser une authoring qui rend ce defaut inatteignable :
++            // sans ces deux gardes, une session amorcee sur ses propres defauts demarrerait au-dessus de
++            // l'invariant (jeteurs > effectif) ou sous la borne basse des jeteurs, et les deux boutons de
++            // la ligne seraient morts des l'ouverture du lobby.
++            if (defaultLitterThrowers > defaultTargetPopulation)
++            {
++                error = "DefaultLitterThrowers invalide : le defaut de jeteurs ne peut pas depasser l'effectif cible par defaut.";
++                return false;
++            }
++
++            if (minLitterThrowers > minTargetPopulation)
++            {
++                error = "MinLitterThrowers invalide : la borne basse des jeteurs ne peut pas depasser la borne basse de l'effectif, sinon aucun reglage de session ne satisfait les deux.";
++                return false;
++            }
++
+             if (!IsFiniteAndAbove(edgeBudgetFactor, 0f))
+             {
+                 error = "EdgeBudgetFactor invalide : 'edgeBudgetFactor' doit etre fini et strictement positif.";
+diff --git a/Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.asset b/Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.asset
+index 1a0d92e..c21d57d 100644
+--- a/Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.asset
++++ b/Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.asset
+@@ -16,6 +16,9 @@ MonoBehaviour:
+   defaultTargetPopulation: 8
+   minTargetPopulation: 0
+   maxTargetPopulation: 30
++  defaultLitterThrowers: 2
++  minLitterThrowers: 0
++  maxLitterThrowers: 8
+   edgeBudgetFactor: 2
+   portalClearanceRadius: 12
+   connectorJoinDistance: 0.75
+diff --git a/Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs b/Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs
+index 9f0a35c..77a1f95 100644
+--- a/Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs
++++ b/Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs
+@@ -725,8 +725,15 @@ public void NoTrafficPopulationLivesOutsideTheAuthoredDef()
+                 "Un point de branchement unique et nomme doit porter l'effectif de session (Story 5.16).");
+             Assert.That(Occurrences(spawnerSource, "ResolveSessionTargetPopulation"), Is.EqualTo(2),
+                 "Exactement une definition et un appel : le branchement de la Story 5.16 doit rester unique.");
++
++            // Story 5.16 : la valeur de session existe desormais et se lit dans NetworkedRunState, seul
++            // etat autoritatif de la run. Le defaut authore du Def reste le SEUL repli, et il n'y a
++            // toujours qu'un seul point de branchement -- l'intention de cette assertion est inchangee,
++            // seule sa forme l'est.
++            Assert.That(spawnerSource, Does.Contain("runState.AiVehicleTargetCount.Value"),
++                "L'effectif de session vient de NetworkedRunState, jamais d'une valeur relue ailleurs.");
+             Assert.That(spawnerSource, Does.Contain("settings.ClampTargetPopulation(settings.DefaultTargetPopulation)"),
+-                "Tant que la valeur de session n'existe pas, la valeur par defaut authoree du Def est la seule source.");
++                "Quand aucune session n'a resolu la valeur, la valeur par defaut authoree du Def est la seule source.");
+ 
+             Assert.That(File.ReadAllText(MvpRunScenePath), Does.Not.Contain("TargetPopulation"),
+                 "Aucun effectif n'est authore dans la scene : il vit uniquement dans le Def.");
+@@ -736,7 +743,13 @@ public void NoTrafficPopulationLivesOutsideTheAuthoredDef()
+         public void NothingRemovesATrafficVehicleAnywhereButAnExitPortal()
+         {
+             var driverSource = CodeOnly(File.ReadAllText(DriverSourcePath));
+-            Assert.That(driverSource, Does.Not.Contain("Despawn("), "Le driver ne retire jamais son propre vehicule.");
++
++            // On compte les appels de despawn en retirant les rappels de cycle de vie :
++            // ┬½ OnNetworkDespawn( ┬╗ n'est pas un retrait de vehicule, et une recherche de la seule
++            // sous-chaine ┬½ Despawn( ┬╗ le comptait comme tel -- la garde etait donc rouge en permanence.
++            var despawnCalls = Occurrences(driverSource, "Despawn(") - Occurrences(driverSource, "OnNetworkDespawn(");
++            Assert.That(despawnCalls, Is.EqualTo(0),
++                "Le driver ne retire jamais son propre vehicule ; seuls les rappels OnNetworkDespawn sont admis.");
+             Assert.That(driverSource, Does.Not.Contain("Destroy("), "Le driver ne detruit jamais son propre vehicule.");
+             Assert.That(driverSource, Does.Contain("reachedExitPortal = true"),
+                 "Le driver SIGNALE l'arrivee au portail de sortie ; c'est tout ce qu'il fait du retrait.");
+diff --git a/Assets/RoadRage/Tests/EditMode/Story513ArcadeAssistsAndUnevenGroundTests.cs b/Assets/RoadRage/Tests/EditMode/Story513ArcadeAssistsAndUnevenGroundTests.cs
+index 152a31e..93a6e52 100644
+--- a/Assets/RoadRage/Tests/EditMode/Story513ArcadeAssistsAndUnevenGroundTests.cs
++++ b/Assets/RoadRage/Tests/EditMode/Story513ArcadeAssistsAndUnevenGroundTests.cs
+@@ -823,7 +823,14 @@ public void TheWheelSpinIsStillIntegratedWhileNoWheelTouchesTheGround()
+             Assert.That(tireBlockStart, Is.GreaterThanOrEqualTo(0), "Le bloc de pneu garde par la charge doit exister");
+ 
+             var tireBlock = ExtractBracedBlockAt(fixedUpdate, tireBlockStart);
+-            Assert.That(tireBlock, Does.Contain("ResolveTireForces("), "Le cas de test doit viser le bloc de PNEU, sinon il ne prouve rien.");
++
++            // Le garde de charge porte le PNEU, et le nom de son point d'entree a change depuis cette
++            // story : le corps n'appelle plus VehicleTireModel.ResolveTireForces directement, il passe
++            // par IntegrateDrivenContact, qui resout les forces de pneu par sous-pas (voir
++            // VehicleTireModel.ResolveTireForces, appele depuis IntegrateDrivenContact). L'intention de
++            // la garde est inchangee : c'est bien le bloc de PNEU qui est garde par la charge.
++            Assert.That(tireBlock, Does.Contain("VehicleTireModel.IntegrateDrivenContact("),
++                "Le cas de test doit viser le bloc de PNEU, sinon il ne prouve rien.");
+             Assert.That(tireBlock, Does.Not.Contain("IntegrateWheelAngularVelocity"),
+                 "L'integration de la rotation de roue ne doit PAS etre dans le garde de charge : en l'air, la roue continue de tourner.");
+ 
+diff --git a/Assets/RoadRage/Tests/PlayMode/Story512TireForcesAndSteeringPlayModeTests.cs b/Assets/RoadRage/Tests/PlayMode/Story512TireForcesAndSteeringPlayModeTests.cs
+index d8356cb..9dd4bfa 100644
+--- a/Assets/RoadRage/Tests/PlayMode/Story512TireForcesAndSteeringPlayModeTests.cs
++++ b/Assets/RoadRage/Tests/PlayMode/Story512TireForcesAndSteeringPlayModeTests.cs
+@@ -1,8 +1,10 @@
+ using System.Collections;
+ using NUnit.Framework;
++using RoadRage.App.Services;
+ using RoadRage.Features.Vehicles;
+ using UnityEditor;
+ using UnityEngine;
++using UnityEngine.SceneManagement;
+ using UnityEngine.TestTools;
+ 
+ namespace RoadRage.Tests.PlayMode
+@@ -42,6 +44,8 @@ public sealed class Story512TireForcesAndSteeringPlayModeTests
+         [UnitySetUp]
+         public IEnumerator SetUp()
+         {
++            yield return EnterEmptyBenchScene("Story512_Bench");
++
+             ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
+             ground.name = "Story512_Ground";
+             ground.transform.position = new Vector3(0f, -0.5f, 0f);
+@@ -53,6 +57,41 @@ public IEnumerator SetUp()
+             yield return Settle(vehicle.GetComponent<Rigidbody>());
+         }
+ 
++        /// <summary>
++        /// Ce banc construit son propre sol plat et conduit par les pneus : il ne doit donc trouver
++        /// AUCUNE autre geometrie dans le monde physique par defaut, celui que
++        /// <see cref="VehiclePhysicsBody"/> interroge par <c>Physics.Raycast</c>.
++        ///
++        /// Or les bancs precedents (Story 5.10) laissent <c>MVP_Run</c> charge et actif. Mesure du
++        /// 2026-09-20, avant correction : le vehicule accelerait proprement jusqu'a 17,647 m/s puis
++        /// percutait un module du district a z = 37,48 m et s'arretait net, quatre roues au sol. Ce
++        /// resultat ne dependait donc pas du banc mais de l'ordre d'execution des fixtures.
++        ///
++        /// Une scene de banc dediee et active, les scenes de l'application dechargees, rendent la
++        /// mesure independante de cet ordre : c'est ce sol-la, et lui seul, que le vehicule touche.
++        /// </summary>
++        private static IEnumerator EnterEmptyBenchScene(string benchName)
++        {
++            var bench = SceneManager.CreateScene(benchName + "_" + System.Guid.NewGuid());
++            SceneManager.SetActiveScene(bench);
++
++            for (var i = SceneManager.sceneCount - 1; i >= 0; i--)
++            {
++                var scene = SceneManager.GetSceneAt(i);
++                if (scene == bench)
++                {
++                    continue;
++                }
++
++                if (scene.name == AppSceneRouter.BootstrapSceneName
++                    || scene.name == AppSceneRouter.MainMenuLobbySceneName
++                    || scene.name == AppSceneRouter.MvpRunSceneName)
++                {
++                    yield return SceneManager.UnloadSceneAsync(scene);
++                }
++            }
++        }
++
+         [UnityTearDown]
+         public IEnumerator TearDown()
+         {
+diff --git a/Assets/RoadRage/Tests/PlayMode/Story513ArcadeAssistsAndUnevenGroundPlayModeTests.cs b/Assets/RoadRage/Tests/PlayMode/Story513ArcadeAssistsAndUnevenGroundPlayModeTests.cs
+index 074e1e0..d198ab2 100644
+--- a/Assets/RoadRage/Tests/PlayMode/Story513ArcadeAssistsAndUnevenGroundPlayModeTests.cs
++++ b/Assets/RoadRage/Tests/PlayMode/Story513ArcadeAssistsAndUnevenGroundPlayModeTests.cs
+@@ -1,9 +1,11 @@
+ using System.Collections;
+ using System.Collections.Generic;
+ using NUnit.Framework;
++using RoadRage.App.Services;
+ using RoadRage.Features.Vehicles;
+ using UnityEditor;
+ using UnityEngine;
++using UnityEngine.SceneManagement;
+ using UnityEngine.TestTools;
+ 
+ namespace RoadRage.Tests.PlayMode
+@@ -62,6 +64,8 @@ public sealed class Story513ArcadeAssistsAndUnevenGroundPlayModeTests
+         [UnitySetUp]
+         public IEnumerator SetUp()
+         {
++            yield return EnterEmptyBenchScene("Story513_Bench");
++
+             ground = BuildGround(0f);
+             vehicle = BuildVehicle();
+             physics = vehicle.GetComponent<VehiclePhysicsBody>();
+@@ -69,6 +73,42 @@ public IEnumerator SetUp()
+             yield return Settle(vehicle.GetComponent<Rigidbody>());
+         }
+ 
++        /// <summary>
++        /// Ce banc construit son propre relief et conduit par les pneus : il ne doit donc trouver
++        /// AUCUNE autre geometrie dans le monde physique par defaut, celui que
++        /// <see cref="VehiclePhysicsBody"/> interroge par <c>Physics.Raycast</c>.
++        ///
++        /// Or les bancs precedents (Story 5.10) laissent <c>MVP_Run</c> charge et actif : mesure du
++        /// 2026-09-20, avant correction, le vehicule s'arretait net a z = 37,48 m sur un module du
++        /// district au lieu d'atteindre la bordure ou le relief que ce fichier construit lui-meme.
++        /// Les trois echecs de ce banc en decoulaient (aucune roue delestee, aucune roue en l'air,
++        /// vitesse residuelle nulle apres la bordure) : le vehicule ne parcourait jamais le scenario.
++        ///
++        /// Une scene de banc dediee et active, les scenes de l'application dechargees, rendent la
++        /// mesure independante de l'ordre d'execution des fixtures.
++        /// </summary>
++        private static IEnumerator EnterEmptyBenchScene(string benchName)
++        {
++            var bench = SceneManager.CreateScene(benchName + "_" + System.Guid.NewGuid());
++            SceneManager.SetActiveScene(bench);
++
++            for (var i = SceneManager.sceneCount - 1; i >= 0; i--)
++            {
++                var scene = SceneManager.GetSceneAt(i);
++                if (scene == bench)
++                {
++                    continue;
++                }
++
++                if (scene.name == AppSceneRouter.BootstrapSceneName
++                    || scene.name == AppSceneRouter.MainMenuLobbySceneName
++                    || scene.name == AppSceneRouter.MvpRunSceneName)
++                {
++                    yield return SceneManager.UnloadSceneAsync(scene);
++                }
++            }
++        }
++
+         [UnityTearDown]
+         public IEnumerator TearDown()
+         {
+diff --git a/_bmad-output/implementation-artifacts/deferred-work.md b/_bmad-output/implementation-artifacts/deferred-work.md
+index eb8df8c..2b117e5 100644
+--- a/_bmad-output/implementation-artifacts/deferred-work.md
++++ b/_bmad-output/implementation-artifacts/deferred-work.md
+@@ -330,3 +330,11 @@
+ - source_spec: `_bmad-output/implementation-artifacts/spec-5-14-ai-drives-by-intent.md`
+   summary: Deux commentaires referencent encore `ApplyMovement`, methode supprimee par la Story 5.14 : le bloc ┬½ ETAT INTERMEDIAIRE, NOMME ET DATTE ┬╗ de `VehiclePhysicsBody.cs` decrit l'IA comme ecrivant encore `linearVelocity` et `MoveRotation`, et le doc de `Story510LaneGraphAndRoutedTrafficTests.ReplayRoute` dit que l'integration du lacet ┬½ appartient a `ApplyMovement` ┬╗. Les deux fichiers etaient declares ┬½ a ne pas modifier ┬╗ par le spec de la story, donc la trace de fermeture vit ici plutot que dans une retouche hors perimetre.
+   evidence: Lecture directe le 2026-09-19. `VehiclePhysicsBody.cs:24` : ┬½ le vehicule IA, lui, ecrit encore `linearVelocity` et `MoveRotation` dans `NetworkedAIVehicleDriverController.ApplyMovement` : c'est ce que la Story 5.14 (AI drives by intent) supprime. ┬╗ Et `Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs:1365` : ┬½ Reste recopie, volontairement : l'integration du lacet et du deplacement. Elle appartient a `NetworkedAIVehicleDriverController.ApplyMovement`, qui ecrit la vitesse en bloc [...] Le jour ou il tombe, ces deux lignes tombent avec lui. ┬╗ Aucun test ne s'accroche a ces commentaires : le rejeu de la Story 5.10 integre son lacet LOCALEMENT, il n'appelle pas la methode supprimee -- il reste donc valide, et il a ete laisse non modifie comme le spec l'exigeait. CONDITION DE REOUVERTURE : la prochaine story qui touche l'un de ces deux fichiers, ou la prochaine passe de documentation.
++
++- source_spec: `_bmad-output/implementation-artifacts/spec-5-16-lobby-configurable-traffic-settings.md`
++  summary: Les bancs PlayMode de la Story 5.11 (`Story511VehicleChassisWheelsAndSuspensionPlayModeTests`) restent dependants de l'ordre d'execution, comme l'etaient ceux des Stories 5.12 et 5.13 corriges le 2026-09-20 : ils construisent leur propre sol plat mais sondent le monde physique PAR DEFAUT, que la Story 5.10 laisse charge avec le district de `MVP_Run`.
++  evidence: Meme mecanisme que la panne corrigee, mesure a la sonde le 2026-09-20 : le vehicule 5.12 accelerait proprement jusqu'a 17,647 m/s puis percutait un module du district a z = 37,48 m et s'arretait net, quatre roues au sol -- seule difference avec les bancs 5.11 et 5.15, ceux-ci ECRIVENT `linearVelocity` a chaque pas et sont donc insensibles a un obstacle, alors que 5.12 et 5.13 conduisent par `ApplyDriveIntent` et subissent le choc. Le banc 5.11 est passe aujourd'hui pour cette raison precise, pas parce qu'il est isole : sa garde de bordure mesure une montee a 1,2 m/s et une excursion de 0,142 m, valeurs qu'un module du district ne peut pas produire, donc il est a la merci du meme ordre. CORRECTION NON APPLIQUEE DELIBEREMENT : le banc passe, et le 2026-09-20 aucun verdict PlayMode par CLI n'etait productible pour le verifier (voir l'entree suivante) -- modifier un banc vert sans pouvoir le remesurer aurait ete une regression silencieuse possible. CONDITION DE REOUVERTURE : la prochaine story qui touche la couche physique, ou la prochaine session ou PlayMode est executable ; l'idiome est deja ecrit et copiable (`EnterEmptyBenchScene` en tete de `Story512...PlayModeTests.cs` et `Story513...PlayModeTests.cs` : scene de banc dediee, active, scenes applicatives dechargees).
++
++- source_spec: `_bmad-output/implementation-artifacts/spec-5-16-lobby-configurable-traffic-settings.md`
++  summary: La correction des sept echecs PlayMode des bancs 5.12 et 5.13 (isolation de la scene de banc) n'a PAS de verdict machine : le validateur s'arrete a son gate Console et la voie asynchrone directe revient avec zero test.
++  evidence: Mesure du 2026-09-20. `scripts/validate.ps1 -TestMode PlayMode` executait bien la suite (45 tests, puis 46 avec une sonde temporaire) et rapportait 7 echecs ; apres la correction il s'arrete AVANT les tests sur `ECHEC: 6 erreur(s) en Console (AD-7)` -- six `error CS0103` historiques produites par un etat intermediaire de compilation de la Story 5.16 et corrigees depuis (`recompile_status` : `completed, failed: false`), rejouees parce que le gate appelle `console --level error` sans `--since` ; `clear_console` repond `{cleared:true}` et les entoure toujours. Et `unity cmd run_tests --mode PlayMode --async_tests true --format json` suivi de `test_status` revient avec `status: completed, total: 0` -- la panne de harnais deja consignee, reproduite quatre fois de suite. La verification EditMode, elle, est verte et machine-verifiee (645/645). CONDITION DE CLOTURE : faire tourner la suite PlayMode dans le Test Runner de l'Editeur, ou relancer `validate.ps1` apres un redemarrage de l'Editeur (qui purge le gate Console). Attendu : 45 tests, 0 echec. Ne pas deduire de cette entree que la correction est fausse : elle n'est pas MESUREE.
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index 69796a0..68a7c22 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -131,7 +131,7 @@ development_status:
+   5-13-arcade-assists-and-uneven-ground: done
+   5-14-ai-drives-by-intent: done
+   5-15-credible-collisions-and-damage-integration: done
+-  5-16-lobby-configurable-traffic-settings: backlog
++  5-16-lobby-configurable-traffic-settings: review
+   5-17-wider-perception-and-progressive-unblocking: backlog
+   5-18-intersection-rules-and-deadlock-prevention: backlog
+   5-19-rage-and-fear-as-driving-model-modulation: backlog
+
+### FICHIERS NON SUIVIS (contenu complet)
+
+
+===== NEW FILE: Assets\RoadRage\Shared\Domain\SessionTrafficValue.cs =====
+namespace RoadRage.Shared.Domain
+{
+    /// <summary>
+    /// Story 5.16 : sentinel unique des valeurs de trafic resolues par une session (effectif de
+    /// vehicules IA, nombre de jeteurs de detritus).
+    ///
+    /// Il vit dans Shared parce que ses trois porteurs vivent dans trois assemblies qui ne se
+    /// referencent pas entre elles -- <c>LobbyRosterSnapshot</c> (Features.Online), <c>MatchSettings</c>
+    /// (Features.Lobby) et <c>NetworkedRunState</c> (Features.Run). Une constante recopiee trois fois
+    /// serait trois fois fausse le jour ou elle change.
+    ///
+    /// <c>0</c> est une valeur legale du <c>TrafficSettingsDef</c> et ne peut donc pas porter ce sens :
+    /// <see cref="Unresolved"/> veut dire "aucune session ne l'a resolue", et le repli est alors le
+    /// defaut authore du Def, jamais une valeur inventee en code.
+    /// </summary>
+    public static class SessionTrafficValue
+    {
+        /// <summary>Aucune session n'a resolu la valeur : le defaut authore du Def s'applique.</summary>
+        public const int Unresolved = -1;
+    }
+}
+
+
+===== NEW FILE: Assets\RoadRage\Tests\EditMode\Story516LobbyConfigurableTrafficSettingsTests.cs =====
+using System;
+using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using NUnit.Framework;
+using RoadRage.App.Lobby;
+using RoadRage.App.Run;
+using RoadRage.Features.Lobby;
+using RoadRage.Features.Online;
+using RoadRage.Features.Run;
+using RoadRage.Features.UI;
+using RoadRage.Features.Vehicles;
+using RoadRage.Shared.Domain;
+using Unity.Netcode;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.TestTools;
+using UnityEngine.UI;
+
+namespace RoadRage.Tests.EditMode
+{
+    /// <summary>
+    /// Couvre la Story 5.16 : reglages de trafic configurables depuis le lobby (effectif de vehicules IA
+    /// et nombre de jeteurs de detritus), bornes authorÃ©es dans le TrafficSettingsDef, publication par le
+    /// chemin de la Story 2.4 et resolution hote-owned dans NetworkedRunState.
+    ///
+    /// La couche service/Def/snapshot est eprouvee par le comportement reel avec une fausse plateforme de
+    /// lobby (aucun client Steam requis). La couture LobbyFlowController est eprouvee sur une instance
+    /// reelle montee a froid (GameObject inactif : Awake n'a pas tourne, les dependances sont injectees
+    /// par reflexion) : bornes, refus, publication, repli client, amorcage depuis le Def et assemblage
+    /// des arguments d'affichage sont donc exerces, pas seulement lus.
+    ///
+    /// Deux limites sont assumees et bornees explicitement, jamais presentees comme couvertes :
+    /// l'amorcage est sonne par reflexion et non par un Awake reel (qui construirait un RoadRageBootstrap
+    /// et toucherait Steamworks), et la traversee instantane de lobby -> NetworkedRunState n'est pas
+    /// exercee (elle passe par RoadRageBootstrap.Instance, non injectable) : ce que la resolution fait
+    /// d'une valeur de session est en revanche eprouve pour de bon, avec une valeur differente du defaut
+    /// authore. Le reste est tenu par gardes de source.
+    /// </summary>
+    public sealed class Story516LobbyConfigurableTrafficSettingsTests
+    {
+        private const uint TestAppId = 480;
+
+        private const string SpawnerSourcePath = "Assets/RoadRage/App/Run/PortalTrafficSpawner.cs";
+
+        private const string FlowControllerSourcePath = "Assets/RoadRage/App/Lobby/LobbyFlowController.cs";
+
+        private const string MvpRunScenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";
+
+        private const string MainMenuLobbyScenePath = "Assets/RoadRage/App/Scenes/MainMenuLobby.unity";
+
+        private const string TrafficSettingsDefAssetPath = "Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.asset";
+
+        // --- TrafficSettingsDef : bornes authorÃ©es -----------------------------------------------
+
+        [Test]
+        public void TrafficSettingsDefClampsLitterThrowersToItsAuthoredBounds()
+        {
+            var def = BuildDef(8, 2, 0, 8);
+
+            Assert.That(def.ClampLitterThrowers(50), Is.EqualTo(8));
+            Assert.That(def.ClampLitterThrowers(-3), Is.EqualTo(0));
+            Assert.That(def.ClampLitterThrowers(3), Is.EqualTo(3));
+            Assert.That(def.DefaultLitterThrowers, Is.EqualTo(2), "le defaut authore est deja ramene dans ses bornes");
+        }
+
+        [Test]
+        public void TrafficSettingsDefRejectsLitterThrowersOutsideItsOwnBounds()
+        {
+            var def = BuildDef(8, 9, 0, 8);
+            Assert.That(def.TryValidate(out var error), Is.False, "un defaut hors bornes est invalide");
+            Assert.That(error, Does.Contain("DefaultLitterThrowers"));
+
+            var inverted = BuildDef(8, 2, 5, 3);
+            Assert.That(inverted.TryValidate(out var invertedError), Is.False);
+            Assert.That(invertedError, Does.Contain("MaxLitterThrowers"));
+
+            Assert.That(BuildDef(8, 2, 0, 8).TryValidate(out _), Is.True, "les bornes authorÃ©es par defaut sont valides");
+        }
+
+        [Test]
+        public void TrafficSettingsDefDoesNotEnforceTheLittererInvariantWhichDependsOnTheSession()
+        {
+            // L'invariant "jeteurs <= effectif" depend de la valeur de session : il ne peut pas etre
+            // authorÃ©, et le Def ne doit donc pas le pretendre. Il vit dans la valeur de session.
+            var def = BuildDef(4, 2, 0, 8);
+
+            Assert.That(def.TryValidate(out _), Is.True, "un max de jeteurs superieur a l'effectif cible reste authorable");
+            Assert.That(def.ClampLitterThrowers(8), Is.EqualTo(8));
+        }
+
+        // --- MatchSettings : une seule source de session ------------------------------------------
+
+        [Test]
+        public void MatchSettingsCarriesBothTrafficValuesAndStaysAPlainClass()
+        {
+            var settings = new MatchSettings();
+
+            Assert.That(settings.AiVehicleTargetCount, Is.EqualTo(SessionTrafficValue.Unresolved));
+            Assert.That(settings.LitterThrowerCount, Is.EqualTo(SessionTrafficValue.Unresolved));
+
+            settings.AiVehicleTargetCount = 12;
+            settings.LitterThrowerCount = 3;
+            Assert.That(settings.AiVehicleTargetCount, Is.EqualTo(12));
+            Assert.That(settings.LitterThrowerCount, Is.EqualTo(3));
+
+            Assert.That(typeof(MonoBehaviour).IsAssignableFrom(typeof(MatchSettings)), Is.False);
+            Assert.That(typeof(ScriptableObject).IsAssignableFrom(typeof(MatchSettings)), Is.False);
+        }
+
+        [Test]
+        public void TheUnresolvedSentinelIsDistinctFromEveryLegalAuthoredValue()
+        {
+            var def = BuildDef(8, 2, 0, 8);
+
+            Assert.That(def.ClampTargetPopulation(SessionTrafficValue.Unresolved), Is.EqualTo(0),
+                "le clamp ramene le sentinel dans les bornes ; c'est pourquoi il est teste avant le clamp");
+            Assert.That(SessionTrafficValue.Unresolved, Is.LessThan(0), "0 est une valeur authorable, le sentinel ne peut pas l'etre");
+        }
+
+        // --- Service de roster : publication et propagation ---------------------------------------
+
+        [Test]
+        public void PublishTrafficSettingsOnlyReachesThePlatformWhenAHostRoomIsOpen()
+        {
+            var roster = BuildService(out var lobbyPlatform, out var lobbyRoom, out _);
+
+            roster.PublishTrafficSettings(12, 3);
+            Assert.That(lobbyPlatform.SetTrafficSettingsCallCount, Is.EqualTo(0),
+                "sans room hote ouverte, aucune publication de reglages de trafic");
+
+            lobbyPlatform.NextCreateOutcome = new LobbyCreateOutcome(true, 1UL);
+            lobbyRoom.CreateRoomAsync().GetAwaiter().GetResult();
+
+            roster.PublishTrafficSettings(12, 3);
+            Assert.That(lobbyPlatform.SetTrafficSettingsCallCount, Is.EqualTo(1));
+            Assert.That(lobbyPlatform.LastAiVehicleTargetCount, Is.EqualTo(12));
+            Assert.That(lobbyPlatform.LastLitterThrowerCount, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void TickRaisesRosterChangedWhenOnlyTheTrafficSettingsChange()
+        {
+            // Piege verifie dans le code : SnapshotsEqual ne comparait que HasLobby/OwnerId/Difficulty/
+            // RunLaunchRequested/membres. Sans comparaison des reglages de trafic, un changement publie
+            // par l'hote n'aurait jamais atteint l'invite.
+            var roster = BuildService(out var lobbyPlatform, out var lobbyRoom, out _);
+            lobbyPlatform.NextCreateOutcome = new LobbyCreateOutcome(true, 1UL);
+            lobbyRoom.CreateRoomAsync().GetAwaiter().GetResult();
+
+            lobbyPlatform.NextRoster = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new[]
+            {
+                new LobbyMemberSnapshot(1UL, "Hote", "char_rookie", true)
+            }, false, 8, 2);
+            roster.Tick();
+
+            var raiseCount = 0;
+            roster.RosterChanged += _ => raiseCount++;
+            roster.Tick();
+            Assert.That(raiseCount, Is.EqualTo(0), "instantane identique : aucun evenement");
+
+            lobbyPlatform.NextRoster = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new[]
+            {
+                new LobbyMemberSnapshot(1UL, "Hote", "char_rookie", true)
+            }, false, 20, 5);
+            roster.Tick();
+
+            Assert.That(raiseCount, Is.EqualTo(1), "seuls les reglages de trafic ont change : l'evenement doit partir");
+            Assert.That(roster.Current.AiVehicleTargetCount, Is.EqualTo(20));
+            Assert.That(roster.Current.LitterThrowerCount, Is.EqualTo(5));
+        }
+
+        [Test]
+        public void RosterSnapshotKeepsTheUnresolvedSentinelWhenNothingWasPublished()
+        {
+            Assert.That(LobbyRosterSnapshot.Empty.AiVehicleTargetCount, Is.EqualTo(SessionTrafficValue.Unresolved));
+            Assert.That(LobbyRosterSnapshot.Empty.LitterThrowerCount, Is.EqualTo(SessionTrafficValue.Unresolved));
+
+            var withoutTraffic = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new LobbyMemberSnapshot[0]);
+            Assert.That(withoutTraffic.AiVehicleTargetCount, Is.EqualTo(SessionTrafficValue.Unresolved),
+                "un instantane construit sans reglages de trafic reste non resolu : les doubles des Stories 2.2/2.3/2.4/2.8 restent valides");
+            Assert.That(withoutTraffic.LitterThrowerCount, Is.EqualTo(SessionTrafficValue.Unresolved));
+        }
+
+        // --- Couture LobbyFlowController : bornes, refus, publication --------------------------
+
+        [Test]
+        public void AnAcceptedStepUpdatesTheSessionValueAndPublishesIt()
+        {
+            var def = BuildDef(8, 2, 0, 8);
+            var context = BuildFlowController(def, out var lobbyPlatform, out _, openRoom: true);
+
+            InvokeStep(context, "HandleAiVehicleTargetStepRequested", 1);
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(9));
+            Assert.That(lobbyPlatform.LastAiVehicleTargetCount, Is.EqualTo(9));
+
+            InvokeStep(context, "HandleLitterThrowerStepRequested", 1);
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(3));
+            Assert.That(lobbyPlatform.LastLitterThrowerCount, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void RefusingToDropTheTargetBelowTheLittererCountKeepsBothValues()
+        {
+            var def = BuildDef(8, 2, 0, 8);
+            var context = BuildFlowController(def, out var lobbyPlatform, out _, openRoom: true);
+
+            InvokeStep(context, "HandleLitterThrowerStepRequested", 1);
+            InvokeStep(context, "HandleLitterThrowerStepRequested", 1);
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(4));
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(8));
+
+            var publishCountBefore = lobbyPlatform.SetTrafficSettingsCallCount;
+            var litterersBefore = context.Settings.LitterThrowerCount;
+
+            for (var i = 0; i < 5; i++)
+            {
+                InvokeStep(context, "HandleAiVehicleTargetStepRequested", -1);
+            }
+
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(4),
+                "le total s'arrete au nombre de jeteurs : il ne peut pas passer dessous");
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(litterersBefore), "la valeur refusee ne bouge pas");
+            Assert.That(lobbyPlatform.SetTrafficSettingsCallCount, Is.GreaterThan(publishCountBefore),
+                "les paliers acceptes ont bien ete publies");
+        }
+
+        [Test]
+        public void RefusingAStepAtTheAuthoredBoundKeepsTheValue()
+        {
+            var def = BuildDef(8, 2, 0, 8);
+            var context = BuildFlowController(def, out var lobbyPlatform, out _, openRoom: true);
+
+            for (var i = 0; i < 40; i++)
+            {
+                InvokeStep(context, "HandleAiVehicleTargetStepRequested", 1);
+            }
+
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(def.MaxTargetPopulation),
+                "la borne authorÃ©e haute est infranchissable");
+
+            // Les jeteurs descendent d'abord a 0 : sans cela, l'invariant "jeteurs <= effectif" plancher
+            // l'effectif a 2 et la borne basse authorÃ©e ne serait jamais atteinte.
+            for (var i = 0; i < 40; i++)
+            {
+                InvokeStep(context, "HandleLitterThrowerStepRequested", -1);
+            }
+
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(def.MinLitterThrowers));
+
+            for (var i = 0; i < 40; i++)
+            {
+                InvokeStep(context, "HandleAiVehicleTargetStepRequested", -1);
+            }
+
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(def.MinTargetPopulation),
+                "la borne authorÃ©e basse est infranchissable");
+            Assert.That(lobbyPlatform.SetTrafficSettingsCallCount, Is.GreaterThan(0), "les paliers acceptes ont ete publies");
+        }
+
+        [Test]
+        public void TheEffectiveLittererUpperBoundIsCappedByTheCurrentTarget()
+        {
+            var def = BuildDef(8, 2, 0, 8);
+            var context = BuildFlowController(def, out _, out _, openRoom: true);
+
+            Assert.That(InvokeInt(context, "EffectiveMaxLitterThrowers"), Is.EqualTo(8),
+                "effectif 8 / borne authorÃ©e 8 : la borne effective est 8");
+
+            // Les jeteurs descendent d'abord a 0, sinon l'invariant plancher l'effectif a 2.
+            for (var i = 0; i < 40; i++)
+            {
+                InvokeStep(context, "HandleLitterThrowerStepRequested", -1);
+            }
+
+            for (var i = 0; i < 40; i++)
+            {
+                InvokeStep(context, "HandleAiVehicleTargetStepRequested", -1);
+            }
+
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(0));
+            Assert.That(InvokeInt(context, "EffectiveMaxLitterThrowers"), Is.EqualTo(0),
+                "effectif 0 : la borne effective des jeteurs tombe a 0, l'ecran desactive donc le bouton +");
+        }
+
+        [Test]
+        public void WithoutAnOpenHostRoomNoStepChangesAnything()
+        {
+            var def = BuildDef(8, 2, 0, 8);
+            var context = BuildFlowController(def, out var lobbyPlatform, out _, openRoom: false);
+
+            var before = context.Settings.AiVehicleTargetCount;
+            InvokeStep(context, "HandleAiVehicleTargetStepRequested", 1);
+            InvokeStep(context, "HandleLitterThrowerStepRequested", 1);
+
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(before),
+                "un invite n'edite pas les reglages de trafic de l'hote");
+            Assert.That(lobbyPlatform.SetTrafficSettingsCallCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void WithoutATrafficDefNoStepChangesAnything()
+        {
+            var context = BuildFlowController(null, out _, out _, openRoom: true);
+
+            InvokeStep(context, "HandleAiVehicleTargetStepRequested", 1);
+            InvokeStep(context, "HandleLitterThrowerStepRequested", 1);
+
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(SessionTrafficValue.Unresolved),
+                "sans Def il n'existe aucune borne : aucune valeur n'est resolue, et aucune borne n'est inventee");
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(SessionTrafficValue.Unresolved));
+        }
+
+        [Test]
+        public void AJoinedClientPicksUpTheHostValuesAndNeverOverwritesItsOwnReadWithNothing()
+        {
+            var def = BuildDef(8, 2, 0, 8);
+            var context = BuildFlowController(def, out _, out _, openRoom: false);
+
+            var applyMethod = typeof(LobbyFlowController).GetMethod("ApplyHostTrafficSettings", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(applyMethod, Is.Not.Null, "ApplyHostTrafficSettings attendu sur LobbyFlowController");
+
+            var published = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new LobbyMemberSnapshot[0], false, 17, 4);
+            var changed = (bool)applyMethod.Invoke(context, new object[] { published });
+            Assert.That(changed, Is.True);
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(17));
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(4));
+
+            var unresolved = new LobbyRosterSnapshot(true, 1UL, Difficulty.Normal, new LobbyMemberSnapshot[0]);
+            var changedAgain = (bool)applyMethod.Invoke(context, new object[] { unresolved });
+            Assert.That(changedAgain, Is.False, "un instantane non resolu n'ecrase jamais une valeur deja recue");
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(17));
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(4));
+        }
+
+        // --- Ecran de roster : butee visible ------------------------------------------------------
+
+        [Test]
+        public void TheStepButtonsAreDisabledAtTheirEffectiveBounds()
+        {
+            var screen = BuildScreen(out var vehiclesDecrease, out var vehiclesIncrease, out var litterDecrease, out var litterIncrease);
+
+            screen.ShowTrafficSettings(8, 0, 30, 2, 0, 8, true);
+            Assert.That(vehiclesDecrease.interactable, Is.True);
+            Assert.That(vehiclesIncrease.interactable, Is.True);
+            Assert.That(litterDecrease.interactable, Is.True);
+            Assert.That(litterIncrease.interactable, Is.True);
+
+            screen.ShowTrafficSettings(30, 0, 30, 8, 0, 8, true);
+            Assert.That(vehiclesIncrease.interactable, Is.False, "borne haute atteinte : le bouton + est inactif");
+            Assert.That(litterIncrease.interactable, Is.False);
+
+            screen.ShowTrafficSettings(0, 0, 30, 0, 0, 8, true);
+            Assert.That(vehiclesDecrease.interactable, Is.False, "borne basse atteinte : le bouton - est inactif");
+            Assert.That(litterDecrease.interactable, Is.False);
+
+            screen.ShowTrafficSettings(8, 0, 30, 2, 0, 8, false);
+            Assert.That(vehiclesIncrease.interactable, Is.False, "edition refusee : tous les pas sont inactifs");
+            Assert.That(vehiclesDecrease.interactable, Is.False);
+            Assert.That(litterIncrease.interactable, Is.False);
+            Assert.That(litterDecrease.interactable, Is.False);
+        }
+
+        [Test]
+        public void TheStepButtonsRaiseTheirIntentWithTheirOwnDirection()
+        {
+            var screen = BuildScreen(out _, out var vehiclesIncrease, out var litterDecrease, out _);
+            InvokeAwake(screen);
+
+            var vehicleSteps = new System.Collections.Generic.List<int>();
+            var litterSteps = new System.Collections.Generic.List<int>();
+            screen.AiVehicleTargetStepRequested += vehicleSteps.Add;
+            screen.LitterThrowerStepRequested += litterSteps.Add;
+
+            vehiclesIncrease.onClick.Invoke();
+            Assert.That(vehicleSteps, Is.EqualTo(new[] { 1 }), "le bouton + des vehicules demande un pas montant");
+            Assert.That(litterSteps, Is.Empty, "un bouton de vehicules ne touche jamais aux jeteurs");
+
+            litterDecrease.onClick.Invoke();
+            Assert.That(vehicleSteps, Is.EqualTo(new[] { 1 }), "un bouton de jeteurs ne touche jamais aux vehicules");
+            Assert.That(litterSteps, Is.EqualTo(new[] { -1 }), "le bouton - des jeteurs demande un pas descendant");
+        }
+
+        // --- Gardes de source : ce qu'un test EditMode ne peut pas executer ------------------------
+
+        [Test]
+        public void TheSpawnerResolvesTheSessionValueFromTheRunStateAndFallsBackOnlyOnTheAuthoredDef()
+        {
+            var spawnerSource = CodeOnly(File.ReadAllText(SpawnerSourcePath));
+
+            Assert.That(Occurrences(spawnerSource, "ResolveSessionTargetPopulation"), Is.EqualTo(2),
+                "toujours exactement une definition et un appel : le point de branchement reste unique");
+            Assert.That(spawnerSource, Does.Contain("runState.AiVehicleTargetCount.Value"),
+                "la valeur de session resolue se lit dans NetworkedRunState, seul etat autoritatif de la run");
+            Assert.That(spawnerSource, Does.Contain("settings.ClampTargetPopulation(settings.DefaultTargetPopulation)"),
+                "le defaut authore du Def reste le SEUL repli quand aucune session n'a resolu la valeur");
+            Assert.That(spawnerSource, Does.Contain("PublishSessionTrafficSettingsOnce"),
+                "l'hote depose les valeurs resolues une seule fois, depuis l'instantane du lobby persistant");
+            Assert.That(spawnerSource, Does.Contain("ClampLitterThrowers"),
+                "le nombre de jeteurs est resolu dans le meme mouvement que l'effectif");
+
+            var sceneText = File.ReadAllText(MvpRunScenePath);
+            Assert.That(sceneText, Does.Not.Contain("TargetPopulation"),
+                "aucun effectif n'est authore dans la scene : il vit uniquement dans le Def");
+        }
+
+        /// <summary>
+        /// Le branchement de la Story 5.16 ajoute du code dans la boucle d'insertion : cet ajout ne doit
+        /// ouvrir aucun second chemin de retrait. La garde equivalente de la Story 5.10
+        /// (NothingRemovesATrafficVehicleAnywhereButAnExitPortal) est aujourd'hui rouge pour une raison
+        /// sans rapport -- elle interdit la sous-chaine "Despawn(", que le nom OnNetworkDespawn contient
+        /// deja -- et elle avorte donc AVANT d'evaluer ses assertions sur le spawner. Ces proprietes sont
+        /// donc reprises ici, sur le fichier reellement modifie par cette story.
+        /// </summary>
+        [Test]
+        public void AddingTheSessionBranchOpensNoSecondRemovalPathInTheSpawner()
+        {
+            var spawnerSource = File.ReadAllText(SpawnerSourcePath);
+
+            Assert.That(Occurrences(CodeOnly(spawnerSource), "Despawn("), Is.EqualTo(1),
+                "un seul chemin de despawn dans tout le trafic, avant comme apres la Story 5.16");
+
+            foreach (var forbidden in new[] { "distanceToPlayer", "despawnRadius", "maxLifetime", "IsRolledOver", "voidHeight" })
+            {
+                Assert.That(spawnerSource, Does.Not.Contain(forbidden),
+                    "aucun motif de retrait autre que le portail de sortie (AD-34) : '" + forbidden + "' n'a rien a faire ici");
+            }
+        }
+
+        [Test]
+        public void TheFlowControllerOwnsBoundsRefusalAndPublicationInOnePlace()
+        {
+            var source = CodeOnly(File.ReadAllText(FlowControllerSourcePath));
+
+            Assert.That(source, Does.Contain("PublishUnavailable(TrafficLitterersExceedVehiclesMessage)"),
+                "le seul refus reellement atteignable publie une notice distincte et visible");
+            Assert.That(Occurrences(source, "lobbyRoster.PublishTrafficSettings("), Is.EqualTo(2),
+                "une publication a l'ouverture de la room, une a chaque valeur acceptee : aucun autre chemin");
+            Assert.That(source, Does.Contain("if (isJoinedClient && snapshot.HasLobby && ApplyHostTrafficSettings(snapshot))"),
+                "l'hote ne se reapplique jamais sa propre lecture : seul un invite reprend les valeurs publiees");
+            Assert.That(source, Does.Not.Contain("SetLobbyTrafficSettings("),
+                "l'App ne parle jamais directement a la plateforme Steam : elle passe par LobbyRosterService");
+        }
+
+        [Test]
+        public void TheLobbySceneCarriesTheTrafficRowsAndTheAuthoredDef()
+        {
+            var sceneText = File.ReadAllText(MainMenuLobbyScenePath);
+
+            // Une reference non assignee s'ecrit {fileID: 0} et satisferait une simple recherche de nom :
+            // ces six references doivent pointer sur un objet reel, sinon un bouton meurt en silence
+            // avec pour seule trace un avertissement d'Awake.
+            foreach (var field in new[]
+            {
+                "trafficVehiclesLabel",
+                "trafficVehiclesDecreaseButton",
+                "trafficVehiclesIncreaseButton",
+                "litterThrowersLabel",
+                "litterThrowersDecreaseButton",
+                "litterThrowersIncreaseButton"
+            })
+            {
+                Assert.That(Regex.IsMatch(sceneText, field + @": \{fileID: (?!0\b)\d+\}"), Is.True,
+                    field + " doit pointer sur un objet reel dans MainMenuLobby, jamais sur {fileID: 0}");
+            }
+
+            var defGuid = Regex.Match(
+                File.ReadAllText(TrafficSettingsDefAssetPath + ".meta"), @"guid: ([0-9a-f]{32})").Groups[1].Value;
+            Assert.That(defGuid, Is.Not.Empty, "le .meta du Def doit porter un guid");
+            Assert.That(sceneText, Does.Contain("trafficSettings: {fileID: 11400000, guid: " + defGuid + ", type: 2}"),
+                "le TrafficSettingsDef_Default est assigne sur LobbyFlowController : un autre Def, ou aucun, laisserait les reglages inertes");
+        }
+
+        [Test]
+        public void TheLobbyReadsEveryBoundAndDefaultFromTheAuthoredDefAndTheScreenKnowsNoneOfIt()
+        {
+            var flowSource = CodeOnly(File.ReadAllText(FlowControllerSourcePath));
+            foreach (var reference in new[]
+            {
+                "trafficSettings.DefaultTargetPopulation",
+                "trafficSettings.DefaultLitterThrowers",
+                "trafficSettings.MinTargetPopulation",
+                "trafficSettings.MaxTargetPopulation",
+                "trafficSettings.MinLitterThrowers",
+                "trafficSettings.MaxLitterThrowers"
+            })
+            {
+                Assert.That(flowSource, Does.Contain(reference),
+                    reference + " : chaque borne et chaque defaut vient du Def authorÃ©, jamais d'une constante de code");
+            }
+
+            var screenSource = CodeOnly(File.ReadAllText("Assets/RoadRage/Features/UI/LobbyRosterScreen.cs"));
+            Assert.That(screenSource, Does.Not.Contain("TrafficSettingsDef"),
+                "l'ecran ne connait que des entiers et des bornes entieres : ni le Def, ni MatchSettings");
+            Assert.That(screenSource, Does.Not.Contain("MatchSettings"),
+                "l'ecran ne mute jamais les reglages de partie lui-meme (garde de la Story 1.2)");
+        }
+
+        // --- Resolution cote run, contrat de plateforme, amorcage, affichage -------------------------
+
+        [Test]
+        public void TheResolvedPopulationComesFromTheSessionValueAndNotFromTheAuthoredDefault()
+        {
+            var def = BuildDef(8, 2, 0, 8);
+            var runState = BuildRunState();
+            var spawner = BuildSpawner(runState);
+
+            runState.AiVehicleTargetCount.Value = 17;
+            Assert.That(InvokeResolve(spawner, def), Is.EqualTo(17),
+                "une valeur de session differente du defaut authore (8) doit l'emporter : c'est l'apport central de la story");
+
+            runState.AiVehicleTargetCount.Value = 999;
+            Assert.That(InvokeResolve(spawner, def), Is.EqualTo(def.MaxTargetPopulation),
+                "la valeur de session reste bornee par le Def, jamais prise telle quelle");
+
+            runState.AiVehicleTargetCount.Value = SessionTrafficValue.Unresolved;
+            Assert.That(InvokeResolve(spawner, def), Is.EqualTo(def.DefaultTargetPopulation),
+                "sans session resolue, le defaut authore du Def est la seule source");
+        }
+
+        [Test]
+        public void TheRealSteamPlatformDeclaresTheTrafficPublisherItself()
+        {
+            var method = typeof(FacepunchSteamLobbyPlatform).GetMethod("SetLobbyTrafficSettings");
+
+            Assert.That(method, Is.Not.Null,
+                "FacepunchSteamLobbyPlatform doit declarer l'override : le corps par defaut vide de l'interface rendrait sa disparition silencieuse");
+            Assert.That(method.DeclaringType, Is.EqualTo(typeof(FacepunchSteamLobbyPlatform)),
+                "l'override doit venir de l'implementation reelle, pas du corps par defaut de l'interface");
+        }
+
+        [Test]
+        public void TheLobbySeedsBothValuesFromTheDef()
+        {
+            var def = BuildDef(3, 3, 0, 8);
+            var context = BuildFlowController(def, out _, out _, openRoom: false, seedSettings: false);
+
+            InvokeVoid(context, "SeedTrafficSettingsFromDef");
+
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(3), "l'effectif de depart vient du Def authorÃ©");
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(3),
+                "le defaut de jeteurs est plafonne par l'effectif cible : l'invariant tient des l'amorÃ§age");
+        }
+
+        [Test]
+        public void TheLobbyWithoutADefLeavesTheValuesUnresolvedAndWarns()
+        {
+            var context = BuildFlowController(null, out _, out _, openRoom: false, seedSettings: false);
+
+            LogAssert.Expect(LogType.Warning, new Regex("sans TrafficSettingsDef"));
+            InvokeVoid(context, "SeedTrafficSettingsFromDef");
+
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(SessionTrafficValue.Unresolved));
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(SessionTrafficValue.Unresolved));
+        }
+
+        [Test]
+        public void TheLobbySubscribesBothStepEventsAndSeedsInAwake()
+        {
+            var source = CodeOnly(File.ReadAllText(FlowControllerSourcePath));
+
+            foreach (var wiring in new[]
+            {
+                "lobbyRosterScreen.AiVehicleTargetStepRequested += HandleAiVehicleTargetStepRequested;",
+                "lobbyRosterScreen.LitterThrowerStepRequested += HandleLitterThrowerStepRequested;",
+                "lobbyRosterScreen.AiVehicleTargetStepRequested -= HandleAiVehicleTargetStepRequested;",
+                "lobbyRosterScreen.LitterThrowerStepRequested -= HandleLitterThrowerStepRequested;",
+                "SeedTrafficSettingsFromDef();"
+            })
+            {
+                Assert.That(source, Does.Contain(wiring),
+                    wiring + " : sans ce cablage, une ligne de reglage est morte en jeu sans qu'aucun test ne rougisse");
+            }
+        }
+
+        [Test]
+        public void TheDisplayedLittererBoundIsTheEffectiveOneNotTheAuthoredOne()
+        {
+            var def = BuildDef(3, 3, 0, 8);
+            var context = BuildFlowController(def, out _, out _, openRoom: true);
+            var screen = BuildScreen(out _, out _, out _, out var litterIncrease);
+            SetField(context, "lobbyRosterScreen", screen);
+
+            InvokeVoid(context, "RefreshTrafficSettingsPresentation");
+
+            Assert.That(context.Settings.AiVehicleTargetCount, Is.EqualTo(3));
+            Assert.That(context.Settings.LitterThrowerCount, Is.EqualTo(3));
+            Assert.That(litterIncrease.interactable, Is.False,
+                "borne haute effective = min(borne authorÃ©e 8, effectif 3) = 3 : le bouton est en butee ; avec la borne authorÃ©e seule (8) il resterait actif et l'ecran annoncerait une limite que le code n'applique pas");
+        }
+
+        // --- Fabriques -----------------------------------------------------------------------------
+
+        private static TrafficSettingsDef BuildDef(int defaultTargetPopulation, int defaultLitterThrowers, int minLitterThrowers, int maxLitterThrowers)
+        {
+            var def = ScriptableObject.CreateInstance<TrafficSettingsDef>();
+            var serialized = new SerializedObject(def);
+            serialized.FindProperty("id").stringValue = "traffic_test";
+            serialized.FindProperty("defaultTargetPopulation").intValue = defaultTargetPopulation;
+            serialized.FindProperty("minTargetPopulation").intValue = 0;
+            serialized.FindProperty("maxTargetPopulation").intValue = 30;
+            serialized.FindProperty("defaultLitterThrowers").intValue = defaultLitterThrowers;
+            serialized.FindProperty("minLitterThrowers").intValue = minLitterThrowers;
+            serialized.FindProperty("maxLitterThrowers").intValue = maxLitterThrowers;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            return def;
+        }
+
+        private static LobbyRosterService BuildService(out FakeSteamLobbyPlatform lobbyPlatform, out LobbyRoomService lobbyRoom, out LobbyJoinService lobbyJoin)
+        {
+            var onlineServices = BuildOnlineServices();
+            lobbyPlatform = new FakeSteamLobbyPlatform();
+            lobbyRoom = new LobbyRoomService(lobbyPlatform, onlineServices);
+            lobbyJoin = new LobbyJoinService(lobbyPlatform, onlineServices);
+            return new LobbyRosterService(lobbyPlatform, lobbyRoom, lobbyJoin);
+        }
+
+        /// <summary>
+        /// Monte un LobbyFlowController reel sur un GameObject INACTIF : Awake n'a donc pas tourne, et
+        /// les dependances sont injectees. Les champs observes sont ensuite ceux du vrai code de
+        /// decision -- bornes, refus, publication -- pas une reimplementation du test.
+        /// </summary>
+        private static LobbyFlowController BuildFlowController(TrafficSettingsDef def, out FakeSteamLobbyPlatform lobbyPlatform, out LobbyRoomService lobbyRoom, bool openRoom, bool seedSettings = true)
+        {
+            var onlineServices = BuildOnlineServices();
+            lobbyPlatform = new FakeSteamLobbyPlatform();
+            lobbyRoom = new LobbyRoomService(lobbyPlatform, onlineServices);
+            var lobbyJoin = new LobbyJoinService(lobbyPlatform, onlineServices);
+            var roster = new LobbyRosterService(lobbyPlatform, lobbyRoom, lobbyJoin);
+
+            var host = new GameObject("Story516FlowControllerUnderTest");
+            host.SetActive(false);
+            var controller = host.AddComponent<LobbyFlowController>();
+            var screenHost = new GameObject("Story516RosterScreenUnderTest");
+            screenHost.SetActive(false);
+            var rosterScreen = screenHost.AddComponent<LobbyRosterScreen>();
+
+            if (openRoom)
+            {
+                lobbyPlatform.NextCreateOutcome = new LobbyCreateOutcome(true, 1UL);
+                lobbyRoom.CreateRoomAsync().GetAwaiter().GetResult();
+            }
+
+            var settings = new MatchSettings();
+            if (def != null && seedSettings)
+            {
+                settings.AiVehicleTargetCount = def.DefaultTargetPopulation;
+                settings.LitterThrowerCount = Mathf.Min(def.DefaultLitterThrowers, settings.AiVehicleTargetCount);
+            }
+
+            SetField(controller, "Settings", settings);
+            SetField(controller, "trafficSettings", def);
+            SetField(controller, "lobbyRoom", lobbyRoom);
+            SetField(controller, "lobbyRoster", roster);
+            SetField(controller, "lobbyRosterScreen", rosterScreen);
+            return controller;
+        }
+
+        /// <summary>Ecran reel monte a froid : seuls les boutons sont injectes, aucun libelle (les gardes de nullite suffisent).</summary>
+        private static LobbyRosterScreen BuildScreen(out Button vehiclesDecrease, out Button vehiclesIncrease, out Button litterDecrease, out Button litterIncrease)
+        {
+            var host = new GameObject("Story516RosterScreenStepButtons");
+            host.SetActive(false);
+            var screen = host.AddComponent<LobbyRosterScreen>();
+
+            vehiclesDecrease = BuildButton("vehiclesDecrease");
+            vehiclesIncrease = BuildButton("vehiclesIncrease");
+            litterDecrease = BuildButton("litterDecrease");
+            litterIncrease = BuildButton("litterIncrease");
+
+            SetField(screen, "trafficVehiclesDecreaseButton", vehiclesDecrease);
+            SetField(screen, "trafficVehiclesIncreaseButton", vehiclesIncrease);
+            SetField(screen, "litterThrowersDecreaseButton", litterDecrease);
+            SetField(screen, "litterThrowersIncreaseButton", litterIncrease);
+            return screen;
+        }
+
+        private static Button BuildButton(string name)
+        {
+            var host = new GameObject("Story516" + name);
+            host.SetActive(false);
+            return host.AddComponent<Button>();
+        }
+
+        private static OnlineServicesBootstrapService BuildOnlineServices()
+        {
+            var steamPlatform = new FakeSteamPlatform { IsValid = true, IsLoggedOn = true };
+            var onlineServices = new OnlineServicesBootstrapService(steamPlatform, TestAppId);
+            onlineServices.TryInitialize();
+            Assert.That(onlineServices.Status, Is.EqualTo(OnlineServicesStatus.Online));
+            return onlineServices;
+        }
+
+        /// <summary>Ecarte les commentaires et les chaines de documentation : les gardes portent sur du code, pas sur de la prose.</summary>
+        private static string CodeOnly(string source)
+        {
+            var withoutBlockComments = Regex.Replace(source, @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
+            var withoutLineComments = Regex.Replace(withoutBlockComments, @"//.*?$", string.Empty, RegexOptions.Multiline);
+            return Regex.Replace(withoutLineComments, @"///.*?$", string.Empty, RegexOptions.Multiline);
+        }
+
+        private static int Occurrences(string source, string token)
+        {
+            var count = 0;
+            var index = source.IndexOf(token, StringComparison.Ordinal);
+            while (index >= 0)
+            {
+                count++;
+                index = source.IndexOf(token, index + token.Length, StringComparison.Ordinal);
+            }
+
+            return count;
+        }
+
+        private static void SetField(object target, string fieldName, object value)
+        {
+            var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null && fieldName == "Settings")
+            {
+                field = target.GetType().GetField("<Settings>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+            }
+
+            Assert.That(field, Is.Not.Null, fieldName + " attendu sur " + target.GetType().Name);
+            field.SetValue(target, value);
+        }
+
+        private static void InvokeStep(LobbyFlowController controller, string methodName, int step)
+        {
+            var method = typeof(LobbyFlowController).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null, methodName + " attendu sur LobbyFlowController");
+            method.Invoke(controller, new object[] { step });
+        }
+
+        private static int InvokeInt(LobbyFlowController controller, string methodName)
+        {
+            var method = typeof(LobbyFlowController).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null, methodName + " attendu sur LobbyFlowController");
+            return (int)method.Invoke(controller, null);
+        }
+
+        private static void InvokeVoid(LobbyFlowController controller, string methodName)
+        {
+            var method = typeof(LobbyFlowController).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null, methodName + " attendu sur LobbyFlowController");
+            method.Invoke(controller, null);
+        }
+
+        /// <summary>Etat de run reel, monte comme le fait la suite Story 5.6 : AddComponent, jamais .Spawn().</summary>
+        private static NetworkedRunState BuildRunState()
+        {
+            var host = new GameObject("Story516RunStateUnderTest");
+            host.AddComponent<NetworkObject>();
+            return host.AddComponent<NetworkedRunState>();
+        }
+
+        private static PortalTrafficSpawner BuildSpawner(NetworkedRunState runState)
+        {
+            var host = new GameObject("Story516SpawnerUnderTest");
+            host.SetActive(false);
+            var spawner = host.AddComponent<PortalTrafficSpawner>();
+            SetField(spawner, "runState", runState);
+            return spawner;
+        }
+
+        private static int InvokeResolve(PortalTrafficSpawner spawner, TrafficSettingsDef def)
+        {
+            var method = typeof(PortalTrafficSpawner).GetMethod("ResolveSessionTargetPopulation", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null, "ResolveSessionTargetPopulation attendu sur PortalTrafficSpawner");
+            return (int)method.Invoke(spawner, new object[] { def });
+        }
+
+        /// <summary>
+        /// Execute l'Awake d'un composant monte a froid, ce que Unity ne fait pas sur un GameObject
+        /// inactif. C'est ce qui cable les boutons de pas a leurs intentions.
+        /// </summary>
+        private static void InvokeAwake(MonoBehaviour target)
+        {
+            var awake = target.GetType().GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(awake, Is.Not.Null, "Awake attendu sur " + target.GetType().Name);
+            awake.Invoke(target, null);
+        }
+
+        private sealed class FakeSteamPlatform : ISteamPlatform
+        {
+            public bool IsValid { get; set; }
+
+            public bool IsLoggedOn { get; set; }
+
+            public void Init(uint appId)
+            {
+            }
+
+            public void Shutdown()
+            {
+            }
+
+            public void RunCallbacks()
+            {
+            }
+        }
+
+        private sealed class FakeSteamLobbyPlatform : ISteamLobbyPlatform
+        {
+            public LobbyCreateOutcome NextCreateOutcome { get; set; } = LobbyCreateOutcome.Failed;
+
+            public LobbyJoinOutcome NextJoinOutcome { get; set; } = LobbyJoinOutcome.Failed;
+
+            public LobbyRosterSnapshot NextRoster { get; set; } = LobbyRosterSnapshot.Empty;
+
+            public int SetTrafficSettingsCallCount { get; private set; }
+
+            public int LastAiVehicleTargetCount { get; private set; }
+
+            public int LastLitterThrowerCount { get; private set; }
+
+            public Task<LobbyCreateOutcome> CreateLobbyAsync(int maxMembers)
+            {
+                return Task.FromResult(NextCreateOutcome);
+            }
+
+            public Task<LobbyJoinOutcome> JoinLobbyAsync(ulong lobbyId)
+            {
+                return Task.FromResult(NextJoinOutcome);
+            }
+
+            public void LeaveCurrentLobby()
+            {
+            }
+
+            public LobbyRosterSnapshot GetRosterSnapshot()
+            {
+                return NextRoster;
+            }
+
+            public void SetLocalMemberReady(bool ready)
+            {
+            }
+
+            public void SetLocalMemberProfile(string displayName, string characterId)
+            {
+            }
+
+            public void SetLobbyDifficulty(Difficulty difficulty)
+            {
+            }
+
+            public void SetLobbyTrafficSettings(int aiVehicleTargetCount, int litterThrowerCount)
+            {
+                SetTrafficSettingsCallCount++;
+                LastAiVehicleTargetCount = aiVehicleTargetCount;
+                LastLitterThrowerCount = litterThrowerCount;
+            }
+
+            public void SetLobbyRunLaunchRequested(bool launchRequested)
+            {
+            }
+        }
+    }
+}
+
+
+===== NEW FILE: AgentScripts\Story516ForceAssetRefresh.cs =====
+using UnityEditor;
+
+/// <summary>
+/// Story 5.16 : force l'import des sources modifiees hors focus de l'Editeur. La base d'assets ne
+/// detecte pas les ecritures faites directement sur disque tant qu'aucun Refresh n'a eu lieu, ce qui
+/// fait dire a 'recompile' qu'aucun script n'a besoin d'etre recompile alors que les assemblies sont
+/// perimes. Ce script ne fait que declencher le Refresh ; le rechargement de domaine qui suit peut
+/// interrompre la reponse, c'est attendu.
+/// </summary>
+public static class Story516ForceAssetRefresh
+{
+    public static string Run()
+    {
+        AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+        return "AssetDatabase.Refresh(ForceUpdate) demande.";
+    }
+}
+
+
+===== NEW FILE: AgentScripts\Story516LobbyPanelInspection.cs =====
+using System.Text;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+/// <summary>
+/// Lecture seule : etat authore du panneau de lobby de la Story 5.16 (MainMenuLobby).
+///
+/// Script hors Assets/ : compile par le pipeline, jamais importe par l'Editor, donc aucun reimport
+/// d'asset ni rechargement de domaine. Il ne modifie rien -- il sert a connaitre les RectTransform
+/// existants avant d'ajouter les deux lignes de reglage de trafic.
+/// </summary>
+public static class Story516LobbyPanelInspection
+{
+    public static string Run()
+    {
+        var screen = Object.FindFirstObjectByType<RoadRage.Features.UI.LobbyRosterScreen>(FindObjectsInactive.Include);
+        if (screen == null)
+        {
+            return "LobbyRosterScreen introuvable dans les scenes chargees.";
+        }
+
+        var canvas = screen.GetComponentInParent<Canvas>();
+        var builder = new StringBuilder();
+        builder.AppendLine("Canvas: " + (canvas != null ? canvas.name : "<aucun>")
+            + " renderMode=" + (canvas != null ? canvas.renderMode.ToString() : "?")
+            + " scaler=" + Describe(canvas != null ? canvas.GetComponent<CanvasScaler>() : null));
+
+        Append(builder, screen.transform, screen.transform, 0);
+        return builder.ToString();
+    }
+
+    private static void Append(StringBuilder builder, Transform node, Transform root, int depth)
+    {
+        var rect = node as RectTransform;
+        builder.Append(new string(' ', depth * 2));
+        builder.Append(node.name);
+
+        if (rect != null)
+        {
+            builder.Append(" | aMin=").Append(Short(rect.anchorMin));
+            builder.Append(" aMax=").Append(Short(rect.anchorMax));
+            builder.Append(" pivot=").Append(Short(rect.pivot));
+            builder.Append(" pos=").Append(Short(rect.anchoredPosition));
+            builder.Append(" size=").Append(Short(rect.sizeDelta));
+            builder.Append(" rect=").Append(Short(rect.rect.size));
+        }
+
+        builder.Append(" | activeSelf=").Append(node.gameObject.activeSelf);
+        builder.Append(" | components=");
+
+        var components = node.GetComponents<Component>();
+        for (var i = 0; i < components.Length; i++)
+        {
+            if (i > 0)
+            {
+                builder.Append(',');
+            }
+
+            builder.Append(components[i] == null ? "<null>" : components[i].GetType().Name);
+        }
+
+        var text = node.GetComponent<TMP_Text>();
+        if (text != null)
+        {
+            builder.Append(" text='").Append(text.text).Append('\'');
+        }
+
+        builder.AppendLine();
+
+        for (var i = 0; i < node.childCount; i++)
+        {
+            Append(builder, node.GetChild(i), root, depth + 1);
+        }
+    }
+
+    private static string Describe(CanvasScaler scaler)
+    {
+        if (scaler == null)
+        {
+            return "<aucun>";
+        }
+
+        return scaler.uiScaleMode + " ref=" + scaler.referenceResolution + " match=" + scaler.matchWidthOrHeight;
+    }
+
+    private static string Short(Vector2 value)
+    {
+        return "(" + value.x.ToString("0.##") + "," + value.y.ToString("0.##") + ")";
+    }
+}
+
+
+===== NEW FILE: AgentScripts\Story516LobbyTrafficRowsAuthoring.cs =====
+using RoadRage.App.Lobby;
+using RoadRage.Features.UI;
+using RoadRage.Features.Vehicles;
+using TMPro;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+/// <summary>
+/// Authoring de scene de la Story 5.16 (MainMenuLobby) : ajoute sous /Canvas/LobbyPanel les deux
+/// lignes de reglage de trafic (libelle + bouton - + bouton +), puis assigne les champs serialises de
+/// LobbyRosterScreen et le TrafficSettingsDef sur LobbyFlowController.
+///
+/// Script hors Assets/ : compile par le pipeline, jamais importe par l'Editor, donc aucun reimport
+/// d'asset ni rechargement de domaine pendant l'execution.
+///
+/// Idempotent : si la premiere ligne existe deja, rien n'est reconstruit.
+/// </summary>
+public static class Story516LobbyTrafficRowsAuthoring
+{
+    private const string ScenePath = "Assets/RoadRage/App/Scenes/MainMenuLobby.unity";
+
+    private const string TrafficDefPath = "Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.asset";
+
+    private const string VehiclesLabelName = "LobbyTrafficVehiclesLabel";
+
+    private const string VehiclesDecreaseName = "LobbyTrafficVehiclesDecreaseButton";
+
+    private const string VehiclesIncreaseName = "LobbyTrafficVehiclesIncreaseButton";
+
+    private const string LitterLabelName = "LobbyTrafficLitterThrowersLabel";
+
+    private const string LitterDecreaseName = "LobbyTrafficLitterThrowersDecreaseButton";
+
+    private const string LitterIncreaseName = "LobbyTrafficLitterThrowersIncreaseButton";
+
+    private static readonly Vector2 ButtonSize = new Vector2(60f, 60f);
+
+    private static readonly Vector2 LabelSize = new Vector2(380f, 50f);
+
+    public static string Run()
+    {
+        var scene = SceneManager.GetSceneByPath(ScenePath);
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return "MainMenuLobby n'est pas chargee : ouvre-la avant de lancer cet authoring.";
+        }
+
+        var screen = Object.FindAnyObjectByType<LobbyRosterScreen>(FindObjectsInactive.Include);
+        if (screen == null)
+        {
+            return "LobbyRosterScreen introuvable dans les scenes chargees.";
+        }
+
+        var panel = screen.transform;
+        var alreadyAuthored = panel.Find(VehiclesLabelName) != null;
+
+        var buttonTemplate = panel.Find("LobbyDifficultyButton");
+        var labelTemplate = panel.Find("LobbySettingsSummaryLabel");
+        if (buttonTemplate == null || labelTemplate == null)
+        {
+            return "Gabarits introuvables (LobbyDifficultyButton / LobbySettingsSummaryLabel) : authoring abandonne.";
+        }
+
+        var vehiclesDecrease = EnsureButton(panel, buttonTemplate, VehiclesDecreaseName, new Vector2(-250f, -335f), "-", alreadyAuthored);
+        var vehiclesLabel = EnsureLabel(panel, labelTemplate, VehiclesLabelName, new Vector2(-10f, -335f), "Vehicules IA", alreadyAuthored);
+        var vehiclesIncrease = EnsureButton(panel, buttonTemplate, VehiclesIncreaseName, new Vector2(240f, -335f), "+", alreadyAuthored);
+
+        var litterDecrease = EnsureButton(panel, buttonTemplate, LitterDecreaseName, new Vector2(-250f, -405f), "-", alreadyAuthored);
+        var litterLabel = EnsureLabel(panel, labelTemplate, LitterLabelName, new Vector2(-10f, -405f), "Jeteurs de detritus", alreadyAuthored);
+        var litterIncrease = EnsureButton(panel, buttonTemplate, LitterIncreaseName, new Vector2(240f, -405f), "+", alreadyAuthored);
+
+        var report = new System.Text.StringBuilder();
+        var screenSerialized = new SerializedObject(screen);
+        Assign(report, screenSerialized, "trafficVehiclesLabel", vehiclesLabel.GetComponent<TMP_Text>());
+        Assign(report, screenSerialized, "trafficVehiclesDecreaseButton", vehiclesDecrease.GetComponent<Button>());
+        Assign(report, screenSerialized, "trafficVehiclesIncreaseButton", vehiclesIncrease.GetComponent<Button>());
+        Assign(report, screenSerialized, "litterThrowersLabel", litterLabel.GetComponent<TMP_Text>());
+        Assign(report, screenSerialized, "litterThrowersDecreaseButton", litterDecrease.GetComponent<Button>());
+        Assign(report, screenSerialized, "litterThrowersIncreaseButton", litterIncrease.GetComponent<Button>());
+        screenSerialized.ApplyModifiedPropertiesWithoutUndo();
+
+        var flowController = Object.FindAnyObjectByType<LobbyFlowController>(FindObjectsInactive.Include);
+        if (flowController == null)
+        {
+            return "LobbyFlowController introuvable : lignes creees mais Def non assigne.";
+        }
+
+        var trafficDef = AssetDatabase.LoadAssetAtPath<TrafficSettingsDef>(TrafficDefPath);
+        if (trafficDef == null)
+        {
+            return "TrafficSettingsDef_Default.asset introuvable : lignes creees mais Def non assigne.";
+        }
+
+        var flowSerialized = new SerializedObject(flowController);
+        Assign(report, flowSerialized, "trafficSettings", trafficDef);
+        flowSerialized.ApplyModifiedPropertiesWithoutUndo();
+
+        // Ne jamais sauver une scene a moitie cablee : la premiere execution de ce script l'a fait
+        // (base d'assets perimee, tous les FindProperty nuls), et la scene paraissait authorÃ©e alors
+        // qu'aucune reference n'etait posee. Mieux vaut echouer bruyamment que figer un demi-cablage.
+        if (report.ToString().Contains("MANQUANT"))
+        {
+            return "Assignations manquantes : scene NON sauvee.\n" + report;
+        }
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        var saved = EditorSceneManager.SaveScene(scene);
+        return (alreadyAuthored ? "Lignes deja presentes : references reassignees. " : "Authoring termine. ")
+            + "Scene sauvee : " + saved + "\n" + report;
+    }
+
+    private static void Assign(System.Text.StringBuilder report, SerializedObject target, string propertyName, Object value)
+    {
+        var property = target.FindProperty(propertyName);
+        if (property == null)
+        {
+            report.AppendLine("MANQUANT: " + propertyName + " sur " + target.targetObject.GetType().Name);
+            return;
+        }
+
+        property.objectReferenceValue = value;
+        report.AppendLine("ok: " + propertyName + " -> " + (value != null ? value.name : "<null>"));
+    }
+
+    private static GameObject EnsureButton(Transform parent, Transform template, string name, Vector2 position, string glyph, bool reuseExisting)
+    {
+        if (reuseExisting)
+        {
+            var existing = parent.Find(name);
+            if (existing != null)
+            {
+                return existing.gameObject;
+            }
+        }
+
+        var clone = Clone(parent, template, name, position, ButtonSize);
+        var label = clone.GetComponentInChildren<TMP_Text>(true);
+        if (label != null)
+        {
+            label.text = glyph;
+        }
+
+        return clone;
+    }
+
+    private static GameObject EnsureLabel(Transform parent, Transform template, string name, Vector2 position, string text, bool reuseExisting)
+    {
+        if (reuseExisting)
+        {
+            var existing = parent.Find(name);
+            if (existing != null)
+            {
+                return existing.gameObject;
+            }
+        }
+
+        var clone = Clone(parent, template, name, position, LabelSize);
+        var label = clone.GetComponent<TMP_Text>();
+        if (label != null)
+        {
+            label.text = text;
+        }
+
+        return clone;
+    }
+
+    private static GameObject Clone(Transform parent, Transform template, string name, Vector2 position, Vector2 size)
+    {
+        var clone = Object.Instantiate(template.gameObject, parent);
+        clone.name = name;
+        Undo.RegisterCreatedObjectUndo(clone, "Story 5.16 - lignes de reglage de trafic");
+
+        var rect = (RectTransform)clone.transform;
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+        rect.localScale = Vector3.one;
+
+        return clone;
+    }
+}
+
+
+===== NEW FILE: AgentScripts\Story516TrafficLabelRename.cs =====
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+/// <summary>
+/// Story 5.16 : renomme les libelles "+" / "-" des quatre boutons de trafic. Ils portaient tous le nom
+/// herite du gabarit duplique (LobbyDifficultyButtonLabel), ce qui rendait la hierarchie ambigue pour
+/// toute recherche par nom -- le cablage par fileID n'en souffrait pas, mais la scene ne disait plus ce
+/// que chaque libelle affiche.
+///
+/// Script hors Assets/ : compile par le pipeline, jamais importe par l'Editor.
+/// Idempotent : un libelle deja correctement nomme est laisse tel quel.
+/// </summary>
+public static class Story516TrafficLabelRename
+{
+    private const string ScenePath = "Assets/RoadRage/App/Scenes/MainMenuLobby.unity";
+
+    private static readonly string[] ButtonNames =
+    {
+        "LobbyTrafficVehiclesDecreaseButton",
+        "LobbyTrafficVehiclesIncreaseButton",
+        "LobbyTrafficLitterThrowersDecreaseButton",
+        "LobbyTrafficLitterThrowersIncreaseButton"
+    };
+
+    public static string Run()
+    {
+        var scene = SceneManager.GetSceneByPath(ScenePath);
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return "MainMenuLobby n'est pas chargee : ouvre-la avant de lancer ce renommage.";
+        }
+
+        var canvas = FindRoot();
+        if (canvas == null)
+        {
+            return "Canvas introuvable dans MainMenuLobby.";
+        }
+
+        var report = new System.Text.StringBuilder();
+        var renamed = 0;
+
+        foreach (var buttonName in ButtonNames)
+        {
+            var button = Find(canvas, buttonName);
+            if (button == null)
+            {
+                report.AppendLine("MANQUANT: " + buttonName);
+                continue;
+            }
+
+            if (button.childCount != 1)
+            {
+                report.AppendLine("INATTENDU: " + buttonName + " porte " + button.childCount + " enfant(s)");
+                continue;
+            }
+
+            var label = button.GetChild(0);
+            var expected = buttonName + "Label";
+            if (label.name == expected)
+            {
+                report.AppendLine("ok (deja): " + expected);
+                continue;
+            }
+
+            Undo.RecordObject(label.gameObject, "Story 5.16 - renommage des libelles de trafic");
+            label.name = expected;
+            report.AppendLine("renomme: " + buttonName + " -> " + expected);
+            renamed++;
+        }
+
+        if (renamed == 0)
+        {
+            return "Aucun libelle a renommer.\n" + report;
+        }
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        var saved = EditorSceneManager.SaveScene(scene);
+        return renamed + " libelle(s) renomme(s). Scene sauvee : " + saved + "\n" + report;
+    }
+
+    private static Transform FindRoot()
+    {
+        var scene = SceneManager.GetSceneByPath(ScenePath);
+        foreach (var root in scene.GetRootGameObjects())
+        {
+            if (root.name == "Canvas")
+            {
+                return root.transform;
+            }
+        }
+
+        return null;
+    }
+
+    private static Transform Find(Transform parent, string name)
+    {
+        for (var i = 0; i < parent.childCount; i++)
+        {
+            var child = parent.GetChild(i);
+            if (child.name == name)
+            {
+                return child;
+            }
+
+            var nested = Find(child, name);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+}
+

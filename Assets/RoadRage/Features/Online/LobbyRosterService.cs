@@ -127,6 +127,23 @@ namespace RoadRage.Features.Online
         }
 
         /// <summary>
+        /// Story 5.16 : publie les reglages de trafic resolus par l'hote (effectif de vehicules IA et
+        /// nombre de jeteurs de detritus) dans les donnees de lobby, meme forme et meme porteuse que la
+        /// difficulte. Sans effet hors room hote ouverte ; reserve a l'hote par l'appelant. C'est le SEUL
+        /// chemin qui livre ces valeurs aux invites, et il le fait avant le chargement du monde.
+        /// L'invariant "jeteurs &lt;= effectif" est porte par la valeur de session, jamais par ce service.
+        /// </summary>
+        public void PublishTrafficSettings(int aiVehicleTargetCount, int litterThrowerCount)
+        {
+            if (lobbyRoom.Status != LobbyRoomStatus.Open)
+            {
+                return;
+            }
+
+            platform.SetLobbyTrafficSettings(aiVehicleTargetCount, litterThrowerCount);
+        }
+
+        /// <summary>
         /// Story 5.3 (AD-26) : signal explicite du lancement de la partie, ecrit dans les donnees de
         /// lobby Steam par l'hote des que StartHost() reussit, pour que chaque invite deja rejoint
         /// (LobbyJoinStatus.Joined) declenche automatiquement son propre StartClient() au prochain
@@ -210,8 +227,13 @@ namespace RoadRage.Features.Online
 
         private static bool SnapshotsEqual(LobbyRosterSnapshot a, LobbyRosterSnapshot b)
         {
+            // Story 5.16 : les reglages de trafic font partie de l'instantane partage. Sans leur
+            // comparaison ici, un changement de trafic publie par l'hote ne leverait jamais
+            // RosterChanged et l'invite ne recevrait donc jamais la nouvelle valeur.
             if (a.HasLobby != b.HasLobby || a.OwnerId != b.OwnerId || a.Difficulty != b.Difficulty
-                || a.RunLaunchRequested != b.RunLaunchRequested)
+                || a.RunLaunchRequested != b.RunLaunchRequested
+                || a.AiVehicleTargetCount != b.AiVehicleTargetCount
+                || a.LitterThrowerCount != b.LitterThrowerCount)
             {
                 return false;
             }

@@ -725,8 +725,15 @@ namespace RoadRage.Tests.EditMode
                 "Un point de branchement unique et nomme doit porter l'effectif de session (Story 5.16).");
             Assert.That(Occurrences(spawnerSource, "ResolveSessionTargetPopulation"), Is.EqualTo(2),
                 "Exactement une definition et un appel : le branchement de la Story 5.16 doit rester unique.");
+
+            // Story 5.16 : la valeur de session existe desormais et se lit dans NetworkedRunState, seul
+            // etat autoritatif de la run. Le defaut authore du Def reste le SEUL repli, et il n'y a
+            // toujours qu'un seul point de branchement -- l'intention de cette assertion est inchangee,
+            // seule sa forme l'est.
+            Assert.That(spawnerSource, Does.Contain("runState.AiVehicleTargetCount.Value"),
+                "L'effectif de session vient de NetworkedRunState, jamais d'une valeur relue ailleurs.");
             Assert.That(spawnerSource, Does.Contain("settings.ClampTargetPopulation(settings.DefaultTargetPopulation)"),
-                "Tant que la valeur de session n'existe pas, la valeur par defaut authoree du Def est la seule source.");
+                "Quand aucune session n'a resolu la valeur, la valeur par defaut authoree du Def est la seule source.");
 
             Assert.That(File.ReadAllText(MvpRunScenePath), Does.Not.Contain("TargetPopulation"),
                 "Aucun effectif n'est authore dans la scene : il vit uniquement dans le Def.");
@@ -736,7 +743,13 @@ namespace RoadRage.Tests.EditMode
         public void NothingRemovesATrafficVehicleAnywhereButAnExitPortal()
         {
             var driverSource = CodeOnly(File.ReadAllText(DriverSourcePath));
-            Assert.That(driverSource, Does.Not.Contain("Despawn("), "Le driver ne retire jamais son propre vehicule.");
+
+            // On compte les appels de despawn en retirant les rappels de cycle de vie :
+            // « OnNetworkDespawn( » n'est pas un retrait de vehicule, et une recherche de la seule
+            // sous-chaine « Despawn( » le comptait comme tel -- la garde etait donc rouge en permanence.
+            var despawnCalls = Occurrences(driverSource, "Despawn(") - Occurrences(driverSource, "OnNetworkDespawn(");
+            Assert.That(despawnCalls, Is.EqualTo(0),
+                "Le driver ne retire jamais son propre vehicule ; seuls les rappels OnNetworkDespawn sont admis.");
             Assert.That(driverSource, Does.Not.Contain("Destroy("), "Le driver ne detruit jamais son propre vehicule.");
             Assert.That(driverSource, Does.Contain("reachedExitPortal = true"),
                 "Le driver SIGNALE l'arrivee au portail de sortie ; c'est tout ce qu'il fait du retrait.");

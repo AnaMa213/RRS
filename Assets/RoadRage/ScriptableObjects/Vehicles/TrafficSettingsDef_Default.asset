@@ -16,6 +16,9 @@ MonoBehaviour:
   defaultTargetPopulation: 8
   minTargetPopulation: 0
   maxTargetPopulation: 30
+  defaultLitterThrowers: 2
+  minLitterThrowers: 0
+  maxLitterThrowers: 8
   edgeBudgetFactor: 2
   portalClearanceRadius: 12
   connectorJoinDistance: 0.75

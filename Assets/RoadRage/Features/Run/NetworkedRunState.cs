@@ -22,6 +22,27 @@ namespace RoadRage.Features.Run
             NetworkVariableWritePermission.Server);
 
         /// <summary>
+        /// Story 5.16 : effectif de vehicules IA resolu par la session. Server-write : seul l'hote
+        /// reprend la valeur publiee par le lobby. <see cref="SessionTrafficValue.Unresolved"/> veut
+        /// dire qu'aucune session ne l'a resolue (run lance hors lobby) et que le defaut authore du
+        /// TrafficSettingsDef s'applique alors. Aucune borne n'est portee ici : elle vit dans le Def.
+        /// </summary>
+        public NetworkVariable<int> AiVehicleTargetCount = new NetworkVariable<int>(
+            SessionTrafficValue.Unresolved,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        /// <summary>
+        /// Story 5.16 : nombre de vehicules jeteurs de detritus resolu par la session, toujours
+        /// inferieur ou egal a <see cref="AiVehicleTargetCount"/>. Aucun systeme de detritus n'existe
+        /// encore : la Story 5.20 consommera cette valeur resolue.
+        /// </summary>
+        public NetworkVariable<int> LitterThrowerCount = new NetworkVariable<int>(
+            SessionTrafficValue.Unresolved,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        /// <summary>
         /// Story 5.6 (AD-17/AD-22) : etat de l'UNIQUE evenement Rage Road du run (AD-16). Vit ici et
         /// nulle part ailleurs -- ni champ local, ni seconde source de verite. Server-write : seul
         /// l'hote declenche et avance l'evenement, les clients lisent (y compris les rejoignants tardifs).

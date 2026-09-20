@@ -1,8 +1,11 @@
 using System.Collections;
+using System.Collections.Generic;
 using NUnit.Framework;
+using RoadRage.App.Services;
 using RoadRage.Features.Vehicles;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 namespace RoadRage.Tests.PlayMode
@@ -38,10 +41,16 @@ namespace RoadRage.Tests.PlayMode
         private GameObject ground;
         private GameObject vehicle;
         private VehiclePhysicsBody physics;
+        private Scene benchScene;
+        private Scene originalActiveScene;
+        private string originalActiveScenePath;
+        private readonly List<string> unloadedScenePaths = new List<string>();
 
         [UnitySetUp]
         public IEnumerator SetUp()
         {
+            yield return EnterEmptyBenchScene("Story512_Bench");
+
             ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
             ground.name = "Story512_Ground";
             ground.transform.position = new Vector3(0f, -0.5f, 0f);
@@ -53,12 +62,84 @@ namespace RoadRage.Tests.PlayMode
             yield return Settle(vehicle.GetComponent<Rigidbody>());
         }
 
+        /// <summary>
+        /// Ce banc construit son propre sol plat et conduit par les pneus : il ne doit donc trouver
+        /// AUCUNE autre geometrie dans le monde physique par defaut, celui que
+        /// <see cref="VehiclePhysicsBody"/> interroge par <c>Physics.Raycast</c>.
+        ///
+        /// Or les bancs precedents (Story 5.10) laissent <c>MVP_Run</c> charge et actif. Mesure du
+        /// 2026-09-20, avant correction : le vehicule accelerait proprement jusqu'a 17,647 m/s puis
+        /// percutait un module du district a z = 37,48 m et s'arretait net, quatre roues au sol. Ce
+        /// resultat ne dependait donc pas du banc mais de l'ordre d'execution des fixtures.
+        ///
+        /// Une scene de banc dediee et active, les scenes de l'application dechargees, rendent la
+        /// mesure independante de cet ordre : c'est ce sol-la, et lui seul, que le vehicule touche.
+        /// </summary>
+        private IEnumerator EnterEmptyBenchScene(string benchName)
+        {
+            originalActiveScene = SceneManager.GetActiveScene();
+            originalActiveScenePath = originalActiveScene.path;
+            benchScene = SceneManager.CreateScene(benchName + "_" + System.Guid.NewGuid());
+            SceneManager.SetActiveScene(benchScene);
+
+            for (var i = SceneManager.sceneCount - 1; i >= 0; i--)
+            {
+                var scene = SceneManager.GetSceneAt(i);
+                if (scene == benchScene)
+                {
+                    continue;
+                }
+
+                if (scene.name == AppSceneRouter.BootstrapSceneName
+                    || scene.name == AppSceneRouter.MainMenuLobbySceneName
+                    || scene.name == AppSceneRouter.MvpRunSceneName)
+                {
+                    if (!string.IsNullOrEmpty(scene.path))
+                    {
+                        unloadedScenePaths.Add(scene.path);
+                    }
+
+                    yield return SceneManager.UnloadSceneAsync(scene);
+                }
+            }
+        }
+
         [UnityTearDown]
         public IEnumerator TearDown()
         {
             Object.Destroy(ground);
             Object.Destroy(vehicle);
             yield return null;
+
+            if (benchScene.IsValid() && benchScene.isLoaded)
+            {
+                yield return SceneManager.UnloadSceneAsync(benchScene);
+            }
+
+            foreach (var scenePath in unloadedScenePaths)
+            {
+                var loaded = SceneManager.GetSceneByPath(scenePath);
+                if (!loaded.IsValid() || !loaded.isLoaded)
+                {
+                    yield return SceneManager.LoadSceneAsync(scenePath, LoadSceneMode.Additive);
+                }
+            }
+
+            var sceneToRestore = originalActiveScene;
+            if ((!sceneToRestore.IsValid() || !sceneToRestore.isLoaded) && !string.IsNullOrEmpty(originalActiveScenePath))
+            {
+                sceneToRestore = SceneManager.GetSceneByPath(originalActiveScenePath);
+            }
+
+            if (sceneToRestore.IsValid() && sceneToRestore.isLoaded)
+            {
+                SceneManager.SetActiveScene(sceneToRestore);
+            }
+
+            unloadedScenePaths.Clear();
+            benchScene = default;
+            originalActiveScene = default;
+            originalActiveScenePath = null;
         }
 
         [UnityTest]

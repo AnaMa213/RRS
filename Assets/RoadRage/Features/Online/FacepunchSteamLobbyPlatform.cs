@@ -32,6 +32,10 @@ namespace RoadRage.Features.Online
 
         private const string DifficultyDataKey = "difficulty";
 
+        private const string AiVehicleTargetCountDataKey = "aiVehicleTargetCount";
+
+        private const string LitterThrowerCountDataKey = "litterThrowerCount";
+
         private const string DisplayNameDataKey = "displayName";
 
         private const string CharacterIdDataKey = "characterId";
@@ -130,6 +134,11 @@ namespace RoadRage.Features.Online
             var difficulty = ParseDifficulty(lobby.GetData(DifficultyDataKey));
             var runLaunchRequested = lobby.GetData(RunLaunchRequestedDataKey) == ReadyValue;
 
+            // Story 5.16 : meme forme que la difficulte -- une valeur absente ou illisible reste
+            // "non publiee" (-1), jamais une valeur de repli inventee ici.
+            var aiVehicleTargetCount = ParseTrafficValue(lobby.GetData(AiVehicleTargetCountDataKey));
+            var litterThrowerCount = ParseTrafficValue(lobby.GetData(LitterThrowerCountDataKey));
+
             var members = new List<LobbyMemberSnapshot>();
             foreach (var member in lobby.Members)
             {
@@ -140,7 +149,7 @@ namespace RoadRage.Features.Online
                 members.Add(new LobbyMemberSnapshot(member.Id, displayName, characterId, ready));
             }
 
-            return new LobbyRosterSnapshot(true, lobby.Owner.Id, difficulty, members.ToArray(), runLaunchRequested);
+            return new LobbyRosterSnapshot(true, lobby.Owner.Id, difficulty, members.ToArray(), runLaunchRequested, aiVehicleTargetCount, litterThrowerCount);
         }
 
         public void SetLocalMemberReady(bool ready)
@@ -174,6 +183,18 @@ namespace RoadRage.Features.Online
             currentLobby.Value.SetData(DifficultyDataKey, ((int)difficulty).ToString(CultureInfo.InvariantCulture));
         }
 
+        /// <summary>Story 5.16 : deux cles de lobby distinctes, meme porteur que la difficulte.</summary>
+        public void SetLobbyTrafficSettings(int aiVehicleTargetCount, int litterThrowerCount)
+        {
+            if (!currentLobby.HasValue)
+            {
+                return;
+            }
+
+            currentLobby.Value.SetData(AiVehicleTargetCountDataKey, FormatTrafficValue(aiVehicleTargetCount));
+            currentLobby.Value.SetData(LitterThrowerCountDataKey, FormatTrafficValue(litterThrowerCount));
+        }
+
         public void SetLobbyRunLaunchRequested(bool launchRequested)
         {
             if (!currentLobby.HasValue)
@@ -192,6 +213,26 @@ namespace RoadRage.Features.Online
             }
 
             return Difficulty.Normal;
+        }
+
+        /// <summary>
+        /// Story 5.16 : valeur de trafic publiee, ou <see cref="SessionTrafficValue.Unresolved"/> quand la
+        /// cle est absente ou illisible. Aucune borne n'est inventee ici : le clamp appartient au
+        /// TrafficSettingsDef.
+        /// </summary>
+        private static string FormatTrafficValue(int value)
+        {
+            return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static int ParseTrafficValue(string raw)
+        {
+            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) && value >= 0)
+            {
+                return value;
+            }
+
+            return SessionTrafficValue.Unresolved;
         }
 
         private static LobbyJoinFailureReason MapFailureReason(RoomEnter enter)

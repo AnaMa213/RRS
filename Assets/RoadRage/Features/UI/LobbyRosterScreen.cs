@@ -38,6 +38,24 @@ namespace RoadRage.Features.UI
         private TMP_Text settingsSummaryLabel;
 
         [SerializeField]
+        private TMP_Text trafficVehiclesLabel;
+
+        [SerializeField]
+        private Button trafficVehiclesDecreaseButton;
+
+        [SerializeField]
+        private Button trafficVehiclesIncreaseButton;
+
+        [SerializeField]
+        private TMP_Text litterThrowersLabel;
+
+        [SerializeField]
+        private Button litterThrowersDecreaseButton;
+
+        [SerializeField]
+        private Button litterThrowersIncreaseButton;
+
+        [SerializeField]
         private Button soloTestExceptionButton;
 
         [SerializeField]
@@ -54,6 +72,15 @@ namespace RoadRage.Features.UI
         public event Action ReadyToggleRequested;
 
         public event Action<Difficulty> DifficultyChanged;
+
+        /// <summary>
+        /// Story 5.16 : pas demande sur l'effectif de vehicules IA (+1 ou -1). L'ecran ne decide ni
+        /// borne ni refus : LobbyFlowController valide contre le Def et publie un refus visible.
+        /// </summary>
+        public event Action<int> AiVehicleTargetStepRequested;
+
+        /// <summary>Story 5.16 : pas demande sur le nombre de jeteurs de detritus (+1 ou -1).</summary>
+        public event Action<int> LitterThrowerStepRequested;
 
         /// <summary>Demande de bascule de l'exception de test solo qui contourne le gate "tous prets" (Story 2.4).</summary>
         public event Action SoloTestExceptionToggleRequested;
@@ -92,6 +119,42 @@ namespace RoadRage.Features.UI
                 Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers soloTestExceptionButton.");
             }
 
+            if (trafficVehiclesDecreaseButton != null)
+            {
+                trafficVehiclesDecreaseButton.onClick.AddListener(RaiseAiVehicleTargetDecreaseRequested);
+            }
+            else
+            {
+                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers trafficVehiclesDecreaseButton.");
+            }
+
+            if (trafficVehiclesIncreaseButton != null)
+            {
+                trafficVehiclesIncreaseButton.onClick.AddListener(RaiseAiVehicleTargetIncreaseRequested);
+            }
+            else
+            {
+                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers trafficVehiclesIncreaseButton.");
+            }
+
+            if (litterThrowersDecreaseButton != null)
+            {
+                litterThrowersDecreaseButton.onClick.AddListener(RaiseLitterThrowerDecreaseRequested);
+            }
+            else
+            {
+                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers litterThrowersDecreaseButton.");
+            }
+
+            if (litterThrowersIncreaseButton != null)
+            {
+                litterThrowersIncreaseButton.onClick.AddListener(RaiseLitterThrowerIncreaseRequested);
+            }
+            else
+            {
+                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers litterThrowersIncreaseButton.");
+            }
+
             if (startGameButton != null)
             {
                 startGameButton.onClick.AddListener(RaiseStartGameRequested);
@@ -123,6 +186,16 @@ namespace RoadRage.Features.UI
             if (settingsSummaryLabel == null)
             {
                 Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers settingsSummaryLabel.");
+            }
+
+            if (trafficVehiclesLabel == null)
+            {
+                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers trafficVehiclesLabel.");
+            }
+
+            if (litterThrowersLabel == null)
+            {
+                Debug.LogWarning("[UI] LobbyRosterScreen sans reference vers litterThrowersLabel.");
             }
 
             if (soloTestExceptionButtonLabel == null)
@@ -189,6 +262,58 @@ namespace RoadRage.Features.UI
             if (difficultyButton != null)
             {
                 difficultyButton.interactable = editable;
+            }
+        }
+
+        /// <summary>
+        /// Story 5.16 : affiche les deux reglages de trafic avec leurs bornes EFFECTIVES, et n'active
+        /// un bouton de pas que si la valeur courante n'est pas deja a la borne correspondante. Les
+        /// bornes sont fournies par l'appelant : l'ecran n'en invente aucune et ne connait ni le
+        /// TrafficSettingsDef ni l'invariant "jeteurs &lt;= effectif". La borne haute des jeteurs est
+        /// deja minoree par l'appelant, ce qui rend cet invariant visible par la butee.
+        /// </summary>
+        public void ShowTrafficSettings(
+            int aiVehicleTargetCount,
+            int minAiVehicleTargetCount,
+            int maxAiVehicleTargetCount,
+            int litterThrowerCount,
+            int minLitterThrowerCount,
+            int maxLitterThrowerCount,
+            bool editable)
+        {
+            if (trafficVehiclesLabel != null)
+            {
+                trafficVehiclesLabel.text = "Vehicules IA : " + aiVehicleTargetCount
+                    + "  (" + minAiVehicleTargetCount + "-" + maxAiVehicleTargetCount + ")";
+            }
+
+            if (litterThrowersLabel != null)
+            {
+                litterThrowersLabel.text = "Jeteurs de detritus : " + litterThrowerCount
+                    + "  (" + minLitterThrowerCount + "-" + maxLitterThrowerCount + ")";
+            }
+
+            SetSteppable(trafficVehiclesDecreaseButton, editable && aiVehicleTargetCount > minAiVehicleTargetCount);
+            SetSteppable(trafficVehiclesIncreaseButton, editable && aiVehicleTargetCount < maxAiVehicleTargetCount);
+            SetSteppable(litterThrowersDecreaseButton, editable && litterThrowerCount > minLitterThrowerCount);
+            SetSteppable(litterThrowersIncreaseButton, editable && litterThrowerCount < maxLitterThrowerCount);
+        }
+
+        /// <summary>Desactive les controles de trafic quand aucune borne authorable n'est disponible.</summary>
+        public void SetTrafficSettingsEditable(bool editable)
+        {
+            SetSteppable(trafficVehiclesDecreaseButton, editable);
+            SetSteppable(trafficVehiclesIncreaseButton, editable);
+            SetSteppable(litterThrowersDecreaseButton, editable);
+            SetSteppable(litterThrowersIncreaseButton, editable);
+        }
+
+        /// <summary>Un bouton de pas n'est actif que si l'appelant autorise l'edition ET que la valeur n'est pas en butee.</summary>
+        private static void SetSteppable(Button button, bool steppable)
+        {
+            if (button != null)
+            {
+                button.interactable = steppable;
             }
         }
 
@@ -265,6 +390,26 @@ namespace RoadRage.Features.UI
         private void RaiseReadyToggleRequested()
         {
             ReadyToggleRequested?.Invoke();
+        }
+
+        private void RaiseAiVehicleTargetDecreaseRequested()
+        {
+            AiVehicleTargetStepRequested?.Invoke(-1);
+        }
+
+        private void RaiseAiVehicleTargetIncreaseRequested()
+        {
+            AiVehicleTargetStepRequested?.Invoke(1);
+        }
+
+        private void RaiseLitterThrowerDecreaseRequested()
+        {
+            LitterThrowerStepRequested?.Invoke(-1);
+        }
+
+        private void RaiseLitterThrowerIncreaseRequested()
+        {
+            LitterThrowerStepRequested?.Invoke(1);
         }
 
         private void RaiseSoloTestExceptionToggleRequested()

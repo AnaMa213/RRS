@@ -1,6 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using RoadRage.Features.Online;
+using RoadRage.Features.Run;
 using RoadRage.Features.Vehicles;
+using RoadRage.Shared.Domain;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -50,6 +53,12 @@ namespace RoadRage.App.Run
         private bool warnedPrefabWithoutNetworkObject;
         private bool warnedPrefabWithoutDriverController;
         private int insertionCounter;
+
+        /// <summary>Etat de run hote-owned, resolu paresseusement : seule surface de lecture de la valeur de session resolue.</summary>
+        private NetworkedRunState runState;
+
+        /// <summary>Vrai des que la valeur de session a ete depossee dans l'etat de run, ou qu'il a ete etabli qu'aucune session n'en portait.</summary>
+        private bool sessionSettingsPublished;
 
         /// <summary>Effectif actuellement en jeu : lu par les tests d'integration.</summary>
         public int LivePopulation
@@ -115,6 +124,11 @@ namespace RoadRage.App.Run
                 return;
             }
 
+            if (!PublishSessionTrafficSettingsOnce(settings))
+            {
+                return;
+            }
+
             var deficit = ResolveSessionTargetPopulation(settings) - liveVehicles.Count;
             if (deficit <= 0)
             {
@@ -147,14 +161,92 @@ namespace RoadRage.App.Run
         }
 
         /// <summary>
-        /// Point de branchement UNIQUE de l'effectif cible. La Story 5.16 branchera ici la valeur de
-        /// session (MatchSettings) ; tant qu'elle n'existe pas, la valeur par defaut authoree du Def
+        /// Point de branchement UNIQUE de l'effectif cible (Story 5.16). La valeur de session resolue
+        /// vit dans <see cref="NetworkedRunState"/> : elle y a ete deposee par l'hote depuis la valeur
+        /// publiee au lobby, qui est le seul chemin de livraison. Tant qu'aucune session ne l'a
+        /// resolue (<see cref="SessionTrafficValue.Unresolved"/>), la valeur par defaut authoree du Def
         /// est la seule source. Aucun autre endroit du code, du prefab ou de la scene ne porte
         /// d'effectif (AD-32).
         /// </summary>
         private int ResolveSessionTargetPopulation(TrafficSettingsDef settings)
         {
-            return settings.ClampTargetPopulation(settings.DefaultTargetPopulation);
+            var sessionValue = runState != null ? runState.AiVehicleTargetCount.Value : SessionTrafficValue.Unresolved;
+            if (sessionValue < 0)
+            {
+                return settings.ClampTargetPopulation(settings.DefaultTargetPopulation);
+            }
+
+            return settings.ClampTargetPopulation(sessionValue);
+        }
+
+        /// <summary>
+        /// Story 5.16 : depose une seule fois dans l'etat de run la valeur de session resolue par le
+        /// lobby. La source est l'instantane du service de roster, qui vit sur le bootstrap persistant
+        /// et survit donc au chargement de MVP_Run : aucun troisieme porteur n'est introduit, et le
+        /// chemin de la Story 2.4 reste le seul par lequel une valeur franchit le chargement.
+        ///
+        /// Sans room ouverte, aucune valeur n'a ete publiee : l'etat de run garde
+        /// <see cref="SessionTrafficValue.Unresolved"/> et le repli sur le defaut authore s'applique.
+        /// Si l'etat de run n'est pas encore apparu, la tentative est simplement reportee.
+        /// </summary>
+        private bool PublishSessionTrafficSettingsOnce(TrafficSettingsDef settings)
+        {
+            if (sessionSettingsPublished)
+            {
+                return true;
+            }
+
+            if (runState == null)
+            {
+                runState = FindAnyObjectByType<NetworkedRunState>();
+                if (runState == null)
+                {
+                    return false;
+                }
+            }
+
+            var bootstrap = RoadRageBootstrap.Instance;
+            if (bootstrap == null)
+            {
+                sessionSettingsPublished = true;
+                return true;
+            }
+
+            var roster = bootstrap.LobbyRoster;
+            if (roster == null)
+            {
+                var room = bootstrap.LobbyRoom;
+                if (room == null || room.Status != LobbyRoomStatus.Open)
+                {
+                    sessionSettingsPublished = true;
+                }
+
+                return sessionSettingsPublished;
+            }
+
+            var snapshot = roster.Current;
+            if (snapshot.HasLobby && snapshot.AiVehicleTargetCount >= 0 && snapshot.LitterThrowerCount >= 0)
+            {
+                var targetPopulation = settings.ClampTargetPopulation(snapshot.AiVehicleTargetCount);
+                var litterThrowers = Mathf.Min(settings.ClampLitterThrowers(snapshot.LitterThrowerCount), targetPopulation);
+                runState.AiVehicleTargetCount.Value = targetPopulation;
+                runState.LitterThrowerCount.Value = litterThrowers;
+                sessionSettingsPublished = true;
+                return true;
+            }
+
+            // L'instantane du roster est lu par polling (LobbyRosterService.Tick) : tant qu'une room hote
+            // est ouverte, un instantane encore non resolu peut simplement vouloir dire qu'aucun Tick n'a
+            // eu lieu depuis le chargement de la scene. Renoncer ici figerait le trafic sur le defaut
+            // authore pour TOUTE la run, alors que la valeur publiee arrive une frame plus tard. Seule
+            // l'absence certaine de session autorise a renoncer.
+            var lobbyRoom = bootstrap.LobbyRoom;
+            if (lobbyRoom == null || lobbyRoom.Status != LobbyRoomStatus.Open)
+            {
+                sessionSettingsPublished = true;
+            }
+
+            return sessionSettingsPublished;
         }
 
         /// <summary>

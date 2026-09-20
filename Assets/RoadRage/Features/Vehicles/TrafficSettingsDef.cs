@@ -37,6 +37,21 @@ namespace RoadRage.Features.Vehicles
         private int maxTargetPopulation = 30;
 
         [SerializeField]
+        [Min(0)]
+        [Tooltip("Nombre de jeteurs de detritus par defaut (Story 5.16). Valeur utilisee tant qu'aucune valeur de session n'existe. Aucun systeme de detritus n'est livre ici : la Story 5.20 consommera la valeur resolue.")]
+        private int defaultLitterThrowers = 2;
+
+        [SerializeField]
+        [Min(0)]
+        [Tooltip("Borne basse du nombre de jeteurs. 0 est legal : un run sans jeteur est un reglage valide.")]
+        private int minLitterThrowers;
+
+        [SerializeField]
+        [Min(0)]
+        [Tooltip("Borne haute du nombre de jeteurs. Le nombre de jeteurs ne depasse jamais l'effectif cible de la session.")]
+        private int maxLitterThrowers = 8;
+
+        [SerializeField]
         [Min(0f)]
         [Tooltip("Budget d'aretes, en multiples du nombre de noeuds du graphe (--max-edges-factor de jtrrouter, defaut 2). Au-dela, le parcours est reoriente vers la sortie la plus proche -- jamais retire.")]
         private float edgeBudgetFactor = 2f;
@@ -79,6 +94,22 @@ namespace RoadRage.Features.Vehicles
             get { return maxTargetPopulation; }
         }
 
+        /// <summary>Nombre de jeteurs authore, deja ramene dans ses propres bornes (Story 5.16).</summary>
+        public int DefaultLitterThrowers
+        {
+            get { return ClampLitterThrowers(defaultLitterThrowers); }
+        }
+
+        public int MinLitterThrowers
+        {
+            get { return minLitterThrowers; }
+        }
+
+        public int MaxLitterThrowers
+        {
+            get { return maxLitterThrowers; }
+        }
+
         public float EdgeBudgetFactor
         {
             get { return edgeBudgetFactor; }
@@ -100,6 +131,18 @@ namespace RoadRage.Features.Vehicles
             var low = Mathf.Max(0, minTargetPopulation);
             var high = Mathf.Max(low, maxTargetPopulation);
             return Mathf.Clamp(population, low, high);
+        }
+
+        /// <summary>
+        /// Story 5.16 : ramene un nombre de jeteurs (authore ou de session) dans les bornes authorees.
+        /// L'invariant "jeteurs &lt;= effectif cible" n'est PAS applique ici : il depend de l'effectif
+        /// courant de la session, que ce Def ne connait pas. Son porteur est la valeur de session.
+        /// </summary>
+        public int ClampLitterThrowers(int litterThrowers)
+        {
+            var low = Mathf.Max(0, minLitterThrowers);
+            var high = Mathf.Max(low, maxLitterThrowers);
+            return Mathf.Clamp(litterThrowers, low, high);
         }
 
         public bool TryValidate(out string error)
@@ -125,6 +168,41 @@ namespace RoadRage.Features.Vehicles
             if (defaultTargetPopulation < minTargetPopulation || defaultTargetPopulation > maxTargetPopulation)
             {
                 error = "DefaultTargetPopulation invalide : 'defaultTargetPopulation' doit tomber dans [min, max].";
+                return false;
+            }
+
+            if (minLitterThrowers < 0)
+            {
+                error = "MinLitterThrowers invalide : 'minLitterThrowers' doit etre superieur ou egal a 0.";
+                return false;
+            }
+
+            if (maxLitterThrowers < minLitterThrowers)
+            {
+                error = "MaxLitterThrowers invalide : 'maxLitterThrowers' doit etre superieur ou egal a 'minLitterThrowers'.";
+                return false;
+            }
+
+            if (defaultLitterThrowers < minLitterThrowers || defaultLitterThrowers > maxLitterThrowers)
+            {
+                error = "DefaultLitterThrowers invalide : 'defaultLitterThrowers' doit tomber dans [min, max].";
+                return false;
+            }
+
+            // Story 5.16 : l'invariant "jeteurs <= effectif" est une regle de SESSION, que ce Def ne peut
+            // pas appliquer. En revanche il peut refuser une authoring qui rend ce defaut inatteignable :
+            // sans ces deux gardes, une session amorcee sur ses propres defauts demarrerait au-dessus de
+            // l'invariant (jeteurs > effectif) ou sous la borne basse des jeteurs, et les deux boutons de
+            // la ligne seraient morts des l'ouverture du lobby.
+            if (defaultLitterThrowers > defaultTargetPopulation)
+            {
+                error = "DefaultLitterThrowers invalide : le defaut de jeteurs ne peut pas depasser l'effectif cible par defaut.";
+                return false;
+            }
+
+            if (minLitterThrowers > minTargetPopulation)
+            {
+                error = "MinLitterThrowers invalide : la borne basse des jeteurs ne peut pas depasser la borne basse de l'effectif, sinon aucun reglage de session ne satisfait les deux.";
                 return false;
             }
 

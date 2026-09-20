@@ -40,6 +40,15 @@ namespace RoadRage.Features.Online
         /// <summary>Publie la difficulte choisie dans les donnees du lobby courant (Story 2.4). Sans effet hors lobby actif ; reserve a l'hote par l'appelant.</summary>
         void SetLobbyDifficulty(Difficulty difficulty);
 
+        /// <summary>
+        /// Publie les reglages de trafic choisis par l'hote dans les donnees du lobby courant
+        /// (Story 5.16). Sans effet hors lobby actif ; reserve a l'hote par l'appelant. Corps par
+        /// defaut vide pour que les doubles de test existants compilent sans modification.
+        /// </summary>
+        void SetLobbyTrafficSettings(int aiVehicleTargetCount, int litterThrowerCount)
+        {
+        }
+
         /// <summary>Publie le signal de lancement reseau dans les donnees du lobby courant. Sans effet hors lobby actif ; reserve a l'hote par l'appelant.</summary>
         void SetLobbyRunLaunchRequested(bool launchRequested);
     }
@@ -115,13 +124,22 @@ namespace RoadRage.Features.Online
     {
         public static readonly LobbyRosterSnapshot Empty = new LobbyRosterSnapshot(false, 0, Difficulty.Normal, System.Array.Empty<LobbyMemberSnapshot>());
 
-        public LobbyRosterSnapshot(bool hasLobby, ulong ownerId, Difficulty difficulty, LobbyMemberSnapshot[] members, bool runLaunchRequested = false)
+        public LobbyRosterSnapshot(
+            bool hasLobby,
+            ulong ownerId,
+            Difficulty difficulty,
+            LobbyMemberSnapshot[] members,
+            bool runLaunchRequested = false,
+            int aiVehicleTargetCount = SessionTrafficValue.Unresolved,
+            int litterThrowerCount = SessionTrafficValue.Unresolved)
         {
             HasLobby = hasLobby;
             OwnerId = ownerId;
             Difficulty = difficulty;
             Members = members;
             RunLaunchRequested = runLaunchRequested;
+            AiVehicleTargetCount = aiVehicleTargetCount;
+            LitterThrowerCount = litterThrowerCount;
         }
 
         public bool HasLobby { get; }
@@ -133,5 +151,15 @@ namespace RoadRage.Features.Online
         public LobbyMemberSnapshot[] Members { get; }
 
         public bool RunLaunchRequested { get; }
+
+        /// <summary>
+        /// Effectif de vehicules IA publie par l'hote (Story 5.16), ou
+        /// <see cref="SessionTrafficValue.Unresolved"/> si l'hote n'en a publie aucun. L'instantane ne
+        /// porte que la valeur brute publiee : les bornes restent dans le Def.
+        /// </summary>
+        public int AiVehicleTargetCount { get; }
+
+        /// <summary>Nombre de jeteurs publie par l'hote (Story 5.16), ou <see cref="SessionTrafficValue.Unresolved"/>.</summary>
+        public int LitterThrowerCount { get; }
     }
 }

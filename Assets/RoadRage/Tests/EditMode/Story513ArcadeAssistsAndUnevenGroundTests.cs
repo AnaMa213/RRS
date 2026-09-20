@@ -690,7 +690,7 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(roadway, Is.Not.Null, "La chaussee de " + AvenueName + " doit exister");
 
                 Assert.That(IsInside(roadway.bounds, bumpFootprint, 0.01f), Is.True,
-                    "Le dos-d'ane est dans l'emprise de la chaussee de " + AvenueName + " (mesure : x " 
+                    "Le dos-d'ane est dans l'emprise de la chaussee de " + AvenueName + " (mesure : x "
                     + bumpFootprint.min.x.ToString("F2") + " .. " + bumpFootprint.max.x.ToString("F2")
                     + " pour une chaussee a x " + roadway.bounds.min.x.ToString("F2") + " .. " + roadway.bounds.max.x.ToString("F2") + ").");
                 Assert.That(IsInside(roadway.bounds, stepFootprint, 0.01f), Is.True,
@@ -823,7 +823,14 @@ namespace RoadRage.Tests.EditMode
             Assert.That(tireBlockStart, Is.GreaterThanOrEqualTo(0), "Le bloc de pneu garde par la charge doit exister");
 
             var tireBlock = ExtractBracedBlockAt(fixedUpdate, tireBlockStart);
-            Assert.That(tireBlock, Does.Contain("ResolveTireForces("), "Le cas de test doit viser le bloc de PNEU, sinon il ne prouve rien.");
+
+            // Le garde de charge porte le PNEU, et le nom de son point d'entree a change depuis cette
+            // story : le corps n'appelle plus VehicleTireModel.ResolveTireForces directement, il passe
+            // par IntegrateDrivenContact, qui resout les forces de pneu par sous-pas (voir
+            // VehicleTireModel.ResolveTireForces, appele depuis IntegrateDrivenContact). L'intention de
+            // la garde est inchangee : c'est bien le bloc de PNEU qui est garde par la charge.
+            Assert.That(tireBlock, Does.Contain("VehicleTireModel.IntegrateDrivenContact("),
+                "Le cas de test doit viser le bloc de PNEU, sinon il ne prouve rien.");
             Assert.That(tireBlock, Does.Not.Contain("IntegrateWheelAngularVelocity"),
                 "L'integration de la rotation de roue ne doit PAS etre dans le garde de charge : en l'air, la roue continue de tourner.");
 

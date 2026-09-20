@@ -13,6 +13,20 @@ namespace RoadRage.Features.Lobby
     {
         public Difficulty Difficulty { get; set; } = Difficulty.Normal;
 
+        /// <summary>
+        /// Story 5.16 : effectif de vehicules IA choisi pour la session. Vaut
+        /// <see cref="SessionTrafficValue.Unresolved"/> tant qu'aucune session ne l'a resolu ; les
+        /// bornes autorisees viennent du <c>TrafficSettingsDef</c>, jamais d'ici.
+        /// </summary>
+        public int AiVehicleTargetCount { get; set; } = SessionTrafficValue.Unresolved;
+
+        /// <summary>
+        /// Story 5.16 : nombre de vehicules qui jettent des detritus, toujours inferieur ou egal a
+        /// <see cref="AiVehicleTargetCount"/>. Aucun systeme de detritus ne vit ici : la Story 5.20
+        /// consommera la valeur resolue.
+        /// </summary>
+        public int LitterThrowerCount { get; set; } = SessionTrafficValue.Unresolved;
+
         // Emplacement reserve aux futurs parametres de partie extensibles (ex. carte, nombre de joueurs
         // max, regles de session). Ajouter ici au fur et a mesure des besoins, en gardant la mappabilite
         // vers un futur NetworkedLobbyState.

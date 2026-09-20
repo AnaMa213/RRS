@@ -5,6 +5,7 @@ using RoadRage.Features.Lobby;
 using RoadRage.Features.Online;
 using RoadRage.Features.Players;
 using RoadRage.Features.UI;
+using RoadRage.Features.Vehicles;
 using RoadRage.Shared.Definitions;
 using RoadRage.Shared.Domain;
 using RoadRage.Shared.Presentation;
@@ -73,6 +74,13 @@ namespace RoadRage.App.Lobby
 
         public const string StartRefusedWaitingForHostMessage = "Start Game en attente : seul l'hote peut lancer la session reseau.";
 
+        /// <summary>
+        /// Story 5.16 : seul refus reellement atteignable des reglages de trafic. Les bornes sont des
+        /// butees structurelles (le bouton de pas est inactif), mais baisser l'effectif sous le nombre
+        /// de jeteurs demande bien un arbitrage : le nombre de jeteurs ne depasse jamais le total.
+        /// </summary>
+        public const string TrafficLitterersExceedVehiclesMessage = "Reglage refuse : le nombre de jeteurs de detritus ne peut pas depasser le nombre de vehicules.";
+
         public const string NetworkStartFailedMessage = "Start Game refuse : impossible de demarrer la session reseau (Steamworks Networking Sockets).";
 
         public const string ApprovalRejectedInvalidPayloadReason = "Connexion refusee : payload de profil invalide.";
@@ -89,6 +97,10 @@ namespace RoadRage.App.Lobby
 
         [SerializeField]
         private CharacterCatalog catalog;
+
+        [SerializeField]
+        [Tooltip("Def auteur des bornes et defauts de trafic (Story 5.16). Non assigne : les reglages de trafic restent non editables et aucun repli code n'est invente.")]
+        private TrafficSettingsDef trafficSettings;
 
         [SerializeField]
         private NetworkPrefabsList defaultNetworkPrefabs;
@@ -113,6 +125,7 @@ namespace RoadRage.App.Lobby
         {
             bootstrap = RoadRageBootstrap.EnsureInstance();
             Settings = new MatchSettings();
+            SeedTrafficSettingsFromDef();
 
             if (bootstrap != null && bootstrap.OnlineServices != null)
             {
@@ -149,6 +162,7 @@ namespace RoadRage.App.Lobby
             {
                 lobbyRoster = bootstrap.LobbyRoster;
                 lobbyRoster.RosterChanged += HandleRosterChanged;
+                RestoreHostTrafficSettingsFromLobby();
             }
             else
             {
@@ -173,6 +187,8 @@ namespace RoadRage.App.Lobby
             {
                 lobbyRosterScreen.ReadyToggleRequested += HandleReadyToggleRequested;
                 lobbyRosterScreen.DifficultyChanged += HandleDifficultyChanged;
+                lobbyRosterScreen.AiVehicleTargetStepRequested += HandleAiVehicleTargetStepRequested;
+                lobbyRosterScreen.LitterThrowerStepRequested += HandleLitterThrowerStepRequested;
                 lobbyRosterScreen.SoloTestExceptionToggleRequested += HandleSoloTestExceptionToggleRequested;
                 lobbyRosterScreen.StartGameRequested += HandleStartGameRequested;
                 lobbyRosterScreen.CloseRoomRequested += HandleCloseRoomRequested;
@@ -182,6 +198,7 @@ namespace RoadRage.App.Lobby
                 lobbyRosterScreen.ShowSoloTestException(false);
                 lobbyRosterScreen.ShowRoster(null);
                 lobbyRosterScreen.Hide();
+                RefreshTrafficSettingsPresentation();
             }
             else
             {
@@ -306,6 +323,8 @@ namespace RoadRage.App.Lobby
             {
                 lobbyRosterScreen.ReadyToggleRequested -= HandleReadyToggleRequested;
                 lobbyRosterScreen.DifficultyChanged -= HandleDifficultyChanged;
+                lobbyRosterScreen.AiVehicleTargetStepRequested -= HandleAiVehicleTargetStepRequested;
+                lobbyRosterScreen.LitterThrowerStepRequested -= HandleLitterThrowerStepRequested;
                 lobbyRosterScreen.SoloTestExceptionToggleRequested -= HandleSoloTestExceptionToggleRequested;
                 lobbyRosterScreen.StartGameRequested -= HandleStartGameRequested;
                 lobbyRosterScreen.CloseRoomRequested -= HandleCloseRoomRequested;
@@ -658,6 +677,127 @@ namespace RoadRage.App.Lobby
             }
         }
 
+        /// <summary>
+        /// Story 5.16 : amorce les valeurs de session depuis le Def auteur, seule source des defauts et
+        /// des bornes. Sans Def, les valeurs restent <see cref="SessionTrafficValue.Unresolved"/> et
+        /// l'edition est desactivee : aucune borne n'est inventee en code, et l'avertissement n'est
+        /// emis qu'une fois.
+        /// </summary>
+        private void SeedTrafficSettingsFromDef()
+        {
+            if (trafficSettings == null)
+            {
+                Debug.LogWarning("[Lobby] LobbyFlowController sans TrafficSettingsDef : les reglages de trafic restent non editables et aucun trafic n'est compose.");
+                return;
+            }
+
+            Settings.AiVehicleTargetCount = trafficSettings.DefaultTargetPopulation;
+            Settings.LitterThrowerCount = Mathf.Min(trafficSettings.DefaultLitterThrowers, Settings.AiVehicleTargetCount);
+        }
+
+        /// <summary>
+        /// Story 5.16 : pas sur l'effectif de vehicules IA. Deux refus distincts, jamais confondus :
+        /// une butee de borne est structurelle et silencieuse (le bouton est deja inactif), tandis que
+        /// passer sous le nombre de jeteurs est un arbitrage reel qui merite un retour visible.
+        /// </summary>
+        private void HandleAiVehicleTargetStepRequested(int step)
+        {
+            if (!CanEditTrafficSettings())
+            {
+                return;
+            }
+
+            var candidate = Settings.AiVehicleTargetCount + step;
+            if (candidate < trafficSettings.MinTargetPopulation || candidate > trafficSettings.MaxTargetPopulation)
+            {
+                return;
+            }
+
+            if (candidate < Settings.LitterThrowerCount)
+            {
+                Debug.LogWarning("[Lobby] Reglage de trafic refuse : l'effectif passerait sous le nombre de jeteurs.");
+                PublishUnavailable(TrafficLitterersExceedVehiclesMessage);
+                return;
+            }
+
+            ApplyTrafficSettings(candidate, Settings.LitterThrowerCount);
+        }
+
+        /// <summary>Story 5.16 : pas sur le nombre de jeteurs, borne haute plafonnee par l'effectif courant.</summary>
+        private void HandleLitterThrowerStepRequested(int step)
+        {
+            if (!CanEditTrafficSettings())
+            {
+                return;
+            }
+
+            var candidate = Settings.LitterThrowerCount + step;
+            if (candidate < trafficSettings.MinLitterThrowers || candidate > EffectiveMaxLitterThrowers())
+            {
+                return;
+            }
+
+            ApplyTrafficSettings(Settings.AiVehicleTargetCount, candidate);
+        }
+
+        /// <summary>
+        /// Borne haute EFFECTIVE des jeteurs : la borne authorée, plafonnee par l'effectif courant. C'est
+        /// elle, et non la borne authorée seule, qui rend l'invariant "jeteurs &lt;= effectif" visible a
+        /// l'ecran sous forme de butee.
+        /// </summary>
+        private int EffectiveMaxLitterThrowers()
+        {
+            return Mathf.Min(trafficSettings.MaxLitterThrowers, Settings.AiVehicleTargetCount);
+        }
+
+        private void ApplyTrafficSettings(int aiVehicleTargetCount, int litterThrowerCount)
+        {
+            Settings.AiVehicleTargetCount = aiVehicleTargetCount;
+            Settings.LitterThrowerCount = litterThrowerCount;
+            RefreshTrafficSettingsPresentation();
+
+            if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open && lobbyRoster != null)
+            {
+                lobbyRoster.PublishTrafficSettings(aiVehicleTargetCount, litterThrowerCount);
+            }
+        }
+
+        /// <summary>
+        /// Seul l'hote d'une room ouverte edite les reglages de trafic, exactement comme la difficulte.
+        /// Sans Def il n'existe aucune borne, donc aucune edition plutot qu'une borne inventee.
+        /// </summary>
+        private bool CanEditTrafficSettings()
+        {
+            return trafficSettings != null && lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open;
+        }
+
+        /// <summary>
+        /// Pousse a l'ecran les valeurs et leurs bornes EFFECTIVES. Sans Def, rien n'est affiche : les
+        /// libelles gardent leur texte authore et aucune borne n'est inventee.
+        /// </summary>
+        private void RefreshTrafficSettingsPresentation()
+        {
+            if (lobbyRosterScreen == null)
+            {
+                return;
+            }
+
+            if (trafficSettings == null)
+            {
+                lobbyRosterScreen.SetTrafficSettingsEditable(false);
+                return;
+            }
+
+            lobbyRosterScreen.ShowTrafficSettings(
+                Settings.AiVehicleTargetCount,
+                trafficSettings.MinTargetPopulation,
+                trafficSettings.MaxTargetPopulation,
+                Settings.LitterThrowerCount,
+                trafficSettings.MinLitterThrowers,
+                EffectiveMaxLitterThrowers(),
+                CanEditTrafficSettings());
+        }
+
         private void HandleReadyToggleRequested()
         {
             if (lobbyRoster == null)
@@ -761,6 +901,50 @@ namespace RoadRage.App.Lobby
                 }
             }
 
+            // Story 5.16 (AC3) : les reglages de trafic de l'hote arrivent par le meme instantane, donc
+            // AVANT le chargement du monde. Meme regle que la difficulte : jamais appliques cote hote,
+            // qui reste la source de verite de ses propres valeurs.
+            if (isJoinedClient && snapshot.HasLobby && ApplyHostTrafficSettings(snapshot))
+            {
+                RefreshTrafficSettingsPresentation();
+            }
+
+        }
+
+        /// <summary>
+        /// Reprend les reglages de trafic publies par l'hote quand ils sont resolus, et dit si quelque
+        /// chose a change. <see cref="SessionTrafficValue.Unresolved"/> n'ecrase jamais une valeur deja
+        /// resolue : un hote qui n'a rien publie ne remet pas le client a zero.
+        /// </summary>
+        private bool ApplyHostTrafficSettings(LobbyRosterSnapshot snapshot)
+        {
+            if (trafficSettings == null
+                || !snapshot.HasLobby
+                || snapshot.AiVehicleTargetCount < 0
+                || snapshot.LitterThrowerCount < 0)
+            {
+                return false;
+            }
+
+            var aiVehicleTargetCount = trafficSettings.ClampTargetPopulation(snapshot.AiVehicleTargetCount);
+            var litterThrowerCount = Mathf.Min(
+                trafficSettings.ClampLitterThrowers(snapshot.LitterThrowerCount),
+                aiVehicleTargetCount);
+            var changed = aiVehicleTargetCount != Settings.AiVehicleTargetCount
+                || litterThrowerCount != Settings.LitterThrowerCount;
+
+            Settings.AiVehicleTargetCount = aiVehicleTargetCount;
+            Settings.LitterThrowerCount = litterThrowerCount;
+            return changed;
+        }
+
+        /// <summary>Restaure les reglages persistants de l'hote au retour vers le menu apres une run.</summary>
+        private void RestoreHostTrafficSettingsFromLobby()
+        {
+            if (lobbyRoom != null && lobbyRoom.Status == LobbyRoomStatus.Open && lobbyRoster != null)
+            {
+                ApplyHostTrafficSettings(lobbyRoster.Current);
+            }
         }
 
         /// <summary>
@@ -854,7 +1038,16 @@ namespace RoadRage.App.Lobby
                     if (lobbyRoster != null)
                     {
                         lobbyRoster.PublishDifficulty(Settings.Difficulty);
+
+                        // Story 5.16 : l'ouverture de la room est le premier instant ou la publication
+                        // atteint les invites. Les valeurs sont deja resolues depuis le Def a l'Awake.
+                        if (Settings.AiVehicleTargetCount >= 0 && Settings.LitterThrowerCount >= 0)
+                        {
+                            lobbyRoster.PublishTrafficSettings(Settings.AiVehicleTargetCount, Settings.LitterThrowerCount);
+                        }
                     }
+
+                    RefreshTrafficSettingsPresentation();
 
                     PublishLocalProfile();
 
