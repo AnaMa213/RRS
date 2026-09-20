@@ -172,7 +172,9 @@ namespace RoadRage.Features.Vehicles
             body.automaticInertiaTensor = false;
             body.inertiaTensor = profile.InertiaTensor;
             body.interpolation = RigidbodyInterpolation.Interpolate;
-            body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            // Story 5.15 : le banc local a mesure les deux modes a la vitesse maximale du profil.
+            // Aucun tunnel dans les deux cas : Discrete est donc le choix PhysX le moins couteux.
+            body.collisionDetectionMode = CollisionDetectionMode.Discrete;
 
             wheelStates = new VehicleSuspensionModel.WheelState[profile.WheelCount];
             tireSamples = new VehicleTireModel.TireSample[profile.WheelCount];

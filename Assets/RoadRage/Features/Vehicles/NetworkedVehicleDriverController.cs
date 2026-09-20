@@ -78,11 +78,11 @@ namespace RoadRage.Features.Vehicles
 
         private const float DirectionEpsilon = 0.05f;
 
-        /// <summary>Vitesse d'impact minimale (Story 3.5) en dessous de laquelle aucun degat voiture n'est applique.</summary>
-        public const float MinCollisionDamageSpeed = 3f;
+        /// <summary>Vitesse d'impact minimale mesuree par le banc Story 5.15, en dessous de laquelle aucun degat voiture n'est applique.</summary>
+        public const float MinCollisionDamageSpeed = 4f;
 
-        /// <summary>Vitesse d'impact de reference (Story 3.5) au-dela de laquelle le degat voiture plafonne a MaxCollisionDamage.</summary>
-        public const float ReferenceCollisionDamageSpeed = 14f;
+        /// <summary>Vitesse d'impact de reference mesuree par le banc Story 5.15, au-dela de laquelle le degat voiture plafonne a MaxCollisionDamage.</summary>
+        public const float ReferenceCollisionDamageSpeed = 12f;
 
         public const int MinCollisionDamage = 5;
 
