@@ -486,15 +486,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/JunctionRules.cs": {
-    "mtime": 1790007705.5187893,
-    "seen": 1790007797.466586,
-    "ast_hash": "d069b5df8d7b84775640fbac3c79121c",
+    "mtime": 1790010631.785702,
+    "seen": 1790011164.5936239,
+    "ast_hash": "67ad35bed528cdbeca0de99105820d2f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/LaneGraph.cs": {
-    "mtime": 1790007698.250275,
-    "seen": 1790007797.466587,
-    "ast_hash": "c49695e4cb729d1ef40bd66ca3ab373f",
+    "mtime": 1790010763.137257,
+    "seen": 1790011164.5936248,
+    "ast_hash": "ad83b6f77268f69d2f4e31f297132c08",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/LaneGraphRouting.cs": {
@@ -516,9 +516,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.Traffic.cs": {
-    "mtime": 1790008599.4485085,
-    "seen": 1790008980.1212552,
-    "ast_hash": "c59686d2335327f3a7d870c6d034f965",
+    "mtime": 1790010701.9928927,
+    "seen": 1790011164.5936282,
+    "ast_hash": "928c318e712b929b8b5e721fe1897e1f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs": {
@@ -558,9 +558,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/TrafficSettingsDef.cs": {
-    "mtime": 1789935099.2864926,
-    "seen": 1789936440.2636023,
-    "ast_hash": "bfc12a9293d7bd210e6024bcba932f64",
+    "mtime": 1790010631.7841916,
+    "seen": 1790011164.5936332,
+    "ast_hash": "95e30e8091d33207e6315d89dd4b7d5b",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/TrafficSignalLampView.cs": {
@@ -930,15 +930,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story517WiderPerceptionAndProgressiveUnblockingTests.cs": {
-    "mtime": 1790001271.4804318,
-    "seen": 1790006633.9338958,
-    "ast_hash": "dbe39e93a015c3aa6b1cdfd49bf17e32",
+    "mtime": 1790010832.370624,
+    "seen": 1790011164.5936778,
+    "ast_hash": "4b855aeec87abfdcdf82cbd2918b98b0",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story518IntersectionRulesAndDeadlockPreventionTests.cs": {
-    "mtime": 1789939738.428576,
-    "seen": 1789939782.986393,
-    "ast_hash": "38eb16d88a489d3446a4ac62a92f1e73",
+    "mtime": 1790010841.099583,
+    "seen": 1790011164.5936794,
+    "ast_hash": "175e8b4329fc3625a6548f59a10af397",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story51NpcRageFearFoundationTests.cs": {
@@ -1182,9 +1182,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story518YieldStopLineTests.cs": {
-    "mtime": 1790008875.0765073,
-    "seen": 1790008980.1213133,
-    "ast_hash": "1c11d1e53a150b6e0f4b8e3c18bf1c4a",
+    "mtime": 1790010841.099583,
+    "seen": 1790011164.593686,
+    "ast_hash": "01a2b668e3a6cba24268a2dd9d6f5ba5",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story518UnifiedRecoveryTests.cs": {
+    "mtime": 1790010898.2439091,
+    "seen": 1790011164.5936842,
+    "ast_hash": "4dfbc690c67c8f8222410141aeb74cd1",
     "semantic_hash": ""
   }
 }
