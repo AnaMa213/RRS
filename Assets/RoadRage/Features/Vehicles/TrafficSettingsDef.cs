@@ -1,4 +1,6 @@
 using RoadRage.Shared.Definitions;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RoadRage.Features.Vehicles
@@ -66,6 +68,20 @@ namespace RoadRage.Features.Vehicles
         [Tooltip("Distance en dessous de laquelle deux connecteurs de modules voisins forment une arete. Poser deux modules bout a bout suffit.")]
         private float connectorJoinDistance = 0.75f;
 
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Largeur du couloir a laisser libre entre deux mouvements d'une meme jonction : somme des deux demi-largeurs de vehicule plus la marge de securite. C'est elle qui recule la ligne d'arret hors de l'aire de virage. Donnee de MONDE : deux conducteurs qui partagent une jonction doivent en lire la meme valeur.")]
+        private float junctionMovementClearance = 2.36f;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("Rayon autour d'un noeud de jonction dans lequel une approche est revendiquee. Donnee de MONDE : l'ensemble arbitre doit etre le meme pour tous les observateurs d'une jonction, sinon deux conducteurs de profils differents arbitrent deux ensembles differents et peuvent se croire prioritaires tous les deux. 0 rend la main au profil de conduite.")]
+        private float junctionApproachRadius;
+
+        [SerializeField]
+        [Tooltip("Plans de feux authorés (Story 5.18), un par jonction signalee. Un plan absent, ou un id de jonction inconnu, laisse le comportement authore precedent : aucune regle de feu n'est inventee.")]
+        private TrafficSignalPlan[] signalPlans = Array.Empty<TrafficSignalPlan>();
+
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
         {
@@ -123,6 +139,69 @@ namespace RoadRage.Features.Vehicles
         public float ConnectorJoinDistance
         {
             get { return connectorJoinDistance; }
+        }
+
+        /// <summary>
+        /// Largeur du couloir a laisser libre entre deux mouvements d'une meme jonction.
+        ///
+        /// La frontiere de conflit d'une approche etait calculee sur l'INTERSECTION STRICTE de deux
+        /// axes centraux, c'est-a-dire sur deux polylignes sans epaisseur. Un vehicule arrete a la
+        /// ligne qui en decoule a pourtant une largeur : mesure du district, son avant se trouvait
+        /// 2,34 m a l'interieur du couloir que le trafic tournant doit emprunter. La valeur est la
+        /// somme des deux demi-largeurs de vehicule et de la marge de securite (2 x 1,03 + 0,30).
+        /// </summary>
+        public float JunctionMovementClearance
+        {
+            get { return Mathf.Max(0f, junctionMovementClearance); }
+        }
+
+        /// <summary>
+        /// Rayon d'approche d'une jonction, en metres, ou 0 quand la scene n'en authore pas -- le
+        /// profil de conduite reprend alors la main.
+        ///
+        /// C'est une donnee de MONDE et non de conducteur, et la raison est la correction de
+        /// l'arbitrage, pas le rangement. L'admission (<see cref="JunctionRules.IsAdmitted"/>) se
+        /// calcule sur l'ENSEMBLE des revendications : deux observateurs qui ne rassemblent pas le
+        /// meme ensemble n'obtiennent pas le meme resultat. Lire ce rayon sur le profil de
+        /// l'OBSERVATEUR faisait donc dependre la geometrie de l'ensemble de la personnalite de
+        /// celui qui regarde -- latent tant qu'un seul profil est authore, faux des le second.
+        /// (Review Finding #6.)
+        /// </summary>
+        public float JunctionApproachRadius
+        {
+            get { return Mathf.Max(0f, junctionApproachRadius); }
+        }
+
+        /// <summary>
+        /// Plans de feux authores (Story 5.18). Les feux sont de la donnee de MONDE : ils vivent ici,
+        /// pas dans un profil de conduite, parce que deux conducteurs qui partagent une jonction
+        /// partagent aussi son plan.
+        /// </summary>
+        public IReadOnlyList<TrafficSignalPlan> SignalPlans
+        {
+            get { return signalPlans ?? Array.Empty<TrafficSignalPlan>(); }
+        }
+
+        /// <summary>
+        /// Plan de feux de la jonction donnee, par id authore. Faux quand aucun plan ne porte cet id :
+        /// une approche marquee "feu" sans plan garde alors le comportement authore precedent, elle
+        /// n'attend pas un feu qui n'existe pas.
+        /// </summary>
+        public bool TryGetSignalPlan(string junctionId, out TrafficSignalPlan plan)
+        {
+            var key = junctionId ?? string.Empty;
+            var plans = SignalPlans;
+            for (var i = 0; i < plans.Count; i++)
+            {
+                if (string.Equals(plans[i].JunctionId, key, StringComparison.Ordinal))
+                {
+                    plan = plans[i];
+                    return true;
+                }
+            }
+
+            plan = default;
+            return false;
         }
 
         /// <summary>Ramene un effectif (authore ou de session) dans les bornes authorees.</summary>
@@ -224,6 +303,83 @@ namespace RoadRage.Features.Vehicles
                 return false;
             }
 
+            if (!TryValidateSignalPlans(out error))
+            {
+                return false;
+            }
+
+            error = string.Empty;
+            return true;
+        }
+
+        /// <summary>
+        /// Story 5.18 : un plan de feux inexploitable est refuse a l'authoring, jamais repare a
+        /// l'execution. Trois choses le rendent inexploitable, et chacune se traduirait par un feu qui
+        /// ne signifie rien au lieu d'une erreur visible :
+        ///
+        /// - un plan sans id ne s'applique a aucune jonction ;
+        /// - un plan a une seule phase n'arbitre rien (tout le monde est vert en permanence) ;
+        /// - une phase plus courte que la garde de vert minimal fait clignoter le feu, donc osciller
+        ///   l'autorisation d'approche a chaque cycle.
+        ///
+        /// Deux plans qui partagent le meme id sont egalement refuses : l'un des deux serait ignore a
+        /// la lecture, et c'est le genre de reglage qui ne se voit qu'au volant.
+        /// </summary>
+        private bool TryValidateSignalPlans(out string error)
+        {
+            var plans = SignalPlans;
+            for (var i = 0; i < plans.Count; i++)
+            {
+                var plan = plans[i];
+                var id = plan.JunctionId;
+                if (string.IsNullOrWhiteSpace(id) || id != id.Trim())
+                {
+                    error = "Plan de feux invalide : 'junctionId' doit etre renseigne et sans espace de bord.";
+                    return false;
+                }
+
+                for (var j = i + 1; j < plans.Count; j++)
+                {
+                    if (string.Equals(plans[j].JunctionId, id, StringComparison.Ordinal))
+                    {
+                        error = "Plans de feux invalides : 'junctionId' \"" + id + "\" est porte par deux plans, le second serait ignore.";
+                        return false;
+                    }
+                }
+
+                if (!IsFiniteAndAbove(plan.MinimumGreenSeconds, 0f))
+                {
+                    error = "Plan de feux invalide : 'minimumGreenSeconds' doit etre fini et strictement positif.";
+                    return false;
+                }
+
+                var phases = plan.Phases;
+                if (phases.Count < 2)
+                {
+                    error = "Plan de feux invalide : un plan a moins de deux phases n'arbitre rien.";
+                    return false;
+                }
+
+                for (var p = 0; p < phases.Count; p++)
+                {
+                    if (!IsFiniteAndAtLeast(phases[p].DurationSeconds, plan.MinimumGreenSeconds))
+                    {
+                        error = "Plan de feux invalide : une phase duree " + phases[p].DurationSeconds
+                            + " s est sous la garde de vert minimal de " + plan.MinimumGreenSeconds + " s.";
+                        return false;
+                    }
+
+                    for (var g = 0; g < phases[p].GreenGroups.Count; g++)
+                    {
+                        if (phases[p].GreenGroups[g] < 0)
+                        {
+                            error = "Plan de feux invalide : un groupe d'approche negatif n'existe pas.";
+                            return false;
+                        }
+                    }
+                }
+            }
+
             error = string.Empty;
             return true;
         }
@@ -231,6 +387,12 @@ namespace RoadRage.Features.Vehicles
         private static bool IsFiniteAndAbove(float value, float exclusiveMinimum)
         {
             return float.IsFinite(value) && value > exclusiveMinimum;
+        }
+
+        /// <summary>Variante inclusive, pour la garde de vert minimal : une phase peut valoir exactement la garde.</summary>
+        private static bool IsFiniteAndAtLeast(float value, float minimum)
+        {
+            return float.IsFinite(value) && value >= minimum;
         }
 
         private void OnValidate()

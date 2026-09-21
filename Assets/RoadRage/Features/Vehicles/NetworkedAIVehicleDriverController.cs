@@ -67,15 +67,8 @@ namespace RoadRage.Features.Vehicles
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(NetworkedAIVehicleState))]
     [RequireComponent(typeof(Rigidbody))]
-    public sealed class NetworkedAIVehicleDriverController : NetworkBehaviour
+    public sealed partial class NetworkedAIVehicleDriverController : NetworkBehaviour
     {
-        /// <summary>
-        /// Marge dimensionnelle (sans unite) appliquee a la portee de detection de leader, deja
-        /// derivee du profil (s0 + v.T). Provisoire : la Story 5.17 (ex-5.12) remplace cette detection avant
-        /// minimale par une perception elargie.
-        /// </summary>
-        private const float LeaderDetectionRangeFactor = 2f;
-
         /// <summary>Fraction de la demi-largeur du vehicule utilisee comme rayon de balayage : sous 1 pour ne pas mordre sur ce qui borde la voie.</summary>
         private const float ScanWidthFactor = 0.8f;
 
@@ -105,7 +98,7 @@ namespace RoadRage.Features.Vehicles
         [SerializeField]
         [Min(0f)]
         [Tooltip("Duree de visee (s) : la distance du point anticipe vaut vitesse x cette duree. A l'arret la visee retombe sur le noeud lui-meme, et c'est voulu -- un vehicule immobile n'a pas de trajectoire a anticiper.")]
-        private float lookAheadSeconds = 0.6f;
+        private float lookAheadSeconds = 1f;
 
         [SerializeField]
         [Range(-1f, 1f)]
@@ -139,7 +132,8 @@ namespace RoadRage.Features.Vehicles
         // visible malgre le garde-fou). Les Stories 5.10 (district greybox) et 5.16 / 5.22 (ex-5.17, ~30
         // vehicules) rapprocheront la densite reelle de ces marges ; un avertissement de saturation
         // rend tout depassement futur bruyant plutot que silencieux.
-        private readonly RaycastHit[] leaderHits = new RaycastHit[32];
+        private readonly Collider[] perceptionHits = new Collider[64];
+        private readonly TrafficPerceptionCandidate[] perceptionCandidates = new TrafficPerceptionCandidate[64];
         private readonly Collider[] clearanceHits = new Collider[48];
 
         private NetworkedAIVehicleState state;
@@ -149,6 +143,14 @@ namespace RoadRage.Features.Vehicles
         private IRageDispositionSource rageSource;
         private float rolloverElapsedSeconds;
         private float stuckElapsedSeconds;
+        private float blockedElapsedSeconds;
+        private float perceptionElapsedSeconds;
+        private bool hasPerceivedLeader;
+        private float perceivedLeaderGap = DriverModel.NoLeaderGap;
+        private float perceivedLeaderSpeed;
+        private TrafficUnblockingAction currentUnblockingAction;
+        private bool hornReported;
+        private bool replanAttemptedForBlock;
 
         /// <summary>
         /// Filtre de REACTION du conducteur (Story 5.9) : l'acceleration lissee qui a produit la pedale
@@ -178,8 +180,6 @@ namespace RoadRage.Features.Vehicles
 
         private float laneChangeElapsedSeconds;
         private float instancePhase;
-        private readonly List<Vector3> redirectCandidatePositions = new List<Vector3>();
-
         /// <summary>
         /// Memoire de parcours (correctif post-livraison du 2026-09-16) : un bit par noeud du graphe,
         /// propre a CE vehicule. C'est elle qui rend la marche auto-evitative -- le tirage ne porte
@@ -290,6 +290,9 @@ namespace RoadRage.Features.Vehicles
         private void OnDisable()
         {
             appliedAcceleration = 0f;
+            // Un appariement de conflit survivrait a la disparition de ce vehicule et laisserait son
+            // partenaire prioritaire a vie : le verdict se defait des deux cotes, ici aussi.
+            ReleaseTrajectoryConflict();
             if (physicsBody != null && physicsBody.HasProfile)
             {
                 SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
@@ -304,170 +307,131 @@ namespace RoadRage.Features.Vehicles
 
         private void FixedUpdate()
         {
-            if (!IsServer || body == null || state == null)
-            {
-                return;
-            }
-
-            // Derivation host-only (Story 5.4) : la rage propre au vehicule devient son comportement
-            // publie. Ecriture seulement sur changement, pour ne pas re-emettre a chaque tick.
+            if (!IsServer || body == null || state == null) return;
             var behavior = ResolveBehavior();
-            if (state.Behavior.Value != behavior)
+            if (state.Behavior.Value != behavior) state.Behavior.Value = behavior;
+            if (laneGraph == null || laneGraph.NodeCount <= 0 || driverProfile == null)
             {
-                state.Behavior.Value = behavior;
-            }
-
-            if (laneGraph == null || laneGraph.NodeCount <= 0)
-            {
-                // Aucune route : vehicule inerte. L'intent IDLE est repose explicitement parce que la
-                // couche physique CONSOMME le dernier intent recu a chaque pas : ne rien soumettre
-                // laisserait courir celui du pas precedent.
-                SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
-                return;
-            }
-
-            // Profil absent : vehicule inerte et avertissement emis une seule fois. Aucun repli de
-            // valeurs code en dur -- ce serait exactement le reglage cable que la story supprime.
-            if (driverProfile == null)
-            {
-                if (!warnedMissingDriverProfile)
+                if (driverProfile == null)
                 {
-                    warnedMissingDriverProfile = true;
-                    Debug.LogWarning("[Vehicles] " + name + " : aucun DriverProfileDef assigne, le vehicule IA reste inerte.", this);
+                    if (!warnedMissingDriverProfile)
+                    {
+                        warnedMissingDriverProfile = true;
+                        Debug.LogWarning("[Vehicles] " + name + " : aucun DriverProfileDef assigne.", this);
+                    }
                 }
-
                 SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
                 return;
             }
-
-            var fixedDeltaTime = Time.fixedDeltaTime;
+            var dt = Time.fixedDeltaTime;
             var profile = DriverModel.ResolveEffectiveProfile(driverProfile.Profile, behavior);
             var waypointIndex = state.WaypointIndex.Value;
             var waypointPosition = laneGraph.GetNodePosition(waypointIndex);
-
             if (NetworkedVehicleDriverController.IsBelowVoidHeightThreshold(transform.position.y, voidHeightThreshold))
             {
                 RecoverAtWaypoint(waypointPosition);
                 return;
             }
-
-            if (NetworkedVehicleDriverController.IsRolledOver(transform.up, rolloverUprightDotThreshold))
+            rolloverElapsedSeconds = NetworkedVehicleDriverController.IsRolledOver(transform.up, rolloverUprightDotThreshold)
+                ? rolloverElapsedSeconds + dt : 0f;
+            if (rolloverElapsedSeconds >= rolloverSustainedSeconds && rolloverElapsedSeconds > 0f)
             {
-                rolloverElapsedSeconds += fixedDeltaTime;
-                if (rolloverElapsedSeconds >= rolloverSustainedSeconds)
-                {
-                    RecoverAtWaypoint(waypointPosition);
-                    return;
-                }
-            }
-            else
-            {
-                rolloverElapsedSeconds = 0f;
-            }
-
-            // Block / ConfrontationCapable : vitesse desiree effective nulle, le vehicule cesse de
-            // poursuivre la route. Place apres les recuperations retournement/hors-zone (qui restent
-            // des garde-fous) mais avant la detection de blocage : une immobilisation voulue ne doit
-            // pas declencher une teleportation "stuck".
-            if (profile.DesiredSpeed <= 0f)
-            {
-                stuckElapsedSeconds = 0f;
-                appliedAcceleration = 0f;
-                SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle);
+                RecoverAtWaypoint(waypointPosition);
                 return;
             }
-
-            // LA VITESSE EST RELUE, PLUS JAMAIS ENTRETENUE (Story 5.14). Les deux termes viennent du
-            // MEME vecteur : la norme planaire est la vitesse que le modele de conduite utilise depuis
-            // toujours (`v` de l'IDM, portee de detection de leader, budget de virage), et la composante
-            // longitudinale signee est celle que la couche physique lit pour choisir entre freiner et
-            // reculer. Aucun des deux n'est conserve d'un pas a l'autre : c'est ce qui rend le vehicule
-            // poussable et la gravite effective.
             var planarVelocity = Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up);
             var currentSpeed = planarVelocity.magnitude;
             var longitudinalSpeed = Vector3.Dot(planarVelocity, ResolvePlanarForward());
-
-            // Detection hissee avant le test de blocage : le meme resultat sert a decider si l'arret
-            // est voulu ET a nourrir l'IDM plus bas -- un seul rayon par frame, comme avant.
-            var hasLeader = TryDetectLeader(profile, currentSpeed, out var leaderGap, out var leaderSpeed);
-
-            if (DriverModel.IsDeliberateStop(hasLeader, leaderGap, profile.MinimumGap))
+            var hasLeader = TryDetectLeader(profile, dt, out var leaderGap, out var leaderSpeed);
+            // Un encastrement GEOMETRIQUE soutenu garde le recovery physique 5.14.
+            // La lenteur, meme durable et sans leader, ne suffit jamais a teleporter.
+            stuckElapsedSeconds = physicallyEmbedded && !DriverModel.IsDeliberateStop(hasLeader, leaderGap, profile.MinimumGap)
+                && IsStuck(currentSpeed, stuckSpeedThreshold)
+                ? stuckElapsedSeconds + dt : 0f;
+            if (physicallyEmbedded && stuckElapsedSeconds >= stuckSustainedSeconds && !IsAnyPlayerWithinClearanceRadius())
             {
-                // Arret voulu derriere un leader : ce n'est pas un blocage. Sans cette remise a zero,
-                // un vehicule qui freine correctement (donc qui fait son travail) finirait teleporte,
-                // ce que la contrainte d'epique interdit explicitement.
-                stuckElapsedSeconds = 0f;
+                RecoverAtWaypoint(waypointPosition);
+                return;
             }
-            else if (IsStuck(currentSpeed, stuckSpeedThreshold))
+            // La perception reste active meme pour une disposition immobilisante.
+            if (profile.DesiredSpeed <= 0f)
             {
-                stuckElapsedSeconds += fixedDeltaTime;
-
-                // Palier de derniere chance, et seulement hors de vue : un vehicule reellement
-                // encastre dans le decor, sans rien devant lui, pendant une minute entiere. La
-                // teleportation reste interdite tant qu'un joueur est assez proche pour la voir --
-                // le vehicule patiente alors sans reinitialiser son compteur, et part des que la
-                // zone se degage. L'echelle de deblocage propre (klaxon, contournement) arrive avec
-                // les Stories 5.18 et 5.17 (ex-5.11 / ex-5.12) et retirera ce palier.
-                if (stuckElapsedSeconds >= stuckSustainedSeconds && !IsAnyPlayerWithinClearanceRadius())
-                {
-                    RecoverAtWaypoint(waypointPosition);
-                    return;
-                }
+                appliedAcceleration = 0f;
+                SubmitIntentToPhysicsLayer(ResolveStopIntent(longitudinalSpeed));
+                return;
             }
-            else
-            {
-                stuckElapsedSeconds = 0f;
-            }
+            if (TickLocalTraffic(profile, dt, currentSpeed, longitudinalSpeed)) return;
+            // Story 5.18 : les regles d'intersection s'inserent ICI, au declencheur d'avancee de noeud.
+            // Tant que l'arbitrage dit d'attendre, aucun ResolveNextNode n'a lieu -- c'est le seul point
+            // de blocage du parcours, et il se place apres la securite de la Story 5.17 (un obstacle
+            // percu reste prioritaire sur une priorite de jonction).
+            if (TickJunctionRules(profile, dt, currentSpeed, longitudinalSpeed)) return;
 
-            // Deux facons de franchir un noeud, et elles sont complementaires (ANO-5.10-02) :
-            // l'arrivee nominale (on entre dans le rayon), et le depassement irrattrapable (le
-            // noeud est passe ET tombe dans le cercle de braquage, donc la poursuite pure tournerait
-            // autour de lui indefiniment sans jamais entrer dans le rayon). Sans la seconde, un
-            // vehicule bouscule pres d'un giratoire reste en orbite pour toujours : son noeud
-            // courant ne change plus, donc le parcours ne progresse plus.
-            if (HasArrivedAtWaypoint(transform.position, waypointPosition, arrivalRadius)
-                || LaneGraphRouting.HasPassedUnreachableWaypoint(
-                    transform.position, transform.forward, waypointPosition, currentSpeed, steerDegreesPerSecond))
+            // L'engagement dans une jonction avance le waypoint lui-meme, a la ligne d'arret : la
+            // valeur lue plus haut est alors perimee.
+            if (waypointIndex != state.WaypointIndex.Value)
             {
+                waypointIndex = state.WaypointIndex.Value;
+                waypointPosition = laneGraph.GetNodePosition(waypointIndex);
+            }
+            else if (!JunctionHoldsWaypoint
+                && (HasArrivedAtWaypoint(transform.position, waypointPosition, arrivalRadius)
+                    || LaneGraphRouting.HasPassedUnreachableWaypoint(
+                        transform.position, transform.forward, waypointPosition, currentSpeed, steerDegreesPerSecond)))
+            {
+                // Le noeud QUITTE, garde pour savoir si le vehicule est engage sur un anneau : y
+                // etre engage suppose deux pieds dessus, pas seulement de le viser.
+                previousLaneNode = waypointIndex;
                 waypointIndex = ResolveNextNode(waypointIndex);
                 state.WaypointIndex.Value = waypointIndex;
                 waypointPosition = laneGraph.GetNodePosition(waypointIndex);
             }
 
-            var pedal = ResolveLongitudinalPedal(profile, fixedDeltaTime, currentSpeed, longitudinalSpeed, hasLeader, leaderGap, leaderSpeed);
-            TickLaneChangeEvaluation(profile, fixedDeltaTime);
-
-            // Visee anticipee (Story 5.12) : le point vise glisse au-dela du noeud quand le vehicule
-            // s'en approche, le long du sens de circulation authore sur le noeud. La distance vient de
-            // la vitesse et de la duree authoree -- la cible avance donc avec le vehicule, au lieu de
-            // basculer d'un noeud au suivant et de le faire viser en diagonale a travers la jonction.
-            //
-            // Continuite de la visee (Story 5.13) : la cible IDEALE ci-dessus est continue tant que le
-            // noeud ne change pas, et elle saute au franchissement -- jusqu'a deux fois la distance de
-            // visee, soit 4,8 m a 8 m/s. Le point de visee rendu, lui, part de la cible precedente et
-            // avance d'au plus 'vitesse de rappel x pas de temps', donc il ne peut plus sauter. La
-            // vitesse de rappel est une donnee AUTHOREE du profil conducteur, jamais une constante de ce
-            // controleur (Story 5.9) ; au premier pas il n'y a pas de memoire, donc pas de rappel.
-            var nodeForward = laneGraph.GetNodeRotation(waypointIndex) * Vector3.forward;
+            // La ligne d'arret d'une jonction se tient comme un LEADER IMMOBILE : le modele
+            // longitudinal deja en place amene le vehicule dessus en decelerant, au lieu d'un
+            // freinage a fond declenche la ou il se trouvait. C'est ce qui fait qu'il s'arrete AVANT
+            // l'intersection et non au milieu.
+            // UNE SEULE trajectoire, construite ici, lue ensuite par la visee PUIS par le plafond de
+            // courbure. Tant que la conduite visait une tangente extrapolee au-dela du noeud et que la
+            // perception lisait des cordes entre noeuds, ni l'une ni l'autre ne decrivait la course
+            // reellement parcourue : sur l'anneau de 6,00 m des giratoires la visee sortait 1,68 m,
+            // pour un budget d'ecart de 0,97 m avant l'axe median (ANO-5.18-04).
             var lookAheadDistance = Mathf.Max(0f, currentSpeed) * lookAheadSeconds;
-            var recallStep = hasAimPoint ? Mathf.Max(0f, profile.AimPointRecallSpeed) * fixedDeltaTime : 0f;
+            BuildDrivePath(lookAheadDistance);
+            lookAheadDistance = ResolveBoundedLookAhead(lookAheadDistance);
 
-            var aimPoint = LaneGraphRouting.ResolveLookAheadPoint(
-                transform.position,
-                waypointPosition,
-                nodeForward,
-                lookAheadDistance,
-                previousAimPoint,
-                recallStep);
-
+            // La visee se REPROJETTE sur la trajectoire au lieu de compter depuis un noeud : c'est ce
+            // qui la garde sur la voie quand le vehicule s'en est ecarte -- precisement le moment ou
+            // elle compte. Un virage de jonction n'est plus un cas particulier : sa courbe fait partie
+            // de la trajectoire comme n'importe quelle autre arete.
+            var ideal = HasDrivePath
+                ? LaneGraphRouting.ResolvePathLookAheadPoint(DrivePath, DrivePathCount, transform.position, lookAheadDistance)
+                : LaneGraphRouting.ResolveLookAheadPoint(transform.position, waypointPosition,
+                    laneGraph.GetNodeRotation(waypointIndex) * Vector3.forward, lookAheadDistance, Vector3.zero, 0f);
+            // Le rappel de visee LISSAIT les sauts de la cible d'avant, qui changeait de noeud d'un
+            // coup. Une visee reprojetee sur la trajectoire ne saute pas : le rappel n'y serait plus
+            // que du retard, et du retard sur une courbe se paie en sortie large. Il ne subsiste donc
+            // que sur le repli sans trajectoire, ou la cible saute encore.
+            var aimPoint = HasDrivePath || !hasAimPoint
+                ? ideal
+                : Vector3.MoveTowards(previousAimPoint, ideal, Mathf.Max(0f, profile.AimPointRecallSpeed) * dt);
             previousAimPoint = aimPoint;
-            hasAimPoint = true;
 
-            // Composition du pas (Story 5.14) : la POURSUITE donne la direction, la decision
-            // LONGITUDINALE du modele donne les deux pedales. Le tout part sous forme d'INTENTION -- ce
-            // controleur ne convertit plus rien en vitesse ni en rotation.
+            // Un plafond fonde sur la courbure COMMANDEE a ete essaye puis RETIRE. Il gagnait 24 %
+            // d'ecart sur un virage isole, mais dans un giratoire il prenait l'angle de visee
+            // TRANSITOIRE pour une demande de courbure permanente : il tombait a zero et clouait le
+            // vehicule a 1,00 m/s sur tout l'anneau, pour une vitesse desiree de 8,0. La courbure du
+            // TRACE suffit, et elle ne depend pas de l'erreur instantanee.
+            var junctionGap = PlannedStopGap;
+            var constrained = hasLeader && leaderGap <= junctionGap;
+            var pedal = ResolveLongitudinalPedal(profile, dt, currentSpeed, longitudinalSpeed,
+                constrained || float.IsFinite(junctionGap),
+                constrained ? leaderGap : junctionGap,
+                constrained ? leaderSpeed : 0f);
+            TickLaneChangeEvaluation(profile, dt);
+            hasAimPoint = true;
             var seekIntent = ComputeSeekIntent(transform.position, transform.forward, aimPoint, steerFullLockDegrees);
-            SubmitIntentToPhysicsLayer(new VehicleDriveIntent(pedal.Throttle, seekIntent.Steer, pedal.BrakeReverse, 0f));
+            SubmitIntentToPhysicsLayer(new VehicleDriveIntent(pedal.Throttle, seekIntent.Steer, pedal.BrakeReverse, pedal.Handbrake));
         }
 
         /// <summary>
@@ -497,6 +461,15 @@ namespace RoadRage.Features.Vehicles
             var candidates = laneGraph.GetSuccessors(currentIndex);
             traversedEdges++;
             hasDepartedSpawnNode = true;
+
+            if (plannedJunctionNode == currentIndex && plannedJunctionExit >= 0)
+            {
+                var drawn = plannedJunctionExit;
+                plannedJunctionNode = -1;
+                plannedJunctionExit = -1;
+                MarkNodeTraversed(drawn);
+                return drawn;
+            }
 
             var budgetExceeded = LaneGraphRouting.IsEdgeBudgetExceeded(
                 traversedEdges, laneGraph.NodeCount, ResolveEdgeBudgetFactor());
@@ -618,46 +591,33 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
-        /// Reorientation vers le portail de sortie le plus proche, un pas a la fois : parmi les
-        /// successeurs du noeud courant, celui qui rapproche le plus de ce portail. Sans successeur
-        /// (cul-de-sac), la sortie devient directement la cible. Sans aucun portail de sortie dans le
-        /// graphe, le vehicule garde son noeud courant et devient inerte -- il n'est jamais retire.
+        /// Reorientation vers une sortie reellement accessible par les aretes dirigees. L'absence de
+        /// route garde le vehicule sur place : un portail proche dans l'espace n'est jamais une cible
+        /// atteignable par saut.
         /// </summary>
         private int ResolveRedirectToNearestExit(int currentIndex, IReadOnlyList<int> candidates)
         {
-            var exitIndex = laneGraph.NearestExitNodeIndex(transform.position);
-            if (exitIndex < 0)
+            var next = LaneGraphRouting.FindNextTowardReachableExit(
+                currentIndex, laneGraph.NodeCount, laneGraph.GetSuccessors, laneGraph.IsExitPortal);
+            if (next >= 0)
             {
-                if (!warnedNoReachableExit)
-                {
-                    warnedNoReachableExit = true;
-                    Debug.LogWarning("[Vehicles] " + name
-                        + " : le graphe de voies ne porte aucun portail de sortie, le vehicule reste inerte (jamais retire).", this);
-                }
-
-                return currentIndex;
+                return next;
             }
 
-            if (candidates.Count == 0)
+            if (!warnedNoReachableExit)
             {
-                if (!warnedDeadEnd)
-                {
-                    warnedDeadEnd = true;
-                    Debug.LogWarning("[Vehicles] " + name
-                        + " : cul-de-sac dans le graphe de voies, reorientation vers le portail de sortie le plus proche.", this);
-                }
-
-                return exitIndex;
+                warnedNoReachableExit = true;
+                Debug.LogWarning("[Vehicles] " + name
+                    + " : aucune route dirigee ne rejoint un portail de sortie; le vehicule reste inerte (jamais retire).", this);
             }
 
-            redirectCandidatePositions.Clear();
-            for (var i = 0; i < candidates.Count; i++)
+            if (candidates.Count == 0 && !warnedDeadEnd)
             {
-                redirectCandidatePositions.Add(laneGraph.GetNodePosition(candidates[i]));
+                warnedDeadEnd = true;
+                Debug.LogWarning("[Vehicles] " + name + " : cul-de-sac sans sortie accessible.", this);
             }
 
-            return LaneGraphRouting.SelectSuccessorTowardTarget(
-                candidates, redirectCandidatePositions, laneGraph.GetNodePosition(exitIndex));
+            return currentIndex;
         }
 
         /// <summary>
@@ -688,8 +648,12 @@ namespace RoadRage.Features.Vehicles
             float detectedGap,
             float detectedLeaderSpeed)
         {
-            var noisyDesiredSpeed = DriverModel.ResolveNoisyDesiredSpeed(
-                profile.DesiredSpeed, profile.Consistency, Time.time, instancePhase);
+            // La vitesse desiree est BORNEE par ce que la courbe a venir permet de tenir. Sans cette
+            // borne le vehicule vise une trajectoire que son braquage ne couvre pas : il sort large,
+            // et aucune correction de visee ne peut rattraper une consigne physiquement infaisable.
+            var noisyDesiredSpeed = Mathf.Min(
+                DriverModel.ResolveNoisyDesiredSpeed(profile.DesiredSpeed, profile.Consistency, Time.time, instancePhase),
+                ResolveCurveSpeedCeiling(speed));
 
             var gap = hasLeader ? detectedGap : DriverModel.NoLeaderGap;
             var leaderSpeed = hasLeader ? detectedLeaderSpeed : 0f;
@@ -837,12 +801,15 @@ namespace RoadRage.Features.Vehicles
             scanRadius = 0f;
 
             var box = GetComponent<BoxCollider>();
+            vehicleBox = box;
             if (box == null)
             {
                 return;
             }
 
             var scale = transform.lossyScale;
+            vehicleHalfExtents = Vector3.Scale(box.size * 0.5f, new Vector3(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+            vehicleCenterOffset = Vector3.Scale(box.center, scale);
             frontOffset = Mathf.Max(0f, (box.center.z + (box.size.z * 0.5f)) * Mathf.Abs(scale.z));
             scanRadius = Mathf.Max(0f, box.size.x * 0.5f * Mathf.Abs(scale.x) * ScanWidthFactor);
         }
@@ -862,91 +829,6 @@ namespace RoadRage.Features.Vehicles
             }
 
             return forward.normalized;
-        }
-
-        private bool TryDetectLeader(DriverProfile profile, float speed, out float gap, out float leaderSpeed)
-        {
-            gap = DriverModel.NoLeaderGap;
-            leaderSpeed = 0f;
-
-            var range = (profile.MinimumGap + (speed * profile.TimeHeadway)) * LeaderDetectionRangeFactor;
-            if (range <= 0f)
-            {
-                return false;
-            }
-
-            // Direction du BALAYAGE, pas du nez. Sur un virage la trajectoire s'ecarte de
-            // transform.forward : viser a mi-chemin entre le nez et le cap vise rend l'obstacle en
-            // sortie de courbe visible, alors qu'un rayon strictement droit le manque. La perception
-            // reellement geometrique (arc authore) reste la Story 5.17 (ex-5.12).
-            var forward = ResolveScanDirection();
-
-            // Depart au PARE-CHOCS, pas au centre de masse : sinon hit.distance inclut la propre
-            // demi-longueur du vehicule (2,22 m sur le greybox) et l'equilibre de l'IDM a s0 tombe
-            // A L'INTERIEUR du leader -- les vehicules se collent et se poussent au lieu de garder
-            // l'ecart authore. L'ecart rendu ici est bien pare-chocs a pare-chocs, comme l'exige
-            // la definition de s dans l'IDM.
-            //
-            // Le centre de la sphere est recule d'un rayon pour que son bord AVANT parte du
-            // pare-chocs : hit.distance mesure le trajet du centre, donc sans ce recul l'ecart
-            // serait sous-estime d'exactement un rayon. Le centre demarre alors dans le collider du
-            // vehicule lui-meme, ce qui est sans effet puisque ses propres hits sont filtres.
-            var origin = body.worldCenterOfMass + (forward * (frontOffset - scanRadius));
-
-            // Balayage volumique plutot qu'un rayon d'epaisseur nulle : un rayon central ne voit pas
-            // un obstacle decale d'un demi-vehicule. Le rayon de la sphere reste sous la demi-largeur
-            // pour ne pas mordre sur ce qui borde la voie.
-            var hitCount = Physics.SphereCastNonAlloc(
-                origin, scanRadius, forward, leaderHits, range, ~0, QueryTriggerInteraction.Ignore);
-
-            if (hitCount >= leaderHits.Length && !warnedLeaderBufferSaturated)
-            {
-                warnedLeaderBufferSaturated = true;
-                Debug.LogWarning("[Vehicles] " + name + " : tampon de detection de leader sature (" + leaderHits.Length
-                    + "), le leader reel a pu etre manque. Agrandir leaderHits.", this);
-            }
-
-            var found = false;
-            for (var i = 0; i < hitCount; i++)
-            {
-                var hit = leaderHits[i];
-
-                // Un leader est un obstacle MOBILE devant soi, pas le decor. Deux representations
-                // coexistent dans le projet et comptent toutes les deux : le Rigidbody (vehicules
-                // IA et voiture joueur) et le CharacterController (joueur a pied, cf.
-                // LocalOnFootController). Ne retenir que le Rigidbody rendrait l'IA aveugle aux
-                // pietons : elle ne freinerait pas, elle les encastrerait. La geometrie statique du
-                // decor ne porte ni l'un ni l'autre et reste exclue. Ses propres colliders aussi.
-                if (hit.rigidbody == body)
-                {
-                    continue;
-                }
-
-                float hitSpeed;
-                if (hit.rigidbody != null)
-                {
-                    hitSpeed = Vector3.Dot(hit.rigidbody.linearVelocity, forward);
-                }
-                else
-                {
-                    var walker = hit.collider == null ? null : hit.collider.GetComponentInParent<CharacterController>();
-                    if (walker == null)
-                    {
-                        continue;
-                    }
-
-                    hitSpeed = Vector3.Dot(walker.velocity, forward);
-                }
-
-                if (!found || hit.distance < gap)
-                {
-                    found = true;
-                    gap = hit.distance;
-                    leaderSpeed = hitSpeed;
-                }
-            }
-
-            return found;
         }
 
         /// <summary>
@@ -1123,6 +1005,8 @@ namespace RoadRage.Features.Vehicles
             body.rotation = rotation;
             transform.SetPositionAndRotation(waypointPosition, rotation);
             rolloverElapsedSeconds = 0f;
+            CancelManeuver("physical recovery", driverProfile != null ? driverProfile.Profile : default);
+            hasSnapshot = false;
             stuckElapsedSeconds = 0f;
             appliedAcceleration = 0f;
 

@@ -22,3 +22,11 @@ MonoBehaviour:
   edgeBudgetFactor: 2
   portalClearanceRadius: 12
   connectorJoinDistance: 0.75
+  signalPlans:
+  - junctionId: junction_district_intersection
+    minimumGreenSeconds: 6
+    phases:
+    - durationSeconds: 12
+      greenGroups: 00000000
+    - durationSeconds: 12
+      greenGroups: 01000000

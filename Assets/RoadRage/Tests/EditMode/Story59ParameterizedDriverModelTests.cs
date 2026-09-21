@@ -18,6 +18,20 @@ namespace RoadRage.Tests.EditMode
     public sealed class Story59ParameterizedDriverModelTests
     {
         private const string DriverControllerSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs";
+
+        /// <summary>
+        /// La perception a quitte le fichier principal pour ce partiel en Story 5.17. Les garanties
+        /// que verifient ces tests structurels n'ont pas change de nature, seulement de fichier :
+        /// les lire tous les deux evite qu'un simple deplacement de code passe pour une regression --
+        /// ou, pire, qu'une vraie regression passe inapercue parce que le test cherche au mauvais
+        /// endroit.
+        /// </summary>
+        private const string DriverTrafficSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.Traffic.cs";
+
+        private static string DriverSources()
+        {
+            return File.ReadAllText(DriverControllerSourcePath) + File.ReadAllText(DriverTrafficSourcePath);
+        }
         private const string DriverProfileDefAssetPath = "Assets/RoadRage/ScriptableObjects/Vehicles/DriverProfileDef_Default.asset";
         private const string AiVehiclePrefabPath = "Assets/RoadRage/Prefabs/Greybox_AIVehicle.prefab";
         private const string FeaturesRootPath = "Assets/RoadRage";
@@ -523,7 +537,7 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void LeaderDetectionMeasuresTheGapFromTheBumperNotTheCenterOfMass()
         {
-            var source = File.ReadAllText(DriverControllerSourcePath);
+            var source = DriverSources();
 
             // Cause racine de l'embouteillage qui se tasse : mesurer depuis worldCenterOfMass ajoute
             // la propre demi-longueur du vehicule (2,22 m sur le greybox) a l'ecart, donc
@@ -532,25 +546,36 @@ namespace RoadRage.Tests.EditMode
                 "L'ecart part du pare-chocs : la demi-longueur du vehicule est retiree de la mesure.");
             Assert.That(source, Does.Not.Contain("var origin = body.worldCenterOfMass;"),
                 "Le depart au centre de masse a ete retire.");
-            Assert.That(source, Does.Contain("frontOffset - scanRadius"),
-                "Le centre de la sphere recule d'un rayon pour que son bord avant parte du pare-chocs.");
+
+            // Story 5.17 a remplace le lancer de sphere par une perception volumique, puis le
+            // correctif 5.18 a rendu l'abscisse RELATIVE A LA VOIE. Les deux retraits sont toujours
+            // la, et c'est eux que la garantie vise : le pare-chocs, puis la demi-longueur du leader.
+            Assert.That(source, Does.Contain("pathAlong - frontOffset - halfLength"),
+                "L'ecart retire le pare-chocs puis la demi-longueur du leader, et rien d'autre.");
         }
 
         [Test]
-        public void LeaderDetectionSweepsAVolumeAlongTheSteeredHeadingNotAThinNoseRay()
+        public void LeaderDetectionSweepsAVolumeAndReadsItAgainstTheLaneNotTheNoseTangent()
         {
-            var source = File.ReadAllText(DriverControllerSourcePath);
+            var source = DriverSources();
 
-            Assert.That(source, Does.Contain("Physics.SphereCastNonAlloc("),
-                "Un rayon d'epaisseur nulle ne voit pas un obstacle decale d'un demi-vehicule.");
+            Assert.That(source, Does.Contain("Physics.OverlapSphereNonAlloc("),
+                "Un rayon d'epaisseur nulle ne voit pas un obstacle decale d'un demi-vehicule : "
+                + "la perception balaie un volume (Story 5.17).");
             Assert.That(source, Does.Contain("ResolveScanDirection()"),
                 "En virage, viser le seul nez fait manquer l'obstacle en sortie de courbe.");
+
+            // Correctif 5.18 : le volume balaye dit CE QUI EST LA, la projection sur la voie dit SI
+            // CELA NOUS CONCERNE. Lire la seconde question sur la tangente du nez confondait la voie
+            // opposee avec la notre et arretait deux vehicules qui se croisaient normalement.
+            Assert.That(source, Does.Contain("TrafficPerception.TryProjectOnPath("),
+                "L'appartenance a la voie se lit sur la trajectoire, pas sur la tangente du nez.");
         }
 
         [Test]
         public void LeaderDetectionSeesWalkingPlayersNotJustRigidbodies()
         {
-            var source = File.ReadAllText(DriverControllerSourcePath);
+            var source = DriverSources();
 
             // Le joueur a pied est un CharacterController (LocalOnFootController), sans Rigidbody :
             // ne filtrer que sur Rigidbody rendait l'IA aveugle aux pietons -- elle les encastrait
@@ -564,12 +589,12 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void PhysicsQueryBuffersAreMarginedWellBeyondCurrentSceneDensityAndWarnOnSaturation()
         {
-            var source = File.ReadAllText(DriverControllerSourcePath);
+            var source = DriverSources();
 
             // MVP_Run ne porte que 9 colliders au total : un tampon sature aujourd'hui trahirait un
             // depassement pur (pas un pic realiste de densite), donc la marge doit rester tres large.
-            Assert.That(source, Does.Contain("new RaycastHit[32]"),
-                "Le tampon de detection de leader est marge tres au-dela des 9 colliders actuels de MVP_Run.");
+            Assert.That(source, Does.Contain("perceptionHits = new Collider[64]"),
+                "Le tampon de perception est marge tres au-dela des 9 colliders actuels de MVP_Run.");
             Assert.That(source, Does.Contain("new Collider[48]"),
                 "Le tampon de proximite joueur est marge tres au-dela des 9 colliders actuels de MVP_Run.");
 

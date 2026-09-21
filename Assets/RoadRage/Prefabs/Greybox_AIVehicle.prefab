@@ -224,7 +224,7 @@ MonoBehaviour:
   arrivalRadius: 3
   steerFullLockDegrees: 45
   steerDegreesPerSecond: 90
-  lookAheadSeconds: 0.6
+  lookAheadSeconds: 1
   rolloverUprightDotThreshold: 0.35
   rolloverSustainedSeconds: 2
   voidHeightThreshold: -10

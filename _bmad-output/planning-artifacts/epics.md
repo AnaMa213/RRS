@@ -1435,6 +1435,15 @@ So that the city reads as ordered before rage makes it chaotic.
 **And** **no removal, teleport, or reinsertion-elsewhere tier exists**
 **And** a detected deadlock is logged in development builds with the vehicles involved
 
+**Given** a junction carries an authored traffic signal
+**When** a vehicle approaches it
+**Then** the signal plan is authored data (junction id, ordered phases, per-phase green groups, minimum green guard) and is never recomputed every frame
+**And** an approach whose group is not green waits, while an allowed approach crosses without stopping
+**And** the active phase is a pure function of a shared clock and the authored plan, so no NetworkVariable, no RPC and no second network state object is introduced
+**And** the visible signal is decoration under the module's `Visual_*` root, carrying no collider and no gameplay state
+
+> Signals were added to this story on 2026-09-20 by human decision. The original acceptance criteria above listed priority road, priority to the right and stop only. Static rules and signals are two authored sources of one priority decision, and the anti-deadlock arbitration is unchanged by the addition.
+
 ### Story 5.19: Rage and Fear as Driving Model Modulation
 
 > Renumbered from Story 5.13 on 2026-09-18. It was in `backlog`, so no work was attached to the renumbered key.

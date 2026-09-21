@@ -64,6 +64,47 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
+        /// Vitesse maximale a laquelle ce vehicule peut TENIR un rayon donne -- la reciproque exacte de
+        /// <see cref="ResolveSteerAngleDegrees"/>, rien de plus.
+        ///
+        /// Le braquage disponible decroit avec la vitesse. Un rayon exige un braquage
+        /// <c>atan(empattement / rayon)</c> (modele bicyclette). La vitesse tenable est donc celle ou
+        /// le braquage disponible cesse de couvrir le braquage exige. Aucune constante nouvelle :
+        /// empattement, angle maximal, angle a haute vitesse et vitesse de reduction sont tous
+        /// authores sur le vehicule, donc un carrefour plus large ou un vehicule plus maniable donnent
+        /// d'eux-memes une autre reponse.
+        ///
+        /// Mesure ANO-5.18-04 : le connecteur de virage serre du district demande 4,25 m ; a 8,0 m/s le
+        /// braquage disponible ne permet que 4,85 m. Le vehicule ne pouvait donc pas suivre sa propre
+        /// trajectoire, et sortait 1,84 m a cote -- 0,6 m au-dela de l'axe de la voie opposee.
+        /// </summary>
+        public static float ResolveCurveSpeedLimit(
+            float radius,
+            float wheelbase,
+            float maxSteerAngleDegrees,
+            float highSpeedSteerAngleDegrees,
+            float fullReductionSpeed)
+        {
+            if (!float.IsFinite(radius) || radius <= 0f || !float.IsFinite(wheelbase) || wheelbase <= 0f)
+            {
+                return float.PositiveInfinity;
+            }
+
+            var low = Mathf.Clamp(maxSteerAngleDegrees, 0f, 90f);
+            var high = Mathf.Clamp(highSpeedSteerAngleDegrees, 0f, low);
+            var required = Mathf.Atan(wheelbase / radius) * Mathf.Rad2Deg;
+
+            // Le braquage tient a toute vitesse : la courbe n'impose rien.
+            if (required <= high) return float.PositiveInfinity;
+
+            // Le braquage ne suffit a aucune vitesse : c'est une geometrie infaisable, pas un reglage.
+            // Rendre zero immobiliserait le vehicule ; la reponse honnete est "au plus lentement".
+            if (required >= low || !float.IsFinite(fullReductionSpeed) || fullReductionSpeed <= 0f) return 0f;
+
+            return fullReductionSpeed * (low - required) / Mathf.Max(0.0001f, low - high);
+        }
+
+        /// <summary>
         /// Taux de deplacement de la consigne, en degres par seconde : le taux de braquage authore
         /// quand l'angle s'eloigne du centre, le taux de rappel authore quand il y revient.
         ///

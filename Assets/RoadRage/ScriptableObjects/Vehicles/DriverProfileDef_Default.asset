@@ -16,7 +16,7 @@ MonoBehaviour:
   profile:
     desiredSpeed: 8
     timeHeadway: 1.5
-    minimumGap: 2
+    minimumGap: 0.75
     maxAcceleration: 1.5
     comfortableDeceleration: 2
     politeness: 0.25
@@ -26,3 +26,25 @@ MonoBehaviour:
     laneChangeEvaluationInterval: 1
     consistency: 0.8
     aimPointRecallSpeed: 12
+    perceptionRadius: 20
+    perceptionArcDegrees: 100
+    perceptionInterval: 0.2
+    hornDelay: 2
+    reverseDuration: 3
+    roadDetourGap: 5
+    sidewalkClearanceRadius: 3
+    predictionSeconds: 3
+    safetyMargin: 0.3
+    maneuverSpeed: 2
+    reverseSpeed: 1.2
+    maneuverTimeout: 25
+    progressTimeout: 4
+    progressDistance: 0.3
+    retryCooldown: 2
+    pathSampleDistance: 0.5
+    maxCurbHeight: 0.15
+    junctionApproachRadius: 12
+    junctionStopHoldSeconds: 1.2
+    junctionAcceptedGap: 4
+    junctionEscalationDelay: 12
+    junctionExitClearanceRadius: 6

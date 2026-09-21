@@ -214,10 +214,12 @@ namespace RoadRage.Tests.EditMode
             var code = CodeWithoutComments(File.ReadAllText(AiControllerSourcePath));
             var fixedUpdate = ExtractMethodBody(code, "private void FixedUpdate()");
 
-            Assert.That(Occurrences(fixedUpdate, "SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle)"), Is.EqualTo(3),
-                "Les trois sorties d'arret doivent POUSSER l'intent neutre : graphe absent, profil conducteur absent, "
-                + "et arret voulu (Block / ConfrontationCapable). Sans cela, la couche physique rejoue l'intent du pas precedent.");
-            Assert.That(fixedUpdate, Does.Contain("SubmitIntentToPhysicsLayer(new VehicleDriveIntent(pedal.Throttle, seekIntent.Steer, pedal.BrakeReverse, 0f))"),
+            Assert.That(fixedUpdate, Does.Contain("laneGraph.NodeCount <= 0 || driverProfile == null"));
+            Assert.That(Occurrences(fixedUpdate, "SubmitIntentToPhysicsLayer(VehicleDriveIntent.Idle)"), Is.EqualTo(1),
+                "La garde commune graphe/profil absent soumet explicitement Idle.");
+            Assert.That(fixedUpdate, Does.Contain("SubmitIntentToPhysicsLayer(ResolveStopIntent(longitudinalSpeed))"),
+                "Une disposition immobilisante soumet le frein sans enclencher une marche arriere.");
+            Assert.That(fixedUpdate, Does.Contain("SubmitIntentToPhysicsLayer(new VehicleDriveIntent(pedal.Throttle, seekIntent.Steer, pedal.BrakeReverse, pedal.Handbrake))"),
                 "Et le chemin nominal soumet l'intent du pas, compose de la poursuite et de la decision longitudinale.");
         }
 

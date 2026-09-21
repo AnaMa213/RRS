@@ -818,10 +818,18 @@ namespace RoadRage.Tests.EditMode
             var driverSource = File.ReadAllText(DriverSourcePath);
             var redirect = ExtractMethod(driverSource, "private int ResolveRedirectToNearestExit(int currentIndex, IReadOnlyList<int> candidates)");
 
-            Assert.That(CodeOnly(redirect), Does.Contain("if (candidates.Count == 0)"),
+            // CONTRAT MIS A JOUR PAR LA REVUE DE LA STORY 5.17 -- "remplacer la redirection gloutonne
+            // et le saut direct vers un portail par une route dirigee prouvee vers n'importe quelle
+            // sortie accessible". La garde d'origine exigeait `return exitIndex`, c'est-a-dire viser
+            // le portail le plus PROCHE meme lorsque aucune route ne l'atteint : un cul-de-sac y
+            // renvoyait le vehicule contre un mur, indefiniment. Ce qui est garde ici est ce qui
+            // comptait vraiment -- cas traite explicitement, jamais de retrait, defaut audible.
+            Assert.That(CodeOnly(redirect), Does.Contain("candidates.Count == 0"),
                 "Cul-de-sac : le cas doit etre traite explicitement, pas tomber dans le tirage.");
-            Assert.That(CodeOnly(redirect), Does.Contain("return exitIndex;"),
-                "Cul-de-sac : le vehicule est reoriente vers le portail de sortie le plus proche, jamais laisse errer ni retire.");
+            Assert.That(CodeOnly(redirect), Does.Contain("FindNextTowardReachableExit"),
+                "Cul-de-sac : la reorientation suit une route PROUVEE vers une sortie accessible, pas la proximite geometrique.");
+            Assert.That(CodeOnly(redirect), Does.Contain("return currentIndex;"),
+                "Sans aucune sortie accessible le vehicule reste inerte sur place, jamais retire ni teleporte.");
             Assert.That(redirect, Does.Contain("warnedDeadEnd"),
                 "Un cul-de-sac est un defaut d'authoring : il doit s'entendre, une fois.");
 

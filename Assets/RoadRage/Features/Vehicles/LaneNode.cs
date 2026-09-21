@@ -57,9 +57,51 @@ namespace RoadRage.Features.Vehicles
         [Tooltip("Portail d'entree qui accepte aussi les vehicules sortants : le meme tunnel sert d'entree et de sortie.")]
         private bool exitReusesEntry;
 
+        [SerializeField]
+        [Tooltip("Id de jonction, stable et identique sur toutes les approches d'une meme jonction. VIDE : ce noeud n'est pas une approche, aucune regle ne s'y applique (Story 5.18).")]
+        private string junctionId = string.Empty;
+
+        [SerializeField]
+        [Tooltip("Regle de priorite authoree sur cette approche (Story 5.18). Priorite a droite est le repli quand aucune route prioritaire n'est authoree.")]
+        private JunctionApproachRule junctionRule = JunctionApproachRule.PriorityToRight;
+
+        [SerializeField]
+        [Min(0)]
+        [Tooltip("Groupe d'approche dans le plan de feux de la jonction (Story 5.18). Deux approches qui se croisent ne doivent jamais partager un groupe.")]
+        private int signalGroup;
+
         public LaneNodeRole Role
         {
             get { return role; }
+        }
+
+        /// <summary>
+        /// Id de jonction authore (Story 5.18), ou chaine vide. Il n'identifie PAS une jonction a lui
+        /// seul : le graphe le porte par (module porteur, cet id), pour que quatre instances du meme
+        /// prefab de jonction en T restent quatre jonctions distinctes. Vide veut dire "ce noeud n'est
+        /// pas une approche" -- et aucune regle n'est alors inventee.
+        /// </summary>
+        public string JunctionId
+        {
+            get { return junctionId ?? string.Empty; }
+        }
+
+        /// <summary>Regle de priorite authoree sur cette approche. Sans objet quand <see cref="JunctionId"/> est vide.</summary>
+        public JunctionApproachRule JunctionRule
+        {
+            get { return JunctionRules.NormalizeRule(junctionRule); }
+        }
+
+        /// <summary>Groupe d'approche dans le plan de feux. Sans objet hors regle feu.</summary>
+        public int SignalGroup
+        {
+            get { return signalGroup; }
+        }
+
+        /// <summary>Vrai si ce noeud porte une approche de jonction, donc si l'arbitrage le concerne.</summary>
+        public bool IsJunctionApproach
+        {
+            get { return !string.IsNullOrWhiteSpace(junctionId); }
         }
 
         public IReadOnlyList<LaneNode> Successors

@@ -156,7 +156,25 @@ namespace RoadRage.Features.Vehicles
                 // L'omettre laissait le defaut du constructeur (12 m/s) remplacer la valeur authoree :
                 // le reglage du Def serait alors sans effet, ce qui est exactement la valeur en dur que
                 // la Story 5.9 a supprimee.
-                profile.AimPointRecallSpeed);
+                profile.AimPointRecallSpeed,
+                profile.PerceptionRadius,
+                profile.PerceptionArcDegrees,
+                profile.PerceptionInterval,
+                profile.HornDelay,
+                profile.ReverseDuration,
+                profile.RoadDetourGap,
+                profile.SidewalkClearanceRadius,
+                profile.PredictionSeconds, profile.SafetyMargin, profile.ManeuverSpeed,
+                profile.ReverseSpeed, profile.ManeuverTimeout, profile.ProgressTimeout,
+                profile.ProgressDistance, profile.RetryCooldown, profile.PathSampleDistance,
+                profile.MaxCurbHeight,
+                // Story 5.18 : les seuils d'intersection traversent la modulation SANS etre modifies,
+                // exactement comme la vitesse de rappel de cible de la 5.13. Les omettre laisserait les
+                // defauts du constructeur remplacer les valeurs authorees -- le reglage du Def serait
+                // alors sans effet, ce qui est la valeur en dur que la Story 5.9 a supprimee.
+                profile.JunctionApproachRadius, profile.JunctionStopHoldSeconds,
+                profile.JunctionAcceptedGap, profile.JunctionEscalationDelay,
+                profile.JunctionExitClearanceRadius);
         }
 
         /// <summary>

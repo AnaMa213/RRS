@@ -83,6 +83,33 @@ namespace RoadRage.Features.Vehicles
         [Tooltip("AIDE ARCADE (Story 5.13) -- vitesse de RAPPEL (m/s) du point de visee vers sa cible ideale : c'est elle qui rend la visee continue quand le vehicule franchit un noeud. Au-dessus de la vitesse de croisiere authoree (8 m/s), donc elle ne retarde pas la visee en conduite nominale. NUL : rappel inerte, la cible saute de nouveau a l'avancee de noeud.")]
         private float aimPointRecallSpeed;
 
+        // Story 5.17 -- perception et degagement. Ils restent dans le Def : le conducteur ne
+        // porte aucune distance ou duree de manoeuvre codee en dur.
+        [SerializeField, Min(0.01f)] private float perceptionRadius;
+        [SerializeField, Range(1f, 180f)] private float perceptionArcDegrees;
+        [SerializeField, Min(0.01f)] private float perceptionInterval;
+        [SerializeField, Min(0f)] private float hornDelay;
+        [SerializeField, Min(0f)] private float reverseDuration;
+        [SerializeField, Min(0f)] private float roadDetourGap;
+        [SerializeField, Min(0f)] private float sidewalkClearanceRadius;
+        [SerializeField, Min(0.1f)] private float predictionSeconds;
+        [SerializeField, Min(0.01f)] private float safetyMargin;
+        [SerializeField, Min(0.1f)] private float maneuverSpeed;
+        [SerializeField, Min(0.1f)] private float reverseSpeed;
+        [SerializeField, Min(0.1f)] private float maneuverTimeout;
+        [SerializeField, Min(0.1f)] private float progressTimeout;
+        [SerializeField, Min(0.01f)] private float progressDistance;
+        [SerializeField, Min(0.1f)] private float retryCooldown;
+        [SerializeField, Min(0.1f)] private float pathSampleDistance;
+        [SerializeField, Min(0.01f)] private float maxCurbHeight;
+        // Story 5.18 -- seuils d'intersection. Ils vivent ici pour la meme raison que ceux de la
+        // perception : le controleur ne porte aucune distance, aucune duree et aucun ecart de
+        // conduite code en dur, et deux archetypes peuvent franchir une jonction differemment.
+        [SerializeField, Min(0.01f)] private float junctionApproachRadius;
+        [SerializeField, Min(0f)] private float junctionStopHoldSeconds;
+        [SerializeField, Min(0f)] private float junctionAcceptedGap;
+        [SerializeField, Min(0f)] private float junctionEscalationDelay;
+        [SerializeField, Min(0.01f)] private float junctionExitClearanceRadius;
         /// <summary>
         /// Valeur de rappel de cible utilisee UNIQUEMENT quand un appelant ne la fournit pas : les
         /// fixtures anterieures a la Story 5.13 construisent un profil a onze arguments, et leur
@@ -103,7 +130,16 @@ namespace RoadRage.Features.Vehicles
             float reactionTime,
             float laneChangeEvaluationInterval,
             float consistency,
-            float aimPointRecallSpeed = DefaultAimPointRecallSpeed)
+            float aimPointRecallSpeed = DefaultAimPointRecallSpeed,
+            float perceptionRadius = 20f, float perceptionArcDegrees = 100f, float perceptionInterval = 0.2f,
+            float hornDelay = 2f, float reverseDuration = 3f, float roadDetourGap = 5f, float sidewalkClearanceRadius = 3f,
+            float predictionSeconds = 3f, float safetyMargin = 0.3f, float maneuverSpeed = 2f,
+            float reverseSpeed = 1.2f, float maneuverTimeout = 25f, float progressTimeout = 4f,
+            float progressDistance = 0.3f, float retryCooldown = 2f, float pathSampleDistance = 0.5f,
+            float maxCurbHeight = 0.15f,
+            float junctionApproachRadius = 12f, float junctionStopHoldSeconds = 1.2f,
+            float junctionAcceptedGap = 4f, float junctionEscalationDelay = 12f,
+            float junctionExitClearanceRadius = 6f)
         {
             this.desiredSpeed = desiredSpeed;
             this.timeHeadway = timeHeadway;
@@ -117,6 +153,28 @@ namespace RoadRage.Features.Vehicles
             this.laneChangeEvaluationInterval = laneChangeEvaluationInterval;
             this.consistency = consistency;
             this.aimPointRecallSpeed = aimPointRecallSpeed;
+            this.perceptionRadius = perceptionRadius;
+            this.perceptionArcDegrees = perceptionArcDegrees;
+            this.perceptionInterval = perceptionInterval;
+            this.hornDelay = hornDelay;
+            this.reverseDuration = reverseDuration;
+            this.roadDetourGap = roadDetourGap;
+            this.sidewalkClearanceRadius = sidewalkClearanceRadius;
+            this.predictionSeconds = predictionSeconds;
+            this.safetyMargin = safetyMargin;
+            this.maneuverSpeed = maneuverSpeed;
+            this.reverseSpeed = reverseSpeed;
+            this.maneuverTimeout = maneuverTimeout;
+            this.progressTimeout = progressTimeout;
+            this.progressDistance = progressDistance;
+            this.retryCooldown = retryCooldown;
+            this.pathSampleDistance = pathSampleDistance;
+            this.maxCurbHeight = maxCurbHeight;
+            this.junctionApproachRadius = junctionApproachRadius;
+            this.junctionStopHoldSeconds = junctionStopHoldSeconds;
+            this.junctionAcceptedGap = junctionAcceptedGap;
+            this.junctionEscalationDelay = junctionEscalationDelay;
+            this.junctionExitClearanceRadius = junctionExitClearanceRadius;
         }
 
         /// <summary>v0 -- vitesse desiree en flux libre (m/s). 0 signifie "cesse de poursuivre la route".</summary>
@@ -190,6 +248,39 @@ namespace RoadRage.Features.Vehicles
         {
             get { return aimPointRecallSpeed; }
         }
+
+        public float PerceptionRadius { get { return perceptionRadius; } }
+        public float PerceptionArcDegrees { get { return perceptionArcDegrees; } }
+        public float PerceptionInterval { get { return perceptionInterval; } }
+        public float HornDelay { get { return hornDelay; } }
+        public float ReverseDuration { get { return reverseDuration; } }
+        public float RoadDetourGap { get { return roadDetourGap; } }
+        public float SidewalkClearanceRadius { get { return sidewalkClearanceRadius; } }
+        public float PredictionSeconds => predictionSeconds;
+        public float SafetyMargin => safetyMargin;
+        public float ManeuverSpeed => maneuverSpeed;
+        public float ReverseSpeed => reverseSpeed;
+        public float ManeuverTimeout => maneuverTimeout;
+        public float ProgressTimeout => progressTimeout;
+        public float ProgressDistance => progressDistance;
+        public float RetryCooldown => retryCooldown;
+        public float PathSampleDistance => pathSampleDistance;
+        public float MaxCurbHeight => maxCurbHeight;
+
+        /// <summary>Distance planaire (m) sous laquelle une approche de jonction engage ses regles. Au-dela, la conduite nominale continue.</summary>
+        public float JunctionApproachRadius => junctionApproachRadius;
+
+        /// <summary>Maintien a l'arret complet (s) exige par une regle Stop avant de franchir (Story 5.18).</summary>
+        public float JunctionStopHoldSeconds => junctionStopHoldSeconds;
+
+        /// <summary>Ecart accepte (m) au revendiquant concurrent le plus proche pour qu'un Stop franchisse (Story 5.18).</summary>
+        public float JunctionAcceptedGap => junctionAcceptedGap;
+
+        /// <summary>Delai d'attente (s) a une jonction au-dela duquel l'interblocage est reconnu et le palier de deblocage s'applique (Story 5.18).</summary>
+        public float JunctionEscalationDelay => junctionEscalationDelay;
+
+        /// <summary>Place libre exigee (m) sur la voie de sortie pour qu'une approche s'engage (Story 5.18).</summary>
+        public float JunctionExitClearanceRadius => junctionExitClearanceRadius;
 
         /// <summary>
         /// Copie du profil avec une autre vitesse desiree. Support de l'ordre de composition de la

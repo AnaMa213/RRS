@@ -561,6 +561,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: TJunction_South
       objectReference: {fileID: 0}
+    - target: {fileID: 6509489539832623788, guid: cd9052de83f27784c9db69eb57413904, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.14
+      objectReference: {fileID: 0}
+    - target: {fileID: 6509489539832623788, guid: cd9052de83f27784c9db69eb57413904, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4.03
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2017,6 +2025,14 @@ PrefabInstance:
     - target: {fileID: 2174360367984508665, guid: cd9052de83f27784c9db69eb57413904, type: 3}
       propertyPath: m_Name
       value: TJunction_North
+      objectReference: {fileID: 0}
+    - target: {fileID: 6509489539832623788, guid: cd9052de83f27784c9db69eb57413904, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 6509489539832623788, guid: cd9052de83f27784c9db69eb57413904, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3.12
       objectReference: {fileID: 0}
     - target: {fileID: 6671139004292716995, guid: cd9052de83f27784c9db69eb57413904, type: 3}
       propertyPath: m_Enabled
@@ -3962,6 +3978,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: TJunction_East
       objectReference: {fileID: 0}
+    - target: {fileID: 6509489539832623788, guid: cd9052de83f27784c9db69eb57413904, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 6509489539832623788, guid: cd9052de83f27784c9db69eb57413904, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3.63
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4496,6 +4520,16 @@ MonoBehaviour:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
+  AiVehicleTargetCount:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: -1
+  LitterThrowerCount:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: -1
   RageRoadEvent:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
@@ -5039,6 +5073,14 @@ PrefabInstance:
     - target: {fileID: 2174360367984508665, guid: cd9052de83f27784c9db69eb57413904, type: 3}
       propertyPath: m_Name
       value: TJunction_West
+      objectReference: {fileID: 0}
+    - target: {fileID: 6509489539832623788, guid: cd9052de83f27784c9db69eb57413904, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.81
+      objectReference: {fileID: 0}
+    - target: {fileID: 6509489539832623788, guid: cd9052de83f27784c9db69eb57413904, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3.14
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -6872,6 +6914,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 442163591}
     m_Modifications:
+    - target: {fileID: 1070602638290047613, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -4.37
+      objectReference: {fileID: 0}
+    - target: {fileID: 1070602638290047613, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5.51
+      objectReference: {fileID: 0}
+    - target: {fileID: 1618022145282107548, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 4.59
+      objectReference: {fileID: 0}
+    - target: {fileID: 1618022145282107548, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4.37
+      objectReference: {fileID: 0}
     - target: {fileID: 3237468531753948436, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
       propertyPath: m_Name
       value: Intersection_Center_Crossroads
@@ -6916,9 +6974,25 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4626304961832029228, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 4.31
+      objectReference: {fileID: 0}
+    - target: {fileID: 4626304961832029228, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -5.1
+      objectReference: {fileID: 0}
     - target: {fileID: 8293951861166629016, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
       propertyPath: m_Enabled
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8811011411794791741, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -4.97
+      objectReference: {fileID: 0}
+    - target: {fileID: 8811011411794791741, guid: d365932ab5d42b54aa3285d9a9e9a0e8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -4.29
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

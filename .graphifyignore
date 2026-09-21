@@ -122,6 +122,13 @@ docs/
 
 scripts/
 
+# Scripts d'authoring/scene ecrits par les agents, hors `Assets/` (donc jamais
+# importes par l'Editor). Ils portent du code de story, pas le code applicatif :
+# meme categorie que `scripts/`. Mesure du 2026-09-20 : 7 d'entre eux etaient
+# restes dans le manifeste (aucun motif ne les couvrait, `AssetDatabase` ne les
+# voit pas mais Graphify les lit sur disque).
+AgentScripts/
+
 # --- Contenu livre par Unity : exemples TextMesh Pro et scaffolding de projet ---
 
 # Aucun code projet n'y vit ; ce sont des samples Unity, deja presents a

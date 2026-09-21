@@ -292,6 +292,13 @@ namespace RoadRage.App.Run
             var found = Physics.OverlapSphereNonAlloc(
                 origin, clearanceRadius, clearanceHits, ~0, QueryTriggerInteraction.Ignore);
 
+            // NonAlloc ne dit pas quels colliders ont ete tronques. Un tampon plein signifie donc
+            // environnement inconnu, jamais portail libre.
+            if (found >= clearanceHits.Length)
+            {
+                return false;
+            }
+
             for (var i = 0; i < found; i++)
             {
                 var candidate = clearanceHits[i];

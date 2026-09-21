@@ -37,7 +37,24 @@ namespace RoadRage.Features.Vehicles
             // retarde PAS la visee en conduite nominale -- il ne se voit que sur les 4,8 m d'echelon
             // qu'un franchissement de noeud produit. En dessous de la pointe authoree (18 m/s), donc
             // une visee rapide reste legerement lissee.
-            aimPointRecallSpeed: 12f);
+            aimPointRecallSpeed: 12f,
+            perceptionRadius: 20f,
+            perceptionArcDegrees: 100f,
+            perceptionInterval: 0.2f,
+            hornDelay: 2f,
+            reverseDuration: 3f,
+            roadDetourGap: 5f,
+            sidewalkClearanceRadius: 3f,
+            predictionSeconds: 3f, safetyMargin: 0.3f, maneuverSpeed: 2f,
+            reverseSpeed: 1.2f, maneuverTimeout: 25f, progressTimeout: 4f,
+            progressDistance: 0.3f, retryCooldown: 2f, pathSampleDistance: 0.5f,
+            maxCurbHeight: 0.15f,
+            // Story 5.18 : seuils d'intersection. Ils vivent ici pour la meme raison que ceux de la
+            // perception : deux archetypes peuvent franchir une jonction differemment, et le controleur
+            // ne porte aucune distance, aucune duree et aucun ecart de conduite code en dur.
+            junctionApproachRadius: 12f, junctionStopHoldSeconds: 1.2f,
+            junctionAcceptedGap: 4f, junctionEscalationDelay: 12f,
+            junctionExitClearanceRadius: 6f);
 
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
@@ -142,6 +159,41 @@ namespace RoadRage.Features.Vehicles
                 return false;
             }
 
+            if (!IsFiniteAndAbove(profile.PerceptionRadius, 0f)
+                || !IsFiniteAndAbove(profile.PerceptionArcDegrees, 0f) || profile.PerceptionArcDegrees > 180f
+                || !IsFiniteAndAbove(profile.PerceptionInterval, 0f)
+                || !IsFiniteAndAtLeast(profile.HornDelay, 0f)
+                || !IsFiniteAndAtLeast(profile.ReverseDuration, 0f)
+                || !IsFiniteAndAtLeast(profile.RoadDetourGap, 0f)
+                || !IsFiniteAndAtLeast(profile.SidewalkClearanceRadius, 0f)
+                || !IsFiniteAndAbove(profile.PredictionSeconds, 0f)
+                || !IsFiniteAndAbove(profile.SafetyMargin, 0f)
+                || !IsFiniteAndAbove(profile.ManeuverSpeed, 0f)
+                || !IsFiniteAndAbove(profile.ReverseSpeed, 0f)
+                || !IsFiniteAndAbove(profile.ManeuverTimeout, 0f)
+                || !IsFiniteAndAbove(profile.ProgressTimeout, 0f)
+                || !IsFiniteAndAbove(profile.ProgressDistance, 0f)
+                || !IsFiniteAndAbove(profile.RetryCooldown, 0f)
+                || !IsFiniteAndAbove(profile.PathSampleDistance, 0f) || profile.PathSampleDistance > 0.5f
+                || !IsFiniteAndAbove(profile.MaxCurbHeight, 0f)
+                || profile.ProgressTimeout > profile.ManeuverTimeout)
+            {
+                error = "Reglages de perception ou de deverrouillage invalides.";
+                return false;
+            }
+            // Story 5.18 : les seuils d'intersection suivent le meme chemin que ceux de la perception.
+            // L'ecart accepte et le maintien a l'arret peuvent etre nuls (un stop immediat, un stop
+            // colle), mais pas negatifs ; le rayon d'approche et la place exigee a la sortie, eux,
+            // divisent la zone de degagement, donc ils sont strictement positifs.
+            if (!IsFiniteAndAbove(profile.JunctionApproachRadius, 0f)
+                || !IsFiniteAndAtLeast(profile.JunctionStopHoldSeconds, 0f)
+                || !IsFiniteAndAtLeast(profile.JunctionAcceptedGap, 0f)
+                || !IsFiniteAndAtLeast(profile.JunctionEscalationDelay, 0f)
+                || !IsFiniteAndAbove(profile.JunctionExitClearanceRadius, 0f))
+            {
+                error = "Reglages d'intersection invalides.";
+                return false;
+            }
             error = string.Empty;
             return true;
         }

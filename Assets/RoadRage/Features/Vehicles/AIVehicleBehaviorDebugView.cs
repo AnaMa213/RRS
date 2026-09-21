@@ -31,6 +31,7 @@ namespace RoadRage.Features.Vehicles
 
         private bool ownsLabel;
         private bool hasRageSource;
+        private NetworkedAIVehicleDriverController driver;
         private Camera billboardCamera;
         private bool localRageTargetLock;
         private bool rageRoadEventTarget;
@@ -67,6 +68,7 @@ namespace RoadRage.Features.Vehicles
             }
 
             hasRageSource = GetComponent<IRageDispositionSource>() != null;
+            driver = GetComponent<NetworkedAIVehicleDriverController>();
 
             if (label == null)
             {
@@ -102,6 +104,27 @@ namespace RoadRage.Features.Vehicles
             }
 
             var text = "IA : " + target.Behavior.Value;
+
+            // Story 5.18 (correctif) : la disposition de rage seule ne dit pas POURQUOI le vehicule
+            // s'arrete. Le motif de decision est cote hote uniquement -- il n'est pas replique, donc
+            // un client n'en affiche rien plutot qu'une valeur fausse.
+            if (driver != null && driver.IsServer)
+            {
+                text += " | " + driver.DecisionReason;
+                if (driver.DecisionReason != TrafficDecisionReason.Cruise
+                    && !string.IsNullOrEmpty(driver.TrafficRefusal))
+                {
+                    text += " (" + driver.TrafficRefusal + ")";
+                }
+
+                // ANO-5.18 : le motif seul ne se verifie pas. La trace nomme l'objet a l'origine de la
+                // decision, sans quoi "obstacle immobile" reste inverifiable en recette manuelle.
+                if (!string.IsNullOrEmpty(driver.DecisionDetail))
+                {
+                    text += System.Environment.NewLine + driver.DecisionDetail;
+                }
+            }
+
             if (!hasRageSource)
             {
                 text += " (rage absente)";
