@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using UnityEngine;
@@ -271,11 +272,11 @@ namespace RoadRage.Features.Vehicles.Traffic
             }
         }
 
-        private static void WriteSamples(BinaryWriter writer, RoadCurveSample[] samples)
+        private static void WriteSamples(BinaryWriter writer, IReadOnlyList<RoadCurveSample> samples)
         {
             var values = samples ?? new RoadCurveSample[0];
-            writer.Write(values.Length);
-            for (int i = 0; i < values.Length; i++)
+            writer.Write(values.Count);
+            for (int i = 0; i < values.Count; i++)
             {
                 WriteMeters(writer, values[i].SMeters);
                 WritePosition(writer, values[i].Position);

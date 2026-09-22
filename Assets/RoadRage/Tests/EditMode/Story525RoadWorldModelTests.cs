@@ -498,7 +498,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(corridor.Samples[0].HalfWidthLeftMeters, Is.EqualTo(2f).Within(1e-4f),
                 "Copie defensive : muter la source ne change pas le modele compile.");
 
-            JunctionControl control;
+            CompiledJunctionControl control;
             Assert.That(model.TryGetControlForMovement(MovementM1, out control), Is.True);
             Assert.That(control.Id, Is.EqualTo(ControlC1));
             Assert.That(control.ControlledMovementIds[0], Is.EqualTo(MovementM1),
@@ -510,6 +510,37 @@ namespace RoadRage.Tests.EditMode
                 "Etats de groupe d'une phase clones.");
             Assert.That(model.ConflictZones[0].MemberMovementIds[0], Is.EqualTo(MovementM2),
                 "Membres d'une zone de conflit clones.");
+        }
+
+        [Test]
+        public void TheCompiledModelExposesNoWritableNestedCollection()
+        {
+            // Type : aucune vue compilee ne porte de tableau, donc `model.X[i].Y[j] = v` ne compile pas.
+            var compiledViews = new[]
+            {
+                typeof(EffectiveLaneCorridor), typeof(CompiledJunctionMovement), typeof(CompiledJunctionControl),
+                typeof(CompiledConflictZone), typeof(CompiledSignalPlan), typeof(CompiledSignalGroup),
+                typeof(CompiledSignalPhase)
+            };
+            foreach (var type in compiledViews)
+            {
+                foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    Assert.That(field.FieldType.IsArray, Is.False,
+                        "Tableau muable expose par le modele compile : " + type.Name + "." + field.Name);
+                }
+            }
+
+            // Execution : les collections ne se convertissent pas en tableau pour etre ecrites.
+            var model = RoadModelCompiler.Compile(BuildModel());
+            EffectiveLaneCorridor corridor;
+            Assert.That(model.TryGetCorridor(CorridorA1, out corridor), Is.True);
+            Assert.That(corridor.Samples, Is.Not.InstanceOf<RoadCurveSample[]>());
+            Assert.That(model.Movements[0].Samples, Is.Not.InstanceOf<RoadCurveSample[]>());
+            Assert.That(model.Controls[0].ControlledMovementIds, Is.Not.InstanceOf<RoadId[]>());
+            Assert.That(model.ConflictZones[0].MemberMovementIds, Is.Not.InstanceOf<RoadId[]>());
+            Assert.That(model.SignalPlans[0].Groups[0].MemberMovementIds, Is.Not.InstanceOf<RoadId[]>());
+            Assert.That(model.SignalPlans[0].Phases[0].GroupStates, Is.Not.InstanceOf<SignalGroupState[]>());
         }
 
         // ================================================================== matrice : ordre indifferent
@@ -1088,8 +1119,8 @@ namespace RoadRage.Tests.EditMode
 
             var model = RoadModelCompiler.Compile(source);
 
-            JunctionControl m1Control;
-            JunctionControl m4Control;
+            CompiledJunctionControl m1Control;
+            CompiledJunctionControl m4Control;
             Assert.That(model.TryGetControlForMovement(MovementM1, out m1Control), Is.True);
             Assert.That(model.TryGetControlForMovement(MovementM4, out m4Control), Is.True);
             Assert.That(m1Control.Kind, Is.EqualTo(JunctionControlKind.Signalized));

@@ -1152,39 +1152,39 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/CompiledRoadModel.cs": {
-    "mtime": 1790088560.343454,
-    "seen": 1790089153.616671,
-    "ast_hash": "cbeb5cb85e9c008ffb8d13184ee8c63f",
+    "mtime": 1790094257.8950922,
+    "seen": 1790094570.075114,
+    "ast_hash": "0097ce9d741d1abc89357ffaa660cc80",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadModelCanonicalWriter.cs": {
-    "mtime": 1790090584.2097733,
-    "seen": 1790090645.1760807,
-    "ast_hash": "47d4a5cd7936fc423411d75812d406ba",
+    "mtime": 1790094257.8960998,
+    "seen": 1790094570.075115,
+    "ast_hash": "b5c97e011aef39b04604d5778e700ef0",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadModelCompiler.cs": {
-    "mtime": 1790088664.7788496,
-    "seen": 1790089153.616673,
-    "ast_hash": "09a85dd4a208b5dccf23fc447b68b903",
+    "mtime": 1790094257.8960998,
+    "seen": 1790094570.0751157,
+    "ast_hash": "e4a0e16883576ebcaf778e51992d43f3",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadModelRecords.cs": {
-    "mtime": 1790088362.0569067,
-    "seen": 1790089153.6166735,
-    "ast_hash": "a02ee7944f41696e80dfc376f9f3862f",
+    "mtime": 1790094207.8369594,
+    "seen": 1790094570.0751166,
+    "ast_hash": "6fb536f812ffa1ae8bfde5d6a6a504b3",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs": {
-    "mtime": 1790090209.2802773,
-    "seen": 1790090645.176083,
-    "ast_hash": "47334b152d9117ce4be23caa83fd212c",
+    "mtime": 1790094237.3980856,
+    "seen": 1790094570.0751173,
+    "ast_hash": "a822c792c11e8c20674539ab8bd1723d",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story525RoadWorldModelTests.cs": {
-    "mtime": 1790090439.143144,
-    "seen": 1790090645.1761277,
-    "ast_hash": "1083b587fa563b3c6672dea359d817d9",
+    "mtime": 1790094481.6426594,
+    "seen": 1790094570.0751624,
+    "ast_hash": "41a8f1b6b81b4b11b91010a02a98dfdd",
     "semantic_hash": ""
   }
 }

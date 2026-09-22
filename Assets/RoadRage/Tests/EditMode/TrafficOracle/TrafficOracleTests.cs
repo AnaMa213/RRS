@@ -48,6 +48,27 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void EvidenceBearingRowsCiteATestAndNonEvidenceRowsCiteNone()
+        {
+            foreach (var row in OracleCatalog.Rows)
+            {
+                switch (row.Classification)
+                {
+                    case OracleEvidenceClassification.AutoEdit:
+                    case OracleEvidenceClassification.AutoPlay:
+                    case OracleEvidenceClassification.SourceGuard:
+                        Assert.That(row.BoundTests, Is.Not.Empty, row.Id + " claims automated evidence but cites no test");
+                        break;
+                    case OracleEvidenceClassification.OwnerAccepted:
+                    case OracleEvidenceClassification.Manual:
+                    case OracleEvidenceClassification.Negative:
+                        Assert.That(row.BoundTests, Is.Empty, row.Id + " is " + row.Classification + " but cites a test");
+                        break;
+                }
+            }
+        }
+
+        [Test]
         public void CatalogCoversEveryAToGRowId()
         {
             var ids = OracleCatalog.Rows.Select(r => r.Id).ToList();
@@ -85,6 +106,21 @@ namespace RoadRage.Tests.EditMode
                     b => b.FullName == entry.TestFullName && b.Classification == OracleEvidenceClassification.SourceGuard);
                 Assert.That(boundAsSourceGuard, Is.True,
                     entry.TestFullName + " is not bound as a SOURCE-GUARD test on row " + entry.OracleRowId + " in OracleCatalog");
+            }
+        }
+
+        [Test]
+        public void EveryCatalogSourceGuardTestIsRegisteredInTheShapeGuardRegister()
+        {
+            foreach (var row in OracleCatalog.Rows)
+            {
+                foreach (var bound in row.BoundTests.Where(b => b.Classification == OracleEvidenceClassification.SourceGuard))
+                {
+                    var registered = ShapeGuardRegister.Entries.Any(
+                        e => e.TestFullName == bound.FullName && e.OracleRowId == row.Id);
+                    Assert.That(registered, Is.True,
+                        bound.FullName + " is a SOURCE-GUARD on row " + row.Id + " but has no ShapeGuardRegister entry");
+                }
             }
         }
 

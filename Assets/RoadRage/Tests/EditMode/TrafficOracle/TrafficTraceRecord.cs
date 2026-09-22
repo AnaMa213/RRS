@@ -31,7 +31,7 @@ namespace RoadRage.Tests.EditMode
         /// <summary>Stable identity of the traced vehicle within the scenario (not a NetworkObjectId).</summary>
         public int VehicleId;
 
-        /// <summary>World-space position, planar (y is not asserted by the comparer's default tolerance).</summary>
+        /// <summary>World-space position. Numeric: compared by full 3D distance against a named epsilon.</summary>
         public Vector3 Position;
 
         /// <summary>Heading around the world up axis, in degrees.</summary>
@@ -60,7 +60,10 @@ namespace RoadRage.Tests.EditMode
         /// </summary>
         public string[] Blockers = System.Array.Empty<string>();
 
-        /// <summary>The one VehicleDriveIntent this frame would submit to the physics layer. Discrete/structural: exact match.</summary>
+        /// <summary>
+        /// The one VehicleDriveIntent this frame would submit to the physics layer. Numeric: each of its
+        /// four continuous components is compared against its own named epsilon, never by exact match.
+        /// </summary>
         public VehicleDriveIntent FinalIntent;
 
         // ------------------------------------------------- optional/versioned diagnostic fields (V2-only)

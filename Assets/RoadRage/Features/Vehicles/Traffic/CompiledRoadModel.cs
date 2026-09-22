@@ -88,7 +88,9 @@ namespace RoadRage.Features.Vehicles.Traffic
         public RoadSurface Surface;
         public VehicleClassMask AllowedVehicleClasses;
         public float LengthMeters;
-        public RoadCurveSample[] Samples;
+
+        /// <summary>Lecture seule : dans le modele compile, une copie non convertible en tableau.</summary>
+        public IReadOnlyList<RoadCurveSample> Samples;
 
         /// <summary>Position laterale authoree reportee depuis le corridor (AD-48).</summary>
         public int LateralOrder;
@@ -97,15 +99,146 @@ namespace RoadRage.Features.Vehicles.Traffic
         public bool IsCrossSectionDatum;
     }
 
+    // Vues compilees des enregistrements qui portent une collection imbriquee. Les records
+    // sources gardent des tableaux (serialisation Unity, 5.27) ; le modele compile n'expose que
+    // ces vues, dont chaque collection est une copie en lecture seule.
+
+    /// <summary>Vue compilee immuable d'un <see cref="JunctionMovement"/>.</summary>
+    public readonly struct CompiledJunctionMovement
+    {
+        public readonly RoadId Id;
+
+        /// <summary>Diagnostic seul.</summary>
+        public readonly string Label;
+
+        public readonly RoadId JunctionId;
+        public readonly RoadId FromCorridorId;
+        public readonly RoadId ToCorridorId;
+        public readonly IReadOnlyList<RoadCurveSample> Samples;
+        public readonly float LengthMeters;
+        public readonly float RoutePreferenceWeight;
+
+        internal CompiledJunctionMovement(JunctionMovement source)
+        {
+            Id = source.Id;
+            Label = source.Label;
+            JunctionId = source.JunctionId;
+            FromCorridorId = source.FromCorridorId;
+            ToCorridorId = source.ToCorridorId;
+            Samples = CompiledRoadModel.ReadOnlyCopy(source.Samples);
+            LengthMeters = source.LengthMeters;
+            RoutePreferenceWeight = source.RoutePreferenceWeight;
+        }
+    }
+
+    /// <summary>Vue compilee immuable d'un <see cref="JunctionControl"/> (AD-46).</summary>
+    public readonly struct CompiledJunctionControl
+    {
+        public readonly RoadId Id;
+        public readonly RoadId JunctionId;
+        public readonly JunctionControlKind Kind;
+        public readonly IReadOnlyList<RoadId> ControlledMovementIds;
+        public readonly bool HasStopLine;
+        public readonly RoadLineSegment StopLine;
+
+        internal CompiledJunctionControl(JunctionControl source)
+        {
+            Id = source.Id;
+            JunctionId = source.JunctionId;
+            Kind = source.Kind;
+            ControlledMovementIds = CompiledRoadModel.ReadOnlyCopy(source.ControlledMovementIds);
+            HasStopLine = source.HasStopLine;
+            StopLine = source.StopLine;
+        }
+    }
+
+    /// <summary>Vue compilee immuable d'une <see cref="ConflictZone"/>.</summary>
+    public readonly struct CompiledConflictZone
+    {
+        public readonly RoadId Id;
+        public readonly RoadId JunctionId;
+        public readonly RoadBoundsBox Volume;
+        public readonly IReadOnlyList<RoadId> MemberMovementIds;
+
+        internal CompiledConflictZone(ConflictZone source)
+        {
+            Id = source.Id;
+            JunctionId = source.JunctionId;
+            Volume = source.Volume;
+            MemberMovementIds = CompiledRoadModel.ReadOnlyCopy(source.MemberMovementIds);
+        }
+    }
+
+    /// <summary>Vue compilee immuable d'un <see cref="SignalGroup"/>.</summary>
+    public readonly struct CompiledSignalGroup
+    {
+        public readonly RoadId GroupId;
+        public readonly IReadOnlyList<RoadId> MemberMovementIds;
+
+        internal CompiledSignalGroup(SignalGroup source)
+        {
+            GroupId = source.GroupId;
+            MemberMovementIds = CompiledRoadModel.ReadOnlyCopy(source.MemberMovementIds);
+        }
+    }
+
+    /// <summary>Vue compilee immuable d'une <see cref="SignalPhase"/>.</summary>
+    public readonly struct CompiledSignalPhase
+    {
+        public readonly RoadId PhaseId;
+        public readonly float DurationSeconds;
+        public readonly IReadOnlyList<SignalGroupState> GroupStates;
+
+        internal CompiledSignalPhase(SignalPhase source)
+        {
+            PhaseId = source.PhaseId;
+            DurationSeconds = source.DurationSeconds;
+            GroupStates = CompiledRoadModel.ReadOnlyCopy(source.GroupStates);
+        }
+    }
+
+    /// <summary>Vue compilee immuable d'un <see cref="SignalPlan"/> ; l'ordre des phases est conserve.</summary>
+    public readonly struct CompiledSignalPlan
+    {
+        public readonly RoadId Id;
+        public readonly RoadId JunctionId;
+        public readonly IReadOnlyList<CompiledSignalGroup> Groups;
+        public readonly IReadOnlyList<CompiledSignalPhase> Phases;
+
+        internal CompiledSignalPlan(SignalPlan source)
+        {
+            Id = source.Id;
+            JunctionId = source.JunctionId;
+
+            var groups = source.Groups ?? new SignalGroup[0];
+            var compiledGroups = new CompiledSignalGroup[groups.Length];
+            for (int g = 0; g < groups.Length; g++)
+            {
+                compiledGroups[g] = new CompiledSignalGroup(groups[g]);
+            }
+
+            var phases = source.Phases ?? new SignalPhase[0];
+            var compiledPhases = new CompiledSignalPhase[phases.Length];
+            for (int p = 0; p < phases.Length; p++)
+            {
+                compiledPhases[p] = new CompiledSignalPhase(phases[p]);
+            }
+
+            Groups = Array.AsReadOnly(compiledGroups);
+            Phases = Array.AsReadOnly(compiledPhases);
+        }
+    }
+
     /// <summary>
     /// Vue compilee immuable du Road World Model : copies defensives des enregistrements, defauts
     /// de section resolus, collections inverses et index derives par le compilateur, version portee
     /// en lecture seule.
     /// </summary>
     /// <remarks>
-    /// Les tableaux internes sont clones a la construction, donc muter la source apres coup
-    /// n'affecte pas le modele compile. Les echantillons renvoyes restent des tableaux : les lire,
-    /// jamais les ecrire.
+    /// Tout est copie a la construction, donc muter la source apres coup n'affecte pas le modele
+    /// compile. Aucune collection imbriquee n'est exposee en tableau : chacune est une copie en
+    /// lecture seule, non convertible en tableau, donc un consommateur ne peut pas desynchroniser
+    /// le modele de sa version ou de ses index derives.
     /// </remarks>
     public sealed class CompiledRoadModel
     {
@@ -116,10 +249,10 @@ namespace RoadRage.Features.Vehicles.Traffic
         private readonly LaneConnection[] _connections;
         private readonly LaneAdjacency[] _adjacencies;
         private readonly Junction[] _junctions;
-        private readonly JunctionMovement[] _movements;
-        private readonly JunctionControl[] _controls;
-        private readonly ConflictZone[] _conflictZones;
-        private readonly SignalPlan[] _signalPlans;
+        private readonly CompiledJunctionMovement[] _movements;
+        private readonly CompiledJunctionControl[] _controls;
+        private readonly CompiledConflictZone[] _conflictZones;
+        private readonly CompiledSignalPlan[] _signalPlans;
         private readonly Portal[] _portals;
 
         private readonly Dictionary<RoadId, int> _corridorIndex = new Dictionary<RoadId, int>();
@@ -166,41 +299,38 @@ namespace RoadRage.Features.Vehicles.Traffic
             for (int i = 0; i < corridors.Length; i++)
             {
                 _corridors[i] = corridors[i];
-                _corridors[i].Samples = CloneSamples(corridors[i].Samples);
+                _corridors[i].Samples = ReadOnlyCopy(corridors[i].Samples);
                 _corridorIndex[_corridors[i].CorridorId] = i;
             }
 
-            _movements = new JunctionMovement[movements.Length];
+            _movements = new CompiledJunctionMovement[movements.Length];
             for (int i = 0; i < movements.Length; i++)
             {
-                _movements[i] = movements[i];
-                _movements[i].Samples = CloneSamples(movements[i].Samples);
+                _movements[i] = new CompiledJunctionMovement(movements[i]);
                 _movementIndex[_movements[i].Id] = i;
             }
 
-            _controls = new JunctionControl[controls.Length];
+            _controls = new CompiledJunctionControl[controls.Length];
             for (int i = 0; i < controls.Length; i++)
             {
-                _controls[i] = controls[i];
-                _controls[i].ControlledMovementIds = CloneIds(controls[i].ControlledMovementIds);
+                _controls[i] = new CompiledJunctionControl(controls[i]);
                 _controlIndex[_controls[i].Id] = i;
-                for (int m = 0; m < _controls[i].ControlledMovementIds.Length; m++)
+                for (int m = 0; m < _controls[i].ControlledMovementIds.Count; m++)
                 {
                     _controlByMovement[_controls[i].ControlledMovementIds[m]] = _controls[i].Id;
                 }
             }
 
-            _conflictZones = new ConflictZone[conflictZones.Length];
+            _conflictZones = new CompiledConflictZone[conflictZones.Length];
             for (int i = 0; i < conflictZones.Length; i++)
             {
-                _conflictZones[i] = conflictZones[i];
-                _conflictZones[i].MemberMovementIds = CloneIds(conflictZones[i].MemberMovementIds);
+                _conflictZones[i] = new CompiledConflictZone(conflictZones[i]);
             }
 
-            _signalPlans = new SignalPlan[signalPlans.Length];
+            _signalPlans = new CompiledSignalPlan[signalPlans.Length];
             for (int i = 0; i < signalPlans.Length; i++)
             {
-                _signalPlans[i] = ClonePlan(signalPlans[i]);
+                _signalPlans[i] = new CompiledSignalPlan(signalPlans[i]);
             }
 
             for (int i = 0; i < _junctions.Length; i++)
@@ -295,22 +425,22 @@ namespace RoadRage.Features.Vehicles.Traffic
             get { return _junctions; }
         }
 
-        public IReadOnlyList<JunctionMovement> Movements
+        public IReadOnlyList<CompiledJunctionMovement> Movements
         {
             get { return _movements; }
         }
 
-        public IReadOnlyList<JunctionControl> Controls
+        public IReadOnlyList<CompiledJunctionControl> Controls
         {
             get { return _controls; }
         }
 
-        public IReadOnlyList<ConflictZone> ConflictZones
+        public IReadOnlyList<CompiledConflictZone> ConflictZones
         {
             get { return _conflictZones; }
         }
 
-        public IReadOnlyList<SignalPlan> SignalPlans
+        public IReadOnlyList<CompiledSignalPlan> SignalPlans
         {
             get { return _signalPlans; }
         }
@@ -348,7 +478,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             return false;
         }
 
-        public bool TryGetMovement(RoadId movementId, out JunctionMovement movement)
+        public bool TryGetMovement(RoadId movementId, out CompiledJunctionMovement movement)
         {
             int index;
             if (_movementIndex.TryGetValue(movementId, out index))
@@ -357,11 +487,11 @@ namespace RoadRage.Features.Vehicles.Traffic
                 return true;
             }
 
-            movement = default(JunctionMovement);
+            movement = default(CompiledJunctionMovement);
             return false;
         }
 
-        public bool TryGetControl(RoadId controlId, out JunctionControl control)
+        public bool TryGetControl(RoadId controlId, out CompiledJunctionControl control)
         {
             int index;
             if (_controlIndex.TryGetValue(controlId, out index))
@@ -370,7 +500,7 @@ namespace RoadRage.Features.Vehicles.Traffic
                 return true;
             }
 
-            control = default(JunctionControl);
+            control = default(CompiledJunctionControl);
             return false;
         }
 
@@ -379,7 +509,7 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// compilateur depuis l'appartenance possedee par <see cref="JunctionControl"/> ; un
         /// mouvement ne stocke jamais son controle.
         /// </summary>
-        public bool TryGetControlForMovement(RoadId movementId, out JunctionControl control)
+        public bool TryGetControlForMovement(RoadId movementId, out CompiledJunctionControl control)
         {
             RoadId controlId;
             if (_controlByMovement.TryGetValue(movementId, out controlId))
@@ -387,7 +517,7 @@ namespace RoadRage.Features.Vehicles.Traffic
                 return TryGetControl(controlId, out control);
             }
 
-            control = default(JunctionControl);
+            control = default(CompiledJunctionControl);
             return false;
         }
 
@@ -506,38 +636,19 @@ namespace RoadRage.Features.Vehicles.Traffic
             return frozen;
         }
 
-        private static RoadCurveSample[] CloneSamples(RoadCurveSample[] samples)
+        /// <summary>
+        /// Copie en lecture seule : un <see cref="System.Collections.ObjectModel.ReadOnlyCollection{T}"/>
+        /// sur un tableau neuf, donc ni muable par indexeur ni convertible en tableau.
+        /// </summary>
+        internal static IReadOnlyList<T> ReadOnlyCopy<T>(IReadOnlyList<T> values)
         {
-            return samples == null ? new RoadCurveSample[0] : (RoadCurveSample[])samples.Clone();
-        }
-
-        private static RoadId[] CloneIds(RoadId[] ids)
-        {
-            return ids == null ? new RoadId[0] : (RoadId[])ids.Clone();
-        }
-
-        private static SignalPlan ClonePlan(SignalPlan plan)
-        {
-            var clone = plan;
-            var groups = plan.Groups ?? new SignalGroup[0];
-            clone.Groups = new SignalGroup[groups.Length];
-            for (int g = 0; g < groups.Length; g++)
+            var copy = new T[values == null ? 0 : values.Count];
+            for (int i = 0; i < copy.Length; i++)
             {
-                clone.Groups[g] = groups[g];
-                clone.Groups[g].MemberMovementIds = CloneIds(groups[g].MemberMovementIds);
+                copy[i] = values[i];
             }
 
-            var phases = plan.Phases ?? new SignalPhase[0];
-            clone.Phases = new SignalPhase[phases.Length];
-            for (int p = 0; p < phases.Length; p++)
-            {
-                clone.Phases[p] = phases[p];
-                clone.Phases[p].GroupStates = phases[p].GroupStates == null
-                    ? new SignalGroupState[0]
-                    : (SignalGroupState[])phases[p].GroupStates.Clone();
-            }
-
-            return clone;
+            return Array.AsReadOnly(copy);
         }
     }
 }

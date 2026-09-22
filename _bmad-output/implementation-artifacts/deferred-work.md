@@ -374,3 +374,19 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-25-road-world-model-records-compiler-and-versioning.md`
   summary: PREREQUIS EXPLICITE POUR LA 5.26 -- AD-47 interdit qu'une `LaneAdjacency` relie deux corridors de sens opposes, mais rien ne l'applique : le validateur 5.25 ne verifie sur une adjacence que la resolution des references et la finitude des bornes. L'invariant doit etre applique des que la Story 5.26 fournit la geometrie qui permet de decider le sens relatif de deux corridors.
   evidence: Decider qu'une adjacence relie des sens opposes exige de comparer les tangentes des deux corridors, donc de la mathematique de courbe -- hors perimetre de la 5.25 par construction (`Non-goals` : aucune mathematique de courbe). Aucun mal aujourd'hui : aucun importeur n'existe et rien n'emet d'adjacence. AD-48 rend le point structurant, car il fait de `LaneAdjacency.LaneSide` l'autorite du cote vu du conducteur, face a `LaneCorridor.LateralOrder` qui est un fait de repere section ; la verification croisee des deux, elle aussi geometrique, appartient a la 5.26. CONDITION DE REOUVERTURE : avant que la Story 5.27 n'emette la moindre `LaneAdjacency`, et au plus tard a la livraison de la 5.26.
+
+## Deferred from: code review of story-5-24-v2-regression-oracle-bench-and-v1-trace-contract (2026-09-22)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-24-v2-regression-oracle-bench-and-v1-trace-contract.md`
+  summary: `TrafficTraceComparer.Compare` never checks the `.Frame` index field itself for equality between the two traces (only frame *count* is checked, then frames are compared positionally); no test exercises two zero-frame traces.
+  evidence: Raised by `edge-case-hunter` and `blind-hunter`. Not reachable through any real call site today: the only production caller (`TrafficOracleTests`'s determinism replay) always assigns `.Frame` from the loop index in lockstep on both sides, so a frame-index divergence without a count mismatch cannot currently occur. Worth adding if a second trace source (e.g. a real V2 replay) is introduced later.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-24-v2-regression-oracle-bench-and-v1-trace-contract.md`
+  summary: `TrafficOracleTests.WithMvpRun` does not record or restore the Editor's previously-active scene before additively opening `MVP_Run`; it only tracks whether `MVP_Run` itself was already open.
+  evidence: Raised by `blind-hunter`. EditMode-only Editor-session side effect (which scene is "active" after the test run), not a test-correctness issue -- no flakiness observed in the 716/716 green run. Worth fixing if a later fixture becomes sensitive to the active scene.
+
+## Deferred from: code review of story-5-25-road-world-model-records-compiler-and-versioning (2026-09-22)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-25-road-world-model-records-compiler-and-versioning.md`
+  summary: `LaneConnection` and `JunctionMovement` do not reject `FromCorridorId == ToCorridorId` (a self-loop referencing the same corridor at both ends); `RoadModelValidator.ResolveReference` only checks that a reference resolves to a corridor of the right kind, never that the two ends of a directed relationship differ.
+  evidence: Raised by `blind-hunter`. Not required by the accepted I/O matrix (which specifies duplicate/empty/unresolved-reference and tombstone-reuse failures, not self-loop rejection). No importer exists yet to produce such a model (5.27's job), so no reachable consequence today. CONDITION DE REOUVERTURE: before Story 5.27 authors or imports real connection/movement data, since a self-loop would then silently compile into a versioned model instead of failing hard.
