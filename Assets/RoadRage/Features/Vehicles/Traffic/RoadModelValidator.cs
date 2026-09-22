@@ -31,7 +31,47 @@ namespace RoadRage.Features.Vehicles.Traffic
         DuplicateLateralOrder = 15,
         NonContiguousLateralOrder = 16,
         MissingCrossSectionDatum = 17,
-        MultipleCrossSectionData = 18
+        MultipleCrossSectionData = 18,
+
+        // ---------------------------------------------------------------- geometrie (Story 5.26)
+        // Un code par defaut, jamais groupe. N'est evaluee que sur une source structurellement
+        // valide (references resolues) : voir RoadGeometryValidator.
+
+        /// <summary>Tangente ou road-up non unitaire, ou non orthogonaux.</summary>
+        NonOrthonormalFrame = 19,
+
+        /// <summary>Depart hors de 0, longueur declaree contre derniere abscisse, ou pas d'abscisse contre corde.</summary>
+        InconsistentCurveLength = 20,
+
+        /// <summary>Demi-largeur gauche ou droite nulle ou negative.</summary>
+        NonPositiveHalfWidth = 21,
+
+        /// <summary>Intervalle d'adjacence ou abscisse de portail hors du domaine du corridor, ou intervalle vide.</summary>
+        ArcPositionOutOfDomain = 22,
+
+        /// <summary>Demi-dimension de frontiere de carrefour ou de volume de conflit non strictement positive.</summary>
+        NonPositiveBoxExtents = 23,
+
+        /// <summary>Couture de LaneConnection rompue : position ou tangente.</summary>
+        ConnectionSeamBroken = 24,
+
+        /// <summary>Couture d'extremite de JunctionMovement rompue : position, tangente ou largeurs.</summary>
+        MovementSeamBroken = 25,
+
+        /// <summary>LaneAdjacency entre deux corridors de sens oppose (AD-47).</summary>
+        OppositeDirectionAdjacency = 26,
+
+        /// <summary>LaneAdjacency.Side contredit la geometrie ou l'ordre transversal (AD-48).</summary>
+        LaneSideDisagreement = 27,
+
+        /// <summary>Lignes centrales non strictement monotones en LateralOrder le long du datum (AD-48).</summary>
+        NonMonotoneLateralOrder = 28,
+
+        /// <summary>Enveloppes transversales voisines qui se recouvrent au-dela de la tolerance (AD-48).</summary>
+        OverlappingLateralEnvelopes = 29,
+
+        /// <summary>Corridor sans recouvrement avec le datum, ou ni parallele ni antiparallele a lui (AD-48).</summary>
+        CorridorNotGroundedOnDatum = 30
     }
 
     /// <summary>Un echec de validation : son code stable, l'identifiant fautif et un message.</summary>
@@ -189,8 +229,32 @@ namespace RoadRage.Features.Vehicles.Traffic
             CheckFinite(issues, source.ValidationProfile.MaxVehicleHalfWidthMeters, source.ModelId, "ValidationProfile.MaxVehicleHalfWidthMeters");
             CheckFinite(issues, source.ValidationProfile.MaxVehicleLengthMeters, source.ModelId, "ValidationProfile.MaxVehicleLengthMeters");
             CheckFinite(issues, source.ValidationProfile.LateralClearanceMarginMeters, source.ModelId, "ValidationProfile.LateralClearanceMarginMeters");
-            CheckFinite(issues, source.ValidationProfile.LocalizationScoreBandMeters, source.ModelId, "ValidationProfile.LocalizationScoreBandMeters");
-            CheckFinite(issues, source.ValidationProfile.WrongWayHeadingDegrees, source.ModelId, "ValidationProfile.WrongWayHeadingDegrees");
+            CheckFinite(issues, source.ValidationProfile.SeamGapToleranceMeters, source.ModelId, "ValidationProfile.SeamGapToleranceMeters");
+            CheckFinite(issues, source.ValidationProfile.SeamTangentToleranceDegrees, source.ModelId, "ValidationProfile.SeamTangentToleranceDegrees");
+            CheckFinite(issues, source.ValidationProfile.LengthToleranceMeters, source.ModelId, "ValidationProfile.LengthToleranceMeters");
+            CheckFinite(issues, source.ValidationProfile.EnvelopeOverlapToleranceMeters, source.ModelId, "ValidationProfile.EnvelopeOverlapToleranceMeters");
+            CheckFinite(issues, source.LocalizationProfile.ScoreBandMeters, source.ModelId, "LocalizationProfile.ScoreBandMeters");
+            CheckFinite(issues, source.LocalizationProfile.HysteresisMeters, source.ModelId, "LocalizationProfile.HysteresisMeters");
+            CheckFinite(issues, source.LocalizationProfile.AcceptanceDistanceMeters, source.ModelId, "LocalizationProfile.AcceptanceDistanceMeters");
+            CheckFinite(issues, source.LocalizationProfile.WrongWayHeadingDegrees, source.ModelId, "LocalizationProfile.WrongWayHeadingDegrees");
+
+            // Domaine des profils (5.26) : une tolerance ou un seuil nul (profil non renseigne) ne
+            // doit jamais compiler en silence.
+            CheckPositive(issues, source.ValidationProfile.SeamGapToleranceMeters, source.ModelId, "ValidationProfile.SeamGapToleranceMeters");
+            CheckPositive(issues, source.ValidationProfile.SeamTangentToleranceDegrees, source.ModelId, "ValidationProfile.SeamTangentToleranceDegrees");
+            CheckPositive(issues, source.ValidationProfile.LengthToleranceMeters, source.ModelId, "ValidationProfile.LengthToleranceMeters");
+            CheckPositive(issues, source.ValidationProfile.EnvelopeOverlapToleranceMeters, source.ModelId, "ValidationProfile.EnvelopeOverlapToleranceMeters");
+            CheckPositive(issues, source.LocalizationProfile.ScoreBandMeters, source.ModelId, "LocalizationProfile.ScoreBandMeters");
+            CheckPositive(issues, source.LocalizationProfile.HysteresisMeters, source.ModelId, "LocalizationProfile.HysteresisMeters");
+            CheckPositive(issues, source.LocalizationProfile.AcceptanceDistanceMeters, source.ModelId, "LocalizationProfile.AcceptanceDistanceMeters");
+            float wrongWay = source.LocalizationProfile.WrongWayHeadingDegrees;
+            if (IsFinite(wrongWay) && !(wrongWay > 0f && wrongWay <= 180f))
+            {
+                issues.Add(new RoadModelValidationIssue(
+                    RoadModelValidationCode.NumericValueOutOfRange,
+                    source.ModelId,
+                    "LocalizationProfile.WrongWayHeadingDegrees hors de ]0, 180] (" + wrongWay.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")."));
+            }
 
             for (int i = 0; i < sections.Length; i++)
             {
@@ -438,6 +502,15 @@ namespace RoadRage.Features.Vehicles.Traffic
             // ------------------------------------------------ lignee fournie avec la source
             ValidateManifest(issues, source, kindById);
 
+            // ------------------------------------------------ geometrie (5.26)
+            // Seulement sur une source structurellement propre : la geometrie suppose des references
+            // resolues et des echantillons finis a abscisse strictement croissante. Elle fait partie
+            // de Validate, donc « vide » signifie toujours « compilable ».
+            if (issues.Count == 0)
+            {
+                RoadGeometryValidator.Validate(source, issues);
+            }
+
             return issues;
         }
 
@@ -517,6 +590,23 @@ namespace RoadRage.Features.Vehicles.Traffic
                     RoadModelValidationCode.NonFiniteNumericValue,
                     subject,
                     fieldName + " n'est pas fini (" + value.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")."));
+            }
+        }
+
+        private static bool IsFinite(float value)
+        {
+            return !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+
+        /// <summary>Strictement positif ; une valeur non finie est deja rapportee par CheckFinite.</summary>
+        private static void CheckPositive(List<RoadModelValidationIssue> issues, float value, RoadId subject, string fieldName)
+        {
+            if (IsFinite(value) && !(value > 0f))
+            {
+                issues.Add(new RoadModelValidationIssue(
+                    RoadModelValidationCode.NumericValueOutOfRange,
+                    subject,
+                    fieldName + " doit etre strictement positif (" + value.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")."));
             }
         }
 

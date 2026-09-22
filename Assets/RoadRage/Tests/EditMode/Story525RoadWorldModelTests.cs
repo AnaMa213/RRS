@@ -64,6 +64,8 @@ namespace RoadRage.Tests.EditMode
         private const int CorridorA1Index = 0;
         private const int CorridorA1BIndex = 1;
         private const int CorridorA2Index = 2;
+        private const int CorridorD1Index = 3;
+        private const int CorridorD2Index = 4;
         private const int CorridorE1Index = 5;
         private const int MovementM1Index = 0;
         private const int ControlC1Index = 0;
@@ -77,6 +79,11 @@ namespace RoadRage.Tests.EditMode
         /// adjacence legale, quatre mouvements, deux liaisons de controle couvrant chacune deux
         /// mouvements, une zone de conflit revue, un plan a deux phases, un portail d'entree et un
         /// portail de sortie, plus une lignee d'import avec tombstone et remap.
+        ///
+        /// Geometrie coherente depuis la 5.26 (la validation geometrique fait partie de Compile) :
+        /// bandes paralleles espacees de 5 m, demi-largeurs 2 m. A1 (datum, x=0), A1b (x=5), A2
+        /// (x=10) vers +z sur z in [0,20] ; D1 (x=15, z 20->10) puis E1 (x=15, z 10->0) en
+        /// continuation ; D2 (x=20, z 20->0). Les mouvements sont des demi-tours analytiques a z=20.
         /// </summary>
         private static RoadModelSource BuildModel()
         {
@@ -84,18 +91,20 @@ namespace RoadRage.Tests.EditMode
             source.ModelId = ModelId;
             source.Label = "modele synthetique 5.25";
             source.ValidationProfile = Profile();
+            source.LocalizationProfile = LocalizationProfile();
 
             source.Sections = new[] { Section(SectionS1, "S1", 13.9f) };
 
             source.Corridors = new[]
             {
-                // Coupe transversale AD-48 : ordres contigus 0..5, A1 designe datum.
-                Corridor(CorridorA1, "A1", 20f, 0, true),
-                Corridor(CorridorA1B, "A1b", 20f, 1, false),
-                Corridor(CorridorA2, "A2", 20f, 2, false),
-                Corridor(CorridorD1, "D1", 20f, 3, false),
-                Corridor(CorridorD2, "D2", 20f, 4, false),
-                Corridor(CorridorE1, "E1", 20f, 5, false)
+                // Coupe transversale AD-48 : ordres contigus 0..5 croissant vers +x, la droite du
+                // datum A1. D1 et E1 ne se recouvrent sur le datum qu'en z=10 : jamais compares.
+                Corridor(CorridorA1, "A1", 0f, 0f, 20f, 0, true),
+                Corridor(CorridorA1B, "A1b", 5f, 0f, 20f, 1, false),
+                Corridor(CorridorA2, "A2", 10f, 0f, 20f, 2, false),
+                Corridor(CorridorD1, "D1", 15f, 20f, 10f, 3, false),
+                Corridor(CorridorD2, "D2", 20f, 20f, 0f, 5, false),
+                Corridor(CorridorE1, "E1", 15f, 10f, 0f, 4, false)
             };
 
             var connection = new LaneConnection();
@@ -126,10 +135,10 @@ namespace RoadRage.Tests.EditMode
 
             source.Movements = new[]
             {
-                Movement(MovementM1, "M1", CorridorA1, CorridorD1),
-                Movement(MovementM2, "M2", CorridorA1, CorridorD2),
-                Movement(MovementM3, "M3", CorridorA2, CorridorD1),
-                Movement(MovementM4, "M4", CorridorA2, CorridorD2)
+                Movement(MovementM1, "M1", CorridorA1, CorridorD1, 0f, 15f),
+                Movement(MovementM2, "M2", CorridorA1, CorridorD2, 0f, 20f),
+                Movement(MovementM3, "M3", CorridorA2, CorridorD1, 10f, 15f),
+                Movement(MovementM4, "M4", CorridorA2, CorridorD2, 10f, 20f)
             };
 
             source.Controls = new[]
@@ -150,7 +159,7 @@ namespace RoadRage.Tests.EditMode
             source.Portals = new[]
             {
                 MakePortal(PortalEntry, "entree", CorridorA1, PortalRole.Entry, 0f),
-                MakePortal(PortalExit, "sortie", CorridorE1, PortalRole.Exit, 20f)
+                MakePortal(PortalExit, "sortie", CorridorE1, PortalRole.Exit, 10f)
             };
 
             var manifest = new ImportManifest();
@@ -177,7 +186,19 @@ namespace RoadRage.Tests.EditMode
             profile.MaxVehicleHalfWidthMeters = 1.03f;
             profile.MaxVehicleLengthMeters = 4.5f;
             profile.LateralClearanceMarginMeters = 0.25f;
-            profile.LocalizationScoreBandMeters = 0.15f;
+            profile.SeamGapToleranceMeters = 0.05f;
+            profile.SeamTangentToleranceDegrees = 5f;
+            profile.LengthToleranceMeters = 0.05f;
+            profile.EnvelopeOverlapToleranceMeters = 0.05f;
+            return profile;
+        }
+
+        private static RoadLocalizationProfile LocalizationProfile()
+        {
+            var profile = new RoadLocalizationProfile();
+            profile.ScoreBandMeters = 0.15f;
+            profile.HysteresisMeters = 0.1f;
+            profile.AcceptanceDistanceMeters = 2.5f;
             profile.WrongWayHeadingDegrees = 90f;
             return profile;
         }
@@ -194,20 +215,21 @@ namespace RoadRage.Tests.EditMode
             return section;
         }
 
-        private static LaneCorridor Corridor(RoadId id, string label, float length, int lateralOrder, bool isDatum)
+        private static LaneCorridor Corridor(RoadId id, string label, float x, float zStart, float zEnd, int lateralOrder, bool isDatum)
         {
             var corridor = new LaneCorridor();
             corridor.Id = id;
             corridor.Label = label;
             corridor.SectionId = SectionS1;
-            corridor.Samples = Samples(length);
-            corridor.LengthMeters = length;
+            corridor.Samples = StraightSamples(x, zStart, zEnd);
+            corridor.LengthMeters = Mathf.Abs(zEnd - zStart);
             corridor.LateralOrder = lateralOrder;
             corridor.IsCrossSectionDatum = isDatum;
             return corridor;
         }
 
-        private static JunctionMovement Movement(RoadId id, string label, RoadId from, RoadId to)
+        /// <summary>Demi-tour analytique a z=20 de la bande xFrom (vers +z) a la bande xTo (vers -z).</summary>
+        private static JunctionMovement Movement(RoadId id, string label, RoadId from, RoadId to, float xFrom, float xTo)
         {
             var movement = new JunctionMovement();
             movement.Id = id;
@@ -215,8 +237,8 @@ namespace RoadRage.Tests.EditMode
             movement.JunctionId = JunctionJ;
             movement.FromCorridorId = from;
             movement.ToCorridorId = to;
-            movement.Samples = Samples(9f);
-            movement.LengthMeters = 9f;
+            movement.Samples = UTurnSamples(xFrom, xTo, 20f);
+            movement.LengthMeters = Mathf.PI * 0.5f * (xTo - xFrom);
             movement.RoutePreferenceWeight = 0.5f;
             return movement;
         }
@@ -307,24 +329,52 @@ namespace RoadRage.Tests.EditMode
             return entry;
         }
 
-        private static RoadCurveSample[] Samples(float length)
+        private static RoadCurveSample[] StraightSamples(float x, float zStart, float zEnd)
         {
+            float length = Mathf.Abs(zEnd - zStart);
+            var tangent = new Vector3(0f, 0f, Mathf.Sign(zEnd - zStart));
             return new[]
             {
-                Sample(0f, new Vector3(0f, 0f, 0f)),
-                Sample(length * 0.5f, new Vector3(0f, 0f, length * 0.5f)),
-                Sample(length, new Vector3(0f, 0f, length))
+                Sample(0f, new Vector3(x, 0f, zStart), tangent, 0f),
+                Sample(length * 0.5f, new Vector3(x, 0f, 0.5f * (zStart + zEnd)), tangent, 0f),
+                Sample(length, new Vector3(x, 0f, zEnd), tangent, 0f)
             };
+        }
+
+        /// <summary>
+        /// Demi-cercle echantillonne tous les 10 degres, abscisse = longueur d'arc, tangente exacte,
+        /// courbure +1/r (virage a droite, vers +x depuis une bande orientee +z).
+        /// </summary>
+        private static RoadCurveSample[] UTurnSamples(float xFrom, float xTo, float z)
+        {
+            const int steps = 18;
+            float radius = 0.5f * (xTo - xFrom);
+            var center = new Vector3(xFrom + radius, 0f, z);
+            var samples = new RoadCurveSample[steps + 1];
+            for (int i = 0; i <= steps; i++)
+            {
+                float phi = Mathf.PI * i / steps;
+                var position = center + new Vector3(-radius * Mathf.Cos(phi), 0f, radius * Mathf.Sin(phi));
+                var tangent = new Vector3(Mathf.Sin(phi), 0f, Mathf.Cos(phi));
+                samples[i] = Sample(radius * phi, position, tangent, 1f / radius);
+            }
+
+            return samples;
         }
 
         private static RoadCurveSample Sample(float s, Vector3 position)
         {
+            return Sample(s, position, new Vector3(0f, 0f, 1f), 0f);
+        }
+
+        private static RoadCurveSample Sample(float s, Vector3 position, Vector3 tangent, float curvature)
+        {
             var sample = new RoadCurveSample();
             sample.SMeters = s;
             sample.Position = position;
-            sample.Tangent = new Vector3(0f, 0f, 1f);
+            sample.Tangent = tangent;
             sample.Up = new Vector3(0f, 1f, 0f);
-            sample.CurvaturePerMeter = 0f;
+            sample.CurvaturePerMeter = curvature;
             sample.HalfWidthLeftMeters = 2f;
             sample.HalfWidthRightMeters = 2f;
             return sample;
@@ -361,6 +411,83 @@ namespace RoadRage.Tests.EditMode
             Assert.That(VersionOf(mutate), Is.EqualTo(VersionOf(null)), because);
         }
 
+        // ------------------------------------------------------------------ chemin du writer public
+        // Depuis la 5.26, certaines mutations isolees d'un champ canonique sont geometriquement
+        // invalides (couture rompue, longueur incoherente, repere non unitaire...) : Compile les
+        // rejette, a juste titre. Le champ reste prouve par mutation sur le writer public, sur une
+        // charge construite ici comme le compilateur la construit, et la meme mutation est prouvee
+        // rejetee par Compile. TheTestPayloadMirrorsTheCompilerPayload garde la fidelite de PayloadOf.
+
+        private static RoadModelCanonicalPayload PayloadOf(RoadModelSource source)
+        {
+            var payload = new RoadModelCanonicalPayload();
+            payload.SchemaVersion = RoadModelCompiler.CompilerSchemaVersion;
+            payload.ModelId = source.ModelId;
+            payload.ValidationProfile = source.ValidationProfile;
+            payload.LocalizationProfile = source.LocalizationProfile;
+            payload.Sections = source.Sections;
+            payload.Corridors = EffectiveCorridorsOf(source);
+            payload.Connections = source.Connections;
+            payload.Adjacencies = source.Adjacencies;
+            payload.Junctions = source.Junctions;
+            payload.Movements = source.Movements;
+            payload.Controls = source.Controls;
+            payload.ConflictZones = source.ConflictZones;
+            payload.SignalPlans = source.SignalPlans;
+            payload.Portals = source.Portals;
+            return payload;
+        }
+
+        private static EffectiveLaneCorridor[] EffectiveCorridorsOf(RoadModelSource source)
+        {
+            var effective = new EffectiveLaneCorridor[source.Corridors.Length];
+            for (int i = 0; i < source.Corridors.Length; i++)
+            {
+                var corridor = source.Corridors[i];
+                var section = Array.Find(source.Sections, delegate(RoadSection candidate) { return candidate.Id == corridor.SectionId; });
+
+                effective[i].CorridorId = corridor.Id;
+                effective[i].SectionId = corridor.SectionId;
+                effective[i].LengthMeters = corridor.LengthMeters;
+                effective[i].Samples = corridor.Samples;
+                effective[i].SpeedLimitMetersPerSecond = corridor.HasSpeedLimitOverride ? corridor.SpeedLimitOverrideMetersPerSecond : section.DefaultSpeedLimitMetersPerSecond;
+                effective[i].Surface = corridor.HasSurfaceOverride ? corridor.SurfaceOverride : section.Surface;
+                effective[i].AllowedVehicleClasses = corridor.HasAllowedVehicleClassesOverride ? corridor.AllowedVehicleClassesOverride : section.DefaultAllowedVehicleClasses;
+                effective[i].LateralOrder = corridor.LateralOrder;
+                effective[i].IsCrossSectionDatum = corridor.IsCrossSectionDatum;
+            }
+
+            return effective;
+        }
+
+        private static string FingerprintOf(Action<RoadModelSource> mutate)
+        {
+            var source = BuildModel();
+            if (mutate != null)
+            {
+                mutate(source);
+            }
+
+            ulong high;
+            ulong low;
+            RoadModelCanonicalWriter.ComputeFingerprint(PayloadOf(source), out high, out low);
+            return high.ToString("x16") + low.ToString("x16");
+        }
+
+        /// <summary>
+        /// Champ canonique dont la mutation isolee est geometriquement interdite : il est prouve sur
+        /// le writer public, et Compile rejette la meme mutation.
+        /// </summary>
+        private static void AssertFieldCoveredButGeometricallyForbidden(Action<RoadModelSource> mutate, string because)
+        {
+            Assert.That(FingerprintOf(mutate), Is.Not.EqualTo(FingerprintOf(null)), because);
+
+            var source = BuildModel();
+            mutate(source);
+            Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(source); },
+                "La geometrie doit rejeter cette mutation : " + because);
+        }
+
         /// <summary>Mutation parametree par un ecart, pour eprouver un pas de quantification.</summary>
         private delegate void DeltaMutation(RoadModelSource source, float delta);
 
@@ -387,9 +514,9 @@ namespace RoadRage.Tests.EditMode
 
         /// <summary>
         /// Deplace E1 sur la section d'accueil demandee, S2 et S3 etant toutes deux ajoutees. E1
-        /// porte l'ordre transversal le plus eleve de S1, donc son depart laisse S1 contigue de 0 a
-        /// 4 ; sur sa section d'accueil il devient l'ordre 0 et le datum, seule forme valide pour une
-        /// coupe a un corridor (AD-48).
+        /// porte l'ordre 4 de S1 : D2 repasse de 5 a 4 pour que S1 reste contigue de 0 a 4, et la
+        /// coupe reste monotone (D2 est toujours le plus a droite). Sur sa section d'accueil E1
+        /// devient l'ordre 0 et le datum, seule forme valide pour une coupe a un corridor (AD-48).
         /// </summary>
         private static void MoveE1Onto(RoadModelSource source, RoadId hostSection)
         {
@@ -398,6 +525,7 @@ namespace RoadRage.Tests.EditMode
             source.Corridors[CorridorE1Index].SectionId = hostSection;
             source.Corridors[CorridorE1Index].LateralOrder = 0;
             source.Corridors[CorridorE1Index].IsCrossSectionDatum = true;
+            source.Corridors[CorridorD2Index].LateralOrder = 4;
         }
 
         /// <summary>Ajoute une troisieme section aux defauts identiques a S1, sans corridor.</summary>
@@ -587,11 +715,13 @@ namespace RoadRage.Tests.EditMode
                 delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].Samples[1].HalfWidthRightMeters = 2.5f; },
                 "Largeur utile : comportemental.");
 
-            AssertVersionChanges(
+            // Rebrancher une connexion ou un mouvement sans deplacer sa geometrie rompt la couture :
+            // prouve sur le writer, rejete par Compile (5.26).
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Connections[0].FromCorridorId = CorridorD2; },
                 "Topologie : comportemental.");
 
-            AssertVersionChanges(
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Movements[MovementM1Index].ToCorridorId = CorridorD2; },
                 "Mouvement : comportemental.");
 
@@ -623,9 +753,10 @@ namespace RoadRage.Tests.EditMode
                 delegate(RoadModelSource source) { source.Sections[0].DefaultSpeedLimitMetersPerSecond = 11f; },
                 "Defaut de section resolu en valeur effective de corridor : comportemental.");
 
-            // AD-48. Un echange, pas une reaffectation : l'ensemble reste unique et contigu, donc le
-            // modele compile toujours et seul le fait teste bouge.
-            AssertVersionChanges(
+            // AD-48. Un echange, pas une reaffectation : l'ensemble reste unique et contigu, donc seul
+            // le fait teste bouge. Depuis la 5.26 l'ordre echange contredit la geometrie (A1b n'est
+            // pas a gauche de A1) : prouve sur le writer, rejete par Compile.
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source)
                 {
                     source.Corridors[CorridorA1Index].LateralOrder = 1;
@@ -676,8 +807,36 @@ namespace RoadRage.Tests.EditMode
                 "Profil : marge de degagement lateral.");
 
             AssertVersionChanges(
-                delegate(RoadModelSource source) { source.ValidationProfile.LocalizationScoreBandMeters = 0.3f; },
-                "Profil : bande d'hysteresis de localisation.");
+                delegate(RoadModelSource source) { source.ValidationProfile.SeamGapToleranceMeters = 0.04f; },
+                "Profil : tolerance d'ecart de couture.");
+
+            AssertVersionChanges(
+                delegate(RoadModelSource source) { source.ValidationProfile.SeamTangentToleranceDegrees = 4f; },
+                "Profil : tolerance de tangente de couture.");
+
+            AssertVersionChanges(
+                delegate(RoadModelSource source) { source.ValidationProfile.LengthToleranceMeters = 0.04f; },
+                "Profil : tolerance de longueur.");
+
+            AssertVersionChanges(
+                delegate(RoadModelSource source) { source.ValidationProfile.EnvelopeOverlapToleranceMeters = 0.02f; },
+                "Profil : tolerance de recouvrement d'enveloppes.");
+
+            AssertVersionChanges(
+                delegate(RoadModelSource source) { source.LocalizationProfile.ScoreBandMeters = 0.3f; },
+                "Profil de localisation : bande de score.");
+
+            AssertVersionChanges(
+                delegate(RoadModelSource source) { source.LocalizationProfile.HysteresisMeters = 0.2f; },
+                "Profil de localisation : hysteresis.");
+
+            AssertVersionChanges(
+                delegate(RoadModelSource source) { source.LocalizationProfile.AcceptanceDistanceMeters = 3f; },
+                "Profil de localisation : seuil d'acceptation.");
+
+            AssertVersionChanges(
+                delegate(RoadModelSource source) { source.LocalizationProfile.WrongWayHeadingDegrees = 100f; },
+                "Profil de localisation : seuil de contresens.");
 
             // ---------------------------------------------------------- section
             AssertVersionChanges(
@@ -721,20 +880,22 @@ namespace RoadRage.Tests.EditMode
                 },
                 "Classes de vehicules effectives de corridor.");
 
-            AssertVersionChanges(
+            // Longueur, abscisse, tangente et road-up isoles : longueur incoherente ou repere non
+            // unitaire, donc prouves sur le writer et rejetes par Compile (5.26).
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].LengthMeters = 21f; },
                 "Longueur de corridor.");
 
             // ---------------------------------------------------------- echantillons de courbe
-            AssertVersionChanges(
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].Samples[1].SMeters = 11f; },
                 "Abscisse curviligne d'un echantillon.");
 
-            AssertVersionChanges(
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].Samples[1].Tangent = new Vector3(0.1f, 0f, 0.99f); },
                 "Tangente d'un echantillon.");
 
-            AssertVersionChanges(
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].Samples[1].Up = new Vector3(0f, 0.9f, 0.1f); },
                 "Haut route d'un echantillon.");
 
@@ -751,7 +912,7 @@ namespace RoadRage.Tests.EditMode
                 delegate(RoadModelSource source) { source.Connections[0].Kind = LaneConnectionKind.Merge; },
                 "Genre de connexion longitudinale.");
 
-            AssertVersionChanges(
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Connections[0].ToCorridorId = CorridorD2; },
                 "Corridor d'arrivee d'une connexion.");
 
@@ -759,7 +920,7 @@ namespace RoadRage.Tests.EditMode
                 delegate(RoadModelSource source) { source.Adjacencies[0].Permission = LaneChangePermission.Forbidden; },
                 "Legalite de changement de file.");
 
-            AssertVersionChanges(
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Adjacencies[0].Side = LaneSide.Left; },
                 "Cote d'adjacence.");
 
@@ -796,11 +957,11 @@ namespace RoadRage.Tests.EditMode
                 delegate(RoadModelSource source) { source.Junctions[0].Boundary = Box(new Vector3(0f, 0f, 25f), new Vector3(7f, 3f, 6f)); },
                 "Demi-dimensions de la frontiere de carrefour.");
 
-            AssertVersionChanges(
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Movements[MovementM1Index].FromCorridorId = CorridorA2; },
                 "Corridor d'approche d'un mouvement.");
 
-            AssertVersionChanges(
+            AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Movements[MovementM1Index].LengthMeters = 10f; },
                 "Longueur d'un mouvement.");
 
@@ -920,7 +1081,7 @@ namespace RoadRage.Tests.EditMode
 
             AssertStepIsLoadBearing(
                 RoadModelCanonicalWriter.DegreeStep,
-                delegate(RoadModelSource source, float delta) { source.ValidationProfile.WrongWayHeadingDegrees = 90f + delta; },
+                delegate(RoadModelSource source, float delta) { source.LocalizationProfile.WrongWayHeadingDegrees = 90f + delta; },
                 "degres");
 
             AssertStepIsLoadBearing(
@@ -1070,9 +1231,10 @@ namespace RoadRage.Tests.EditMode
         public void AFiniteButUnquantizableValueIsAHardFailureInsteadOfSaturating()
         {
             // La conversion en long n'est pas verifiee : sans garde, deux modeles distincts mais
-            // enormes s'effondreraient sur la meme version.
+            // enormes s'effondreraient sur la meme version. Porte par un poids de route, que la
+            // geometrie (5.26) ne contraint pas : une longueur enorme serait rejetee avant le writer.
             var exception = AssertHardFailure(
-                delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].LengthMeters = 1e30f; },
+                delegate(RoadModelSource source) { source.Movements[MovementM1Index].RoutePreferenceWeight = 1e30f; },
                 RoadModelValidationCode.NumericValueOutOfRange);
 
             Assert.That(exception.HasCode(RoadModelValidationCode.NonFiniteNumericValue), Is.False,
@@ -1144,7 +1306,7 @@ namespace RoadRage.Tests.EditMode
                 {
                     AddSecondJunction(source);
 
-                    var duplicate = Movement(MovementM1, "M1-bis", CorridorA1, CorridorD1);
+                    var duplicate = Movement(MovementM1, "M1-bis", CorridorA1, CorridorD1, 0f, 15f);
                     duplicate.JunctionId = JunctionJ2;
 
                     var movements = new JunctionMovement[source.Movements.Length + 1];
@@ -1237,6 +1399,17 @@ namespace RoadRage.Tests.EditMode
                 "L'echec nomme le membre dont le carrefour ne correspond pas.");
         }
 
+        /// <summary>Geometrie (5.26) : un volume de conflit aplati n'est pas un volume.</summary>
+        [Test]
+        public void ANonPositiveConflictZoneExtentIsAHardFailure()
+        {
+            var exception = AssertHardFailure(
+                delegate(RoadModelSource source) { source.ConflictZones[0].Volume = Box(new Vector3(0f, 0f, 25f), new Vector3(3f, 0f, 3f)); },
+                RoadModelValidationCode.NonPositiveBoxExtents);
+
+            Assert.That(ContainsIssue(exception, RoadModelValidationCode.NonPositiveBoxExtents, ConflictZ1), Is.True);
+        }
+
         [Test]
         public void AMistypedConflictZoneJunctionCannotSilentlyDisableTheGreenConflictCheck()
         {
@@ -1265,6 +1438,17 @@ namespace RoadRage.Tests.EditMode
             AssertHardFailure(
                 delegate(RoadModelSource source) { source.Movements[MovementM1Index].RoutePreferenceWeight = float.NegativeInfinity; },
                 RoadModelValidationCode.NonFiniteNumericValue);
+        }
+
+        /// <summary>
+        /// Garde du chemin writer : la charge construite par le test est celle du compilateur. Sans
+        /// elle, une mutation prouvee sur le writer pourrait l'etre sur une charge qui n'existe pas.
+        /// </summary>
+        [Test]
+        public void TheTestPayloadMirrorsTheCompilerPayload()
+        {
+            var version = VersionOf(null);
+            Assert.That(FingerprintOf(null), Is.EqualTo(version.High.ToString("x16") + version.Low.ToString("x16")));
         }
 
         [Test]
@@ -1567,14 +1751,22 @@ namespace RoadRage.Tests.EditMode
             var model = RoadModelCompiler.Compile(BuildModel());
 
             Assert.That(model.GetCorridorsInSection(SectionS1),
-                Is.EqualTo(new[] { CorridorA1, CorridorA1B, CorridorA2, CorridorD1, CorridorD2, CorridorE1 }));
+                Is.EqualTo(new[] { CorridorA1, CorridorA1B, CorridorA2, CorridorD1, CorridorE1, CorridorD2 }));
 
+            // Re-authoring geometriquement coherent (5.26) : datum D2, dont la droite est -x, donc
+            // l'ordre croissant court de D2 vers A1 -- a rebours de l'ordre des RoadId.
             var reordered = BuildModel();
+            reordered.Corridors[CorridorA1Index].IsCrossSectionDatum = false;
+            reordered.Corridors[CorridorD2Index].IsCrossSectionDatum = true;
+            reordered.Corridors[CorridorD2Index].LateralOrder = 0;
+            reordered.Corridors[CorridorE1Index].LateralOrder = 1;
+            reordered.Corridors[CorridorD1Index].LateralOrder = 2;
+            reordered.Corridors[CorridorA2Index].LateralOrder = 3;
+            reordered.Corridors[CorridorA1BIndex].LateralOrder = 4;
             reordered.Corridors[CorridorA1Index].LateralOrder = 5;
-            reordered.Corridors[CorridorE1Index].LateralOrder = 0;
 
             Assert.That(RoadModelCompiler.Compile(reordered).GetCorridorsInSection(SectionS1),
-                Is.EqualTo(new[] { CorridorE1, CorridorA1B, CorridorA2, CorridorD1, CorridorD2, CorridorA1 }),
+                Is.EqualTo(new[] { CorridorD2, CorridorE1, CorridorD1, CorridorA2, CorridorA1B, CorridorA1 }),
                 "Le RoadId n'est qu'un depart d'egalite : il ne porte aucune semantique de voie.");
         }
 

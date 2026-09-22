@@ -24,16 +24,20 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// ensemble : ordre de tri, exclusions et regles numeriques (finitude, normalisation de
         /// <c>-0</c>, unites/pas/arrondi). Changer l'un de ces choix rend incomparables toutes les
         /// versions deja emises et impose d'incrementer cette constante.
+        ///
+        /// Regle (5.26) : changer la VALEUR d'un champ de profil change la version, jamais le schema ;
+        /// seul un changement de representation ou de sens incremente le schema. 3 : le profil de
+        /// localisation sort du profil de validation et les tolerances geometriques y entrent.
         /// </summary>
-        public const int CompilerSchemaVersion = 2;
+        public const int CompilerSchemaVersion = 3;
 
         /// <summary>
         /// Compile une source en modele immuable versionne.
         /// </summary>
         /// <exception cref="ArgumentNullException">Source absente.</exception>
         /// <exception cref="RoadModelCompilationException">
-        /// Echec dur de validation : aucune sortie compilee n'est emise et aucune version n'est
-        /// produite.
+        /// Echec dur de validation, structurelle ou geometrique (5.26) : aucune sortie compilee
+        /// n'est emise et aucune version n'est produite.
         /// </exception>
         public static CompiledRoadModel Compile(RoadModelSource source)
         {
@@ -64,6 +68,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             payload.SchemaVersion = CompilerSchemaVersion;
             payload.ModelId = source.ModelId;
             payload.ValidationProfile = source.ValidationProfile;
+            payload.LocalizationProfile = source.LocalizationProfile;
             payload.Sections = sections;
             payload.Corridors = corridors;
             payload.Connections = connections;
@@ -85,6 +90,7 @@ namespace RoadRage.Features.Vehicles.Traffic
                 source.ModelId,
                 version,
                 source.ValidationProfile,
+                source.LocalizationProfile,
                 sections,
                 corridors,
                 connections,

@@ -97,6 +97,12 @@ namespace RoadRage.Features.Vehicles.Traffic
 
         /// <summary>Datum de repere transversal de la section, reporte depuis le corridor (AD-48).</summary>
         public bool IsCrossSectionDatum;
+
+        /// <summary>
+        /// Courbe dirigee interrogeable (AD-45, 5.26), construite sur <see cref="Samples"/> par le
+        /// modele compile. Derivee des echantillons, donc hors charge canonique.
+        /// </summary>
+        public RoadCurve Curve;
     }
 
     // Vues compilees des enregistrements qui portent une collection imbriquee. Les records
@@ -118,6 +124,9 @@ namespace RoadRage.Features.Vehicles.Traffic
         public readonly float LengthMeters;
         public readonly float RoutePreferenceWeight;
 
+        /// <summary>Courbe dirigee interrogeable (AD-45, 5.26), derivee de <see cref="Samples"/>.</summary>
+        public readonly RoadCurve Curve;
+
         internal CompiledJunctionMovement(JunctionMovement source)
         {
             Id = source.Id;
@@ -128,6 +137,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             Samples = CompiledRoadModel.ReadOnlyCopy(source.Samples);
             LengthMeters = source.LengthMeters;
             RoutePreferenceWeight = source.RoutePreferenceWeight;
+            Curve = new RoadCurve(Samples);
         }
     }
 
@@ -274,6 +284,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             RoadId modelId,
             RoadModelVersion version,
             RoadModelValidationProfile profile,
+            RoadLocalizationProfile localizationProfile,
             RoadSection[] sections,
             EffectiveLaneCorridor[] corridors,
             LaneConnection[] connections,
@@ -288,6 +299,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             ModelId = modelId;
             Version = version;
             ValidationProfile = profile;
+            LocalizationProfile = localizationProfile;
 
             _sections = (RoadSection[])sections.Clone();
             _connections = (LaneConnection[])connections.Clone();
@@ -300,6 +312,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             {
                 _corridors[i] = corridors[i];
                 _corridors[i].Samples = ReadOnlyCopy(corridors[i].Samples);
+                _corridors[i].Curve = new RoadCurve(_corridors[i].Samples);
                 _corridorIndex[_corridors[i].CorridorId] = i;
             }
 
@@ -399,6 +412,9 @@ namespace RoadRage.Features.Vehicles.Traffic
         public RoadModelVersion Version { get; private set; }
 
         public RoadModelValidationProfile ValidationProfile { get; private set; }
+
+        /// <summary>Parametres de requete de <see cref="RoadLocalizer"/>, versionnes avec le modele.</summary>
+        public RoadLocalizationProfile LocalizationProfile { get; private set; }
 
         public IReadOnlyList<RoadSection> Sections
         {

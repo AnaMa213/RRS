@@ -16,6 +16,7 @@ namespace RoadRage.Features.Vehicles.Traffic
         public int SchemaVersion;
         public RoadId ModelId;
         public RoadModelValidationProfile ValidationProfile;
+        public RoadLocalizationProfile LocalizationProfile;
         public RoadSection[] Sections;
         public EffectiveLaneCorridor[] Corridors;
         public LaneConnection[] Connections;
@@ -116,8 +117,16 @@ namespace RoadRage.Features.Vehicles.Traffic
             WriteMeters(writer, payload.ValidationProfile.MaxVehicleHalfWidthMeters);
             WriteMeters(writer, payload.ValidationProfile.MaxVehicleLengthMeters);
             WriteMeters(writer, payload.ValidationProfile.LateralClearanceMarginMeters);
-            WriteMeters(writer, payload.ValidationProfile.LocalizationScoreBandMeters);
-            WriteDegrees(writer, payload.ValidationProfile.WrongWayHeadingDegrees);
+            WriteMeters(writer, payload.ValidationProfile.SeamGapToleranceMeters);
+            WriteDegrees(writer, payload.ValidationProfile.SeamTangentToleranceDegrees);
+            WriteMeters(writer, payload.ValidationProfile.LengthToleranceMeters);
+            WriteMeters(writer, payload.ValidationProfile.EnvelopeOverlapToleranceMeters);
+
+            // Profil de localisation (5.26) : parametres de requete, versionnes eux aussi.
+            WriteMeters(writer, payload.LocalizationProfile.ScoreBandMeters);
+            WriteMeters(writer, payload.LocalizationProfile.HysteresisMeters);
+            WriteMeters(writer, payload.LocalizationProfile.AcceptanceDistanceMeters);
+            WriteDegrees(writer, payload.LocalizationProfile.WrongWayHeadingDegrees);
 
             var sections = SortedCopy(payload.Sections, delegate(RoadSection a, RoadSection b) { return a.Id.CompareTo(b.Id); });
             writer.Write(sections.Length);

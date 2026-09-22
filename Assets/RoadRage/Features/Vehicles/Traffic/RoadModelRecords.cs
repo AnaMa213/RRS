@@ -287,8 +287,9 @@ namespace RoadRage.Features.Vehicles.Traffic
     // ------------------------------------------------------------------ geometrie authoree
 
     /// <summary>
-    /// Un echantillon de la charge geometrique, ecrit a la main en 5.25. Aucune mathematique de
-    /// courbe ici : echantillonnage, projection et bornes appartiennent a la Story 5.26.
+    /// Un echantillon de la charge geometrique. Aucune mathematique de courbe ici : echantillonnage,
+    /// projection et bornes vivent dans <see cref="RoadCurve"/>, la production depuis une polyligne
+    /// authoree dans <see cref="RoadCurveBuilder"/> (Story 5.26).
     /// </summary>
     [Serializable]
     public struct RoadCurveSample
@@ -633,8 +634,10 @@ namespace RoadRage.Features.Vehicles.Traffic
     // ------------------------------------------------------------------ profil et conteneur
 
     /// <summary>
-    /// Profil de validation versionne : il participe a la charge canonique, donc le changer change
-    /// la version du modele. Admettre une classe de vehicule plus grande impose une recompilation.
+    /// Profil de validation versionne : parametres STATIQUES de la validation du modele, geometrie
+    /// comprise (Story 5.26). Il participe a la charge canonique, donc le changer change la version
+    /// du modele. Admettre une classe de vehicule plus grande impose une recompilation. Les
+    /// parametres de requete de localisation vivent a part, dans <see cref="RoadLocalizationProfile"/>.
     /// </summary>
     [Serializable]
     public struct RoadModelValidationProfile
@@ -648,10 +651,46 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <summary>Marge de degagement lateral exigee de chaque cote, en metres.</summary>
         public float LateralClearanceMarginMeters;
 
-        /// <summary>Bande de score d'hysteresis de localisation, en metres.</summary>
-        public float LocalizationScoreBandMeters;
+        /// <summary>
+        /// Ecart de position maximal a une couture (connexion ou extremite de mouvement), et ecart
+        /// maximal de demi-largeur a une couture de mouvement, en metres. Contrat : 0,05 m au plus.
+        /// </summary>
+        public float SeamGapToleranceMeters;
 
-        /// <summary>Seuil d'erreur de cap classant en contresens, en degres.</summary>
+        /// <summary>Ecart de tangente maximal a une couture, en degres. Contrat : 5 degres au plus.</summary>
+        public float SeamTangentToleranceDegrees;
+
+        /// <summary>
+        /// Ecart maximal entre abscisse et longueur mesuree (depart a 0, longueur declaree contre
+        /// derniere abscisse, pas d'abscisse contre corde), en metres.
+        /// </summary>
+        public float LengthToleranceMeters;
+
+        /// <summary>Recouvrement maximal tolere entre enveloppes transversales voisines (AD-48), en metres.</summary>
+        public float EnvelopeOverlapToleranceMeters;
+    }
+
+    /// <summary>
+    /// Parametres de REQUETE de la localisation (Story 5.26). Distincts du profil de validation
+    /// parce qu'ils ne decident pas de la validite du modele, mais ils sont dans la charge
+    /// canonique : deux modeles qui localisent differemment n'ont pas la meme version.
+    /// </summary>
+    [Serializable]
+    public struct RoadLocalizationProfile
+    {
+        /// <summary>Bande de score sous laquelle deux candidats du meme rang sont ambigus, en metres.</summary>
+        public float ScoreBandMeters;
+
+        /// <summary>
+        /// Hysteresis, en metres : depassement d'enveloppe tolere pour l'element precedent et bonus
+        /// de score accorde a l'element precedent (moitie pour un voisin explicite ou un element de route).
+        /// </summary>
+        public float HysteresisMeters;
+
+        /// <summary>Distance maximale entre le point de reference et l'enveloppe acceptee, en metres.</summary>
+        public float AcceptanceDistanceMeters;
+
+        /// <summary>Seuil d'erreur de cap absolue au-dela duquel la pose est a contresens, en degres.</summary>
         public float WrongWayHeadingDegrees;
     }
 
@@ -668,6 +707,8 @@ namespace RoadRage.Features.Vehicles.Traffic
         public string Label;
 
         public RoadModelValidationProfile ValidationProfile;
+
+        public RoadLocalizationProfile LocalizationProfile;
 
         public RoadSection[] Sections;
         public LaneCorridor[] Corridors;
