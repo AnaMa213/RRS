@@ -29,7 +29,32 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 09-20-2026
+last_updated: 09-22-2026
+# 2026-09-22 planning run: the Traffic V2 replacement stories now exist as
+# 5.24-5.48, planned INSIDE Epic 5 because building the AI traffic network is
+# Epic 5's own unfinished mission. This filing decision supersedes section 3.14
+# of sprint-change-proposal-2026-09-21.md, which recommended a dedicated Traffic
+# V2 epic; the historical proposal is not rewritten. Epics 6 and 7 keep every
+# key - no renumbering. Story numbers 5.17-5.23 stay burned and never reappear.
+# 24 V2 keys, all `backlog`: implementation still requires an approved spec.
+# 2026-09-22 (same-day revision): the former XL slice was split into 5.30
+# (planning spine, drives nothing) and 5.31 (first driven slice) before any
+# specification, shifting the later keys; and 5.47 was reserved as a
+# CONDITIONAL fidelity-scaling slot that exists only if 5.46 trips AD-42.
+# 2026-09-22 owner clarification: Story 5.14 is complete. The current code,
+# tests, artifacts and behavioral catalog are the accepted V1 reference; no
+# additional 5.14 recipe, V1 PlayMode-harness repair, branch or tag gates the
+# Traffic V2 Road World Model architecture. Historical comments below remain
+# chronological records and are superseded where they conflict with this note.
+# 2026-09-21 course correction: Traffic V1 is frozen as the behavioral/reference
+# baseline. Stories 5.17-5.23 are removed from executable sprint status and remain
+# in epics.md only as superseded requirements evidence. No replacement Traffic V2
+# implementation stories are created yet. The V2 Road World Model
+# schema/responsibility architecture package was accepted by the owner on
+# 2026-09-22 (AD-43 to AD-47 adopted, with two recorded clarifications).
+# Replacement stories are no longer blocked; none exist yet.
+# Story 5.14 remains done for its approved reduced scope (AI drives by intent);
+# ANO-5.10-03 collision response and physical recovery remain open under Traffic V2.
 # 2026-09-18 course correction: Epic 5 gains a vehicle physics foundation (see
 # planning-artifacts/sprint-change-proposal-2026-09-18.md). Stories 5.11-5.15 are new:
 # chassis/wheels/suspension, tire forces and steering, arcade assists and uneven ground,
@@ -132,13 +157,44 @@ development_status:
   5-14-ai-drives-by-intent: done
   5-15-credible-collisions-and-damage-integration: done
   5-16-lobby-configurable-traffic-settings: review
-  5-17-wider-perception-and-progressive-unblocking: backlog
-  5-18-intersection-rules-and-deadlock-prevention: backlog
-  5-19-rage-and-fear-as-driving-model-modulation: backlog
-  5-20-thrown-litter-foundation-and-attribution: backlog
-  5-21-player-targeted-rage-ladder-and-rage-road-trigger: backlog
-  5-22-scale-validation-and-network-budget: backlog
-  5-23-epic-5-ai-traffic-playable-checkpoint: backlog
+
+  # ─────────────────────────────────────────────────────────────────────
+  # TRAFFIC V2 PROGRAM (5.24 - 5.48) - planned 2026-09-22
+  # A separate generation built beside frozen Traffic V1, not an evolution
+  # of it. 5.17-5.23 stay burned and absent: they are superseded and never
+  # reactivate. Gates: A after 5.28, B after 5.31, C after 5.35,
+  # D after 5.44, E after 5.48. See planning-artifacts/epics.md.
+  # ─────────────────────────────────────────────────────────────────────
+  5-24-v2-regression-oracle-bench-and-v1-trace-contract: review
+  5-25-road-world-model-records-compiler-and-versioning: review
+  5-26-directed-arc-length-geometry-and-lane-localization: backlog
+  5-27-v1-importer-validator-and-migration-report: backlog
+  5-28-junction-semantic-authoring-and-overlay-sign-off: backlog
+  5-29-deterministic-strategic-route-plan: backlog
+  5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog
+  5-31-first-driven-traffic-v2-vertical-slice-portal-to-portal: backlog
+  5-32-perception-boundary-occupancy-leader-and-hazards: backlog
+  5-33-vehicle-following-through-named-speed-constraints: backlog
+  5-34-junction-coordination-core-grants-and-conflicts: backlog
+  5-35-authored-control-kinds-stop-yield-priority-roundabout: backlog
+  5-36-signal-phase-runtime-and-coordinator-integration: backlog
+  5-37-safety-filter-narrow-veto-and-clamp-boundary: backlog
+  5-38-collision-response-physics-yields-tactical-handshake: backlog
+  5-39-recovery-supervisor-progress-and-physical-reattachment: backlog
+  5-40-gridlock-detection-and-bounded-escalation: backlog
+  5-41-driving-policy-and-traffic-rule-exception-protocol: backlog
+  5-42-unstructured-maneuvers-bypass-overtaking-head-on: backlog
+  5-43-rage-and-fear-as-continuous-policy-modulation: backlog
+  5-44-targeted-aggression-and-authorized-contact: backlog
+  5-45-thrown-litter-on-v2-contracts: backlog
+  5-46-profiling-baseline-and-thirty-vehicle-budget: backlog
+  # CONDITIONAL - do NOT select this key unless Story 5.46 has recorded that
+  # AD-42's performance trigger is met. If the measured budget is satisfied,
+  # 5.47 is skipped entirely and 5.46 leads straight to 5.48. The story is
+  # unspecified by design: its scope is written from 5.46's numbers.
+  # Gate E (5.48) cannot be reached while a triggered requirement is unresolved.
+  5-47-conditional-minimum-traffic-fidelity-scaling-response: backlog
+  5-48-v1-v2-parity-gate-and-v1-runtime-retirement: backlog
   epic-5-retrospective: optional
 
   epic-6: backlog

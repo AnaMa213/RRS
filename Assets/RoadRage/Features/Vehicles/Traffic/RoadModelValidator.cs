@@ -23,7 +23,15 @@ namespace RoadRage.Features.Vehicles.Traffic
         ConflictingMovementsGreenTogether = 11,
         InvalidGeometryPayload = 12,
         ConflictZoneMembershipInvalid = 13,
-        NumericValueOutOfRange = 14
+        NumericValueOutOfRange = 14,
+
+        // ---------------------------------------------------------------- ordre transversal (AD-48)
+        // Quatre codes distincts et non groupes : un rapport de migration (5.27) doit pouvoir
+        // nommer le defaut exact, et les separer plus tard casserait la stabilite promise.
+        DuplicateLateralOrder = 15,
+        NonContiguousLateralOrder = 16,
+        MissingCrossSectionDatum = 17,
+        MultipleCrossSectionData = 18
     }
 
     /// <summary>Un echec de validation : son code stable, l'identifiant fautif et un message.</summary>
@@ -202,6 +210,8 @@ namespace RoadRage.Features.Vehicles.Traffic
 
                 CheckSamples(issues, corridor.Samples, corridor.Id, "LaneCorridor");
             }
+
+            CheckCrossSectionOrder(issues, sections, corridors);
 
             // ------------------------------------------------ connexions et adjacences
             for (int i = 0; i < connections.Length; i++)
@@ -515,6 +525,136 @@ namespace RoadRage.Features.Vehicles.Traffic
             CheckFinite(issues, value.x, subject, fieldName + ".x");
             CheckFinite(issues, value.y, subject, fieldName + ".y");
             CheckFinite(issues, value.z, subject, fieldName + ".z");
+        }
+
+        /// <summary>
+        /// Ordre transversal authore (AD-48) : par section, exactement un corridor datum, des
+        /// <c>LateralOrder</c> uniques et contigus depuis 0.
+        ///
+        /// <b>Purement structurel.</b> Aucune mathematique de courbe, aucun road-right, aucune
+        /// projection : on ne verifie ici que la forme de l'ensemble. La coherence entre cet ordre
+        /// et la geometrie reelle -- monotonie le long du datum, recouvrement d'enveloppes, accord
+        /// avec <see cref="LaneAdjacency"/> -- appartient a la Story 5.26.
+        ///
+        /// Seuls les corridors dont la section resout sont groupes : un <c>SectionId</c> non resolu
+        /// est deja un echec dur (<see cref="RoadModelValidationCode.UnresolvedReference"/>) et le
+        /// compter ici ne produirait que du bruit. Une section sans aucun corridor n'a pas de coupe
+        /// transversale et n'exige donc pas de datum.
+        /// </summary>
+        private static void CheckCrossSectionOrder(
+            List<RoadModelValidationIssue> issues,
+            RoadSection[] sections,
+            LaneCorridor[] corridors)
+        {
+            var known = new HashSet<RoadId>();
+            for (int i = 0; i < sections.Length; i++)
+            {
+                if (!sections[i].Id.IsEmpty)
+                {
+                    known.Add(sections[i].Id);
+                }
+            }
+
+            var bySection = new Dictionary<RoadId, List<LaneCorridor>>();
+            for (int i = 0; i < corridors.Length; i++)
+            {
+                if (!known.Contains(corridors[i].SectionId))
+                {
+                    continue;
+                }
+
+                List<LaneCorridor> group;
+                if (!bySection.TryGetValue(corridors[i].SectionId, out group))
+                {
+                    group = new List<LaneCorridor>();
+                    bySection.Add(corridors[i].SectionId, group);
+                }
+
+                group.Add(corridors[i]);
+            }
+
+            // Ordre de parcours deterministe : la liste d'echecs ne doit pas dependre du hachage.
+            for (int i = 0; i < sections.Length; i++)
+            {
+                List<LaneCorridor> group;
+                if (sections[i].Id.IsEmpty || !bySection.TryGetValue(sections[i].Id, out group))
+                {
+                    continue;
+                }
+
+                CheckOneCrossSection(issues, sections[i].Id, group);
+            }
+        }
+
+        private static void CheckOneCrossSection(
+            List<RoadModelValidationIssue> issues,
+            RoadId sectionId,
+            List<LaneCorridor> group)
+        {
+            // ---------------------------------------------------------- datum unique
+            int datumCount = 0;
+            for (int i = 0; i < group.Count; i++)
+            {
+                if (group[i].IsCrossSectionDatum)
+                {
+                    datumCount++;
+                }
+            }
+
+            if (datumCount == 0)
+            {
+                issues.Add(new RoadModelValidationIssue(
+                    RoadModelValidationCode.MissingCrossSectionDatum,
+                    sectionId,
+                    "RoadSection sans corridor datum : " + group.Count + " corridor(s), aucun IsCrossSectionDatum."));
+            }
+            else if (datumCount > 1)
+            {
+                issues.Add(new RoadModelValidationIssue(
+                    RoadModelValidationCode.MultipleCrossSectionData,
+                    sectionId,
+                    "RoadSection avec " + datumCount + " corridors datum : le repere transversal doit en designer exactement un."));
+            }
+
+            // ---------------------------------------------------------- ordres uniques
+            bool duplicated = false;
+            var seen = new Dictionary<int, RoadId>(group.Count);
+            for (int i = 0; i < group.Count; i++)
+            {
+                RoadId first;
+                if (seen.TryGetValue(group[i].LateralOrder, out first))
+                {
+                    duplicated = true;
+                    issues.Add(new RoadModelValidationIssue(
+                        RoadModelValidationCode.DuplicateLateralOrder,
+                        group[i].Id,
+                        "LateralOrder " + group[i].LateralOrder + " deja porte par " + first + " dans la section " + sectionId + "."));
+                }
+                else
+                {
+                    seen.Add(group[i].LateralOrder, group[i].Id);
+                }
+            }
+
+            // Contiguite indefinie tant qu'un ordre est duplique : ne pas empiler un second motif
+            // sur le meme defaut.
+            if (duplicated)
+            {
+                return;
+            }
+
+            // ---------------------------------------------------------- contigus depuis 0
+            for (int order = 0; order < group.Count; order++)
+            {
+                if (!seen.ContainsKey(order))
+                {
+                    issues.Add(new RoadModelValidationIssue(
+                        RoadModelValidationCode.NonContiguousLateralOrder,
+                        sectionId,
+                        "RoadSection de " + group.Count + " corridor(s) sans LateralOrder " + order
+                            + " : la coupe transversale doit etre contigue depuis 0."));
+                }
+            }
         }
 
         private static void CheckSamples(List<RoadModelValidationIssue> issues, RoadCurveSample[] samples, RoadId subject, string typeName)

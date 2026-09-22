@@ -368,6 +368,22 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <summary>Cle etrangere de section : seule verite parent/enfant persistee.</summary>
         public RoadId SectionId;
 
+        /// <summary>
+        /// Position laterale authoree du corridor dans la coupe transversale de sa section (AD-48).
+        /// Unique et contigue depuis 0 par section. Fait de repere <b>section</b>, jamais conducteur :
+        /// pour un corridor de sens oppose au datum, l'ordre croissant va vers sa propre gauche, donc
+        /// un consommateur relatif au conducteur passe par <see cref="LaneAdjacency"/>, jamais par une
+        /// comparaison directe d'ordre entre sens opposes.
+        /// </summary>
+        public int LateralOrder;
+
+        /// <summary>
+        /// Vrai pour l'unique corridor datum de la section (AD-48). Le datum fournit le repere : l'ordre
+        /// croissant va vers son road-right au sens d'AD-45, evalue localement a chaque abscisse. La
+        /// coherence geometrique de ce repere appartient a la Story 5.26, pas a ce record.
+        /// </summary>
+        public bool IsCrossSectionDatum;
+
         /// <summary>Echantillons ordonnes a s strictement croissant, au moins deux.</summary>
         public RoadCurveSample[] Samples;
 

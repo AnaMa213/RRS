@@ -25,7 +25,7 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <c>-0</c>, unites/pas/arrondi). Changer l'un de ces choix rend incomparables toutes les
         /// versions deja emises et impose d'incrementer cette constante.
         /// </summary>
-        public const int CompilerSchemaVersion = 1;
+        public const int CompilerSchemaVersion = 2;
 
         /// <summary>
         /// Compile une source en modele immuable versionne.
@@ -125,6 +125,8 @@ namespace RoadRage.Features.Vehicles.Traffic
                     ? corridor.SpeedLimitOverrideMetersPerSecond
                     : section.DefaultSpeedLimitMetersPerSecond;
                 effective[i].Surface = corridor.HasSurfaceOverride ? corridor.SurfaceOverride : section.Surface;
+                effective[i].LateralOrder = corridor.LateralOrder;
+                effective[i].IsCrossSectionDatum = corridor.IsCrossSectionDatum;
                 effective[i].AllowedVehicleClasses = corridor.HasAllowedVehicleClassesOverride
                     ? corridor.AllowedVehicleClassesOverride
                     : section.DefaultAllowedVehicleClasses;

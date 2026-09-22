@@ -89,6 +89,12 @@ namespace RoadRage.Features.Vehicles.Traffic
         public VehicleClassMask AllowedVehicleClasses;
         public float LengthMeters;
         public RoadCurveSample[] Samples;
+
+        /// <summary>Position laterale authoree reportee depuis le corridor (AD-48).</summary>
+        public int LateralOrder;
+
+        /// <summary>Datum de repere transversal de la section, reporte depuis le corridor (AD-48).</summary>
+        public bool IsCrossSectionDatum;
     }
 
     /// <summary>
@@ -247,7 +253,7 @@ namespace RoadRage.Features.Vehicles.Traffic
                 Append(portalsByCorridor, _portals[i].CorridorId, _portals[i].Id);
             }
 
-            _corridorsBySection = Freeze(corridorsBySection);
+            _corridorsBySection = FreezeCorridorsBySection(corridorsBySection);
             _movementsByJunction = Freeze(movementsByJunction);
             _controlsByJunction = Freeze(controlsByJunction);
             _conflictZonesByJunction = Freeze(conflictZonesByJunction);
@@ -445,6 +451,43 @@ namespace RoadRage.Features.Vehicles.Traffic
             }
 
             bucket.Add(value);
+        }
+
+        /// <summary>
+        /// Seule collection inverse porteuse de sens : l'ordre transversal authore (AD-48). Trie par
+        /// <c>LateralOrder</c> croissant ; le <see cref="RoadId"/> ne sert que de depart d'egalite
+        /// deterministe pour un modele qui a deja echoue a la validation, ou l'unicite n'est plus
+        /// garantie. Le <c>RoadId</c> ne porte jamais de semantique de voie.
+        /// </summary>
+        private Dictionary<RoadId, RoadId[]> FreezeCorridorsBySection(Dictionary<RoadId, List<RoadId>> index)
+        {
+            var frozen = new Dictionary<RoadId, RoadId[]>(index.Count);
+            foreach (var pair in index)
+            {
+                var values = pair.Value.ToArray();
+                Array.Sort(values, CompareByLateralOrder);
+                frozen.Add(pair.Key, values);
+            }
+
+            return frozen;
+        }
+
+        private int CompareByLateralOrder(RoadId a, RoadId b)
+        {
+            int orderA = LateralOrderOf(a);
+            int orderB = LateralOrderOf(b);
+            if (orderA != orderB)
+            {
+                return orderA < orderB ? -1 : 1;
+            }
+
+            return a.CompareTo(b);
+        }
+
+        private int LateralOrderOf(RoadId corridorId)
+        {
+            int index;
+            return _corridorIndex.TryGetValue(corridorId, out index) ? _corridors[index].LateralOrder : 0;
         }
 
         private static Dictionary<RoadId, RoadId[]> Freeze(Dictionary<RoadId, List<RoadId>> index)

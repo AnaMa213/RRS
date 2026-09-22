@@ -2,6 +2,8 @@
 
 <!-- Compiled from planning artifacts. Edit freely. Regenerate with compile-epic-context if planning docs change. -->
 
+> **Authoritative planning override — updated 2026-09-22.** Traffic V1 is frozen as an accepted behavioral/reference baseline. Stories 5.17–5.23 are superseded and must not be implemented on the current controller; their text is requirements evidence only. Story 5.14 is complete for its approved `VehicleDriveIntent` plus shared-physics scope; collision response and physical recovery remain separate Traffic V2 requirements under `ANO-5.10-03`. The V2 Road World Model/responsibility architecture package was **accepted by the owner on 2026-09-22**: AD-43 through AD-47 are `[ADOPTED]` in `planning-artifacts/architecture/architecture-RoadRage_Simulator-2026-09-02/ARCHITECTURE-SPINE.md`, with the detailed contract in `planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md`. **The replacement stories now exist:** a planning run on 2026-09-22 generated the **Traffic V2 program, Stories 5.24-5.48**, inside this epic, with gates A-E. See `planning-artifacts/epics.md` (sections "Epic 5 generation boundary" and "Traffic V2 program") and the keys in `sprint-status.yaml`. That filing decision supersedes section 3.14 of `sprint-change-proposal-2026-09-21.md`, which had recommended a dedicated Traffic V2 epic. All 5.24-5.48 keys are `backlog`: implementation of any of them still requires an approved BMAD story spec.
+
 ## Goal
 
 L'Epic 5 donne aux PNJ un véritable système de réponse (Rage et Peur) et à la route un véritable trafic. Les Stories 5.1 à 5.7 (livrées, en revue) ont posé la fondation hôte-autoritative, le suivi de route, le ciblage réseau et la présentation client. La correction de parcours du 2026-09-15 a ensuite étendu l'epic au modèle de conduite paramétré, au district greybox alimenté en source/puits, aux règles d'intersection, à la perception élargie, à la modulation émotionnelle du pilotage, à l'échelle de rage visant le joueur et aux détritus attribués. Celle du 2026-09-18 a inséré, en amont du trafic restant, une **fondation physique du véhicule** (Stories 5.11 à 5.15) : la recette de la Story 5.10 avait montré des véhicules projetés en l'air par une bordure, arrêtés net par une lèvre basse et une IA forçant son itinéraire après un choc (`ANO-5.10-03`) — trois symptômes d'une même cause, un véhicule piloté en écrivant directement la vitesse du `Rigidbody`, sans roue ni suspension. Les stories alors numérotées 5.11 à 5.18 ont glissé en 5.16 à 5.23 (5.16 garde son numéro), portant l'epic à 23 stories. L'epic reste un bac à sable de fondation — le district greybox est un terrain d'essai explicitement borné, pas la ville du MVP 2 — et n'introduit aucun contrat de run, de niveau ou de checkpoint.
@@ -21,16 +23,11 @@ L'Epic 5 donne aux PNJ un véritable système de réponse (Rage et Peur) et à l
 - Story 5.11: Vehicle Chassis, Wheels, and Suspension
 - Story 5.12: Tire Forces and Steering
 - Story 5.13: Arcade Assists and Uneven Ground
-- Story 5.14: AI Drives by Intent (absorbe `ANO-5.10-03`)
+- Story 5.14: AI Drives by Intent (reduced scope delivered; does **not** absorb `ANO-5.10-03`)
 - Story 5.15: Credible Collisions and Damage Integration
 - Story 5.16: Lobby-Configurable Traffic Settings
-- Story 5.17: Wider Perception and Progressive Unblocking (ex-5.12)
-- Story 5.18: Intersection Rules and Deadlock Prevention (ex-5.11)
-- Story 5.19: Rage and Fear as Driving Model Modulation (ex-5.13)
-- Story 5.20: Thrown Litter Foundation and Attribution (ex-5.15)
-- Story 5.21: Player-Targeted Rage Ladder and Rage Road Trigger (ex-5.14)
-- Story 5.22: Scale Validation and Network Budget (ex-5.17)
-- Story 5.23: Epic 5 AI Traffic Playable Checkpoint (ex-5.18)
+- Stories 5.17–5.23: **superseded as executable stories**; retained in `epics.md` only as Traffic V2 requirements evidence
+- Stories 5.24–5.48: **Traffic V2 program** (planned 2026-09-22) — oracle bench, Road World Model and migration (Gate A), planning spine and first driven slice (Gate B), perception and junction coordination (Gate C), safety/collision/recovery/policy and Road Rage (Gate D), then parity and V1 retirement (Gate E). Story 5.47 is a conditional fidelity-scaling slot that exists only if 5.46 trips AD-42.
 
 ## Requirements & Constraints
 
@@ -72,9 +69,11 @@ L'Epic 5 donne aux PNJ un véritable système de réponse (Rage et Peur) et à l
 
 ## Cross-Story Dependencies
 
+> The dependency text below is historical for Stories 5.17–5.23. It must not be used to schedule them. Owner acceptance of the architecture gate was recorded on 2026-09-22, so a future planning run must generate Traffic V2 dependency order from AD-36 through AD-47 and the accepted contracts.
+
 - La Story 5.1 étend la fondation Rage de l'Epic 4 et doit rester compatible avec ses appelants. La Story 5.3 a unifié solo et en ligne sur un seul chemin hôte-autoritatif et conditionne la vérification de toutes les stories suivantes ; le chemin solo dupliqué est supprimé, pas compensé ailleurs. La 5.5 fournit la persistance et l'éligibilité que cible l'échelle de rage de la 5.21, la 5.6 le cycle de vie Rage Road qu'elle ne fait que demander, la 5.7 la présentation client que le checkpoint vérifie.
-- Les Stories 5.9 et 5.18 supplantent les mécanismes des Stories 5.2 (boucle de waypoints avec récupération par téléportation) et 5.4 (rage comme multiplicateur de vitesse de croisière), qui restent des jalons historiques valides ; la récupération par téléportation est supprimée par la Story 5.14 et remplacée par un retour physique sur une voie valide.
-- La Story 5.14 absorbe `ANO-5.10-03`, dont les huit critères d'acceptation sont autoritatifs et non recopiés. Elle porte un **prérequis dur de planification** : la correction du harnais PlayMode, suivie comme outillage et non comme code de story. La vérification y est délibérément scindée — prédicat de significativité du choc, tirage de réaction, transition vers la récupération, rattachement de voie et non-régression 5.9 en EditMode ; deux critères de collision seulement en PlayMode.
+- Les mécanismes des Stories 5.2 (boucle de waypoints et récupération par téléportation) et 5.4 (dispositions de conduite discrètes) restent des jalons V1 historiques. Leur remplacement appartient à Traffic V2, pas aux anciennes Stories 5.17–5.23.
+- La Story 5.14 n'absorbe pas `ANO-5.10-03` : son spec approuvé a retiré le prédicat de collision, la variabilité de réaction, la transition réponse→récupération et le retour physique sur une voie. Ces comportements restent ouverts et sont catalogués dans l'oracle V1.
 - La chaîne 5.11 à 5.14 est stricte : la 5.12 consomme les raycasts de roue de la 5.11, la 5.13 se règle contre la hauteur de bordure que la 5.11 authore, et la 5.14 remplace le conducteur en boucle ouverte par une intention émise au-dessus de la direction de la 5.12. La 5.15 recalibre les dégâts contre le profil d'impact qu'elles produisent, et la 5.22 enregistre le coût par roue de cette couche comme ligne de mesure propre.
 - La Story 5.17 précède la 5.18, qui consomme sa perception — l'ordre antérieur avait cette dépendance à l'envers. La Story 5.10 consomme l'effectif livré par la 5.16 et retombe sur la valeur authorée tant qu'il n'existe pas ; la 5.16 étend `MatchSettings` — jamais un second objet de paramètres — et réutilise le chemin de synchronisation existant ; elle ne dépend pas du bloc physique et peut être avancée à tout moment si ce bloc stagne. La 5.22 mesure la configuration que la 5.16 livre et conditionne toute décision d'échelle de production.
 - La Story 5.19 a besoin des jauges de la 5.1 et du ciblage de la 5.5 ; la 5.20 n'expose que l'intention hôte de retour de détritus, le ramassage, la mise en bac et le rejet par le joueur appartenant à l'Epic 6.

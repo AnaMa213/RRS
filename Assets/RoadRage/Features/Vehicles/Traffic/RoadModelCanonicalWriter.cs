@@ -140,6 +140,13 @@ namespace RoadRage.Features.Vehicles.Traffic
                 writer.Write((int)corridors[i].Surface);
                 writer.Write((int)corridors[i].AllowedVehicleClasses);
                 WriteMeters(writer, corridors[i].LengthMeters);
+
+                // AD-48 : position transversale authoree, donc comportementale. Ce n'est pas l'ordre
+                // d'enregistrement exclu par AD-44 -- les corridors sont deja tries par RoadId
+                // ci-dessus, donc l'encodage reste independant de l'ordre de la source.
+                writer.Write(corridors[i].LateralOrder);
+                writer.Write((byte)(corridors[i].IsCrossSectionDatum ? 1 : 0));
+
                 WriteSamples(writer, corridors[i].Samples);
             }
 

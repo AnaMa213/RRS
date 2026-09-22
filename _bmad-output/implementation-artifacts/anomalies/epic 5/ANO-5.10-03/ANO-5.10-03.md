@@ -3,9 +3,10 @@ id: ANO-5.10-03
 title: AI vehicles do not react naturally to collisions and keep forcing their normal route
 status: open
 epic: 5
-story: 5.14
+story: null
 original_story: 5.10
-reassigned: 2026-09-18
+previous_story: 5.14
+reassigned: 2026-09-21
 type: bug
 category: ai-traffic-physics
 severity: major
@@ -16,12 +17,14 @@ priority: high
 
 ## Contexte
 
+> **Réaffectée le 2026-09-21** (`planning-artifacts/sprint-change-proposal-2026-09-21.md`). La Story 5.14 a livré uniquement la séparation intention/physique ; son spec approuvé a explicitement retiré la réponse aux collisions et le retour physique vers une voie. L'anomalie reste `open`, sans story exécutable tant que les contrats Traffic V2 de réponse aux collisions et de recovery ne sont pas conçus. Les AC1–AC8 deviennent des scénarios obligatoires de l'oracle V1 et du futur gate de parité V2. Cette note supplante l'affectation 5.14 ci-dessous sans effacer son historique.
+
 > **Réaffectée le 2026-09-18** (`planning-artifacts/sprint-change-proposal-2026-09-18.md`). Cette anomalie passe de la Story 5.10 à la **Story 5.14 — AI Drives by Intent**, dont elle constitue le cœur. Motif : sa correction est impossible sans le modèle physique à roues livré par les Stories 5.11 à 5.13 — la réaction « mordre sur un trottoir » demandée en Réaction B suppose une bordure franchissable, et les projections observées viennent du conflit entre une écriture directe de `linearVelocity` et la résolution PhysX. Ses huit critères d'acceptation restent **autoritatifs et inchangés** ; la Story 5.14 les référence sans les recopier. Statut inchangé : `open`. La Story 5.10 passe en `review`.
 
 > **Complément de recette du 2026-09-18 — cas de la POUSSÉE, à vérifier explicitement.** La recette signale que les véhicules IA ne peuvent pas être _poussés_ : un joueur qui les percute ou les pousse ne peut ni les dévier, ni les mettre en travers, ni les sortir de la chaussée, et le véhicule repart sur sa ligne au pas de physique suivant. Le mécanisme est nommé — `NetworkedAIVehicleDriverController.ApplyMovement`, appelée à chaque `FixedUpdate` : `:846` `body.MoveRotation(rotation)` impose le lacet depuis le cap de la route, `:849` `body.linearVelocity = (forward * longitudinalSpeed * intent.Throttle) + verticalVelocity` remplace le vecteur vitesse ; second mécanisme du même genre, `RecoverAtWaypoint` (`:861`) téléporte sur le nœud de voie. **Les critères ci-dessous sont écrits autour d'une COLLISION ; la poussée continue sans choc n'y figure pas explicitement.** À exiger en plus à la livraison : une IA poussée doit être déviée et pouvoir quitter la chaussée, ne doit pas se ré-aligner en une frame, et doit revenir sur une voie valide physiquement (AC6). Entrée correspondante au registre : `implementation-artifacts/deferred-work.md`, « Les vehicules IA ne peuvent pas etre POUSSES ».
 
 - **Epic :** 5 — Vehicle Physics, NPC Response Foundation and Routed Traffic
-- **Story propriétaire :** 5.14 — AI Drives by Intent (réaffectée depuis 5.10 le 2026-09-18)
+- **Story propriétaire :** aucune — frontière Traffic V2 collision response/recovery à décomposer après le gate d'architecture
 - **Type :** Anomalie fonctionnelle / physique véhicule / réaction IA
 - **Sévérité :** Majeure
 - **Priorité :** Haute
@@ -376,14 +379,9 @@ Les distributions exactes doivent rester configurables si cela correspond à l'a
 
 ---
 
-# Relation avec les futures stories
+# Relation avec Traffic V2
 
-Cette correction doit être conçue pour rester compatible avec :
-
-- Story 5.17 — Wider Perception and Progressive Unblocking (ex-5.12) ;
-- Story 5.18 — Intersection Rules and Deadlock Prevention (ex-5.11) ;
-- Story 5.19 — Rage and Fear as Driving Model Modulation (ex-5.13) ;
-- Story 5.21 — Player-Targeted Rage Ladder and Rage Road Trigger (ex-5.14).
+Cette correction doit être conçue avec les contrats Traffic V2 de perception, décision tactique, planification de mouvement, SafetyFilter, politique conducteur et Recovery Supervisor. Les anciennes Stories 5.17–5.23 sont superseded et ne sont plus des propriétaires exécutables.
 
 En particulier, la future Rage/Fear doit pouvoir moduler la réaction à une collision sans nécessiter de remplacer complètement ce système.
 
@@ -415,4 +413,4 @@ La réaction à une collision doit laisser temporairement la priorité à la sit
 
 Une fois la situation stabilisée, l'IA doit être capable de retrouver naturellement une route valide et de reprendre sa circulation.
 
-Avant implémentation, vérifier si cette correction empiète sur le périmètre prévu de la Story 5.17 (ex-5.12). Si une responsabilité appartient clairement à cette story future, conserver ici uniquement la fondation minimale nécessaire et documenter le reste plutôt que dupliquer deux systèmes de recovery.
+Avant implémentation, séparer explicitement la réponse immédiate au choc, la stabilisation physique et la récupération de progression. Safety, collision response et recovery peuvent devenir des stories exécutables distinctes après le gate d'architecture ; aucune ne doit dupliquer un second système de conduite.

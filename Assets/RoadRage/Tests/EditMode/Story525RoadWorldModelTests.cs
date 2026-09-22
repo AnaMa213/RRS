@@ -58,9 +58,13 @@ namespace RoadRage.Tests.EditMode
         private static readonly RoadId SectionS2 = Id(201);
         private static readonly RoadId PlanP2 = Id(202);
         private static readonly RoadId PhasePh3 = Id(203);
+        private static readonly RoadId SectionS3 = Id(204);
 
         // Index de tableau du modele synthetique, stables par construction (voir BuildModel).
         private const int CorridorA1Index = 0;
+        private const int CorridorA1BIndex = 1;
+        private const int CorridorA2Index = 2;
+        private const int CorridorE1Index = 5;
         private const int MovementM1Index = 0;
         private const int ControlC1Index = 0;
         private const int ControlC2Index = 1;
@@ -85,12 +89,13 @@ namespace RoadRage.Tests.EditMode
 
             source.Corridors = new[]
             {
-                Corridor(CorridorA1, "A1", 20f),
-                Corridor(CorridorA1B, "A1b", 20f),
-                Corridor(CorridorA2, "A2", 20f),
-                Corridor(CorridorD1, "D1", 20f),
-                Corridor(CorridorD2, "D2", 20f),
-                Corridor(CorridorE1, "E1", 20f)
+                // Coupe transversale AD-48 : ordres contigus 0..5, A1 designe datum.
+                Corridor(CorridorA1, "A1", 20f, 0, true),
+                Corridor(CorridorA1B, "A1b", 20f, 1, false),
+                Corridor(CorridorA2, "A2", 20f, 2, false),
+                Corridor(CorridorD1, "D1", 20f, 3, false),
+                Corridor(CorridorD2, "D2", 20f, 4, false),
+                Corridor(CorridorE1, "E1", 20f, 5, false)
             };
 
             var connection = new LaneConnection();
@@ -189,7 +194,7 @@ namespace RoadRage.Tests.EditMode
             return section;
         }
 
-        private static LaneCorridor Corridor(RoadId id, string label, float length)
+        private static LaneCorridor Corridor(RoadId id, string label, float length, int lateralOrder, bool isDatum)
         {
             var corridor = new LaneCorridor();
             corridor.Id = id;
@@ -197,6 +202,8 @@ namespace RoadRage.Tests.EditMode
             corridor.SectionId = SectionS1;
             corridor.Samples = Samples(length);
             corridor.LengthMeters = length;
+            corridor.LateralOrder = lateralOrder;
+            corridor.IsCrossSectionDatum = isDatum;
             return corridor;
         }
 
@@ -375,6 +382,30 @@ namespace RoadRage.Tests.EditMode
             var sections = new RoadSection[source.Sections.Length + 1];
             Array.Copy(source.Sections, sections, source.Sections.Length);
             sections[sections.Length - 1] = Section(SectionS2, "S2", 13.9f);
+            source.Sections = sections;
+        }
+
+        /// <summary>
+        /// Deplace E1 sur la section d'accueil demandee, S2 et S3 etant toutes deux ajoutees. E1
+        /// porte l'ordre transversal le plus eleve de S1, donc son depart laisse S1 contigue de 0 a
+        /// 4 ; sur sa section d'accueil il devient l'ordre 0 et le datum, seule forme valide pour une
+        /// coupe a un corridor (AD-48).
+        /// </summary>
+        private static void MoveE1Onto(RoadModelSource source, RoadId hostSection)
+        {
+            AddSecondSection(source);
+            AddThirdSection(source);
+            source.Corridors[CorridorE1Index].SectionId = hostSection;
+            source.Corridors[CorridorE1Index].LateralOrder = 0;
+            source.Corridors[CorridorE1Index].IsCrossSectionDatum = true;
+        }
+
+        /// <summary>Ajoute une troisieme section aux defauts identiques a S1, sans corridor.</summary>
+        private static void AddThirdSection(RoadModelSource source)
+        {
+            var sections = new RoadSection[source.Sections.Length + 1];
+            Array.Copy(source.Sections, sections, source.Sections.Length);
+            sections[sections.Length - 1] = Section(SectionS3, "S3", 13.9f);
             source.Sections = sections;
         }
 
@@ -560,6 +591,24 @@ namespace RoadRage.Tests.EditMode
             AssertVersionChanges(
                 delegate(RoadModelSource source) { source.Sections[0].DefaultSpeedLimitMetersPerSecond = 11f; },
                 "Defaut de section resolu en valeur effective de corridor : comportemental.");
+
+            // AD-48. Un echange, pas une reaffectation : l'ensemble reste unique et contigu, donc le
+            // modele compile toujours et seul le fait teste bouge.
+            AssertVersionChanges(
+                delegate(RoadModelSource source)
+                {
+                    source.Corridors[CorridorA1Index].LateralOrder = 1;
+                    source.Corridors[CorridorA1BIndex].LateralOrder = 0;
+                },
+                "Ordre transversal : position semantique authoree, pas un ordre d'enregistrement.");
+
+            AssertVersionChanges(
+                delegate(RoadModelSource source)
+                {
+                    source.Corridors[CorridorA1Index].IsCrossSectionDatum = false;
+                    source.Corridors[CorridorA2Index].IsCrossSectionDatum = true;
+                },
+                "Datum transversal : change le repere de toute la coupe, donc comportemental.");
         }
 
         /// <summary>
@@ -612,15 +661,16 @@ namespace RoadRage.Tests.EditMode
                 delegate(RoadModelSource source) { source.Sections[0].DefaultAllowedVehicleClasses = VehicleClassMask.Car; },
                 "Classes de vehicules autorisees par defaut.");
 
-            // Section rattachee : compare « S2 ajoutee mais vide » a « S2 ajoutee et E1 dessus »,
-            // pour que seul le champ SectionId du corridor differe entre les deux charges.
-            var withUnusedSection = VersionOf(AddSecondSection);
-            var withCorridorMoved = VersionOf(delegate(RoadModelSource source)
-            {
-                AddSecondSection(source);
-                source.Corridors[5].SectionId = SectionS2;
-            });
-            Assert.That(withCorridorMoved, Is.Not.EqualTo(withUnusedSection),
+            // Section rattachee. Sous AD-48 on ne peut plus deplacer un corridor en ne changeant que
+            // son SectionId : sa position transversale est couplee a son appartenance, et la section
+            // d'accueil exigerait alors un datum et une contiguite. L'isolation passe donc par deux
+            // sections d'accueil aux defauts identiques, S2 et S3, toutes deux presentes des deux
+            // cotes : E1 quitte S1 dans les deux charges, avec la meme position et le meme datum, et
+            // seul son SectionId differe. Supprimer l'ecriture de ce champ rend les deux versions
+            // egales et fait rougir cette assertion.
+            var ontoS2 = VersionOf(delegate(RoadModelSource source) { MoveE1Onto(source, SectionS2); });
+            var ontoS3 = VersionOf(delegate(RoadModelSource source) { MoveE1Onto(source, SectionS3); });
+            Assert.That(ontoS3, Is.Not.EqualTo(ontoS2),
                 "Section parente effective d'un corridor.");
 
             // ---------------------------------------------------------- corridor effectif
@@ -1416,6 +1466,141 @@ namespace RoadRage.Tests.EditMode
             phase.DurationSeconds = duration;
             phase.GroupStates = new[] { GroupState(GroupG1, state) };
             return phase;
+        }
+
+        // ================================================================== coupe transversale (AD-48)
+
+        /// <summary>
+        /// Le repere transversal d'une section est porte par exactement un corridor datum. Zero et
+        /// deux sont deux defauts distincts, donc deux codes distincts : un rapport de migration
+        /// (5.27) doit pouvoir nommer lequel s'est produit.
+        /// </summary>
+        [Test]
+        public void ASectionCarriesExactlyOneCrossSectionDatum()
+        {
+            var noDatum = AssertHardFailure(
+                delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].IsCrossSectionDatum = false; },
+                RoadModelValidationCode.MissingCrossSectionDatum);
+            Assert.That(ContainsIssue(noDatum, RoadModelValidationCode.MissingCrossSectionDatum, SectionS1), Is.True,
+                "L'absence de datum se rapporte sur la section, seule porteuse de la coupe.");
+
+            var twoData = AssertHardFailure(
+                delegate(RoadModelSource source) { source.Corridors[CorridorA2Index].IsCrossSectionDatum = true; },
+                RoadModelValidationCode.MultipleCrossSectionData);
+            Assert.That(ContainsIssue(twoData, RoadModelValidationCode.MultipleCrossSectionData, SectionS1), Is.True);
+        }
+
+        /// <summary>
+        /// Deux corridors d'une meme section ne peuvent pas occuper la meme position transversale :
+        /// l'ordre ne serait plus total et deux consommateurs pourraient les classer differemment.
+        /// </summary>
+        [Test]
+        public void LateralOrderIsUniqueWithinASection()
+        {
+            var exception = AssertHardFailure(
+                delegate(RoadModelSource source) { source.Corridors[CorridorA1BIndex].LateralOrder = 0; },
+                RoadModelValidationCode.DuplicateLateralOrder);
+
+            Assert.That(ContainsIssue(exception, RoadModelValidationCode.DuplicateLateralOrder, CorridorA1B), Is.True,
+                "Le doublon se rapporte sur le corridor fautif, pas sur la section.");
+
+            Assert.That(exception.HasCode(RoadModelValidationCode.NonContiguousLateralOrder), Is.False,
+                "Un ordre duplique rend la contiguite indefinie : ne pas empiler un second motif sur le meme defaut.");
+        }
+
+        /// <summary>
+        /// Une coupe transversale va de 0 a n-1 sans trou. Un trou ou une valeur negative signifie
+        /// qu'une voie manque ou qu'un ordre a ete invente.
+        /// </summary>
+        [Test]
+        public void LateralOrderIsContiguousFromZero()
+        {
+            var gap = AssertHardFailure(
+                delegate(RoadModelSource source) { source.Corridors[CorridorA2Index].LateralOrder = 9; },
+                RoadModelValidationCode.NonContiguousLateralOrder);
+            Assert.That(ContainsIssue(gap, RoadModelValidationCode.NonContiguousLateralOrder, SectionS1), Is.True);
+
+            AssertHardFailure(
+                delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].LateralOrder = -1; },
+                RoadModelValidationCode.NonContiguousLateralOrder);
+        }
+
+        /// <summary>
+        /// Seule collection inverse porteuse de sens : elle suit l'ordre transversal authore, pas
+        /// l'identifiant opaque. C'est exactement la contradiction d'AD-43 que la 5.25 laissait
+        /// ouverte et qu'AD-48 tranche.
+        /// </summary>
+        [Test]
+        public void CorridorsInSectionFollowLateralOrderNotIdentity()
+        {
+            var model = RoadModelCompiler.Compile(BuildModel());
+
+            Assert.That(model.GetCorridorsInSection(SectionS1),
+                Is.EqualTo(new[] { CorridorA1, CorridorA1B, CorridorA2, CorridorD1, CorridorD2, CorridorE1 }));
+
+            var reordered = BuildModel();
+            reordered.Corridors[CorridorA1Index].LateralOrder = 5;
+            reordered.Corridors[CorridorE1Index].LateralOrder = 0;
+
+            Assert.That(RoadModelCompiler.Compile(reordered).GetCorridorsInSection(SectionS1),
+                Is.EqualTo(new[] { CorridorE1, CorridorA1B, CorridorA2, CorridorD1, CorridorD2, CorridorA1 }),
+                "Le RoadId n'est qu'un depart d'egalite : il ne porte aucune semantique de voie.");
+        }
+
+        // ================================================================== contrat de persistance RoadId
+
+        /// <summary>
+        /// <see cref="RoadId"/> est un <c>readonly struct</c>, donc non serialisable champ par champ
+        /// par Unity : la Story 5.27 persistera la forme hexadecimale. Ce contrat d'aller-retour est
+        /// ce dont elle depend, et rien ne le verifiait.
+        /// </summary>
+        [Test]
+        public void RoadIdRoundTripsThroughItsHexadecimalForm()
+        {
+            var ids = new[] { ModelId, SectionS1, CorridorE1, RoadId.None, new RoadId(ulong.MaxValue, 0UL) };
+
+            for (int i = 0; i < ids.Length; i++)
+            {
+                string text = ids[i].ToString();
+                Assert.That(text.Length, Is.EqualTo(32), "Forme persistee : 32 caracteres hexadecimaux.");
+
+                RoadId parsed;
+                Assert.That(RoadId.TryParse(text, out parsed), Is.True, "Aller-retour refuse pour " + text + ".");
+                Assert.That(parsed, Is.EqualTo(ids[i]));
+                Assert.That(RoadId.Parse(text), Is.EqualTo(ids[i]));
+            }
+        }
+
+        /// <summary>
+        /// Les rejets comptent autant que l'aller-retour : une forme invalide acceptee produirait une
+        /// identite silencieusement fausse au chargement.
+        /// </summary>
+        [Test]
+        public void RoadIdRejectsEveryMalformedHexadecimalForm()
+        {
+            string valid = CorridorE1.ToString();
+
+            var rejected = new[]
+            {
+                null,
+                string.Empty,
+                valid.Substring(0, 31),
+                valid + "0",
+                valid.ToUpperInvariant(),
+                valid.Substring(0, 31) + "g",
+                valid.Substring(0, 31) + " "
+            };
+
+            for (int i = 0; i < rejected.Length; i++)
+            {
+                RoadId parsed;
+                Assert.That(RoadId.TryParse(rejected[i], out parsed), Is.False,
+                    "Forme invalide acceptee : " + (rejected[i] ?? "<null>"));
+                Assert.That(parsed, Is.EqualTo(RoadId.None), "Un echec de TryParse rend RoadId.None.");
+
+                string candidate = rejected[i];
+                Assert.Throws<FormatException>(delegate { RoadId.Parse(candidate); });
+            }
         }
 
         private static bool ContainsIssue(RoadModelCompilationException exception, RoadModelValidationCode code, RoadId subject)
