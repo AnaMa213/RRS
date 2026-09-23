@@ -101,6 +101,21 @@ Le script verifie le CLI Unity, l'Editeur connecte, la recompilation, la Console
 tests cibles, puis l'etat final scenes/Git. **Il echoue ferme** : Editeur inaccessible, CLI muet,
 commande inconnue, timeout, resultat illisible ou absent = echec.
 
+La porte Console (AD-7) est **fenetree sur la validation en cours**. Le script stabilise d'abord
+l'Editeur (ni compilation ni rechargement de domaine en cours), capture le curseur Console courant,
+puis n'interroge plus que `console --level error --since <curseur>` — une fois apres la
+recompilation, une fois apres les tests. Une erreur laissee par un etat intermediaire deja corrige,
+ou par une commande CLI rejetee, n'est donc plus comptee : elle appartient a l'historique de la
+session d'Editeur, pas a ce checkpoint. Aucune erreur produite pendant la fenetre n'est ignoree, et
+rien ne depend de `clear_console` (qui repond `cleared:true` sans vider la memoire tampon du
+pipeline : mesure du 2026-09-23).
+
+Un build **encore casse** reste bloquant meme quand son erreur Console est anterieure a la fenetre.
+`recompile_status` ne suffit pas : il rapporte la derniere *demande*, et un `recompile` sans
+changement l'ecrase (`failed:true` redevient `up_to_date, failed:false`, mesure du 2026-09-23) — un
+second passage sur le meme build casse serait passe. Le script lit donc l'etat courant lui-meme,
+`EditorUtility.scriptCompilationFailed`, vrai tant que la compilation des scripts est en echec.
+
 Deux consequences a respecter :
 
 - **Une absence de resultat n'est jamais un succes.** Sans sortie du script, la story n'est pas
