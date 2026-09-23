@@ -10,7 +10,7 @@ reference aux splines Unity.
 | --- | --- |
 | `RoadCurve.cs` | Courbe dirigee immuable (AD-45) : `Length`, `Sample(s)`, `Project(point[, sMin, sMax])`, `Bounds(s0, s1)`, `FullBounds`, cap signe (`RoadCurvePoint.SignedHeadingDegrees`). Exposee sur `EffectiveLaneCorridor.Curve` et `CompiledJunctionMovement.Curve`. |
 | `RoadCurveBuilder.cs` | Polyligne authoree -> echantillons : Catmull-Rom centripete, subdivision adaptative, `s` cumule sur les cordes, tangente et courbure signee analytiques. |
-| `RoadGeometryValidator.cs` | Validation geometrique a echec dur, codes 19 a 30, appelee par `RoadModelValidator.Validate` quand la validation structurelle est vide. |
+| `RoadGeometryValidator.cs` | Validation geometrique a echec dur, codes 19 a 30, appelee par `RoadModelValidator.Validate` quand la validation structurelle est vide. Le code 31 (plafonds de profil) vit dans `RoadModelValidator`, avec le reste du profil. |
 | `RoadLocalization.cs` | `VehicleFootprint`, `VehicleFootprintPose`, `RoadLocation`, `RoadLocationCandidate`, `RoadLocationFlags`, `RoadLocalizer`. |
 
 ## Conventions (AD-45)
@@ -28,18 +28,27 @@ interpoles puis reorthonormalises.
 
 | Profil | Porte | Dans la charge canonique |
 | --- | --- | --- |
-| `RoadModelValidationProfile` | gabarit, marge, et les tolerances geometriques statiques : couture (position/largeur 0,05 m, tangente 5 deg), longueur (0,05 m), recouvrement d'enveloppes | oui |
+| `RoadModelValidationProfile` | gabarit, marge, et les tolerances geometriques statiques : couture (position/largeur 0,05 m, tangente 5 deg), longueur/corde (0,05 m), recouvrement d'enveloppes, seuil d'ancrage au datum (AD-48, 45 deg) | oui |
 | `RoadLocalizationProfile` (nouveau, sur `RoadModelSource` et `CompiledRoadModel`) | bande de score, hysteresis, seuil d'acceptation, seuil de contresens | oui |
 
 `LocalizationScoreBandMeters` et `WrongWayHeadingDegrees` ont quitte le profil de validation.
 Changer une **valeur** de profil change la version ; seul un changement de **representation ou de
-sens** incremente `CompilerSchemaVersion`. Ce deplacement en est un : **schema 2 -> 3**.
+sens** incremente `CompilerSchemaVersion`. Ce deplacement en est un : **schema 2 -> 3**. Le
+nettoyage final de la 5.26 y ajoute le seuil d'ancrage AD-48 (`GroundingMaxOffAxisDegrees`), qui
+etait une constante du validateur et n'entrait donc dans aucune charge : **schema 3 -> 4**.
 
-Domaine : chaque tolerance, la bande, l'hysteresis et l'acceptation doivent etre strictement
-positives, et le seuil de contresens dans ]0, 180] ; sinon `NumericValueOutOfRange` (un profil non
-renseigne ne compile pas). Les valeurs du contrat (0,05 m, 5 deg) sont celles des fixtures ; le
-validateur ne plafonne pas un profil qui les relacherait. Relacher reste une decision proprietaire
-(spec, « Ask First »).
+Domaine : chaque tolerance, la bande, l'hysteresis, l'acceptation et le seuil d'ancrage doivent
+etre strictement positifs (l'ancrage dans ]0, 90[ : 90 deg accepterait une perpendiculaire), et le
+seuil de contresens dans ]0, 180] ; sinon `NumericValueOutOfRange` (un profil non renseigne ne
+compile pas).
+
+**Plafonds approuves (nettoyage 5.26).** Le profil peut etre plus strict que le contrat, jamais
+plus laxiste : `SeamGapToleranceMeters` > 0,05 m, `SeamTangentToleranceDegrees` > 5 deg et
+`LengthToleranceMeters` > 0,05 m (elle borne aussi l'ecart abscisse/corde et le domaine des
+portails, plafonnes a 0,05 m par AD-45) echouent en `ProfileToleranceAboveApprovedCeiling`
+(code 31), meme sur un modele geometriquement coherent. Relacher un plafond est une revision
+d'architecture, jamais une valeur de profil. `EnvelopeOverlapToleranceMeters` reste authore :
+AD-48 ne fixe pas de nombre pour le recouvrement d'enveloppes.
 
 ## Validation geometrique
 
@@ -59,7 +68,8 @@ Puis **relations**. Un code par defaut, jamais groupe ; chaque issue nomme l'id 
 | 27 `LaneSideDisagreement` | `Side` contredit la geometrie, ou l'ordre transversal dans une meme section (AD-48) | adjacence |
 | 28 `NonMonotoneLateralOrder` | lignes centrales non strictement croissantes vers la droite du datum | corridor d'ordre superieur |
 | 29 `OverlappingLateralEnvelopes` | enveloppes voisines recouvrantes au-dela de la tolerance | corridor d'ordre superieur |
-| 30 `CorridorNotGroundedOnDatum` | aucun recouvrement avec le datum, ou ni parallele ni antiparallele (45 deg) | corridor |
+| 30 `CorridorNotGroundedOnDatum` | aucun recouvrement avec le datum, ou ni parallele ni antiparallele (seuil du profil, `GroundingMaxOffAxisDegrees`) | corridor |
+| 31 `ProfileToleranceAboveApprovedCeiling` | un profil relache un plafond approuve du contrat (couture 0,05 m, tangente 5 deg, longueur/corde 0,05 m) ; un profil plus strict passe | modele |
 
 Procedure AD-48 : chaque corridor est projete au plus proche point sur le datum, restreint a leur
 intervalle de recouvrement (trouve dans les deux sens de projection) ; puis chaque paire d'ordres
@@ -107,6 +117,18 @@ acceptation) ; candidats a distance d'enveloppe <= voisinage. Tri par `(rang, sc
 Le cap ne classe qu'a l'interieur d'un rang : deux voies opposees ont des enveloppes disjointes
 (AD-48 valide), donc une pose a contresens reste sur sa voie physique.
 
+Le score additif (bonus du precedent, d'un voisin explicite et d'un element de route), leur cumul
+et le rayon de collecte de 2 x acceptation sont des **choix d'implementation**, pas des invariants
+d'architecture : le contrat exige seulement un classement combinant geometrie, cap, route, element
+precedent et connectivite explicite, et un balayage qui ne manque aucun candidat pertinent. Un
+index spatial (AD-42 / 5.46) ou une autre ponderation des bonus pourront les remplacer sans changer
+le contrat, tant que le cap ne classe jamais entre les rangs.
+
+Regression dedicacee (nettoyage 5.26) :
+`AHysteresisRetainedPreviousElementPastASeamKeepsItsIdentityAndRaisesOutsideEnvelope` -- 3 cm
+au-dela de la couture NB2 -> mouvement, le precedent garde son identite (`s` borne a sa fin) et
+`OutsideEnvelope` est leve ; cas symetrique 3 cm avant le debut d'un mouvement (`s` borne a 0).
+
 ## Choix de fixture
 
 - **5.25** : la fixture est devenue geometriquement coherente (bandes a 5 m, demi-largeurs 2 m,
@@ -121,9 +143,20 @@ Le cap ne classe qu'a l'interieur d'un rang : deux voies opposees ont des envelo
   (cas deplace), NB est a cote de sa voie opposee (contresens), et le debut des deux mouvements est
   le cas ambigu.
 
+## Nettoyage post-livraison (2026-09-23)
+
+- Plafonds approuves : code 31 `ProfileToleranceAboveApprovedCeiling`, prouve par
+  `AProfileThatRelaxesAnApprovedToleranceCeilingIsAHardFailure` (un profil plus strict passe, les
+  trois champs relaches echouent, le motif nomme le champ fautif).
+- Ancrage AD-48 : `GroundingMaxOffAxisDegrees` dans le profil, la charge et le schema 4 ; prouve
+  par `TheGroundingAngleIsReadFromTheValidationProfile` (45 deg passe, 20 deg rejette le membre a
+  30 deg) et par les cas 0 / 90 de `AnUnsetOrOutOfRangeProfileIsAHardFailure`.
+- `EveryRemainingCanonicalFieldMovesTheVersion` (5.25) couvre le nouveau champ : une valeur
+  differente change la version.
+- Les deux entrees de `deferred-work.md` (invariants geometriques de la 5.25, adjacence de sens
+  oppose) sont CLOSES le 2026-09-23 : couvertes par les codes 19-23, 26 et 27 et par leurs tests.
+
 ## Hors perimetre, laisse ouvert
 
 - Aucun index spatial optimise : balayage lineaire (AD-42 / 5.46).
-- Les entrees de `deferred-work.md` sur les invariants geometriques de la 5.25 et l'adjacence de sens
-  oppose sont couvertes par les codes 19-23 et 26 ; elles n'ont pas ete editees ici.
 - Auto-boucle `FromCorridorId == ToCorridorId` : toujours non rejetee (reportee a la 5.27).
