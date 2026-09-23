@@ -33,7 +33,8 @@ context:
 | Approche sans controle / controle orphelin | decision retiree / cle inconnue | echec dur nommant la cle | rien n'est ecrit |
 | Genre non admis | `Stop` dans les decisions | echec dur (5.35) | rien n'est ecrit |
 | Candidat non dispose / decision sans candidat | conflit ajoute ou retire | echec dur | rien n'est ecrit |
-| Largeur divergente | largeur importee != revue | echec dur | rien n'est ecrit |
+| Largeur revue != amorce importee | largeur des decisions != largeur importee | largeur revue APPLIQUEE aux echantillons possedes ; rapport : importee / appliquee par sujet (5.49) | N/A (trace dans le rapport) |
+| Largeur sous le gabarit | une demi-largeur, gauche ou droite, de tout echantillon possede -- y compris interpole sur un mouvement -- < `MaxVehicleHalfWidthMeters + LateralClearanceMarginMeters` | echec dur nommant le sujet et l'echantillon | rien n'est ecrit |
 | Lignee perimee | import frappe ou retire une identite | refus : relancer la migration 5.27 | rien n'est ecrit |
 | Modele persiste altere | octet modifie ou version divergente | chargement refuse | jamais repare |
 | Sign-off perime | un hash lie differe du pipeline frais | Gate A fermee, motif | jamais repare |
@@ -60,10 +61,11 @@ context:
 - [x] `.../Traffic/Migration/AuthoredRoadModel.cs` -- pipeline (Design Notes) : relance de l'importeur 5.27 en lecture seule sur scene + lignee, zero frappe ni retrait, application des decisions, compile 1, candidats de conflit, zones, compile 2, fixtures de localisation, document modele, artefact d'overlay, rapport Gate A lie, `Verify` du rapport et du sign-off ; menus `Proposer les decisions` et `Compiler le modele authore`.
 - [x] `.../Traffic/Migration/GateAReviewWindow.cs` -- fenetre : dessin Scene view des primitives d'overlay, 25 instances a cadrer et cocher, bouton de signature actif seulement quand tout est coche, confirmation explicite, ecriture du sign-off.
 - [x] `Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json` -- amorce par le menu, puis relue ; `MVP_Run.road-model.json`, `_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt`, `migration-report-5-28-mvp-run.md` -- generes par le menu, committes.
-- [x] `Assets/RoadRage/Tests/EditMode/Story528AuthoringAndGateATests.cs` -- chaque ligne de la matrice ; comptes (40 controles, 72 mouvements couverts une fois) ; artefacts committes egaux a un pipeline frais ; aller-retour du document (memes octets, meme version) ; candidats invariants a l'echantillonnage (meme courbe re-echantillonnee) et a l'ordre de la paire ; largeur asymetrique divergente refusee ; fixtures ; sign-off lie (echoue tant qu'il manque).
+- [x] `Assets/RoadRage/Tests/EditMode/Story528AuthoringAndGateATests.cs` -- chaque ligne de la matrice ; comptes (40 controles, 72 mouvements couverts une fois) ; artefacts committes egaux a un pipeline frais ; aller-retour du document (memes octets, meme version) ; candidats invariants a l'echantillonnage (meme courbe re-echantillonnee) et a l'ordre de la paire ; largeur revue appliquee aux echantillons possedes et largeur sous le gabarit refusee (5.49) ; fixtures ; sign-off lie (echoue tant qu'il manque).
 - [x] `deferred-work.md` -- clore les fixtures de localisation ; noter que le self-loop n'est pas rouvert (aucune connexion ni mouvement authore a la main). `sprint-status.yaml` -> `in-progress` ; `graphify update .`.
 - [ ] HALT : revue de l'overlay et signature par le proprietaire dans l'Editeur ; puis `MVP_Run.road-signoff.json` committe.
   - Revue du 2026-09-23 : 20/25 instances acceptees ; carrefour central en attente (filtrage des conflits ajoute a la fenetre, a revoir) ; 4 giratoires BLOQUES : anneau 4,0 m contre 8,0 m pour une route normale, elargissement physique confie a une story de suivi dediee (option B, `deferred-work.md`, section « Bloquant Gate A »). Gate A non signable avant cette story, la regeneration des artefacts et une nouvelle revue des giratoires.
+  - Correct-course du 2026-09-23 (sprint-change-proposal-2026-09-23.md) : Story 5.49 inseree avant la signature. Reprise du HALT apres 5.49 : artefacts regeneres, nouvelle revue des 4 giratoires ET du carrefour central, puis signature.
 
 ### Review Findings
 
@@ -91,9 +93,15 @@ Revue du 2026-09-23 (baseline `8f25415`, couches blind-hunter / edge-case-hunter
 
 ## Spec Change Log
 
+- **2026-09-23 -- renegociation proprietaire, ligne gelee « Largeur divergente ».**
+  Declencheur : revue d'overlay, 4 giratoires bloques (anneau V2 4,0 m ; residu a deux gabarits -1,78 m, anneau physique -0,88 m).
+  Amende : la largeur revue est appliquee au lieu d'etre seulement comparee ; une demi-largeur de tout echantillon possede ou interpole sous le gabarit reste un echec dur ; implementation, elargissement physique et regeneration des artefacts confies a la Story 5.49 (sprint-change-proposal-2026-09-23.md).
+  Etat evite : signer une Gate A sur un anneau qui ne peut pas contenir deux vehicules, ou faire de l'amorce de l'importeur l'autorite de largeur.
+  KEEP : decisions seules authoritative, un corridor logique d'anneau, aucune adjacence, Gate A non signee avant 5.49 + regeneration + nouvelle revue.
+
 ## Design Notes
 
-**Decisions (JSON, trie).** `Controls[{Id, ApproachKey, Kind}]` ; `Conflicts[{Id, MovementKeyA<B, Decision: Accepted|Rejected, Reason}]` (Rejected exige un motif) ; `Widths[{SubjectKey, HalfWidthLeftMeters, HalfWidthRightMeters}]` (sections et carrefours ; gauche et droite explicites, AD-45 asymetrique, egales aujourd'hui dans `MVP_Run` : tous les echantillons possedes doivent valoir ces demi-largeurs a la quantification pres) ; `Dispositions[{Category, SubjectKey, Kind, Note}]` pour Frontiere/Portail (`Reviewed`), Ligne (`NotRequiredForCurrentControlKind` : aucune ligne sous `Uncontrolled` ; reouverture : 5.35, des qu'un controle passe a Stop/Yield/Priority), Signal (`Unsignalized`), Section (`Deferred`) ; `DeferredFields[{Field, Reopening}]` : vitesse -> 5.33, classes -> admission d'une seconde classe (recompilation AD-44), surface -> seconde surface roulable. Controle/Conflit/Largeur sont disposes par leurs donnees typees.
+**Decisions (JSON, trie).** `Controls[{Id, ApproachKey, Kind}]` ; `Conflicts[{Id, MovementKeyA<B, Decision: Accepted|Rejected, Reason}]` (Rejected exige un motif) ; `Widths[{SubjectKey, HalfWidthLeftMeters, HalfWidthRightMeters}]` (sections et carrefours ; gauche et droite explicites, AD-45 asymetrique ; la largeur revue est APPLIQUEE aux echantillons possedes et le rapport publie importee / appliquee par sujet ; pour un carrefour, la regle d'application aux mouvements qui joignent deux largeurs differentes est fixee par la 5.49) ; `Dispositions[{Category, SubjectKey, Kind, Note}]` pour Frontiere/Portail (`Reviewed`), Ligne (`NotRequiredForCurrentControlKind` : aucune ligne sous `Uncontrolled` ; reouverture : 5.35, des qu'un controle passe a Stop/Yield/Priority), Signal (`Unsignalized`), Section (`Deferred`) ; `DeferredFields[{Field, Reopening}]` : vitesse -> 5.33, classes -> admission d'une seconde classe (recompilation AD-44), surface -> seconde surface roulable. Controle/Conflit/Largeur sont disposes par leurs donnees typees.
 
 **Candidats.** Rayon r = `MaxVehicleHalfWidthMeters + LateralClearanceMarginMeters` ; chaque courbe est densifiee par `Curve.Sample(s)` a pas fixe `r/4` en abscisse curviligne (extremites incluses), independant de ses echantillons compiles ; test symetrique A->B et B->A (point densifie a moins de 2r de `Project` sur l'autre courbe) ; paire ordonnee par `RoadId`. Des courbes geometriquement equivalentes donnent donc le meme ensemble quel que soit leur echantillonnage ou l'ordre de la paire. Volume = AABB des points densifies en recoupement des deux cotes, elargie de r sur les trois axes. `ponytail:` balayage lateral seul, la longueur du gabarit au-dela des extremites n'est pas balayee (les coutures relevent du suivi) ; a etendre si la 5.34 mesure un conflit manque.
 

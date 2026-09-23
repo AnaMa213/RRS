@@ -1679,7 +1679,7 @@ The decision has one knock-on: the naming conventions forbid direct feature-to-f
 
 | Gate | After | Meaning | Runtime evidence |
 | --- | --- | --- | --- |
-| **A — `MVP_Run` Road Model Migration Validated** | 5.28 | The **data** gate, not the design gate: the real `MVP_Run` V1 authoring has been imported, compiled, measured, validated and visually reviewed as V2 data — zero hard errors, every source item disposed, human-signed overlay | EditMode + overlay sign-off |
+| **A — `MVP_Run` Road Model Migration Validated** | 5.28 (sign-off after 5.49) | The **data** gate, not the design gate: the real `MVP_Run` V1 authoring has been imported, compiled, measured, validated and visually reviewed as V2 data — zero hard errors, every source item disposed, human-signed overlay | EditMode + overlay sign-off |
 | **B — V2 Spine Driven End to End** | 5.31 | One AI vehicle spawns, localizes, routes, plans, drives and exits under V2 in `MVP_Run` | **PlayMode milestone 1** |
 | **C — Ordered Traffic in `MVP_Run`** | 5.35 | Multiple vehicles negotiate the crossroads, T junctions and roundabouts without deadlock | **PlayMode milestone 2** |
 | **D — One Stack for Normal and Road Rage** | 5.44 | Road Rage runs on the same stack as normal traffic; no second perception, navigation or physics path exists | **PlayMode milestone 3** |
@@ -1696,42 +1696,44 @@ Therefore: **prove trajectory, curvature, speed, topology, identity, versioning 
 ### Dependency graph and critical path
 
 ```text
-5.24 ─────────────────────────────────────────────────────┐  (oracle + trace contract feed every later test)
-                                                          │
-5.25 ─► 5.26 ─► 5.27 ─► 5.28 ═GATE A═ ─► 5.29 ─► 5.30 ─► 5.31 ═GATE B═
-                                                          │
-                        ┌─────────────────────────────────┴─────────────────┐
-                        ▼                                                   ▼
-                     5.32 ─► 5.33                                     5.34 ─► 5.35 ═GATE C═
-                        │                                                   │
-                        └────────────────────┬──────────────────────────────┘
-                                             ▼
-                                      5.36 (signals, fixture-validated)
-                                             │
-                                      5.37 ─► 5.38 ─► 5.39 ─► 5.40
-                                             │
-                                             ▼
-                                      5.41 ─► 5.42 ─► 5.43 ─► 5.44 ═GATE D═
-                                             │
-                                             ▼
-                                           5.45
-                                             │
-                                             ▼
-                                           5.46  (formal ~30-vehicle measurement)
-                                             │
-                          ┌──────────────────┴──────────────────┐
-              budget satisfied                       AD-42 trigger met
-                          │                                     │
-                          │                                     ▼
-                          │                                   5.47  (CONDITIONAL: minimum
-                          │                                     │    fidelity-scaling response,
-                          │                                     │    then re-measure)
-                          └──────────────────┬──────────────────┘
-                                             ▼
-                                           5.48 ═GATE E═
+5.24 ──────────────────────────────────────────────────────────────────────┐  (oracle + trace contract feed every later test)
+                                                                           │
+5.25 ─► 5.26 ─► 5.27 ─► 5.28 ─► 5.49 ─► 5.28✓ ═GATE A═ ─► 5.29 ─► 5.30 ─► 5.31 ═GATE B═
+                                                                           │
+                                         ┌─────────────────────────────────┴─────────────────┐
+                                         ▼                                                   ▼
+                                      5.32 ─► 5.33                                     5.34 ─► 5.35 ═GATE C═
+                                         │                                                   │
+                                         └────────────────────┬──────────────────────────────┘
+                                                              ▼
+                                                       5.36 (signals, fixture-validated)
+                                                              │
+                                                       5.37 ─► 5.38 ─► 5.39 ─► 5.40
+                                                              │
+                                                              ▼
+                                                       5.41 ─► 5.42 ─► 5.43 ─► 5.44 ═GATE D═
+                                                              │
+                                                              ▼
+                                                            5.45
+                                                              │
+                                                              ▼
+                                                            5.46  (formal ~30-vehicle measurement)
+                                                              │
+                                           ┌──────────────────┴──────────────────┐
+                               budget satisfied                       AD-42 trigger met
+                                           │                                     │
+                                           │                                     ▼
+                                           │                                   5.47  (CONDITIONAL: minimum
+                                           │                                     │    fidelity-scaling response,
+                                           │                                     │    then re-measure)
+                                           └──────────────────┬──────────────────┘
+                                                              ▼
+                                                            5.48 ═GATE E═
 ```
 
-**Critical path:** 5.25 → 5.26 → 5.27 → 5.28 → 5.29 → 5.30 → 5.31 → 5.34 → 5.35 → 5.37 → 5.38 → 5.41 → 5.42 → 5.43 → 5.44 → 5.46 → *(5.47 only if triggered)* → 5.48.
+> `5.28✓` — the 5.28 authoring pipeline is delivered before 5.49; its overlay re-review and owner signature resume after 5.49 and close Gate A. 5.49 is numbered after 5.48 because 5.17–5.23 are burned and 5.24–5.48 were taken when the need arose (2026-09-23 course correction); its position in the chain, not its number, sets its order.
+
+**Critical path:** 5.25 → 5.26 → 5.27 → 5.28 → 5.49 → 5.28 sign-off → 5.29 → 5.30 → 5.31 → 5.34 → 5.35 → 5.37 → 5.38 → 5.41 → 5.42 → 5.43 → 5.44 → 5.46 → *(5.47 only if triggered)* → 5.48.
 
 **Genuine parallel opportunities:** 5.24 runs beside 5.25–5.26; the 5.32/5.33 branch runs beside the 5.34/5.35 branch after Gate B; 5.36 and 5.40 are leaves that may float.
 
@@ -1746,6 +1748,7 @@ Therefore: **prove trajectory, curvature, speed, topology, identity, versioning 
 | 5.26 | Directed arc-length geometry and lane localization | FOUNDATION | Geometry | L |
 | 5.27 | V1 importer, semantic validator and measured migration report | FOUNDATION | Migration | L |
 | 5.28 | Junction semantic authoring and `MVP_Run` overlay sign-off | FOUNDATION | Authoring | M |
+| 5.49 | Roundabout ring widening and applied reviewed widths *(inserted 2026-09-23, precedes the Gate A sign-off)* | FOUNDATION | Physical geometry / width authoring | M |
 | 5.29 | Deterministic strategic `RoutePlan` | FOUNDATION | Route | M |
 | 5.30 | Traffic V2 planning and runtime spine foundation | FOUNDATION | Planning spine | L |
 | 5.31 | **First driven Traffic V2 vertical slice: portal to portal** | VERTICAL | Spine, end to end | L |
@@ -2041,25 +2044,25 @@ So that the V2 road model becomes authoritative on evidence rather than on the i
 
 **Why here:** it is the smallest possible authoring step that makes the model valid. It is deliberately not "author all traffic rules" — see the scope note below.
 
-**Prerequisites:** 5.27 (the report's enumerated gap list is the worklist).
+**Prerequisites:** 5.27 (the report's enumerated gap list is the worklist). **Sign-off only:** 5.49 — the 2026-09-23 overlay review blocked the four roundabouts; the authoring pipeline is delivered, the HALT resumes after 5.49.
 
 **Scope note — this story authors truth, not aspiration.** `MVP_Run`'s junctions are genuinely uncontrolled today. `Uncontrolled` is an explicit, valid, reviewed control kind under AD-46 — not a fallback. This story therefore binds every movement to exactly one control, most of them `Uncontrolled`, and materializes the conflict zones. **Upgrading those bindings to stop, yield, priority and roundabout-entry semantics is Story 5.35**, where the runtime that obeys them also exists. Authoring rules no runtime reads would be unverifiable authoring.
 
-**Non-goals:** no signal plan authored in `MVP_Run` (no signalized junction exists — see the deferred register); no same-direction `LaneAdjacency` (the district has one lane per direction and must not be altered to satisfy a schema example); no road geometry change; no traffic runtime.
+**Non-goals:** no signal plan authored in `MVP_Run` (no signalized junction exists — see the deferred register); no same-direction `LaneAdjacency` (the district has one lane per direction and must not be altered to satisfy a schema example); no road geometry change **in this story** — the roundabout widening required by the 2026-09-23 overlay review is Story 5.49; no traffic runtime.
 
-**Reusable V1 components:** the existing greybox road geometry and collider dimensions as width evidence; the district itself, unchanged.
+**Reusable V1 components:** the existing greybox road geometry and collider dimensions as width evidence; the district itself, unchanged by this story (5.49 widens the roundabouts physically, V1 traffic data untouched).
 
 **Must NOT be copied:** connector transforms silently becoming authoritative stop lines; conflict inference at runtime; junction classification by name.
 
 **Artifacts:** the reviewed V2 authored road asset; the visual overlay tool comparing compiled corridors and movements against the existing district; the sign-off record carrying approver identity and overlay artifact hash.
 
-**EditMode verification:** every movement has exactly one control binding, neither double-covered nor uncovered; `ConflictZone` membership is materialized, reviewed and versioned, and no conflict is inferred at runtime; conflict candidates were generated offline from swept envelopes of the model's declared maximum supported vehicle footprint, a versioned validation-profile value; the reviewed width satisfies the lateral clearance gate (AI half-width plus at least `0.25 m` per side — a reviewed `4 m` corridor against the `2.06 m` AI box satisfies it, and the importer may propose that width but only review makes it authoritative); zero hard validation errors; zero undisposed source items.
+**EditMode verification:** every movement has exactly one control binding, neither double-covered nor uncovered; `ConflictZone` membership is materialized, reviewed and versioned, and no conflict is inferred at runtime; conflict candidates were generated offline from swept envelopes of the model's declared maximum supported vehicle footprint, a versioned validation-profile value; the reviewed width satisfies the lateral clearance gate (AI half-width plus at least `0.25 m` per side — a reviewed `4 m` corridor against the `2.06 m` AI box satisfies it, and the importer may propose that width but only review makes it authoritative, **and the reviewed width is applied to the owned samples, the report recording imported versus applied (2026-09-23 correction, implemented in 5.49)**); zero hard validation errors; zero undisposed source items.
 
 **PlayMode verification:** none, but the overlay review is performed **in the Editor against `MVP_Run`** under the double state guard (`git status --short` plus `unity cmd list_open_scenes` before and after).
 
 **Regression scenarios covered:** completes the migration report's acceptance items 2, 8 and 10.
 
-**Completion evidence:** **Gate A** — migration report at zero hard errors and zero undisposed items, reviewed overlays for all 25 module instances, and a sign-off recording approver identity and overlay artifact hash bound to the same source, import-map, compiler and model hashes.
+**Completion evidence:** **Gate A** (after 5.49) — migration report at zero hard errors and zero undisposed items, reviewed overlays for all 25 module instances, and a sign-off recording approver identity and overlay artifact hash bound to the same source, import-map, compiler and model hashes.
 
 **Unlocks:** the model is authoritative. 5.29 may route on it.
 
@@ -2081,6 +2084,82 @@ So that the V2 road model becomes authoritative on evidence rather than on the i
 **Then** validation reports zero hard errors and zero undisposed source items
 **And** all 25 module instances have reviewed corridor and movement overlays
 **And** a human sign-off records approver identity and overlay artifact hash, bound to the same source, import-map, compiler and model hashes
+
+---
+
+### Story 5.49: Roundabout Ring Widening and Applied Reviewed Widths
+
+**Type:** FOUNDATION · **Boundary:** Physical district geometry and width authoring · **Complexity:** M
+**Implements:** AD-45 (width envelope), AD-47 (widths require review), 2026-09-23 course correction
+
+As a solo developer,
+I want the four `MVP_Run` roundabouts to offer room for two vehicles to pass on the ring, and V2 to model the ring at that width,
+So that vehicles meeting on the ring can manoeuvre instead of locking face to face, and Gate A signs the geometry that will actually be driven.
+
+**Capability delivered:** a physically widened ring on all four roundabout instances (one prefab), meeting the approved target geometry and proven by a two-footprint clearance check; a V2 ring corridor whose reviewed width is *applied* by the 5.28 pipeline rather than merely compared with the importer's seed; regenerated 5.28 artifacts ready for re-review.
+
+**Why here:** Gate A signs the roundabout overlays. Signing a ring known to be too narrow would sign stale data, and 5.29 routes on whatever Gate A accepts.
+
+**Prerequisites:** 5.27 (lineage), 5.28 pipeline (implemented, artifacts provisional, sign-off pending).
+
+**Evidence (Editor, 2026-09-23):** normal road — `Col_Roadway` 8.0 m, V2 2 × (2.0 + 2.0) m; ring — one corridor at radius 6.0 m, V2 2.0 / 2.0 = 4.0 m; physical — 16 × 16 m paved square, island radius 3.0 m, 5.0 m at the narrowest; counter-clockwise circulation, island on the corridor's left. V1 exhibited head-on deadlocks on roundabouts. Two-footprint residual (formula below): V2 envelope −1.78 m, physical ring −0.88 m, target +1.99 m.
+
+**Decisions recorded by the owner (2026-09-23):**
+- one logical corridor on the ring, centreline unchanged at radius 6.0 m — no second lane, no `LaneAdjacency`, no lane change, no MOBIL, no runtime manoeuvre semantics;
+- physical change only: V1 authored traffic data and topology (lane nodes, successors, weights, connectors, portals) are untouched, so the V1 source hash and the 5.27 lineage stay byte-identical and no identity is minted or retired. This is a physical-world exception to the AD-36 freeze. **It does not imply V1 behavioural equivalence**: an unchanged source hash proves unchanged data, not unchanged driving on new colliders;
+- the reviewed width is **applied**: the decision width is written onto the owned samples, and the report records imported versus applied width per subject. This replaces the frozen 5.28 rule "Largeur divergente → hard failure".
+
+**Target geometry (binding):** V2 ring corridor at radius 6.0 m with `HalfWidthLeft` = 4.0 m and `HalfWidthRight` = 4.0 m (8.0 m modelled envelope); physical island radius ≤ 1.75 m; physical clear/paved outer radius ≥ 10.25 m.
+
+**Two-footprint clearance criterion (additional functional proof, never a substitute for the target geometry).** All inputs come from the model's versioned validation profile — `MaxVehicleHalfWidthMeters` (W/2), `MaxVehicleLengthMeters` (L), `LateralClearanceMarginMeters` (m) — never from new constants. Two maximum footprints side by side, heading tangent to the ring at the tightest position: the inner footprint's centre radius is `R_in = r_inner + m + W/2`; its outer front corner is at `c_in = √((R_in + W/2)² + (L/2)²)`; the outer footprint's centre radius is `R_out = c_in + 2m + W/2`; its outer front corner is at `c_out = √((R_out + W/2)² + (L/2)²)`. The residual `(r_outer − m) − c_out` must be **strictly positive** and is published in the report per roundabout instance. It is evaluated twice: on the applied V2 envelope (r_inner / r_outer = ring corridor inner and outer edges) and on the physical ring (r_inner = island collider radius, r_outer = nearest non-roadway collider or paved edge, measured). A positive residual never allows the target geometry to shrink; the owner judges the published value at re-review.
+
+**Design points settled in-story:**
+- the outer ring meets the first ~2.25 m of the sidewalks of the 8 adjacent `Ring_*` segments. **Current implementation candidate** (not a frozen solution): `MVP_Run` instance overrides on those 8 instances. The story inspects the actual geometry and chooses the minimal clean transition that leaves no sidewalk or curb collider overlapping the ring. Modifying the shared `Greybox_RoadSegment_TwoWay` prefab (also used by the 4 avenues) remains **Ask First**;
+- entry/exit movements joining a 2.0 m approach to a 4.0 m ring — default: movement samples interpolate between the applied widths of their endpoint corridors (the importer's existing interpolation rule), and the junction-level width decision states how it applies;
+- the diagonal arm next to the tunnel portal is checked for collider overlap.
+
+**Non-goals:** no second lane or adjacency; no roundabout control kind (5.35); no change to crossroads or T junctions; no Gate A sign-off (it stays in 5.28); no automatic acceptance of a V1 behavioural delta.
+
+**Must NOT be copied:** widening by moving lane nodes; filling the width with an invented second corridor; the importer's seed treated as width authority; an unchanged source hash offered as proof of V1 behavioural equivalence.
+
+**EditMode verification:** source hash and lineage unchanged; each of the 4 instances meets the binding target geometry (compiled ring radius 6.0 m with 4.0 / 4.0 m, island ≤ 1.75 m, paved outer radius ≥ 10.25 m, measured from colliders); in addition, the two-footprint residual is strictly positive on both the applied V2 envelope and the physical ring, and is published; no sidewalk or curb collider intersects the ring's drivable envelope; every owned or interpolated sample satisfies the lateral clearance gate on each side; a width decision below the clearance gate is refused; an asymmetric decision is applied exactly as authored; the report lists imported versus applied width per subject; the conflict candidate set is unchanged (curves unchanged).
+
+**V1 regression verification (required, not optional):** the complete V1 oracle/regression suite runs after the prefab/collider change — the full EditMode suite (including `TrafficOracle` and the Story 5.2/5.4/5.7/5.9/5.10/5.14/5.15/5.16 tests) and the V1 traffic PlayMode suites (`Story510RoutedTrafficPlayModeTests`, `Story57…`, `Story59…`, `Story515…`) in a fresh Editor session, compared against a baseline captured on the same suites **before** the change. Any behavioural delta — a changed result, a newly failing or newly passing test, a changed oracle trace — is **reported for owner review**, never accepted automatically because the source hash is unchanged. The PlayMode runner is single-use per Editor session: the before and after runs need two Editor restarts.
+
+**PlayMode verification:** the V1 regression run above; visual check of the 4 roundabouts in the Editor under the double state guard.
+
+**Completion evidence:** before/after V1 regression results with every delta dispositioned by the owner; the per-instance target-geometry measurements and clearance residual table; regenerated 5.28 artifacts (decisions, model, overlay, report) committed, with the `RoadModelVersion` change recorded; roundabout overlays ready for re-review.
+
+**Unlocks:** 5.28 resumes at its HALT — re-review of the roundabouts and the central crossroads, then owner signature (Gate A).
+
+**Acceptance Criteria:**
+
+**Given** the widened roundabout prefab and the applied width decisions
+**When** each of the four instances is measured
+**Then** the compiled V2 ring corridor is at radius 6.0 m with `HalfWidthLeft` = 4.0 m and `HalfWidthRight` = 4.0 m
+**And** the physical island radius is ≤ 1.75 m and the physical clear/paved outer radius is ≥ 10.25 m
+
+**Given** the widened roundabout prefab
+**When** the V1 source set is re-extracted
+**Then** its source hash and the 5.27 lineage are byte-identical and no identity is minted or retired
+**And** no sidewalk or curb collider overlaps the ring's drivable envelope
+
+**Given** two maximum supported footprints from the versioned validation profile
+**When** they are placed side by side at the tightest ring position with the lateral clearance margin on every side
+**Then**, in addition to the target geometry, the residual clearance is strictly positive on both the applied V2 envelope and the physical ring of every instance, and is published in the report
+
+**Given** a reviewed width decision that differs from the importer's seed
+**When** the 5.28 pipeline runs
+**Then** the reviewed width is applied to the owned samples and the report records imported and applied values
+**And** any owned or interpolated sample below the lateral clearance gate on either side is a hard failure
+
+**Given** the prefab/collider change
+**When** the complete V1 oracle/regression suite runs against its pre-change baseline
+**Then** every behavioural delta is reported for owner review and none is accepted on the strength of the unchanged source hash
+
+**Given** the regenerated artifacts
+**When** Gate A is evaluated
+**Then** it remains closed until 5.49 is complete, the 5.28 artifacts are regenerated, and the owner re-reviews the roundabouts and signs in 5.28
 
 ---
 
@@ -3251,7 +3330,7 @@ Where every superseded Story 5.17–5.23 requirement now lives. No requirement i
 
 | # | Risk | Where it bites | Mitigation in the plan |
 | --- | --- | --- | --- |
-| **R1** | **The seven-story foundation runway before a wheel turns.** Stories 5.24–5.30 produce no visible driving, and the 5.30/5.31 split adds one more non-driving story to that runway. Motivation and feedback both suffer, and a design error stays hidden longer. | 5.25 – 5.30 | 5.27 and 5.28 produce **reviewable artifacts in `MVP_Run`** — a measured migration report and a signed visual overlay. Gate A is a real checkpoint, not a formality. The runway is inherent: you cannot drive on a road model that does not exist. The extra story bought by the split is a deliberate trade — one more non-driving story in exchange for removing the only XL story in the program. |
+| **R1** | **The seven-story foundation runway before a wheel turns.** Stories 5.24–5.30 produce no visible driving, and the 5.30/5.31 split adds one more non-driving story to that runway. Motivation and feedback both suffer, and a design error stays hidden longer. | 5.25 – 5.30 | 5.27 and 5.28 produce **reviewable artifacts in `MVP_Run`** — a measured migration report and a signed visual overlay. Gate A is a real checkpoint, not a formality. The runway is inherent: you cannot drive on a road model that does not exist. The extra story bought by the split is a deliberate trade — one more non-driving story in exchange for removing the only XL story in the program. The 2026-09-23 overlay review added 5.49 to this runway — the Gate A checkpoint did exactly its job by blocking a roundabout geometry that could not hold two vehicles. |
 | **R2** | ~~5.30 is XL~~ — **resolved in planning, before specification.** The former XL slice was split into **5.30 (planning spine, drives nothing)** and **5.31 (first driven slice)** at the seam that was already identified, while no implementation depended on the numbering. | 5.30, 5.31 | Both halves are L. 5.30 carries a structural assertion that it composes no intent and touches no physics, so the split cannot silently collapse back into one story during implementation. The cost is R1's longer runway, accepted deliberately. |
 | **R3** | **The PlayMode gate is degraded**: order-sensitive, `-TestFilter` does not match, the runner is effectively single-use per Editor session. Runtime claims risk being asserted rather than measured. | every gate | EditMode-first is the explicit strategy. Only four PlayMode milestones are scheduled. A story not at a gate writes its runtime recipe and does **not** claim runtime behavior it has not exercised. |
 | **R4** | **Measured migration deviations exceed the provisional tolerances**, and the reflex is to relax a threshold quietly in implementation. | 5.27 | The first report must publish measured maxima and distributions and distinguish measured values, thresholds, deviations requiring authoring correction and justified temporary exceptions. Any relaxation requires an explicit recorded owner decision. |
@@ -3272,6 +3351,7 @@ Test routing follows `docs/setup/build-workflow-rules.md` section 2, applied to 
 | 5.26 | EditMode | `edge-case-hunter` — sign conventions, clamping, flag composability |
 | 5.27 | EditMode | `edge-case-hunter`, `verification-gap` — measurement claims and disposition completeness |
 | 5.28 | EditMode + Editor overlay under the double state guard | `verification-gap` |
+| 5.49 | EditMode + V1 PlayMode regression before/after (two fresh Editor sessions) + Editor check under the double state guard | `edge-case-hunter`, `verification-gap` — geometry measurement claims and V1 behavioural-delta disposition |
 | 5.29 | EditMode | `edge-case-hunter` |
 | 5.30 | EditMode | `edge-case-hunter`, `verification-gap` — dense planning logic, and the story claims to drive nothing |
 | **5.31** | **Both** | `edge-case-hunter`, `verification-gap`, **`security-review`** — the first host-authoritative V2 control path and a changed ownership boundary |
@@ -3309,7 +3389,7 @@ Run twice: once before the plan was first finalized, and again after the five ow
 
 | Decision | Owning stories | Verdict |
 | --- | --- | --- |
-| AD-36 freeze V1, build and gate V2 beside it | 5.24, 5.31, 5.48 | consistent — V1 is composition-selected from 5.31 and removed only at the 5.48 parity gate |
+| AD-36 freeze V1, build and gate V2 beside it | 5.24, 5.31, 5.49, 5.48 | consistent — V1 is composition-selected from 5.31 and removed only at the 5.48 parity gate; 5.49 changes the shared roundabout prefab physically only — V1 traffic data unchanged; behavioural deltas are checked against the complete V1 oracle/regression coverage and every detected delta is dispositioned by the owner; equivalence is never inferred from an unchanged source hash |
 | AD-37 snapshot-driven single-intent pipeline | 5.30, 5.31, 5.32, 5.34 | consistent — the frame exists from the first decision in 5.30; grants are frame-batched and published for the next frame |
 | AD-38 semantic road model, one-way migration, no NavMesh | 5.25 – 5.28 | consistent — and no `Assets/RoadRage` C# references NavMesh today, so the AD is already met in code; the baked residue is removed at 5.48 |
 | AD-39 rules bendable, invariants not | 5.31, 5.37, 5.41 | consistent — 5.31 carries only the finite-output and plan-validity guarantees the invariants already demand; the rest of the Safety boundary is 5.37, and policy cannot grant its own exception |
@@ -3318,9 +3398,9 @@ Run twice: once before the plan was first finalized, and again after the five ow
 | AD-42 fidelity scaling is profile-gated | 5.46, **5.47 (conditional)**, 5.48 | consistent, and **strengthened by the second pass**: 5.46 measures and records the verdict, 5.47 exists only if the trigger is met, and Gate E is now unreachable while a triggered requirement is unresolved. No LOD is designed or estimated now. |
 | AD-43 separate logical owners | 5.25 | consistent — all eleven records, child foreign keys as sole parent truth |
 | AD-44 opaque, stable, versioned identity | 5.25, 5.27 | consistent — order-independent canonicalization and re-import identity stability are both acceptance criteria |
-| AD-45 directed 3D arc-length corridor | 5.26, 5.27 | consistent — provisional gates are explicitly labelled and measured at 5.27 |
+| AD-45 directed 3D arc-length corridor | 5.26, 5.27, 5.49 | consistent — provisional gates are explicitly labelled and measured at 5.27; reviewed asymmetric widths are applied, not only compared |
 | AD-46 junction semantics explicit and compiled offline | 5.28, 5.34, 5.35, 5.36 | consistent — one control binding per movement; `Uncontrolled` authored as an explicit truth, upgraded at 5.35 when a runtime reads it |
-| AD-47 one-way migration, `MVP_Run` is the acceptance map | 5.27, 5.28 | consistent — Gate A is the ten-point report plus signed overlay |
+| AD-47 one-way migration, `MVP_Run` is the acceptance map | 5.27, 5.49, 5.28 | consistent — Gate A is the ten-point report plus signed overlay |
 | BC-1 one frame per decision cycle | 5.30 | consistent — the frame is established by the first planning story, before anything drives |
 | BC-2 single command ownership | 5.31 | consistent — 5.30 carries a structural assertion that it composes no intent at all |
 | BC-4 route, path and trajectory separate | 5.29, 5.30 | consistent — 5.30 asserts three distinct contracts, none a target index |

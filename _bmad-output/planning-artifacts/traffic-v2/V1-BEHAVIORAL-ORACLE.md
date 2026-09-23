@@ -39,6 +39,7 @@ The behavioral reference includes:
 - `PortalTrafficSpawner`, `TrafficSettingsDef` and the synchronized session traffic settings path;
 - `VehicleDriveIntent`, `VehiclePhysicsBody`, `VehicleProfileDef` and the player/AI shared physics path;
 - the authored Traffic V1 data in `MVP_Run` and the `Greybox_AIVehicle` prefab;
+  *2026-09-23 exception (Story 5.49): the roundabout prefab's physical geometry — roadway, island, sidewalks, colliders — is widened while its V1 traffic data stays unchanged. Oracle verdicts are re-run against a pre-change baseline; a behavioural delta is reported to the owner, not absorbed.*
 - Story 5.2, 5.4, 5.7, 5.9, 5.10, 5.14, 5.15 and 5.16 traffic/vehicle tests;
 - `ANO-5.10.02`, `ANO-5.10-03` and relevant deferred-work records.
 

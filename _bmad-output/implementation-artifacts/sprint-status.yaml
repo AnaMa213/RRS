@@ -162,7 +162,7 @@ development_status:
   # TRAFFIC V2 PROGRAM (5.24 - 5.48) - planned 2026-09-22
   # A separate generation built beside frozen Traffic V1, not an evolution
   # of it. 5.17-5.23 stay burned and absent: they are superseded and never
-  # reactivate. Gates: A after 5.28, B after 5.31, C after 5.35,
+  # reactivate. Gates: A after 5.28 (sign-off after 5.49), B after 5.31, C after 5.35,
   # D after 5.44, E after 5.48. See planning-artifacts/epics.md.
   # ─────────────────────────────────────────────────────────────────────
   5-24-v2-regression-oracle-bench-and-v1-trace-contract: done
@@ -170,6 +170,10 @@ development_status:
   5-26-directed-arc-length-geometry-and-lane-localization: done
   5-27-v1-importer-validator-and-migration-report: done
   5-28-junction-semantic-authoring-and-overlay-sign-off: in-progress
+  # Inserted 2026-09-23 (sprint-change-proposal-2026-09-23.md): the overlay
+  # review blocked the 4 roundabouts. 5.49 runs BEFORE the 5.28 sign-off; its
+  # number follows 5.48 only because 5.24-5.48 were already taken.
+  5-49-roundabout-ring-widening-and-applied-reviewed-widths: backlog
   5-29-deterministic-strategic-route-plan: backlog
   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog
   5-31-first-driven-traffic-v2-vertical-slice-portal-to-portal: backlog
