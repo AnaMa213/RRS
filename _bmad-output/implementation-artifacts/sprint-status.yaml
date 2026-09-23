@@ -167,8 +167,8 @@ development_status:
   # ─────────────────────────────────────────────────────────────────────
   5-24-v2-regression-oracle-bench-and-v1-trace-contract: done
   5-25-road-world-model-records-compiler-and-versioning: done
-  5-26-directed-arc-length-geometry-and-lane-localization: review
-  5-27-v1-importer-validator-and-migration-report: review
+  5-26-directed-arc-length-geometry-and-lane-localization: done
+  5-27-v1-importer-validator-and-migration-report: done
   5-28-junction-semantic-authoring-and-overlay-sign-off: backlog
   5-29-deterministic-strategic-route-plan: backlog
   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog
