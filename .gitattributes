@@ -174,3 +174,9 @@ graphify-out/graph.json merge=graphify
 # Story 5.27 : artefacts de migration haches octet par octet (rapport lie, lignee)
 *.road-lineage.json     text eol=lf
 _bmad-output/implementation-artifacts/migration-report-*.md text eol=lf
+
+# Story 5.28 : artefacts Gate A haches octet par octet (decisions, modele persiste, sign-off, overlay)
+*.road-authoring.json   text eol=lf
+*.road-model.json       text eol=lf
+*.road-signoff.json     text eol=lf
+_bmad-output/implementation-artifacts/overlay-*.txt text eol=lf
