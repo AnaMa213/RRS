@@ -20,12 +20,6 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <summary>Tolerance numerique d'un repere unitaire et orthogonal (sans unite).</summary>
         private const float UnitTolerance = 1e-3f;
 
-        /// <summary>
-        /// « A peu pres parallele ou antiparallele » d'AD-48 : |cos| minimal entre un corridor et
-        /// le datum sur leur recouvrement, soit 45 degres. Constante de decision, pas un reglage.
-        /// </summary>
-        private const float GroundingMinParallelism = 0.70710678f;
-
         internal static void Validate(RoadModelSource source, List<RoadModelValidationIssue> issues)
         {
             var profile = source.ValidationProfile;
@@ -484,6 +478,10 @@ namespace RoadRage.Features.Vehicles.Traffic
         {
             float tolerance = profile.LengthToleranceMeters;
 
+            // « A peu pres parallele ou antiparallele » (AD-48) : seuil versionne du profil de
+            // validation, jamais une constante de code.
+            float minParallelism = Mathf.Cos(profile.GroundingMaxOffAxisDegrees * Mathf.Deg2Rad);
+
             // Intervalle de recouvrement sur le datum, vu des deux cotes : les points du corridor qui
             // tombent a l'interieur du datum, et les points du datum qui tombent a l'interieur du
             // corridor. Sans le second sens, un corridor qui deborde le datum perdrait la frange
@@ -550,7 +548,7 @@ namespace RoadRage.Features.Vehicles.Traffic
 
                 float parallelism = Vector3.Dot(point.Tangent, projection.Point.Tangent);
                 int sign = parallelism > 0f ? 1 : -1;
-                if (!(Mathf.Abs(parallelism) >= GroundingMinParallelism) || (direction != 0 && sign != direction))
+                if (!(Mathf.Abs(parallelism) >= minParallelism) || (direction != 0 && sign != direction))
                 {
                     return null;
                 }

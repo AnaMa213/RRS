@@ -44,6 +44,11 @@ namespace RoadRage.Tests.EditMode
         private static readonly RoadId CorridorStray = Id(51);
         private static readonly RoadId AdjacencyOpposite = Id(52);
 
+        // Fixture d'ancrage AD-48 : datum le long de +z, membre a 30 degres.
+        private static readonly RoadId SectionGrounding = Id(70);
+        private static readonly RoadId DatumGrounding = Id(71);
+        private static readonly RoadId MemberGrounding = Id(72);
+
         private const int SBIndex = 0;
         private const int NBIndex = 1;
         private const int NB2Index = 2;
@@ -121,6 +126,7 @@ namespace RoadRage.Tests.EditMode
             profile.SeamTangentToleranceDegrees = 5f;
             profile.LengthToleranceMeters = 0.05f;
             profile.EnvelopeOverlapToleranceMeters = 0.05f;
+            profile.GroundingMaxOffAxisDegrees = 45f;
             return profile;
         }
 
@@ -632,6 +638,89 @@ namespace RoadRage.Tests.EditMode
 
         // ================================================================== geometrie invalide : un cas par code
 
+        private static void AssertApprovedCeilingFailure(Action<RoadModelSource> mutate, string fieldName)
+        {
+            var source = BuildModel();
+            mutate(source);
+
+            bool reported = false;
+            foreach (var issue in RoadModelValidator.Validate(source))
+            {
+                reported |= issue.Code == RoadModelValidationCode.ProfileToleranceAboveApprovedCeiling
+                    && issue.SubjectId == ModelId
+                    && issue.Message.Contains(fieldName);
+            }
+
+            Assert.That(reported, Is.True, "Validate doit nommer " + fieldName + " sous ProfileToleranceAboveApprovedCeiling.");
+
+            var exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(source); },
+                "Aucune sortie compilee, aucune version pour un profil qui relache le contrat.");
+            Assert.That(exception.HasCode(RoadModelValidationCode.ProfileToleranceAboveApprovedCeiling), Is.True, exception.Message);
+            Assert.That(exception.Message.Contains(fieldName), Is.True, "Le motif stable nomme le champ fautif.");
+        }
+
+        [Test]
+        public void AProfileThatRelaxesAnApprovedToleranceCeilingIsAHardFailure()
+        {
+            // Le contrat (AD-45) plafonne la couture et la longueur/corde a 0,05 m et la tangente de
+            // couture a 5 deg : un profil plus strict passe, un profil plus large est un echec dur.
+            var stricter = BuildModel();
+            stricter.ValidationProfile.SeamGapToleranceMeters = 0.04f;
+            stricter.ValidationProfile.SeamTangentToleranceDegrees = 4f;
+            stricter.ValidationProfile.LengthToleranceMeters = 0.04f;
+            Assert.That(RoadModelValidator.Validate(stricter), Is.Empty, "Plus strict que le contrat : accepte.");
+            Assert.That(RoadModelCompiler.Compile(stricter).Version.IsEmpty, Is.False);
+
+            AssertApprovedCeilingFailure(
+                delegate(RoadModelSource source) { source.ValidationProfile.SeamGapToleranceMeters = 0.06f; },
+                "SeamGapToleranceMeters");
+            AssertApprovedCeilingFailure(
+                delegate(RoadModelSource source) { source.ValidationProfile.SeamTangentToleranceDegrees = 6f; },
+                "SeamTangentToleranceDegrees");
+            AssertApprovedCeilingFailure(
+                delegate(RoadModelSource source) { source.ValidationProfile.LengthToleranceMeters = 0.06f; },
+                "LengthToleranceMeters");
+        }
+
+        /// <summary>Datum le long de +z et membre a 30 degres : propre a tout autre titre que l'ancrage.</summary>
+        private static RoadModelSource GroundingAngleSource()
+        {
+            var source = new RoadModelSource();
+            source.ModelId = ModelId;
+            source.ValidationProfile = ValidationProfile();
+            source.LocalizationProfile = LocalizationProfile();
+            source.Sections = new[] { Section(SectionGrounding) };
+
+            var direction = new Vector3(Mathf.Sin(30f * Mathf.Deg2Rad), 0f, Mathf.Cos(30f * Mathf.Deg2Rad));
+            var memberStart = new Vector3(4.2f, 0f, 2f);
+            source.Corridors = new[]
+            {
+                Corridor(DatumGrounding, SectionGrounding, Straight(Vector3.zero, new Vector3(0f, 0f, 40f)), 0, true),
+                Corridor(MemberGrounding, SectionGrounding, Straight(memberStart, memberStart + direction * 12f), 1, false)
+            };
+
+            return source;
+        }
+
+        [Test]
+        public void TheGroundingAngleIsReadFromTheValidationProfile()
+        {
+            var source = GroundingAngleSource();
+            Assert.That(RoadModelValidator.Validate(source), Is.Empty, "45 deg (fixture) ancre le membre a 30 deg.");
+            Assert.That(RoadModelCompiler.Compile(source).Version.IsEmpty, Is.False);
+
+            var narrow = GroundingAngleSource();
+            narrow.ValidationProfile.GroundingMaxOffAxisDegrees = 20f;
+            bool reported = false;
+            foreach (var issue in RoadModelValidator.Validate(narrow))
+            {
+                reported |= issue.Code == RoadModelValidationCode.CorridorNotGroundedOnDatum && issue.SubjectId == MemberGrounding;
+            }
+
+            Assert.That(reported, Is.True, "A 20 deg de seuil, un membre a 30 deg n'est plus ancre.");
+            Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(narrow); });
+        }
+
         private static RoadModelCompilationException AssertGeometryFailure(Action<RoadModelSource> mutate, RoadModelValidationCode code, RoadId subject)
         {
             var source = BuildModel();
@@ -929,6 +1018,34 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void AHysteresisRetainedPreviousElementPastASeamKeepsItsIdentityAndRaisesOutsideEnvelope()
+        {
+            var model = RoadModelCompiler.Compile(BuildModel());
+
+            // 3 cm au-dela de la couture NB2 -> MS/MR (hysteresis 0,1 m) : le precedent garde son
+            // bonus de 0,1 m contre 0,05 m pour ses successeurs explicites, donc il est retenu ; sa
+            // projection est bornee a sa fin et le depassement est signale, jamais masque.
+            var pastEnd = Localize(model, new Vector3(6f, 0f, 30.03f), North, CorridorNB2, null);
+            Assert.That(pastEnd.Localized, Is.True);
+            Assert.That(pastEnd.ElementId, Is.EqualTo(CorridorNB2), "Hysteresis : le precedent reste retenu au-dela de la couture.");
+            Assert.That(pastEnd.SMeters, Is.EqualTo(30f).Within(1e-4f), "s borne a Length, sans extrapolation.");
+            Assert.That(pastEnd.HasFlag(RoadLocationFlags.OutsideEnvelope), Is.True,
+                "Le depassement longitudinal de la reference leve OutsideEnvelope.");
+            Assert.That(pastEnd.HasFlag(RoadLocationFlags.WrongWay), Is.False);
+            Assert.That(HasAlternative(pastEnd, MovementMS), Is.True, "Le successeur reste une alternative.");
+
+            // Symetrique : 3 cm AVANT le debut du mouvement, le mouvement precedent est retenu et sa
+            // projection est bornee a 0.
+            var beforeStart = Localize(model, new Vector3(6f, 0f, 29.97f), North, MovementMS, null);
+            Assert.That(beforeStart.Localized, Is.True);
+            Assert.That(beforeStart.ElementId, Is.EqualTo(MovementMS), "Hysteresis : le mouvement precedent reste retenu avant sa couture.");
+            Assert.That(beforeStart.SMeters, Is.EqualTo(0f), "s borne a 0, sans extrapolation.");
+            Assert.That(beforeStart.HasFlag(RoadLocationFlags.OutsideEnvelope), Is.True);
+            Assert.That(beforeStart.HasFlag(RoadLocationFlags.WrongWay), Is.False);
+            Assert.That(HasAlternative(beforeStart, CorridorNB2), Is.True);
+        }
+
+        [Test]
         public void ADisplacedPoseKeepsItsSignedLateralAndIsOutsideOnlyWhenTheFootprintExceedsTheEnvelope()
         {
             var model = RoadModelCompiler.Compile(BuildModel());
@@ -1108,6 +1225,17 @@ namespace RoadRage.Tests.EditMode
             var wrongWay = BuildModel();
             wrongWay.LocalizationProfile.WrongWayHeadingDegrees = 181f;
             exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(wrongWay); });
+            Assert.That(exception.HasCode(RoadModelValidationCode.NumericValueOutOfRange), Is.True, exception.Message);
+
+            // AD-48 : seuil dans ]0, 90[ -- 90 degres accepterait une perpendiculaire.
+            var groundingZero = BuildModel();
+            groundingZero.ValidationProfile.GroundingMaxOffAxisDegrees = 0f;
+            exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(groundingZero); });
+            Assert.That(exception.HasCode(RoadModelValidationCode.NumericValueOutOfRange), Is.True, exception.Message);
+
+            var groundingRightAngle = BuildModel();
+            groundingRightAngle.ValidationProfile.GroundingMaxOffAxisDegrees = 90f;
+            exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(groundingRightAngle); });
             Assert.That(exception.HasCode(RoadModelValidationCode.NumericValueOutOfRange), Is.True, exception.Message);
         }
 

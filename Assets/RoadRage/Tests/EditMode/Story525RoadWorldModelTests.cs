@@ -190,6 +190,7 @@ namespace RoadRage.Tests.EditMode
             profile.SeamTangentToleranceDegrees = 5f;
             profile.LengthToleranceMeters = 0.05f;
             profile.EnvelopeOverlapToleranceMeters = 0.05f;
+            profile.GroundingMaxOffAxisDegrees = 45f;
             return profile;
         }
 
@@ -821,6 +822,10 @@ namespace RoadRage.Tests.EditMode
             AssertVersionChanges(
                 delegate(RoadModelSource source) { source.ValidationProfile.EnvelopeOverlapToleranceMeters = 0.02f; },
                 "Profil : tolerance de recouvrement d'enveloppes.");
+
+            AssertVersionChanges(
+                delegate(RoadModelSource source) { source.ValidationProfile.GroundingMaxOffAxisDegrees = 40f; },
+                "Profil : seuil d'ancrage au datum (AD-48).");
 
             AssertVersionChanges(
                 delegate(RoadModelSource source) { source.LocalizationProfile.ScoreBandMeters = 0.3f; },

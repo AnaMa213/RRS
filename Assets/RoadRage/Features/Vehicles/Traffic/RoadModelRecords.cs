@@ -668,6 +668,13 @@ namespace RoadRage.Features.Vehicles.Traffic
 
         /// <summary>Recouvrement maximal tolere entre enveloppes transversales voisines (AD-48), en metres.</summary>
         public float EnvelopeOverlapToleranceMeters;
+
+        /// <summary>
+        /// Ecart angulaire maximal au-dela duquel un corridor n'est ni parallele ni antiparallele au
+        /// datum de sa section (AD-48), en degres. AD-48 ne fixe pas de nombre : le seuil est une
+        /// valeur de validation versionnee, dans ]0, 90[ (90 degres accepterait une perpendiculaire).
+        /// </summary>
+        public float GroundingMaxOffAxisDegrees;
     }
 
     /// <summary>

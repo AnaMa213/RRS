@@ -122,6 +122,9 @@ namespace RoadRage.Features.Vehicles.Traffic
             WriteMeters(writer, payload.ValidationProfile.LengthToleranceMeters);
             WriteMeters(writer, payload.ValidationProfile.EnvelopeOverlapToleranceMeters);
 
+            // AD-48 : le seuil d'ancrage au datum est desormais une valeur de validation versionnee.
+            WriteDegrees(writer, payload.ValidationProfile.GroundingMaxOffAxisDegrees);
+
             // Profil de localisation (5.26) : parametres de requete, versionnes eux aussi.
             WriteMeters(writer, payload.LocalizationProfile.ScoreBandMeters);
             WriteMeters(writer, payload.LocalizationProfile.HysteresisMeters);

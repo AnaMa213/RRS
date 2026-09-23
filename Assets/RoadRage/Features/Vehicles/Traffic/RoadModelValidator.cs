@@ -71,7 +71,16 @@ namespace RoadRage.Features.Vehicles.Traffic
         OverlappingLateralEnvelopes = 29,
 
         /// <summary>Corridor sans recouvrement avec le datum, ou ni parallele ni antiparallele a lui (AD-48).</summary>
-        CorridorNotGroundedOnDatum = 30
+        CorridorNotGroundedOnDatum = 30,
+
+        // ---------------------------------------------------------------- profil (nettoyage 5.26)
+
+        /// <summary>
+        /// Le profil relache un plafond approuve du contrat Road World Model (couture 0,05 m,
+        /// tangente 5 deg, longueur/corde 0,05 m). Un profil peut etre PLUS strict ; relacher le
+        /// contrat est une revision d'architecture, jamais une valeur de profil.
+        /// </summary>
+        ProfileToleranceAboveApprovedCeiling = 31
     }
 
     /// <summary>Un echec de validation : son code stable, l'identifiant fautif et un message.</summary>
@@ -247,6 +256,24 @@ namespace RoadRage.Features.Vehicles.Traffic
             CheckPositive(issues, source.LocalizationProfile.ScoreBandMeters, source.ModelId, "LocalizationProfile.ScoreBandMeters");
             CheckPositive(issues, source.LocalizationProfile.HysteresisMeters, source.ModelId, "LocalizationProfile.HysteresisMeters");
             CheckPositive(issues, source.LocalizationProfile.AcceptanceDistanceMeters, source.ModelId, "LocalizationProfile.AcceptanceDistanceMeters");
+
+            // AD-48 : « a peu pres parallele ou antiparallele ». Le seuil est une valeur versionnee ;
+            // la borne est ouverte a 90 degres, sinon la perpendiculaire passerait.
+            float grounding = source.ValidationProfile.GroundingMaxOffAxisDegrees;
+            if (IsFinite(grounding) && !(grounding > 0f && grounding < 90f))
+            {
+                issues.Add(new RoadModelValidationIssue(
+                    RoadModelValidationCode.NumericValueOutOfRange,
+                    source.ModelId,
+                    "ValidationProfile.GroundingMaxOffAxisDegrees hors de ]0, 90[ (" + grounding.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")."));
+            }
+
+            // Plafonds approuves du contrat (AD-45) : un profil qui les relache echoue quel que soit
+            // le chemin de compilation, meme si le modele est geometriquement coherent.
+            CheckApprovedCeiling(issues, source.ValidationProfile.SeamGapToleranceMeters, ApprovedSeamGapCeilingMeters, source.ModelId, "ValidationProfile.SeamGapToleranceMeters");
+            CheckApprovedCeiling(issues, source.ValidationProfile.SeamTangentToleranceDegrees, ApprovedSeamTangentCeilingDegrees, source.ModelId, "ValidationProfile.SeamTangentToleranceDegrees");
+            CheckApprovedCeiling(issues, source.ValidationProfile.LengthToleranceMeters, ApprovedLengthToleranceCeilingMeters, source.ModelId, "ValidationProfile.LengthToleranceMeters");
+
             float wrongWay = source.LocalizationProfile.WrongWayHeadingDegrees;
             if (IsFinite(wrongWay) && !(wrongWay > 0f && wrongWay <= 180f))
             {
@@ -607,6 +634,42 @@ namespace RoadRage.Features.Vehicles.Traffic
                     RoadModelValidationCode.NumericValueOutOfRange,
                     subject,
                     fieldName + " doit etre strictement positif (" + value.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")."));
+            }
+        }
+
+        // ------------------------------------------------------------------ plafonds approuves
+
+        /// <summary>Plafond approuve de l'ecart de position ou de largeur a une couture, en metres.</summary>
+        private const float ApprovedSeamGapCeilingMeters = 0.05f;
+
+        /// <summary>Plafond approuve de l'ecart de tangente a une couture, en degres (AD-45).</summary>
+        private const float ApprovedSeamTangentCeilingDegrees = 5f;
+
+        /// <summary>
+        /// Plafond approuve de la tolerance de longueur, en metres : elle borne aussi l'ecart
+        /// abscisse/corde et le domaine des portails, tous deux plafonnes a 0,05 m par AD-45.
+        /// </summary>
+        private const float ApprovedLengthToleranceCeilingMeters = 0.05f;
+
+        /// <summary>
+        /// Un profil plus strict que le contrat passe ; le relacher est un echec dur a code stable,
+        /// qui nomme le champ fautif. La revision d'un plafond est une decision d'architecture.
+        /// </summary>
+        private static void CheckApprovedCeiling(
+            List<RoadModelValidationIssue> issues,
+            float value,
+            float ceiling,
+            RoadId subject,
+            string fieldName)
+        {
+            if (IsFinite(value) && value > ceiling)
+            {
+                issues.Add(new RoadModelValidationIssue(
+                    RoadModelValidationCode.ProfileToleranceAboveApprovedCeiling,
+                    subject,
+                    fieldName + " = " + value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + " relache le plafond approuve de " + ceiling.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + " ; une revision du contrat passe par l'architecture, jamais par un profil."));
             }
         }
 

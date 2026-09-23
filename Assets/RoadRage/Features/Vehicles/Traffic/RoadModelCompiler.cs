@@ -28,8 +28,10 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// Regle (5.26) : changer la VALEUR d'un champ de profil change la version, jamais le schema ;
         /// seul un changement de representation ou de sens incremente le schema. 3 : le profil de
         /// localisation sort du profil de validation et les tolerances geometriques y entrent.
+        /// 4 : le seuil d'ancrage au datum (AD-48) entre dans le profil de validation ; il etait une
+        /// constante du validateur, donc absent de toute charge canonique.
         /// </summary>
-        public const int CompilerSchemaVersion = 3;
+        public const int CompilerSchemaVersion = 4;
 
         /// <summary>
         /// Compile une source en modele immuable versionne.

@@ -118,6 +118,13 @@ namespace RoadRage.Features.Vehicles.Traffic
     /// moitie pour un element de route (bonus cumulables). Le cap ne classe qu'a l'interieur d'un
     /// rang : il ne fait jamais preferer un element qui ne contient pas la pose a un element qui
     /// la contient. Le RoadId ne departage que les egalites exactes.
+    ///
+    /// Le score additif ci-dessus, le cumul des bonus et le rayon de collecte de deux fois le seuil
+    /// d'acceptation sont des CHOIX D'IMPLEMENTATION, pas des invariants d'architecture : le contrat
+    /// de localisation (AD-45) exige un classement combinant geometrie, cap, route, element precedent
+    /// et connectivite explicite, et un balayage qui ne manque aucun candidat pertinent. Un index
+    /// spatial (AD-42 / 5.46) ou une autre ponderation des bonus peuvent les remplacer sans changer
+    /// le contrat, tant que le cap ne classe jamais entre les rangs.
     /// </summary>
     public static class RoadLocalizer
     {
@@ -301,6 +308,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             List<RoadLocationCandidate> candidates,
             Dictionary<RoadId, RoadProjection> projections)
         {
+            // Rayon de collecte : choix d'implementation (2 x acceptation), pas un invariant de contrat.
             float neighbourhood = 2f * query.Profile.AcceptanceDistanceMeters;
             var bounds = curve.FullBounds;
             bounds.Expand(2f * neighbourhood);
