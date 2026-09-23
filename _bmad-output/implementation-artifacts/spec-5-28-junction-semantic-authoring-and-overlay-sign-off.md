@@ -66,6 +66,7 @@ context:
 - [ ] HALT : revue de l'overlay et signature par le proprietaire dans l'Editeur ; puis `MVP_Run.road-signoff.json` committe.
   - Revue du 2026-09-23 : 20/25 instances acceptees ; carrefour central en attente (filtrage des conflits ajoute a la fenetre, a revoir) ; 4 giratoires BLOQUES : anneau 4,0 m contre 8,0 m pour une route normale, elargissement physique confie a une story de suivi dediee (option B, `deferred-work.md`, section « Bloquant Gate A »). Gate A non signable avant cette story, la regeneration des artefacts et une nouvelle revue des giratoires.
   - Correct-course du 2026-09-23 (sprint-change-proposal-2026-09-23.md) : Story 5.49 inseree avant la signature. Reprise du HALT apres 5.49 : artefacts regeneres, nouvelle revue des 4 giratoires ET du carrefour central, puis signature.
+  - Story 5.49 (2026-09-23) : giratoires elargis, largeur revue APPLIQUEE (decisions format 2, `PipelineVersion` 2), artefacts regeneres (decisions, modele, overlay, rapport) ; `RoadModelVersion` `v4:bc477eb562d7946c977c13672cab39df` -> `v4:33e3cc5fca044e988e9862d7eb77dddb` ; lignee et hash source inchanges. Pret pour la nouvelle revue des 4 giratoires et du carrefour central.
 
 ### Review Findings
 

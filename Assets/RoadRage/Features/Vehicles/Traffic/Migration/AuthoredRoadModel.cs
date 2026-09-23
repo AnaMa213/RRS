@@ -54,6 +54,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public readonly List<OverlayPrimitive> Primitives = new List<OverlayPrimitive>();
     }
 
+    /// <summary>Largeur revue d'un sujet : importee (amorce) et appliquee (5.49), min / max sur ses echantillons.</summary>
+    public sealed class AppliedWidth
+    {
+        public string SubjectKey;
+        public WidthApplication Application;
+        public float ImportedLeftMin;
+        public float ImportedLeftMax;
+        public float ImportedRightMin;
+        public float ImportedRightMax;
+        public float AppliedLeftMin;
+        public float AppliedLeftMax;
+        public float AppliedRightMin;
+        public float AppliedRightMax;
+    }
+
     /// <summary>Liaison du rapport Gate A : celle de la 5.27, plus decisions, modele, version et overlay.</summary>
     public sealed class GateABinding
     {
@@ -105,6 +120,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public RoadModelSource Source;
         public CompiledRoadModel Compiled;
         public readonly List<LocalizationFixture> Fixtures = new List<LocalizationFixture>();
+
+        /// <summary>Largeur importee / appliquee par sujet, dans l'ordre des decisions.</summary>
+        public readonly List<AppliedWidth> Widths = new List<AppliedWidth>();
+
+        /// <summary>Mesure de chaque giratoire (5.49) : enveloppe V2 appliquee et anneau physique.</summary>
+        public readonly List<RoundaboutMeasurement> Roundabouts = new List<RoundaboutMeasurement>();
+
         public readonly List<OverlayInstance> Overlay = new List<OverlayInstance>();
         public string ModelText;
         public string OverlayText;
@@ -125,7 +147,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     public static class AuthoredRoadModel
     {
         /// <summary>Version du pipeline : tout changement de regle (candidats, fixtures, overlay) l'incremente.</summary>
-        public const int PipelineVersion = 1;
+        public const int PipelineVersion = 2;
 
         public const string DecisionsPath = "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json";
         public const string ModelPath = "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json";
@@ -218,6 +240,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             RunFixtures(run);
+            if (run.Failures.Count > 0)
+            {
+                return run;
+            }
+
+            run.Roundabouts.AddRange(RoundaboutClearance.Measure(run.Import, run.Compiled, run.Failures));
             if (run.Failures.Count > 0)
             {
                 return run;
@@ -362,31 +390,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             foreach (var pair in owned)
             {
-                WidthDecision reviewed;
-                if (!widthByKey.TryGetValue(pair.Key, out reviewed))
+                if (!widthByKey.ContainsKey(pair.Key))
                 {
                     failures.Add("Largeur non revue : '" + pair.Key + "'.");
-                    continue;
                 }
-
-                if (pair.Value.Count == 0)
+                else if (pair.Value.Count == 0)
                 {
                     failures.Add("Largeur sans echantillon : '" + pair.Key + "' ne possede aucun echantillon a comparer.");
-                    continue;
-                }
-
-                foreach (var sample in pair.Value)
-                {
-                    if (!AuthoringDecisions.SameWidth(sample.HalfWidthLeftMeters, reviewed.HalfWidthLeftMeters)
-                        || !AuthoringDecisions.SameWidth(sample.HalfWidthRightMeters, reviewed.HalfWidthRightMeters))
-                    {
-                        failures.Add("Largeur divergente pour '" + pair.Key + "' : importee " + MigrationFormat.Meters(sample.HalfWidthLeftMeters) + " / "
-                            + MigrationFormat.Meters(sample.HalfWidthRightMeters) + " m, revue " + MigrationFormat.Meters(reviewed.HalfWidthLeftMeters) + " / "
-                            + MigrationFormat.Meters(reviewed.HalfWidthRightMeters) + " m (gauche / droite).");
-                        break;
-                    }
                 }
             }
+
+            var source = Copy(import.Source);
+            var applied = ApplyWidths(run, source, widthByKey);
 
             // ---------------------------------------------------- dispositions des autres taches
             var dispositionByTask = new Dictionary<string, TaskDisposition>(StringComparer.Ordinal);
@@ -444,10 +459,225 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 }
             }
 
-            var source = Copy(import.Source);
             source.Label = AuthoredLabel;
             source.Controls = controls.ToArray();
+            foreach (var width in decisions.Widths)
+            {
+                List<RoadCurveSample> imported;
+                List<RoadCurveSample> result;
+                if (owned.TryGetValue(width.SubjectKey, out imported) && applied.TryGetValue(width.SubjectKey, out result) && imported.Count > 0)
+                {
+                    var record = new AppliedWidth();
+                    record.SubjectKey = width.SubjectKey;
+                    record.Application = width.Application;
+                    Range(imported, out record.ImportedLeftMin, out record.ImportedLeftMax, out record.ImportedRightMin, out record.ImportedRightMax);
+                    Range(result, out record.AppliedLeftMin, out record.AppliedLeftMax, out record.AppliedRightMin, out record.AppliedRightMax);
+                    run.Widths.Add(record);
+                }
+            }
+
             return source;
+        }
+
+        /// <summary>
+        /// Largeurs revues APPLIQUEES (5.49) sur des copies des echantillons importes (Copy est
+        /// superficiel : les tableaux de l'import ne sont jamais ecrits). Sections d'abord
+        /// (<see cref="WidthApplication.Uniform"/> seul) ; puis carrefours : Uniform ecrit g/d,
+        /// EndpointInterpolation interpole en s/Length entre la fin appliquee de From et le debut
+        /// applique de To, la decision valant plancher. Ensuite gabarit sur tout echantillon, et
+        /// refus d'elargir un corridor portant un portail (enveloppe derivee de l'import). L'axe ne
+        /// change pas. Rend les echantillons appliques par sujet.
+        /// </summary>
+        private static Dictionary<string, List<RoadCurveSample>> ApplyWidths(AuthoredRun run, RoadModelSource source, Dictionary<string, WidthDecision> widthByKey)
+        {
+            var import = run.Import;
+            var failures = run.Failures;
+            var applied = new Dictionary<string, List<RoadCurveSample>>(StringComparer.Ordinal);
+            source.Corridors = (LaneCorridor[])source.Corridors.Clone();
+            source.Movements = (JunctionMovement[])source.Movements.Clone();
+            source.Junctions = (Junction[])source.Junctions.Clone();
+            var profile = source.ValidationProfile;
+            float gauge = profile.MaxVehicleHalfWidthMeters + profile.LateralClearanceMarginMeters;
+            var corridorIndex = new Dictionary<RoadId, int>();
+            for (int i = 0; i < source.Corridors.Length; i++)
+            {
+                corridorIndex[source.Corridors[i].Id] = i;
+            }
+
+            var movementIndex = new Dictionary<RoadId, int>();
+            for (int i = 0; i < source.Movements.Length; i++)
+            {
+                movementIndex[source.Movements[i].Id] = i;
+            }
+
+            var widthOfCorridor = new Dictionary<string, WidthDecision>(StringComparer.Ordinal);
+            foreach (var section in import.Sections)
+            {
+                WidthDecision decision;
+                if (!widthByKey.TryGetValue(section.Key, out decision))
+                {
+                    continue;
+                }
+
+                if (decision.Application != WidthApplication.Uniform)
+                {
+                    failures.Add("Mode d'application de largeur interdit pour la section '" + section.Key + "' : " + decision.Application
+                        + ". Une section n'admet que Uniform ; EndpointInterpolation est reserve aux carrefours.");
+                    continue;
+                }
+
+                var result = new List<RoadCurveSample>();
+                foreach (var corridor in section.Corridors)
+                {
+                    int index = corridorIndex[import.IdOf(corridor.Key)];
+                    var samples = (RoadCurveSample[])source.Corridors[index].Samples.Clone();
+                    for (int k = 0; k < samples.Length; k++)
+                    {
+                        samples[k].HalfWidthLeftMeters = decision.HalfWidthLeftMeters;
+                        samples[k].HalfWidthRightMeters = decision.HalfWidthRightMeters;
+                    }
+
+                    source.Corridors[index].Samples = samples;
+                    CheckGauge(failures, section.Key, corridor.Key, samples, gauge);
+                    widthOfCorridor[corridor.Key] = decision;
+                    result.AddRange(samples);
+                }
+
+                applied[section.Key] = result;
+            }
+
+            foreach (var junction in import.Junctions)
+            {
+                WidthDecision decision;
+                if (!widthByKey.TryGetValue(junction.Key, out decision))
+                {
+                    continue;
+                }
+
+                var result = new List<RoadCurveSample>();
+                bool widened = false;
+                foreach (var movement in junction.Movements)
+                {
+                    int index = movementIndex[import.IdOf(movement.Key)];
+                    var samples = (RoadCurveSample[])source.Movements[index].Samples.Clone();
+                    WidthDecision from = decision;
+                    WidthDecision to = decision;
+                    if (decision.Application == WidthApplication.EndpointInterpolation
+                        && (!widthOfCorridor.TryGetValue(movement.From.Key, out from) || !widthOfCorridor.TryGetValue(movement.To.Key, out to)))
+                    {
+                        failures.Add("Largeur de '" + junction.Key + "' : le mouvement '" + movement.Key + "' n'a pas de largeur appliquee a ses deux extremites.");
+                        continue;
+                    }
+
+                    float length = source.Movements[index].LengthMeters;
+                    bool floorBroken = false;
+                    for (int k = 0; k < samples.Length; k++)
+                    {
+                        float u = length > 0f ? Mathf.Clamp01(samples[k].SMeters / length) : 0f;
+                        float left = Mathf.Lerp(from.HalfWidthLeftMeters, to.HalfWidthLeftMeters, u);
+                        float right = Mathf.Lerp(from.HalfWidthRightMeters, to.HalfWidthRightMeters, u);
+                        if (!floorBroken && (Below(left, decision.HalfWidthLeftMeters) || Below(right, decision.HalfWidthRightMeters)))
+                        {
+                            floorBroken = true;
+                            failures.Add("Plancher de largeur viole pour '" + junction.Key + "' : echantillon " + k + " du mouvement '" + movement.Key + "' interpole a "
+                                + MigrationFormat.Meters(left) + " / " + MigrationFormat.Meters(right) + " m, plancher " + MigrationFormat.Meters(decision.HalfWidthLeftMeters)
+                                + " / " + MigrationFormat.Meters(decision.HalfWidthRightMeters) + " m (gauche / droite).");
+                        }
+
+                        widened |= !AuthoringDecisions.SameWidth(left, samples[k].HalfWidthLeftMeters) || !AuthoringDecisions.SameWidth(right, samples[k].HalfWidthRightMeters);
+                        samples[k].HalfWidthLeftMeters = left;
+                        samples[k].HalfWidthRightMeters = right;
+                    }
+
+                    source.Movements[index].Samples = samples;
+                    CheckGauge(failures, junction.Key, movement.Key, samples, gauge);
+                    result.AddRange(samples);
+                }
+
+                applied[junction.Key] = result;
+
+                // La frontiere du carrefour enveloppe les largeurs APPLIQUEES (regle de l'importeur :
+                // position +/- max(g, d) sur les trois axes). Un carrefour non elargi garde la sienne.
+                if (widened)
+                {
+                    RoadId junctionId = import.IdOf(junction.Key);
+                    int junctionIndex = Array.FindIndex(source.Junctions, delegate(Junction j) { return j.Id == junctionId; });
+                    source.Junctions[junctionIndex].Boundary = Envelope(result);
+                }
+            }
+
+            foreach (var portal in import.Portals)
+            {
+                WidthDecision decision;
+                if (!widthOfCorridor.TryGetValue(portal.Corridor.Key, out decision))
+                {
+                    continue;
+                }
+
+                foreach (var sample in portal.Corridor.Samples)
+                {
+                    if (!AuthoringDecisions.SameWidth(sample.HalfWidthLeftMeters, decision.HalfWidthLeftMeters)
+                        || !AuthoringDecisions.SameWidth(sample.HalfWidthRightMeters, decision.HalfWidthRightMeters))
+                    {
+                        failures.Add("Portail sur sujet elargi : '" + portal.Corridor.SectionKey + "' porte le portail '" + portal.Key
+                            + "', dont l'enveloppe derive de la largeur importee ; largeur appliquee differente refusee.");
+                        break;
+                    }
+                }
+            }
+
+            return applied;
+        }
+
+        /// <summary>Gabarit (demi-gabarit max + marge du profil versionne) de chaque cote, sur tout echantillon possede ou interpole.</summary>
+        private static void CheckGauge(List<string> failures, string subjectKey, string curveKey, RoadCurveSample[] samples, float gauge)
+        {
+            for (int k = 0; k < samples.Length; k++)
+            {
+                if (Below(samples[k].HalfWidthLeftMeters, gauge) || Below(samples[k].HalfWidthRightMeters, gauge))
+                {
+                    failures.Add("Largeur sous le gabarit pour '" + subjectKey + "' : echantillon " + k + " de '" + curveKey + "' a " + MigrationFormat.Meters(samples[k].HalfWidthLeftMeters)
+                        + " / " + MigrationFormat.Meters(samples[k].HalfWidthRightMeters) + " m (gauche / droite), gabarit " + MigrationFormat.Meters(gauge) + " m (demi-gabarit + marge).");
+                    return;
+                }
+            }
+        }
+
+        /// <summary>Boite englobant chaque echantillon a +/- max(g, d) : meme regle que la frontiere importee.</summary>
+        private static RoadBoundsBox Envelope(List<RoadCurveSample> samples)
+        {
+            var min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+            var max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+            foreach (var sample in samples)
+            {
+                float reach = Mathf.Max(sample.HalfWidthLeftMeters, sample.HalfWidthRightMeters);
+                min = Vector3.Min(min, sample.Position - Vector3.one * reach);
+                max = Vector3.Max(max, sample.Position + Vector3.one * reach);
+            }
+
+            var box = new RoadBoundsBox();
+            box.Center = 0.5f * (min + max);
+            box.Extents = 0.5f * (max - min);
+            return box;
+        }
+
+        /// <summary>Strictement sous la valeur, au-dela de la quantification canonique.</summary>
+        private static bool Below(float value, float floor)
+        {
+            return value < floor && !AuthoringDecisions.SameWidth(value, floor);
+        }
+
+        private static void Range(List<RoadCurveSample> samples, out float leftMin, out float leftMax, out float rightMin, out float rightMax)
+        {
+            leftMin = rightMin = float.PositiveInfinity;
+            leftMax = rightMax = float.NegativeInfinity;
+            foreach (var sample in samples)
+            {
+                leftMin = Mathf.Min(leftMin, sample.HalfWidthLeftMeters);
+                leftMax = Mathf.Max(leftMax, sample.HalfWidthLeftMeters);
+                rightMin = Mathf.Min(rightMin, sample.HalfWidthRightMeters);
+                rightMax = Mathf.Max(rightMax, sample.HalfWidthRightMeters);
+            }
         }
 
         /// <summary>
@@ -1133,13 +1363,43 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             // ------------------------------------------------ largeurs
             text.Append("## Largeurs revues\n\n");
-            text.Append("Demi-largeurs gauche et droite explicites (AD-45) ; tous les echantillons possedes valent ces demi-largeurs au pas canonique (")
-                .Append(MigrationFormat.Meters((float)RoadModelCanonicalWriter.MeterStep)).Append(" m) pres.\n\n");
-            text.Append("| Sujet | Gauche (m) | Droite (m) |\n|---|---:|---:|\n");
-            foreach (var width in run.Decisions.Widths)
+            text.Append("Demi-largeurs gauche et droite explicites (AD-45). La largeur revue est APPLIQUEE aux echantillons possedes (5.49) : `Uniform` ecrit la decision ; ")
+                .Append("`EndpointInterpolation` (carrefours seulement) interpole chaque mouvement en s/Length entre les largeurs appliquees de ses corridors d'extremite, la decision valant plancher. ")
+                .Append("Tout echantillon reste >= demi-gabarit + marge (").Append(MigrationFormat.Meters(SweptRadius(model.ValidationProfile))).Append(" m) de chaque cote. ")
+                .Append("Importee = amorce de l'importeur, jamais une autorite ; min-max sur les echantillons du sujet.\n\n");
+            text.Append("| Sujet | Decision g / d (m) | Application | Importee g / d (m) | Appliquee g / d (m) |\n|---|---:|---|---:|---:|\n");
+            foreach (var width in run.Widths)
             {
-                text.Append("| `").Append(import.IdOf(width.SubjectKey)).Append("` ").Append(Cell(width.SubjectKey)).Append(" | ").Append(MigrationFormat.Meters(width.HalfWidthLeftMeters))
-                    .Append(" | ").Append(MigrationFormat.Meters(width.HalfWidthRightMeters)).Append(" |\n");
+                var decision = run.Decisions.Widths.Find(delegate(WidthDecision w) { return w.SubjectKey == width.SubjectKey; });
+                text.Append("| `").Append(import.IdOf(width.SubjectKey)).Append("` ").Append(Cell(width.SubjectKey)).Append(" | ")
+                    .Append(MigrationFormat.Meters(decision.HalfWidthLeftMeters)).Append(" / ").Append(MigrationFormat.Meters(decision.HalfWidthRightMeters)).Append(" | ")
+                    .Append(width.Application).Append(" | ")
+                    .Append(Span(width.ImportedLeftMin, width.ImportedLeftMax)).Append(" / ").Append(Span(width.ImportedRightMin, width.ImportedRightMax)).Append(" | ")
+                    .Append(Span(width.AppliedLeftMin, width.AppliedLeftMax)).Append(" / ").Append(Span(width.AppliedRightMin, width.AppliedRightMax)).Append(" |\n");
+            }
+
+            text.Append('\n');
+
+            // ------------------------------------------------ giratoires
+            var profile = model.ValidationProfile;
+            text.Append("## Giratoires : degagement a deux gabarits\n\n");
+            text.Append("Deux gabarits max du profil versionne (W/2 = ").Append(MigrationFormat.Meters(profile.MaxVehicleHalfWidthMeters)).Append(" m, L = ")
+                .Append(MigrationFormat.Meters(profile.MaxVehicleLengthMeters)).Append(" m, marge m = ").Append(MigrationFormat.Meters(profile.LateralClearanceMarginMeters))
+                .Append(" m) cote a cote, cap tangent, au point le plus serre : R_in = r_in + m + W/2 ; c_in = sqrt((R_in + W/2)^2 + (L/2)^2) ; R_out = c_in + 2m + W/2 ; ")
+                .Append("c_out = sqrt((R_out + W/2)^2 + (L/2)^2) ; residu = (r_out - m) - c_out. Preuve supplementaire : un residu positif ne reduit jamais la cible (anneau V2 4,0 / 4,0 m, ilot <= 1,75 m, pave >= 10,25 m).\n\n");
+            text.Append("V2 : centre = racine du module ; corridors d'anneau et continuations appliques ; r_in = max des bords interieurs, r_out = min des bords exterieurs. ")
+                .Append("Physique : empreintes XZ des colliders ; r_in = portee de `").Append(RoundaboutClearance.IslandName).Append("` ; pave = min sur 720 rayons (pas 1 cm) de la sortie de l'union des `")
+                .Append(RoundaboutClearance.RoadwayPrefix).Append("*` ; obstacles = colliders non declencheurs hors chaussee et ilot dont la hauteur recoupe [sommet de route, +")
+                .Append(MigrationFormat.Meters(RoundaboutClearance.ProbeHeightMeters)).Append(" m] ; r_out = min(pave, obstacle le plus proche).\n\n");
+            text.Append("| Instance | V2 r_in (m) | V2 r_out (m) | Residu V2 (m) | Ilot (m) | Pave (m) | Obstacle le plus proche | r_out physique (m) | Residu physique (m) |\n|---|---:|---:|---:|---:|---:|---|---:|---:|\n");
+            foreach (var roundabout in run.Roundabouts)
+            {
+                text.Append("| ").Append(Cell(roundabout.Module.Label)).Append(" `").Append(roundabout.Module.Key).Append("` | ")
+                    .Append(MigrationFormat.Meters(roundabout.EnvelopeInnerRadius)).Append(" | ").Append(MigrationFormat.Meters(roundabout.EnvelopeOuterRadius)).Append(" | ")
+                    .Append(MigrationFormat.Meters(roundabout.EnvelopeResidual)).Append(" | ").Append(MigrationFormat.Meters(roundabout.IslandRadius)).Append(" | ")
+                    .Append(MigrationFormat.Meters(roundabout.PavedRadius)).Append(" | ")
+                    .Append(roundabout.NearestObstacle == null ? "aucun" : Cell(roundabout.NearestObstacle) + " a " + MigrationFormat.Meters(roundabout.NearestObstacleRadius) + " m")
+                    .Append(" | ").Append(MigrationFormat.Meters(roundabout.PhysicalOuterRadius)).Append(" | ").Append(MigrationFormat.Meters(roundabout.PhysicalResidual)).Append(" |\n");
             }
 
             text.Append('\n');
@@ -1235,13 +1495,19 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             {
                 var width = run.Decisions.Widths.Find(delegate(WidthDecision w) { return w.SubjectKey == task.SubjectKey; });
                 disposition = "Largeur revue";
-                detail = MigrationFormat.Meters(width.HalfWidthLeftMeters) + " / " + MigrationFormat.Meters(width.HalfWidthRightMeters) + " m (gauche / droite)";
+                detail = MigrationFormat.Meters(width.HalfWidthLeftMeters) + " / " + MigrationFormat.Meters(width.HalfWidthRightMeters) + " m (gauche / droite), " + width.Application;
                 return;
             }
 
             var free = run.Decisions.Dispositions.Find(delegate(TaskDisposition d) { return d.Category == task.Category && d.SubjectKey == task.SubjectKey; });
             disposition = free.Kind.ToString();
             detail = free.Note;
+        }
+
+        /// <summary>Valeur unique, ou min-max quand les echantillons different au-dela de la quantification.</summary>
+        private static string Span(float min, float max)
+        {
+            return AuthoringDecisions.SameWidth(min, max) ? MigrationFormat.Meters(min) : MigrationFormat.Meters(min) + "-" + MigrationFormat.Meters(max);
         }
 
         private static int SameApproachPairs(CompiledRoadModel model, RoadId junctionId)

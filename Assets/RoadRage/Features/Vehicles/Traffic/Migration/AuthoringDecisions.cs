@@ -37,6 +37,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         Deferred = 3
     }
 
+    /// <summary>
+    /// Regle d'application d'une largeur revue (Story 5.49). Une section n'admet que
+    /// <see cref="Uniform"/> ; un carrefour en <see cref="EndpointInterpolation"/> interpole ses
+    /// mouvements entre les largeurs appliquees de leurs corridors d'extremite, sa decision valant
+    /// plancher.
+    /// </summary>
+    public enum WidthApplication
+    {
+        Uniform = 0,
+        EndpointInterpolation = 1
+    }
+
     public enum DeferredFieldKind
     {
         SpeedLimit = 0,
@@ -74,6 +86,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public float HalfWidthLeftMeters;
         public float HalfWidthRightMeters;
+
+        /// <summary>Regle d'application (5.49) ; plancher en <see cref="WidthApplication.EndpointInterpolation"/>.</summary>
+        public WidthApplication Application;
     }
 
     public struct TaskDisposition
@@ -104,7 +119,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
     public sealed class AuthoringDecisions
     {
-        public const int FormatVersion = 1;
+        public const int FormatVersion = 2;
 
         /// <summary>Categories 5.27 disposees par leurs donnees typees, jamais par une disposition libre.</summary>
         public const string ControlCategory = "Controle";
@@ -225,6 +240,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 width.SubjectKey = Required(record.SubjectKey, "Widths.SubjectKey");
                 width.HalfWidthLeftMeters = Positive(record.HalfWidthLeftMeters, "largeur gauche de " + width.SubjectKey);
                 width.HalfWidthRightMeters = Positive(record.HalfWidthRightMeters, "largeur droite de " + width.SubjectKey);
+                width.Application = ParseEnum<WidthApplication>(record.Application, "application de largeur de " + width.SubjectKey);
                 decisions.Widths.Add(width);
             }
 
@@ -277,7 +293,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }).ToArray();
             layout.Widths = Widths.ConvertAll(delegate(WidthDecision w)
             {
-                return new WidthRecord { SubjectKey = w.SubjectKey, HalfWidthLeftMeters = w.HalfWidthLeftMeters, HalfWidthRightMeters = w.HalfWidthRightMeters };
+                return new WidthRecord
+                {
+                    SubjectKey = w.SubjectKey,
+                    HalfWidthLeftMeters = w.HalfWidthLeftMeters,
+                    HalfWidthRightMeters = w.HalfWidthRightMeters,
+                    Application = w.Application.ToString()
+                };
             }).ToArray();
             layout.Dispositions = Dispositions.ConvertAll(delegate(TaskDisposition d)
             {
@@ -424,7 +446,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             // Valeur revue lisible : arrondie au pas canonique, donc egale a l'import a la quantification pres.
-            return new WidthDecision { SubjectKey = key, HalfWidthLeftMeters = Canonical(left), HalfWidthRightMeters = Canonical(right) };
+            return new WidthDecision { SubjectKey = key, HalfWidthLeftMeters = Canonical(left), HalfWidthRightMeters = Canonical(right), Application = WidthApplication.Uniform };
         }
 
         private static float Canonical(float meters)
@@ -543,6 +565,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public string SubjectKey;
             public float HalfWidthLeftMeters;
             public float HalfWidthRightMeters;
+            public string Application;
         }
 
         [Serializable]

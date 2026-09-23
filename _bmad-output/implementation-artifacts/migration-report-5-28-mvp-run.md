@@ -2,14 +2,14 @@
 source-hash: b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc
 importer-version: 1
 compiler-schema-version: 4
-pipeline-version: 1
+pipeline-version: 2
 model-id: 419bd12ec9b5fe710e8a3719692c7982
 lineage-hash: f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4
-decisions-hash: 5b6bd7e90c245d6592034d0548ef3f683c36ee4b479579825c4e0862f36ed061
-model-hash: 63f4bd8ad0c9f29f883dc806aa9ff74fba1e401ca1ba288dcd7fe7df9167afe2
-road-model-version: v4:bc477eb562d7946c977c13672cab39df
-overlay-hash: 25089c9d1d80b1bc189deeb27405194931932831f822fd8c12d187c9475c5cd1
-body-hash: ad8d42548c813de2861d9e4a82eb1abcc43b0a2901de15bf52e9c1c68157f606
+decisions-hash: 7ab9948c349ee068f71fef07ca915276bf69de59e8a2a6e7ddda36fcbaab222b
+model-hash: fa3a3e057e03a5e6c5f2bdc572360c75314778d7c9cb296980f8446de2050a28
+road-model-version: v4:33e3cc5fca044e988e9862d7eb77dddb
+overlay-hash: 875cada7c34b5a6b675ff665ea55874bb1d07fa2be072a19f454e14296cd3d9b
+body-hash: 25f3e4e63773450fad3a88c2dc90d50fe31fe2f395bf9d97004d978e0ab73cf7
 -->
 # Rapport Gate A : modele authore MVP_Run (Story 5.28)
 
@@ -20,14 +20,14 @@ Genere par le menu `RoadRage/Traffic V2/Compiler le modele authore`. Ne pas edit
 | Champ | Valeur |
 |---|---|
 | Hash de la source V1 extraite | `b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc` |
-| Version de l'importeur / du pipeline | 1 / 1 |
+| Version de l'importeur / du pipeline | 1 / 2 |
 | CompilerSchemaVersion | 4 |
 | RoadModelId | `419bd12ec9b5fe710e8a3719692c7982` |
 | Hash de la lignee | `f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json`) |
-| Hash des decisions | `5b6bd7e90c245d6592034d0548ef3f683c36ee4b479579825c4e0862f36ed061` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json`) |
-| Hash du modele persiste | `63f4bd8ad0c9f29f883dc806aa9ff74fba1e401ca1ba288dcd7fe7df9167afe2` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json`) |
-| RoadModelVersion | `v4:bc477eb562d7946c977c13672cab39df` |
-| Hash de l'overlay | `25089c9d1d80b1bc189deeb27405194931932831f822fd8c12d187c9475c5cd1` (`_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt`) |
+| Hash des decisions | `7ab9948c349ee068f71fef07ca915276bf69de59e8a2a6e7ddda36fcbaab222b` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json`) |
+| Hash du modele persiste | `fa3a3e057e03a5e6c5f2bdc572360c75314778d7c9cb296980f8446de2050a28` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json`) |
+| RoadModelVersion | `v4:33e3cc5fca044e988e9862d7eb77dddb` |
+| Hash de l'overlay | `875cada7c34b5a6b675ff665ea55874bb1d07fa2be072a19f454e14296cd3d9b` (`_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt`) |
 
 ## Resultat
 
@@ -191,47 +191,60 @@ Candidat = paire de mouvements du meme carrefour, d'approches differentes, dont 
 
 ## Largeurs revues
 
-Demi-largeurs gauche et droite explicites (AD-45) ; tous les echantillons possedes valent ces demi-largeurs au pas canonique (0.0010 m) pres.
+Demi-largeurs gauche et droite explicites (AD-45). La largeur revue est APPLIQUEE aux echantillons possedes (5.49) : `Uniform` ecrit la decision ; `EndpointInterpolation` (carrefours seulement) interpole chaque mouvement en s/Length entre les largeurs appliquees de ses corridors d'extremite, la decision valant plancher. Tout echantillon reste >= demi-gabarit + marge (1.2800 m) de chaque cote. Importee = amorce de l'importeur, jamais une autorite ; min-max sur les echantillons du sujet.
 
-| Sujet | Gauche (m) | Droite (m) |
-|---|---:|---:|
-| `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | 2.0000 | 2.0000 |
-| `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | 2.0000 | 2.0000 |
-| `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | 2.0000 | 2.0000 |
-| `4993ac8c2a6dc3f17d03a16cbb916fac` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-525617468 | 2.0000 | 2.0000 |
-| `490b6106a4522c5dfec0040c66cd82b9` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3237468531753948436-2089303282 | 2.0000 | 2.0000 |
-| `4c8d26eb6c05c178fc8444e842e07d8c` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495 | 2.0000 | 2.0000 |
-| `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | 2.0000 | 2.0000 |
-| `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | 2.0000 | 2.0000 |
-| `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | 2.0000 | 2.0000 |
-| `4730190af6f78f0cd48d4bb005c9f091` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495 | 2.0000 | 2.0000 |
-| `4dab8dc01f01a819f72ef4dc8a8a459d` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255 | 2.0000 | 2.0000 |
-| `49ecb9240fd46b56a68f2ba5f9b575aa` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718 | 2.0000 | 2.0000 |
-| `4b5389d91d5915f3196d95d243bc789f` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077 | 2.0000 | 2.0000 |
-| `4b8232a70eb5574526502f1072cb50bd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1045154302 | 2.0000 | 2.0000 |
-| `443ed3bc9f5371ef4f1439781cd012a8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1574439523 | 2.0000 | 2.0000 |
-| `46c85a9afac17bde2153665adab63fbc` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-234956567 | 2.0000 | 2.0000 |
-| `42de5da740b31ac0176161c776f3d4a1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-75338410 | 2.0000 | 2.0000 |
-| `47b9c1ab789b84066b536acecec183ab` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1227312198 | 2.0000 | 2.0000 |
-| `4ad222fbe3e52d2a5b6f86b332946c80` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1335115730 | 2.0000 | 2.0000 |
-| `4c56cbc620e585a5373ea0ea9acae384` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1375911139 | 2.0000 | 2.0000 |
-| `46f7f22596a1e5204781d18a86e839ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1461432457 | 2.0000 | 2.0000 |
-| `48b41f08eb1eee61a4e6281a4e963893` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1516681040 | 2.0000 | 2.0000 |
-| `4b08788f2b3434539d6daf47c410c6a4` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1812162174 | 2.0000 | 2.0000 |
-| `410b074af81719b5992afb35a5d20cbd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-235211969 | 2.0000 | 2.0000 |
-| `4f545c3fada86d11df7692a0081aa1a5` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-531979442 | 2.0000 | 2.0000 |
-| `4261bcbef0b8a38b712c649286b082ba` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-539479367 | 2.0000 | 2.0000 |
-| `488cff3f9501412fcae92bf829779984` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-656642079 | 2.0000 | 2.0000 |
-| `4581e2ae94d3287b91ad57e31a9fe989` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-972045385 | 2.0000 | 2.0000 |
-| `431aab2ccfb1de591d13a38baa04b796` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-981631451 | 2.0000 | 2.0000 |
-| `44687593778b414acca9ab06ece502b1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495 | 2.0000 | 2.0000 |
-| `4a53609938eef355087249c1b74ca6b0` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255 | 2.0000 | 2.0000 |
-| `4815e26dcb7e3aa355dfa72569096986` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718 | 2.0000 | 2.0000 |
-| `4796d8afab7aafe3c213381ce7be51b8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077 | 2.0000 | 2.0000 |
-| `4640b60be5be840f1fa778f300b64d84` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495 | 2.0000 | 2.0000 |
-| `4b33ebfdfb0a4ef2c2c6cbb267a5f2be` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255 | 2.0000 | 2.0000 |
-| `4de2f43948bbec45fce0fbe76d4658ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718 | 2.0000 | 2.0000 |
-| `42134703636fbc25221f6dc2ca06c793` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077 | 2.0000 | 2.0000 |
+| Sujet | Decision g / d (m) | Application | Importee g / d (m) | Appliquee g / d (m) |
+|---|---:|---|---:|---:|
+| `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `4993ac8c2a6dc3f17d03a16cbb916fac` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-525617468 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `490b6106a4522c5dfec0040c66cd82b9` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3237468531753948436-2089303282 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `4c8d26eb6c05c178fc8444e842e07d8c` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495 | 2.0000 / 2.0000 | EndpointInterpolation | 2.0000 / 2.0000 | 2.0000-4.0000 / 2.0000-4.0000 |
+| `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | 2.0000 / 2.0000 | EndpointInterpolation | 2.0000 / 2.0000 | 2.0000-4.0000 / 2.0000-4.0000 |
+| `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | 2.0000 / 2.0000 | EndpointInterpolation | 2.0000 / 2.0000 | 2.0000-4.0000 / 2.0000-4.0000 |
+| `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | 2.0000 / 2.0000 | EndpointInterpolation | 2.0000 / 2.0000 | 2.0000-4.0000 / 2.0000-4.0000 |
+| `4730190af6f78f0cd48d4bb005c9f091` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `4dab8dc01f01a819f72ef4dc8a8a459d` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `49ecb9240fd46b56a68f2ba5f9b575aa` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `4b5389d91d5915f3196d95d243bc789f` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `4b8232a70eb5574526502f1072cb50bd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1045154302 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `443ed3bc9f5371ef4f1439781cd012a8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1574439523 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `46c85a9afac17bde2153665adab63fbc` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-234956567 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `42de5da740b31ac0176161c776f3d4a1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-75338410 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `47b9c1ab789b84066b536acecec183ab` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1227312198 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `4ad222fbe3e52d2a5b6f86b332946c80` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1335115730 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `4c56cbc620e585a5373ea0ea9acae384` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1375911139 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `46f7f22596a1e5204781d18a86e839ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1461432457 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `48b41f08eb1eee61a4e6281a4e963893` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1516681040 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `4b08788f2b3434539d6daf47c410c6a4` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1812162174 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `410b074af81719b5992afb35a5d20cbd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-235211969 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `4f545c3fada86d11df7692a0081aa1a5` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-531979442 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `4261bcbef0b8a38b712c649286b082ba` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-539479367 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `488cff3f9501412fcae92bf829779984` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-656642079 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `4581e2ae94d3287b91ad57e31a9fe989` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-972045385 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `431aab2ccfb1de591d13a38baa04b796` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-981631451 | 2.0000 / 2.0000 | Uniform | 2.0000 / 2.0000 | 2.0000 / 2.0000 |
+| `44687593778b414acca9ab06ece502b1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `4a53609938eef355087249c1b74ca6b0` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `4815e26dcb7e3aa355dfa72569096986` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `4796d8afab7aafe3c213381ce7be51b8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `4640b60be5be840f1fa778f300b64d84` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `4b33ebfdfb0a4ef2c2c6cbb267a5f2be` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `4de2f43948bbec45fce0fbe76d4658ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+| `42134703636fbc25221f6dc2ca06c793` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077 | 4.0000 / 4.0000 | Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |
+
+## Giratoires : degagement a deux gabarits
+
+Deux gabarits max du profil versionne (W/2 = 1.0300 m, L = 4.5000 m, marge m = 0.2500 m) cote a cote, cap tangent, au point le plus serre : R_in = r_in + m + W/2 ; c_in = sqrt((R_in + W/2)^2 + (L/2)^2) ; R_out = c_in + 2m + W/2 ; c_out = sqrt((R_out + W/2)^2 + (L/2)^2) ; residu = (r_out - m) - c_out. Preuve supplementaire : un residu positif ne reduit jamais la cible (anneau V2 4,0 / 4,0 m, ilot <= 1,75 m, pave >= 10,25 m).
+
+V2 : centre = racine du module ; corridors d'anneau et continuations appliques ; r_in = max des bords interieurs, r_out = min des bords exterieurs. Physique : empreintes XZ des colliders ; r_in = portee de `Col_Island` ; pave = min sur 720 rayons (pas 1 cm) de la sortie de l'union des `Col_Roadway*` ; obstacles = colliders non declencheurs hors chaussee et ilot dont la hauteur recoupe [sommet de route, +2.0000 m] ; r_out = min(pave, obstacle le plus proche).
+
+| Instance | V2 r_in (m) | V2 r_out (m) | Residu V2 (m) | Ilot (m) | Pave (m) | Obstacle le plus proche | r_out physique (m) | Residu physique (m) |
+|---|---:|---:|---:|---:|---:|---|---:|---:|
+| Roundabout_SouthWest `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495` | 2.5459 | 9.8255 | 1.3499 | 1.5000 | 10.3700 | TunnelPortal_SouthWest/Col_Wall_Left a 11.3137 m | 10.3700 | 2.7818 |
+| Roundabout_NorthWest `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255` | 2.5459 | 9.8255 | 1.3499 | 1.5000 | 10.3700 | TunnelPortal_NorthWest/Col_Wall_Left a 11.3137 m | 10.3700 | 2.7818 |
+| Roundabout_NorthEast `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718` | 2.5459 | 9.8255 | 1.3499 | 1.5000 | 10.3700 | TunnelPortal_NorthEast/Col_Wall_Left a 11.3137 m | 10.3700 | 2.7818 |
+| Roundabout_SouthEast `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077` | 2.5459 | 9.8255 | 1.3499 | 1.5000 | 10.3700 | TunnelPortal_SouthEast/Col_Wall_Left a 11.3137 m | 10.3700 | 2.7818 |
 
 ## Disposition des taches 5.27
 
@@ -266,43 +279,43 @@ Chaque tache est disposee exactement une fois. Controle, Conflit et Largeur par 
 | Frontiere | `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | Reviewed | Revue a l'overlay Gate A (sign-off du proprietaire). |
 | Frontiere | `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | Reviewed | Revue a l'overlay Gate A (sign-off du proprietaire). |
 | Frontiere | `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | Reviewed | Revue a l'overlay Gate A (sign-off du proprietaire). |
-| Largeur | `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4993ac8c2a6dc3f17d03a16cbb916fac` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-525617468 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `490b6106a4522c5dfec0040c66cd82b9` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3237468531753948436-2089303282 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4c8d26eb6c05c178fc8444e842e07d8c` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4730190af6f78f0cd48d4bb005c9f091` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4dab8dc01f01a819f72ef4dc8a8a459d` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `49ecb9240fd46b56a68f2ba5f9b575aa` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4b5389d91d5915f3196d95d243bc789f` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4b8232a70eb5574526502f1072cb50bd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1045154302 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `443ed3bc9f5371ef4f1439781cd012a8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1574439523 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `46c85a9afac17bde2153665adab63fbc` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-234956567 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `42de5da740b31ac0176161c776f3d4a1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-75338410 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `47b9c1ab789b84066b536acecec183ab` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1227312198 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4ad222fbe3e52d2a5b6f86b332946c80` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1335115730 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4c56cbc620e585a5373ea0ea9acae384` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1375911139 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `46f7f22596a1e5204781d18a86e839ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1461432457 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `48b41f08eb1eee61a4e6281a4e963893` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1516681040 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4b08788f2b3434539d6daf47c410c6a4` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1812162174 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `410b074af81719b5992afb35a5d20cbd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-235211969 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4f545c3fada86d11df7692a0081aa1a5` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-531979442 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4261bcbef0b8a38b712c649286b082ba` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-539479367 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `488cff3f9501412fcae92bf829779984` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-656642079 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4581e2ae94d3287b91ad57e31a9fe989` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-972045385 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `431aab2ccfb1de591d13a38baa04b796` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-981631451 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `44687593778b414acca9ab06ece502b1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4a53609938eef355087249c1b74ca6b0` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4815e26dcb7e3aa355dfa72569096986` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4796d8afab7aafe3c213381ce7be51b8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4640b60be5be840f1fa778f300b64d84` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4b33ebfdfb0a4ef2c2c6cbb267a5f2be` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `4de2f43948bbec45fce0fbe76d4658ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
-| Largeur | `42134703636fbc25221f6dc2ca06c793` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite) |
+| Largeur | `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `4993ac8c2a6dc3f17d03a16cbb916fac` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-525617468 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `490b6106a4522c5dfec0040c66cd82b9` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3237468531753948436-2089303282 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `4c8d26eb6c05c178fc8444e842e07d8c` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), EndpointInterpolation |
+| Largeur | `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), EndpointInterpolation |
+| Largeur | `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), EndpointInterpolation |
+| Largeur | `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), EndpointInterpolation |
+| Largeur | `4730190af6f78f0cd48d4bb005c9f091` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `4dab8dc01f01a819f72ef4dc8a8a459d` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `49ecb9240fd46b56a68f2ba5f9b575aa` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `4b5389d91d5915f3196d95d243bc789f` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `4b8232a70eb5574526502f1072cb50bd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1045154302 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `443ed3bc9f5371ef4f1439781cd012a8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1574439523 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `46c85a9afac17bde2153665adab63fbc` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-234956567 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `42de5da740b31ac0176161c776f3d4a1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-75338410 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `47b9c1ab789b84066b536acecec183ab` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1227312198 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `4ad222fbe3e52d2a5b6f86b332946c80` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1335115730 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `4c56cbc620e585a5373ea0ea9acae384` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1375911139 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `46f7f22596a1e5204781d18a86e839ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1461432457 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `48b41f08eb1eee61a4e6281a4e963893` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1516681040 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `4b08788f2b3434539d6daf47c410c6a4` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1812162174 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `410b074af81719b5992afb35a5d20cbd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-235211969 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `4f545c3fada86d11df7692a0081aa1a5` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-531979442 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `4261bcbef0b8a38b712c649286b082ba` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-539479367 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `488cff3f9501412fcae92bf829779984` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-656642079 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `4581e2ae94d3287b91ad57e31a9fe989` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-972045385 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `431aab2ccfb1de591d13a38baa04b796` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-981631451 | Largeur revue | 2.0000 / 2.0000 m (gauche / droite), Uniform |
+| Largeur | `44687593778b414acca9ab06ece502b1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `4a53609938eef355087249c1b74ca6b0` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `4815e26dcb7e3aa355dfa72569096986` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `4796d8afab7aafe3c213381ce7be51b8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `4640b60be5be840f1fa778f300b64d84` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `4b33ebfdfb0a4ef2c2c6cbb267a5f2be` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `4de2f43948bbec45fce0fbe76d4658ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
+| Largeur | `42134703636fbc25221f6dc2ca06c793` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077 | Largeur revue | 4.0000 / 4.0000 m (gauche / droite), Uniform |
 | Ligne | `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
 | Ligne | `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
 | Ligne | `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
@@ -383,7 +396,7 @@ Derivees structurellement, jamais par nom : corridor du portail d'entree de plus
 
 ## Overlay et Gate A
 
-Overlay canonique : `_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt` (25 instances de module, hash `25089c9d1d80b1bc189deeb27405194931932831f822fd8c12d187c9475c5cd1`), produit par la meme fonction que le dessin de la fenetre `RoadRage/Traffic V2/Revue Gate A`.
+Overlay canonique : `_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt` (25 instances de module, hash `875cada7c34b5a6b675ff665ea55874bb1d07fa2be072a19f454e14296cd3d9b`), produit par la meme fonction que le dessin de la fenetre `RoadRage/Traffic V2/Revue Gate A`.
 
 La Gate A n'est ouverte que par `Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json`, ecrit par le proprietaire depuis cette fenetre apres revue des 25 instances, et lie aux hashes source, lignee, decisions, compilateur, modele, version et overlay d'un pipeline frais. Un sign-off absent ou perime garde la Gate A fermee, jamais repare.
 

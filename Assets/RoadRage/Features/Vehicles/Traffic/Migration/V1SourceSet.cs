@@ -46,6 +46,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Rotation monde de la racine : sert a exprimer un sens en repere local prefab.</summary>
         public Quaternion Rotation;
 
+        /// <summary>Racine d'instance (Story 5.49, mesure de giratoire). Hors hash source : jamais une identite.</summary>
+        public Transform Root;
+
         public readonly List<V1Node> Nodes = new List<V1Node>();
 
         public bool IsJunction
@@ -245,6 +248,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     module.PrefabPath = prefabPath;
                     module.Label = root.name;
                     module.Rotation = root.transform.rotation;
+                    module.Root = root.transform;
                     moduleByRoot.Add(root, module);
                     set.Modules.Add(module);
                 }

@@ -212,25 +212,85 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void ADivergentWidthIsAHardFailureIncludingAnAsymmetricOne()
+        public void AReviewedWidthIsAppliedExactlyAsAuthoredIncludingAnAsymmetricOne()
         {
-            var decisions = CommittedDecisions();
-            var width = decisions.Widths[0];
-            width.HalfWidthLeftMeters = 2.5f;
-            width.HalfWidthRightMeters = 2.5f;
-            decisions.Widths[0] = width;
-            AssertRefused(RunWith(decisions.Serialize()), "Largeur divergente pour '" + width.SubjectKey + "'");
+            // Committees : anneau 4,0 / 4,0 contre une amorce de 2,0 / 2,0 -- appliquee, rapportee importee / appliquee (5.49).
+            var run = Fresh();
+            Assert.That(run.Succeeded, Is.True, string.Join("\n", run.Failures.ToArray()));
+            string ring = RingSectionKey(run.Import);
+            var reported = run.Widths.Single(w => w.SubjectKey == ring);
+            Assert.That(reported.ImportedLeftMax, Is.EqualTo(2f).Within(1e-3f), "Amorce de l'importeur, jamais une autorite.");
+            Assert.That(reported.AppliedLeftMin, Is.EqualTo(4f).Within(1e-3f));
+            Assert.That(run.ReportText, Does.Contain("| Uniform | 2.0000 / 2.0000 | 4.0000 / 4.0000 |"));
 
-            // AD-45 asymetrique : gauche juste, droite divergente, toujours refuse.
+            // AD-45 asymetrique : ecrite exactement telle qu'authoree sur chaque echantillon possede.
+            var decisions = CommittedDecisions();
+            SetWidth(decisions, ring, 3.5f, 4f, WidthApplication.Uniform);
+            var asymmetric = RunWith(decisions.Serialize());
+            Assert.That(asymmetric.Succeeded, Is.True, string.Join("\n", asymmetric.Failures.ToArray()));
+            foreach (var corridor in run.Import.Sections.Single(s => s.Key == ring).Corridors)
+            {
+                Assert.That(asymmetric.Compiled.TryGetCorridor(asymmetric.Import.IdOf(corridor.Key), out EffectiveLaneCorridor compiled), Is.True);
+                Assert.That(compiled.Samples.All(s => s.HalfWidthLeftMeters == 3.5f && s.HalfWidthRightMeters == 4f), Is.True);
+            }
+
+            // Carrefour (non giratoire) en Uniform a une largeur differente de ses corridors d'extremite (2,0) :
+            // la decision est bien ecrite sur les mouvements, donc le compilateur refuse la marche de largeur aux coutures.
+            string crossing = run.Import.Junctions.First(j => j.Module.Kind != V1ModuleKind.Roundabout).Key;
             decisions = CommittedDecisions();
-            width = decisions.Widths[0];
-            width.HalfWidthRightMeters = width.HalfWidthLeftMeters - 0.5f;
-            decisions.Widths[0] = width;
-            AssertRefused(RunWith(decisions.Serialize()), "Largeur divergente pour '" + width.SubjectKey + "'");
+            SetWidth(decisions, crossing, 2.5f, 3f, WidthApplication.Uniform);
+            AssertRefused(RunWith(decisions.Serialize()), "MovementSeamBroken");
 
             decisions = CommittedDecisions();
             decisions.Widths.RemoveAt(0);
             AssertRefused(RunWith(decisions.Serialize()), "Largeur non revue");
+        }
+
+        [Test]
+        public void AWidthBelowTheGaugeAForbiddenModeABrokenFloorOrAWidenedPortalIsAHardFailure()
+        {
+            var import = Fresh().Import;
+            string ring = RingSectionKey(import);
+
+            // Sous le gabarit (demi-gabarit 1,03 + marge 0,25) : echec nommant sujet et echantillon.
+            var decisions = CommittedDecisions();
+            SetWidth(decisions, ring, 1.2f, 4f, WidthApplication.Uniform);
+            AssertRefused(RunWith(decisions.Serialize()), "Largeur sous le gabarit pour '" + ring + "' : echantillon 0");
+
+            // Idem sur un carrefour en Uniform : la regle vaut pour tout echantillon possede.
+            string crossing = import.Junctions.First(j => j.Module.Kind != V1ModuleKind.Roundabout).Key;
+            decisions = CommittedDecisions();
+            SetWidth(decisions, crossing, 1.2f, 2f, WidthApplication.Uniform);
+            AssertRefused(RunWith(decisions.Serialize()), "Largeur sous le gabarit pour '" + crossing + "' : echantillon 0");
+
+            // EndpointInterpolation reserve aux carrefours.
+            decisions = CommittedDecisions();
+            SetWidth(decisions, ring, 4f, 4f, WidthApplication.EndpointInterpolation);
+            AssertRefused(RunWith(decisions.Serialize()), "Mode d'application de largeur interdit pour la section '" + ring + "'");
+
+            // Plancher : l'entree interpole depuis l'approche a 2,0 m, sous un plancher de 3,0 m.
+            string roundabout = import.Junctions.First(j => j.Module.Kind == V1ModuleKind.Roundabout).Key;
+            decisions = CommittedDecisions();
+            SetWidth(decisions, roundabout, 3f, 3f, WidthApplication.EndpointInterpolation);
+            AssertRefused(RunWith(decisions.Serialize()), "Plancher de largeur viole pour '" + roundabout + "'");
+
+            // Portail : son enveloppe derive de la largeur importee, un sujet elargi est refuse.
+            string portal = import.Portals[0].Corridor.SectionKey;
+            decisions = CommittedDecisions();
+            SetWidth(decisions, portal, 2.5f, 2.5f, WidthApplication.Uniform);
+            AssertRefused(RunWith(decisions.Serialize()), "Portail sur sujet elargi : '" + portal + "'");
+        }
+
+        private static string RingSectionKey(V1ImportResult import)
+        {
+            return import.Sections.First(s => s.Corridors.Any(c => c.IsRing)).Key;
+        }
+
+        private static void SetWidth(AuthoringDecisions decisions, string key, float left, float right, WidthApplication application)
+        {
+            int index = decisions.Widths.FindIndex(w => w.SubjectKey == key);
+            Assert.That(index, Is.GreaterThanOrEqualTo(0), key);
+            decisions.Widths[index] = new WidthDecision { SubjectKey = key, HalfWidthLeftMeters = left, HalfWidthRightMeters = right, Application = application };
         }
 
         [Test]
@@ -445,10 +505,10 @@ namespace RoadRage.Tests.EditMode
             const string Empty = "\"Conflicts\":[],\"Widths\":[],\"Dispositions\":[],\"DeferredFields\":[]}";
 
             // Temoin valide.
-            Assert.DoesNotThrow(() => AuthoringDecisions.Parse("{\"Format\":1,\"Controls\":[{\"Id\":\"" + a + "\",\"ApproachKey\":\"a\",\"Kind\":\"Uncontrolled\"}]," + Empty));
+            Assert.DoesNotThrow(() => AuthoringDecisions.Parse("{\"Format\":2,\"Controls\":[{\"Id\":\"" + a + "\",\"ApproachKey\":\"a\",\"Kind\":\"Uncontrolled\"}]," + Empty));
 
             // Liste hors d'ordre.
-            Assert.Throws<FormatException>(() => AuthoringDecisions.Parse("{\"Format\":1,\"Controls\":["
+            Assert.Throws<FormatException>(() => AuthoringDecisions.Parse("{\"Format\":2,\"Controls\":["
                 + "{\"Id\":\"" + a + "\",\"ApproachKey\":\"b\",\"Kind\":\"Uncontrolled\"},"
                 + "{\"Id\":\"" + b + "\",\"ApproachKey\":\"a\",\"Kind\":\"Uncontrolled\"}]," + Empty));
 
@@ -465,7 +525,7 @@ namespace RoadRage.Tests.EditMode
             Assert.Throws<FormatException>(() => AuthoringDecisions.Parse(widths.Serialize()));
 
             // Valeurs d'enum numeriques non declarees.
-            Assert.Throws<FormatException>(() => AuthoringDecisions.Parse("{\"Format\":1,\"Controls\":[{\"Id\":\"" + a + "\",\"ApproachKey\":\"a\",\"Kind\":\"7\"}]," + Empty));
+            Assert.Throws<FormatException>(() => AuthoringDecisions.Parse("{\"Format\":2,\"Controls\":[{\"Id\":\"" + a + "\",\"ApproachKey\":\"a\",\"Kind\":\"7\"}]," + Empty));
             var undeclared = new AuthoringDecisions();
             undeclared.Conflicts.Add(new ConflictDecision { MovementKeyA = "m:a", MovementKeyB = "m:b", Decision = ConflictDecisionKind.Rejected, Reason = "y" });
             Assert.Throws<FormatException>(() => AuthoringDecisions.Parse(undeclared.Serialize().Replace("\"Rejected\"", "\"2\"")));

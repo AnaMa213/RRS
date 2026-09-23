@@ -1,0 +1,6 @@
+# Empreintes pre-changement (Story 5.49), capturees le 2026-09-23 avant toute modification de prefab ou de scene
+# baseline_commit 9ab80d6005f03e24703c1e4f512f36861a4c9c3d
+lineage-sha256 (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json): f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4
+source-hash (V1SourceSet.Extract, MVP_Run charge, isDirty=false): b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc
+report-5-27-sha256 (_bmad-output/implementation-artifacts/migration-report-5-27-mvp-run.md): 61cedbb899f0ea7c24f8deb3a4b91f109732acd316d473b274ad1b70359de40c
+editmode: 830/831 (seul echec GateAIsOpenedOnlyByTheOwnersBoundSignoff) ; playmode: 39/45 (6 echecs pre-existants, voir baseline-playmode.json)
