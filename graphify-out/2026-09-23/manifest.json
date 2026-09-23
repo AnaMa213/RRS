@@ -1170,21 +1170,21 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadModelRecords.cs": {
-    "mtime": 1790149026.3376136,
-    "seen": 1790149232.3608065,
-    "ast_hash": "48882ea5253bca0b790eea1910599812",
+    "mtime": 1790160824.4675155,
+    "seen": 1790162272.5892215,
+    "ast_hash": "c1f9f3b5d2780b11f3feabdb8272ade9",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs": {
-    "mtime": 1790149026.3849182,
-    "seen": 1790149232.360807,
-    "ast_hash": "301e1a3f021973dc252ebc2f7c052c1f",
+    "mtime": 1790160824.4931495,
+    "seen": 1790162272.5892222,
+    "ast_hash": "e623ad08b5d235f84145866502f8baaf",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story525RoadWorldModelTests.cs": {
-    "mtime": 1790149053.982235,
-    "seen": 1790149232.3608525,
-    "ast_hash": "1f47a10791412187b9b5a956d01267cf",
+    "mtime": 1790160967.4588995,
+    "seen": 1790162272.5892673,
+    "ast_hash": "c55a6415f5f1cd684a35f92059939c6b",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadCurve.cs": {
@@ -1194,27 +1194,99 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadCurveBuilder.cs": {
-    "mtime": 1790113410.95445,
-    "seen": 1790113562.5144558,
-    "ast_hash": "83ef2daa8a7d7c2e6f317a6afacf1ed7",
+    "mtime": 1790152674.924,
+    "seen": 1790155106.1802468,
+    "ast_hash": "b1bab644c85bf3f81e4c322c1fe5e0d4",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadGeometryValidator.cs": {
-    "mtime": 1790149026.3859222,
-    "seen": 1790149232.360803,
-    "ast_hash": "84ca390cec367166e68adb3e367345f4",
+    "mtime": 1790160833.2142992,
+    "seen": 1790162272.5892184,
+    "ast_hash": "56c661c5061575881bd472807682540f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadLocalization.cs": {
-    "mtime": 1790149026.3809078,
-    "seen": 1790149232.3608036,
-    "ast_hash": "7d2c9b50aba1b29bc086097e321a196c",
+    "mtime": 1790160839.3132842,
+    "seen": 1790162272.589219,
+    "ast_hash": "52a2b6d59d13c805166f14541f3c568a",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story526GeometryAndLocalizationTests.cs": {
-    "mtime": 1790149054.0315757,
-    "seen": 1790149232.360853,
-    "ast_hash": "e9229d60ee085f672653b18de2f94dec",
+    "mtime": 1790160987.1537745,
+    "seen": 1790162272.5892677,
+    "ast_hash": "0b8997e9d9e60547f4ac91580365a911",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json": {
+    "mtime": 1790162392.199121,
+    "seen": 1790162476.533702,
+    "ast_hash": "35fe93bd6dd967381509f1ff5011b892",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Migration/MigrationReport.cs": {
+    "mtime": 1790162653.0792975,
+    "seen": 1790162893.512269,
+    "ast_hash": "78e37ec4a3f69d1bf10752e4ac1b5d26",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Migration/RoadLineage.cs": {
+    "mtime": 1790162114.279662,
+    "seen": 1790162272.5892143,
+    "ast_hash": "8cd0c041322b09554acd3029f4ef8941",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Migration/V1RoadModelImporter.cs": {
+    "mtime": 1790161812.6725214,
+    "seen": 1790162272.589215,
+    "ast_hash": "fd2016fb7083f498911bab4d49d01d09",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Migration/V1SourceSet.cs": {
+    "mtime": 1790161819.9058237,
+    "seen": 1790162272.5892155,
+    "ast_hash": "d5dd17b4f547d22956e7e1596d8ba901",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story527MigrationTests.cs": {
+    "mtime": 1790162796.2361119,
+    "seen": 1790162893.5123308,
+    "ast_hash": "7c93fc654c0dc52b02ac9458355b5f7d",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json": {
+    "mtime": 1790165601.2950077,
+    "seen": 1790165918.346869,
+    "ast_hash": "59fcb5b10fa545ca268e6b11ef27b4ea",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs": {
+    "mtime": 1790173707.8017962,
+    "seen": 1790173861.0878837,
+    "ast_hash": "2df2894e2184be9d6a815c9f87d61030",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoringDecisions.cs": {
+    "mtime": 1790173644.0450528,
+    "seen": 1790173861.0878859,
+    "ast_hash": "979c7f0e25ecf0e6250c94f2dc76717f",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Migration/GateAReviewWindow.cs": {
+    "mtime": 1790173707.8017962,
+    "seen": 1790173861.0878868,
+    "ast_hash": "04ab91d966f6dcb0eddbdf0162d982d8",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/RoadModelDocument.cs": {
+    "mtime": 1790173642.8203752,
+    "seen": 1790173861.088781,
+    "ast_hash": "3427b5a7076aeeb41246427d64eb9588",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story528AuthoringAndGateATests.cs": {
+    "mtime": 1790173775.2652035,
+    "seen": 1790173861.0944164,
+    "ast_hash": "aee0c1c28d691ed05fc9daf78f8a90d6",
     "semantic_hash": ""
   }
 }
