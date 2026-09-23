@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 09-22-2026
+last_updated: 09-23-2026
 # 2026-09-22 planning run: the Traffic V2 replacement stories now exist as
 # 5.24-5.48, planned INSIDE Epic 5 because building the AI traffic network is
 # Epic 5's own unfinished mission. This filing decision supersedes section 3.14
@@ -168,7 +168,7 @@ development_status:
   5-24-v2-regression-oracle-bench-and-v1-trace-contract: done
   5-25-road-world-model-records-compiler-and-versioning: done
   5-26-directed-arc-length-geometry-and-lane-localization: review
-  5-27-v1-importer-validator-and-migration-report: backlog
+  5-27-v1-importer-validator-and-migration-report: review
   5-28-junction-semantic-authoring-and-overlay-sign-off: backlog
   5-29-deterministic-strategic-route-plan: backlog
   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog

@@ -31,6 +31,25 @@ namespace RoadRage.Features.Vehicles.Traffic
             float[] halfWidthsRightMeters,
             float chordToleranceMeters)
         {
+            float unused;
+            return Build(positions, ups, halfWidthsLeftMeters, halfWidthsRightMeters, chordToleranceMeters, out unused);
+        }
+
+        /// <summary>
+        /// Meme construction, qui rend en plus le maximum MESURE du critere de subdivision sur les
+        /// cordes emises (Story 5.27) : distance spline-corde aux sondes u = 1/4, 1/2, 3/4 de chaque
+        /// corde acceptee. Borne par construction a <c>chordToleranceMeters / 2</c> ; l'ecart entre
+        /// la spline et l'intention de l'auteur n'en fait pas partie.
+        /// </summary>
+        public static RoadCurveSample[] Build(
+            Vector3[] positions,
+            Vector3[] ups,
+            float[] halfWidthsLeftMeters,
+            float[] halfWidthsRightMeters,
+            float chordToleranceMeters,
+            out float maxChordDeviationMeters)
+        {
+            maxChordDeviationMeters = 0f;
             if (positions == null || ups == null || halfWidthsLeftMeters == null || halfWidthsRightMeters == null)
             {
                 throw new ArgumentException("RoadCurveBuilder exige positions, road-up et demi-largeurs.");
@@ -79,6 +98,7 @@ namespace RoadRage.Features.Vehicles.Traffic
                 builder.Walk(i, p0, positions[i], positions[i + 1], p3);
             }
 
+            maxChordDeviationMeters = builder.MaxAcceptedDeviation;
             return builder.Samples.ToArray();
         }
 
@@ -138,6 +158,9 @@ namespace RoadRage.Features.Vehicles.Traffic
         {
             public readonly List<RoadCurveSample> Samples = new List<RoadCurveSample>();
 
+            /// <summary>Maximum des distances sonde-corde sur les cordes acceptees.</summary>
+            public float MaxAcceptedDeviation;
+
             private readonly float[] _left;
             private readonly float[] _right;
             private readonly Vector3[] _ups;
@@ -184,10 +207,13 @@ namespace RoadRage.Features.Vehicles.Traffic
                 Vector3 a = _segment.Position(u0);
                 Vector3 b = _segment.Position(u1);
                 bool withinTolerance = true;
+                float deviation = 0f;
                 for (int k = 1; k <= 3 && withinTolerance; k++)
                 {
                     Vector3 probe = _segment.Position(u0 + (u1 - u0) * k * 0.25f);
-                    withinTolerance = DistanceToChord(probe, a, b) <= _tolerance;
+                    float distance = DistanceToChord(probe, a, b);
+                    withinTolerance = distance <= _tolerance;
+                    deviation = Mathf.Max(deviation, distance);
                 }
 
                 if (!withinTolerance && depth >= MaxSubdivisionDepth)
@@ -199,6 +225,7 @@ namespace RoadRage.Features.Vehicles.Traffic
 
                 if (withinTolerance)
                 {
+                    MaxAcceptedDeviation = Mathf.Max(MaxAcceptedDeviation, deviation);
                     var previous = Samples[Samples.Count - 1];
                     Emit(u1, previous.SMeters + (b - previous.Position).magnitude);
                     return;

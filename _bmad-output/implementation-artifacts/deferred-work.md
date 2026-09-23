@@ -390,3 +390,23 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-25-road-world-model-records-compiler-and-versioning.md`
   summary: `LaneConnection` and `JunctionMovement` do not reject `FromCorridorId == ToCorridorId` (a self-loop referencing the same corridor at both ends); `RoadModelValidator.ResolveReference` only checks that a reference resolves to a corridor of the right kind, never that the two ends of a directed relationship differ.
   evidence: Raised by `blind-hunter`. Not required by the accepted I/O matrix (which specifies duplicate/empty/unresolved-reference and tombstone-reuse failures, not self-loop rejection). No importer exists yet to produce such a model (5.27's job), so no reachable consequence today. CONDITION DE REOUVERTURE: before Story 5.27 authors or imports real connection/movement data, since a self-loop would then silently compile into a versioned model instead of failing hard.
+
+## Deferred from: story-5-27-v1-importer-validator-and-migration-report (2026-09-23)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-27-v1-importer-validator-and-migration-report.md`
+  summary: Fixtures de localisation sur la carte reelle (nominal, frontiere, deplace, contresens, carrefour ambigu, hors corridor -- AD-47 point 9) non produites par la 5.27.
+  evidence: `RoadLocalizer.Localize` exige un `CompiledRoadModel`, et le modele migre ne compile pas tant que les 72 mouvements n'ont pas de `JunctionControl` (code 9, tache d'authoring de la 5.28). Le rapport de migration le declare explicitement. CONDITION DE REOUVERTURE : des que le modele `MVP_Run` passe `Compile` en 5.28.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-27-v1-importer-validator-and-migration-report.md`
+  summary: La jointure entre deux modules non-carrefour (segment -> segment) produit une `LaneConnection` Continuation, mais aucun module de `MVP_Run` n'en contient : ce chemin de l'importeur n'est pas exerce par la carte reelle (0 LaneConnection dans l'instantane lie).
+  evidence: Dans `MVP_Run`, chaque segment est borne par des carrefours et chaque tunnel joint un giratoire ; toutes les 56 jointures fusionnent un connecteur de carrefour a l'extremite d'un corridor. La jointure carrefour -> carrefour est un echec dur. CONDITION DE REOUVERTURE : premier trace posant deux modules a voies bout a bout, avec un test synthetique ou reel du chemin LaneConnection.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-25-road-world-model-records-compiler-and-versioning.md`
+  summary: Condition de reouverture du self-loop (`FromCorridorId == ToCorridorId`) atteinte par la 5.27 : l'importeur n'en produit aucun sur `MVP_Run` (prouve par `TheBoundMvpRunSnapshotImportsWithEverySourceItemDisposed`), mais le validateur 5.25 ne le rejette toujours pas.
+  evidence: La 5.27 ne modifie pas le validateur 5.25 (hors perimetre du spec). Le risque residuel ne vient plus de l'import V1 mais d'un authoring manuel en 5.28. CONDITION DE REOUVERTURE : avant que la 5.28 n'authore des connexions ou des mouvements a la main.
+
+## Validation workflow -- a traiter avant la Story 5.28 (constat du 2026-09-23, Story 5.27)
+
+- source_spec: none
+  summary: Le gate Console de `scripts/validate.ps1` (AD-7) echoue sur des erreurs perimees anterieures a la fenetre de validation (erreurs de compilation d'etats intermediaires entre deux editions, appels CLI mal formes), ce qui a impose deux redemarrages de l'Editeur Unity pendant la 5.27. Un checkpoint de validation ne devrait echouer que sur les erreurs appartenant a sa propre fenetre, jamais sur une erreur de compilation deja corrigee.
+  evidence: `validate.ps1` lit `unity cmd console --level error` sans curseur. La memoire tampon de la Console du pipeline (CLI `1.0.0-beta.8`) survit aux rechargements de domaine et `unity cmd clear_console` ne la vide pas (`cleared:true` mais memes entrees relues) ; seul un redemarrage de l'Editeur la remet a zero. `unity cmd console --level error --since <cursor>` fonctionne et renvoie seulement les entrees posterieures au curseur. Le proprietaire a interdit de modifier `validate.ps1` ou AD-7 pendant la 5.27. Piste a evaluer : capturer le curseur Console au debut de la fenetre (avant `recompile`) et ne gater que sur `--since`, sans masquer une erreur de compilation encore presente (le `recompile_status` en echec reste bloquant). CONDITION DE REOUVERTURE : avant le premier checkpoint de validation de la Story 5.28.

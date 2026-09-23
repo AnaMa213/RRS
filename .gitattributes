@@ -170,3 +170,7 @@ Packages/packages-lock.json linguist-generated
 # Exceptions for .asset files such as lightning pre-baking
 LightingData.asset     binary
 graphify-out/graph.json merge=graphify
+
+# Story 5.27 : artefacts de migration haches octet par octet (rapport lie, lignee)
+*.road-lineage.json     text eol=lf
+_bmad-output/implementation-artifacts/migration-report-*.md text eol=lf
