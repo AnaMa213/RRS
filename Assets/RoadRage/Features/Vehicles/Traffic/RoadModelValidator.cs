@@ -80,7 +80,18 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// tangente 5 deg, longueur/corde 0,05 m). Un profil peut etre PLUS strict ; relacher le
         /// contrat est une revision d'architecture, jamais une valeur de profil.
         /// </summary>
-        ProfileToleranceAboveApprovedCeiling = 31
+        ProfileToleranceAboveApprovedCeiling = 31,
+
+        // ---------------------------------------------------------------- repere, suite revue 5.26
+        // Le code 19 ne porte que la FORME du repere (unitaire, orthogonal) ; les deux defauts
+        // d'ORIENTATION ci-dessous ont leur propre code : ils demandent un autre correctif, et un
+        // rapport qui groupe par code ne doit pas les confondre avec une erreur de normalisation.
+
+        /// <summary>Road-up retourne (dote negativement au monde-haut) : echange gauche et droite en silence.</summary>
+        RoadUpFlipped = 32,
+
+        /// <summary>Tangente opposee ou perpendiculaire a sa corde : le sens de marche ne suit plus la geometrie.</summary>
+        TangentOpposesChord = 33
     }
 
     /// <summary>Un echec de validation : son code stable, l'identifiant fautif et un message.</summary>
@@ -257,6 +268,14 @@ namespace RoadRage.Features.Vehicles.Traffic
             CheckPositive(issues, source.LocalizationProfile.HysteresisMeters, source.ModelId, "LocalizationProfile.HysteresisMeters");
             CheckPositive(issues, source.LocalizationProfile.AcceptanceDistanceMeters, source.ModelId, "LocalizationProfile.AcceptanceDistanceMeters");
 
+            // Le gabarit versionne n'est pas qu'un fini : une demi-largeur ou une longueur nulle ou
+            // negative est un profil non renseigne, et la valeur se propagerait telle quelle aux
+            // mesures de degagement de la migration (5.27) sans qu'aucun consommateur ne la rejette.
+            // La marge laterale, elle, reste authoree sans borne basse : zero y est une decision
+            // explicite (« aucune marge exigee »), pas un oubli.
+            CheckPositive(issues, source.ValidationProfile.MaxVehicleHalfWidthMeters, source.ModelId, "ValidationProfile.MaxVehicleHalfWidthMeters");
+            CheckPositive(issues, source.ValidationProfile.MaxVehicleLengthMeters, source.ModelId, "ValidationProfile.MaxVehicleLengthMeters");
+
             // AD-48 : « a peu pres parallele ou antiparallele ». Le seuil est une valeur versionnee ;
             // la borne est ouverte a 90 degres, sinon la perpendiculaire passerait.
             float grounding = source.ValidationProfile.GroundingMaxOffAxisDegrees;
@@ -274,13 +293,16 @@ namespace RoadRage.Features.Vehicles.Traffic
             CheckApprovedCeiling(issues, source.ValidationProfile.SeamTangentToleranceDegrees, ApprovedSeamTangentCeilingDegrees, source.ModelId, "ValidationProfile.SeamTangentToleranceDegrees");
             CheckApprovedCeiling(issues, source.ValidationProfile.LengthToleranceMeters, ApprovedLengthToleranceCeilingMeters, source.ModelId, "ValidationProfile.LengthToleranceMeters");
 
+            // Contrat AD-45 : le SENS du drapeau `WrongWay` est fixe (erreur de cap absolue au-dela de
+            // 90 deg) ; le seuil reste une donnee de profil. Le domaine est donc ]0, 90] : un profil a
+            // 179 deg compilait et ne signalait plus un contresens frontal.
             float wrongWay = source.LocalizationProfile.WrongWayHeadingDegrees;
-            if (IsFinite(wrongWay) && !(wrongWay > 0f && wrongWay <= 180f))
+            if (IsFinite(wrongWay) && !(wrongWay > 0f && wrongWay <= 90f))
             {
                 issues.Add(new RoadModelValidationIssue(
                     RoadModelValidationCode.NumericValueOutOfRange,
                     source.ModelId,
-                    "LocalizationProfile.WrongWayHeadingDegrees hors de ]0, 180] (" + wrongWay.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")."));
+                    "LocalizationProfile.WrongWayHeadingDegrees hors de ]0, 90] (" + wrongWay.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")."));
             }
 
             for (int i = 0; i < sections.Length; i++)

@@ -67,7 +67,11 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <summary>Distance 3D du point de reference a l'enveloppe (0 dedans, lateral et longitudinal, plus le normal).</summary>
         public float DistanceToEnvelopeMeters;
 
-        /// <summary>0 si l'enveloppe contient le point de reference, 1 sinon. Le rang prime sur le score.</summary>
+        /// <summary>
+        /// 0 si l'enveloppe (laterale et longitudinale) contient le point de reference, et pas un autre
+        /// etage (<c>|normal|</c> dans le seuil d'acceptation) ; pour l'element precedent, un
+        /// depassement jusqu'a l'hysteresis reste dans le rang 0. 1 sinon. Le rang prime sur le score.
+        /// </summary>
         public int Rank;
 
         /// <summary>Score en metres, plus petit = meilleur, a l'interieur d'un rang.</summary>
@@ -178,7 +182,7 @@ namespace RoadRage.Features.Vehicles.Traffic
 
             candidates.Sort(Compare);
 
-            // Le vivier de l'ambiguite : les candidats acceptes s'il y en a, sinon tous.
+            // Le candidat retenu : le premier accepte dans l'ordre de tri (rang, score, RoadId).
             int chosen = -1;
             for (int i = 0; i < candidates.Count; i++)
             {
@@ -194,7 +198,9 @@ namespace RoadRage.Features.Vehicles.Traffic
             int second = -1;
             for (int i = primary + 1; primary >= 0 && i < candidates.Count; i++)
             {
-                if ((!localized || candidates[i].Accepted) && candidates[i].Rank == candidates[primary].Rank)
+                // Contrat AD-45 : le rival est tout candidat du meme rang, accepte ou non -- le drapeau
+                // decrit l'ensemble des candidats, pas le seul resultat retenu.
+                if (candidates[i].Rank == candidates[primary].Rank)
                 {
                     second = i;
                     break;

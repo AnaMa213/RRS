@@ -304,6 +304,12 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(location.ElementKind, Is.EqualTo(RoadElementKind.None));
                 Assert.That(location.Confidence, Is.EqualTo(0f));
             }
+            else
+            {
+                Assert.That(location.ElementKind, Is.Not.EqualTo(RoadElementKind.None),
+                    "Un resultat localise nomme son type d'element.");
+                Assert.That(location.ElementId.IsEmpty, Is.False, "Un resultat localise nomme son element.");
+            }
 
             for (int i = 1; i < location.Alternatives.Count; i++)
             {
@@ -1172,17 +1178,18 @@ namespace RoadRage.Tests.EditMode
             return source;
         }
 
-        private static void AssertSingleCorridorFrameFailure(RoadCurveSample[] samples)
+        private static void AssertSingleCorridorFrameFailure(RoadCurveSample[] samples, RoadModelValidationCode code)
         {
             var source = SingleCorridorSource(samples);
             bool reported = false;
             foreach (var issue in RoadModelValidator.Validate(source))
             {
-                reported |= issue.Code == RoadModelValidationCode.NonOrthonormalFrame && issue.SubjectId == CorridorNB;
+                reported |= issue.Code == code && issue.SubjectId == CorridorNB;
             }
 
-            Assert.That(reported, Is.True, "NonOrthonormalFrame attendu sur le corridor.");
-            Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(source); });
+            Assert.That(reported, Is.True, code + " attendu sur le corridor.");
+            var exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(source); });
+            Assert.That(exception.HasCode(code), Is.True, "Code attendu " + code + " : " + exception.Message);
         }
 
         [Test]
@@ -1194,7 +1201,9 @@ namespace RoadRage.Tests.EditMode
                 samples[i].Tangent = South;
             }
 
-            AssertSingleCorridorFrameFailure(samples);
+            // Le repere reste unitaire et orthogonal : c'est le SENS qui ne suit plus la corde, donc
+            // un code propre (33), distinct de la forme du repere (19).
+            AssertSingleCorridorFrameFailure(samples, RoadModelValidationCode.TangentOpposesChord);
         }
 
         [Test]
@@ -1206,7 +1215,8 @@ namespace RoadRage.Tests.EditMode
                 samples[i].Up = Vector3.down;
             }
 
-            AssertSingleCorridorFrameFailure(samples);
+            // Un road-up retourne echange gauche et droite en silence : code 32, pas 19.
+            AssertSingleCorridorFrameFailure(samples, RoadModelValidationCode.RoadUpFlipped);
         }
 
         [Test]
@@ -1225,6 +1235,24 @@ namespace RoadRage.Tests.EditMode
             var wrongWay = BuildModel();
             wrongWay.LocalizationProfile.WrongWayHeadingDegrees = 181f;
             exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(wrongWay); });
+            Assert.That(exception.HasCode(RoadModelValidationCode.NumericValueOutOfRange), Is.True, exception.Message);
+
+            // Le contrat fixe le SENS du drapeau a 90 deg : un seuil au-dela est hors domaine, sinon un
+            // contresens frontal cesserait d'etre signale.
+            var looseWrongWay = BuildModel();
+            looseWrongWay.LocalizationProfile.WrongWayHeadingDegrees = 91f;
+            exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(looseWrongWay); });
+            Assert.That(exception.HasCode(RoadModelValidationCode.NumericValueOutOfRange), Is.True, exception.Message);
+
+            // Gabarit : un profil non renseigne (demi-largeur ou longueur nulle) ne compile pas en silence.
+            var zeroGabarit = BuildModel();
+            zeroGabarit.ValidationProfile.MaxVehicleHalfWidthMeters = 0f;
+            exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(zeroGabarit); });
+            Assert.That(exception.HasCode(RoadModelValidationCode.NumericValueOutOfRange), Is.True, exception.Message);
+
+            var zeroLength = BuildModel();
+            zeroLength.ValidationProfile.MaxVehicleLengthMeters = -1f;
+            exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(zeroLength); });
             Assert.That(exception.HasCode(RoadModelValidationCode.NumericValueOutOfRange), Is.True, exception.Message);
 
             // AD-48 : seuil dans ]0, 90[ -- 90 degres accepterait une perpendiculaire.
@@ -1443,6 +1471,264 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(File.ReadAllText(path), Does.Not.Contain("InternalsVisibleTo"),
                     "Aucun InternalsVisibleTo ne contourne la validation : " + path);
             }
+
+            // Revendication de packaging : aucun assembly nouveau ni reference aux splines, et aucune
+            // dependance directe au paquet -- elle n'etait verifiee que par quatre fichiers source.
+            Assert.That(Directory.GetFiles(TrafficRootPath, "*.asmdef", SearchOption.AllDirectories), Is.Empty,
+                "Le code Traffic vit dans l'assembly existant : aucun .asmdef nouveau.");
+
+            foreach (var path in Directory.GetFiles("Assets/RoadRage", "*.asmdef", SearchOption.AllDirectories))
+            {
+                Assert.That(File.ReadAllText(path), Does.Not.Contain("Spline"),
+                    "Aucun assembly ne reference les splines : " + path);
+            }
+
+            string manifest = File.ReadAllText("Packages/manifest.json");
+            Assert.That(manifest, Does.Not.Contain("\"com.unity.splines\""),
+                "Aucune dependance directe a com.unity.splines.");
+        }
+
+        // ================================================================== revue 2026-09-23
+        // Preuves demandees par la revue : signe des bords d'enveloppe d'un membre antiparallele,
+        // seuils geometriques lus dans le profil, moitie « ordre » du code 27, balayage de tout
+        // l'intervalle d'adjacence, surcharge de Project, marge de Bounds, drapeaux composes.
+
+        /// <summary>Datum a x=0 et membre antiparallele a x=lateral, demi-largeurs dissymetriques.</summary>
+        private static RoadModelSource AntiparallelMemberSource(float memberLateral, float halfWidthLeft, float halfWidthRight)
+        {
+            var source = new RoadModelSource();
+            source.ModelId = ModelId;
+            source.ValidationProfile = ValidationProfile();
+            source.LocalizationProfile = LocalizationProfile();
+            source.Sections = new[] { Section(SectionS1) };
+
+            var member = Corridor(CorridorSB, SectionS1, Straight(new Vector3(memberLateral, 0f, 30f), new Vector3(memberLateral, 0f, 0f)), 1, false);
+            for (int i = 0; i < member.Samples.Length; i++)
+            {
+                member.Samples[i].HalfWidthLeftMeters = halfWidthLeft;
+                member.Samples[i].HalfWidthRightMeters = halfWidthRight;
+            }
+
+            source.Corridors = new[]
+            {
+                Corridor(CorridorNB, SectionS1, Straight(Vector3.zero, new Vector3(0f, 0f, 30f)), 0, true),
+                member
+            };
+
+            return source;
+        }
+
+        private static bool HasGeometryIssue(RoadModelSource source, RoadModelValidationCode code, RoadId subject)
+        {
+            foreach (var issue in RoadModelValidator.Validate(source))
+            {
+                if (issue.Code == code && issue.SubjectId == subject)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        [Test]
+        public void AnAntiparallelMemberKeepsItsOwnRightOnTheDatumSide()
+        {
+            // Le membre va vers -z : son cote droit fait face au datum. A lateral 4,2 avec gauche 2,4 et
+            // droite 2,2, le bord correct tombe a 4,2 - 2,2 = 2,0 (recouvrement nul) ; appliquer la
+            // largeur GAUCHE de ce cote donnerait 1,8, soit 0,2 m de recouvrement (code 29).
+            var correct = AntiparallelMemberSource(4.2f, 2.4f, 2.2f);
+            Assert.That(RoadModelValidator.Validate(correct), Is.Empty,
+                "Un membre antiparallele garde sa droite du cote du datum.");
+            Assert.That(RoadModelCompiler.Compile(correct).Version.IsEmpty, Is.False);
+
+            var mirrored = AntiparallelMemberSource(4.2f, 2.2f, 2.4f);
+            Assert.That(HasGeometryIssue(mirrored, RoadModelValidationCode.OverlappingLateralEnvelopes, CorridorSB), Is.True,
+                "La geometrie miroir recouvre de 0,2 m : c'est bien le cote applique qui decide.");
+        }
+
+        [Test]
+        public void TheSeamLengthAndOverlapTolerancesAreReadFromTheValidationProfile()
+        {
+            var overlap = AntiparallelMemberSource(4.16f, 2.4f, 2.2f);
+            Assert.That(RoadModelValidator.Validate(overlap), Is.Empty, "0,04 m de recouvrement sous 0,05 m.");
+
+            var strictOverlap = AntiparallelMemberSource(4.16f, 2.4f, 2.2f);
+            strictOverlap.ValidationProfile.EnvelopeOverlapToleranceMeters = 0.01f;
+            Assert.That(HasGeometryIssue(strictOverlap, RoadModelValidationCode.OverlappingLateralEnvelopes, CorridorSB), Is.True,
+                "Le meme modele echoue sous une tolerance plus stricte : elle est bien lue dans le profil.");
+
+            var seamGap = BuildModel();
+            seamGap.Movements[MSIndex].Samples[0].Position += new Vector3(0f, 0f, 0.03f);
+            Assert.That(RoadModelValidator.Validate(seamGap), Is.Empty, "3 cm d'ecart a une couture sous 0,05 m.");
+
+            var strictSeamGap = BuildModel();
+            strictSeamGap.Movements[MSIndex].Samples[0].Position += new Vector3(0f, 0f, 0.03f);
+            strictSeamGap.ValidationProfile.SeamGapToleranceMeters = 0.02f;
+            Assert.That(HasGeometryIssue(strictSeamGap, RoadModelValidationCode.MovementSeamBroken, MovementMS), Is.True,
+                "La couture echoue quand le profil resserre l'ecart tolere.");
+
+            var seamTangent = BuildModel();
+            seamTangent.Movements[MSIndex].Samples[0].Tangent = Quaternion.AngleAxis(3f, Vector3.up) * North;
+            Assert.That(RoadModelValidator.Validate(seamTangent), Is.Empty, "3 deg de tangente sous 5 deg.");
+
+            var strictSeamTangent = BuildModel();
+            strictSeamTangent.Movements[MSIndex].Samples[0].Tangent = Quaternion.AngleAxis(3f, Vector3.up) * North;
+            strictSeamTangent.ValidationProfile.SeamTangentToleranceDegrees = 2f;
+            Assert.That(HasGeometryIssue(strictSeamTangent, RoadModelValidationCode.MovementSeamBroken, MovementMS), Is.True,
+                "La tangente echoue quand le profil resserre l'ecart angulaire.");
+
+            var length = BuildModel();
+            length.Corridors[NBIndex].Samples[1].SMeters = 15.03f;
+            Assert.That(RoadModelValidator.Validate(length), Is.Empty, "3 cm d'ecart abscisse/corde sous 0,05 m.");
+
+            var strictLength = BuildModel();
+            strictLength.Corridors[NBIndex].Samples[1].SMeters = 15.03f;
+            strictLength.ValidationProfile.LengthToleranceMeters = 0.02f;
+            Assert.That(HasGeometryIssue(strictLength, RoadModelValidationCode.InconsistentCurveLength, CorridorNB), Is.True,
+                "L'abscisse echoue quand le profil resserre la tolerance de longueur.");
+        }
+
+        /// <summary>Datum a x=0, deux membres de sens oppose au datum, arcs disjoints, ordres inverses.</summary>
+        private static RoadModelSource DisjointOrderSource()
+        {
+            var source = new RoadModelSource();
+            source.ModelId = ModelId;
+            source.ValidationProfile = ValidationProfile();
+            source.LocalizationProfile = LocalizationProfile();
+            source.Sections = new[] { Section(SectionS1) };
+            source.Corridors = new[]
+            {
+                Corridor(CorridorNB, SectionS1, Straight(Vector3.zero, new Vector3(0f, 0f, 30f)), 0, true),
+                Corridor(CorridorSB, SectionS1, Straight(new Vector3(5f, 0f, 10f), new Vector3(5f, 0f, 0f)), 2, false),
+                Corridor(CorridorNB2, SectionS1, Straight(new Vector3(10f, 0f, 30f), new Vector3(10f, 0f, 20f)), 1, false)
+            };
+
+            var adjacency = Adjacency(AdjacencyAd, CorridorSB, CorridorNB2, LaneSide.Left);
+            adjacency.FromStartSMeters = 0f;
+            adjacency.FromEndSMeters = 10f;
+            adjacency.ToStartSMeters = 0f;
+            adjacency.ToEndSMeters = 10f;
+            source.Adjacencies = new[] { adjacency };
+            return source;
+        }
+
+        [Test]
+        public void TheOrderHalfOfTheLaneSideCheckIsLoadBearingOnItsOwn()
+        {
+            // Les deux membres vont vers -z : le cote droit de SB est -x, donc NB2 est a sa gauche et
+            // la geometrie s'accorde avec Side=Left. Ce sont les ordres authores qui la contredisent,
+            // et ComparePair ne voit pas ce couple (leurs arcs sur le datum ne se recouvrent pas).
+            var inverted = DisjointOrderSource();
+            Assert.That(HasGeometryIssue(inverted, RoadModelValidationCode.LaneSideDisagreement, AdjacencyAd), Is.True,
+                "Ordres inverses sur arcs disjoints : seule la moitie « ordre » du code 27 peut le dire.");
+
+            var consistent = DisjointOrderSource();
+            consistent.Corridors[1].LateralOrder = 1;
+            consistent.Corridors[2].LateralOrder = 2;
+            Assert.That(RoadModelValidator.Validate(consistent), Is.Empty,
+                "Avec des ordres conformes, le meme couple ne produit aucun echec : c'est bien l'ordre qui parlait.");
+        }
+
+        [Test]
+        public void ALaneSideThatFlipsBetweenTwoAuthoredSamplesIsCaughtByTheIntervalCheck()
+        {
+            // La source n'a que deux echantillons : aucun point de controle authored a l'interieur.
+            // La cible est a droite de ses extremites et a gauche en son milieu, les deux sections sont
+            // a un seul corridor (donc sans coupe transversale a comparer), et seul un point interieur a
+            // l'intervalle contredit les echantillons : AD-48 exige un accord sur tout l'intervalle.
+            var source = new RoadModelSource();
+            source.ModelId = ModelId;
+            source.ValidationProfile = ValidationProfile();
+            source.LocalizationProfile = LocalizationProfile();
+            source.Sections = new[] { Section(SectionS1), Section(SectionS2) };
+            source.Corridors = new[]
+            {
+                Corridor(CorridorNB, SectionS1, new[]
+                {
+                    Sample(0f, Vector3.zero, North, 0f),
+                    Sample(30f, new Vector3(0f, 0f, 30f), North, 0f)
+                }, 0, true),
+                Corridor(CorridorSB, SectionS2, VShapedCorridor(), 0, true)
+            };
+            source.Adjacencies = new[] { Adjacency(AdjacencyAd, CorridorNB, CorridorSB, LaneSide.Right) };
+
+            Assert.That(HasGeometryIssue(source, RoadModelValidationCode.LaneSideDisagreement, AdjacencyAd), Is.True,
+                "Un desaccord entre deux echantillons authores est un echec (AD-48, tout l'intervalle).");
+        }
+
+        /// <summary>Corridor en V : extremites a droite de la source, sommet a gauche, s cumule sur les cordes.</summary>
+        private static RoadCurveSample[] VShapedCorridor()
+        {
+            float span = new Vector3(10f, 0f, 15f).magnitude;
+            return new[]
+            {
+                Sample(0f, new Vector3(5f, 0f, 0f), new Vector3(-10f, 0f, 15f).normalized, 0f),
+                Sample(span, new Vector3(-5f, 0f, 15f), North, 0f),
+                Sample(2f * span, new Vector3(5f, 0f, 30f), new Vector3(10f, 0f, 15f).normalized, 0f)
+            };
+        }
+
+        [Test]
+        public void ProjectionOverAWindowIsRestrictedAndMeasuresTheWindowOverrun()
+        {
+            var curve = new RoadCurve(Straight(Vector3.zero, new Vector3(0f, 0f, 30f)));
+
+            var before = curve.Project(new Vector3(0f, 0f, 6f), 10f, 20f);
+            Assert.That(before.SMeters, Is.EqualTo(10f).Within(1e-4f), "Le point le plus proche hors fenetre est rabattu sur sa borne.");
+            Assert.That(before.LongitudinalOverrunMeters, Is.EqualTo(4f).Within(1e-4f),
+                "Le depassement se mesure contre la fenetre, pas contre le domaine.");
+
+            var inside = curve.Project(new Vector3(0f, 0f, 15f), 10f, 20f);
+            Assert.That(inside.SMeters, Is.EqualTo(15f).Within(1e-4f));
+            Assert.That(inside.LongitudinalOverrunMeters, Is.EqualTo(0f).Within(1e-4f));
+
+            var collapsed = curve.Project(new Vector3(0f, 0f, 25f), 20f, 10f);
+            Assert.That(collapsed.SMeters, Is.EqualTo(20f).Within(1e-4f), "sMax < sMin s'effondre sur la borne basse.");
+
+            var beyondDomain = curve.Project(new Vector3(0f, 0f, 40f), -10f, 400f);
+            Assert.That(beyondDomain.SMeters, Is.InRange(0f, 30f), "La fenetre est bornee au domaine de la courbe.");
+            Assert.That(beyondDomain.LongitudinalOverrunMeters, Is.EqualTo(10f).Within(1e-4f));
+        }
+
+        [Test]
+        public void BoundsCoverTheWidthEnvelopeAcrossADiscontinuousWidthOnASharpTurn()
+        {
+            var samples = RightQuarterTurn(Vector3.zero, 10f);
+            for (int i = 0; i < samples.Length; i++)
+            {
+                bool wide = i * 2 >= samples.Length;
+                samples[i].HalfWidthLeftMeters = wide ? 4f : 1f;
+                samples[i].HalfWidthRightMeters = wide ? 1f : 4f;
+            }
+
+            var curve = new RoadCurve(samples);
+            var bounds = curve.Bounds(0f, curve.Length);
+            for (float s = 0f; s <= curve.Length; s += 0.05f)
+            {
+                var frame = curve.Sample(s);
+                Assert.That(bounds.Contains(frame.Position - frame.Right * frame.HalfWidthLeftMeters), Is.True,
+                    "Bord gauche hors des bornes a s=" + s);
+                Assert.That(bounds.Contains(frame.Position + frame.Right * frame.HalfWidthRightMeters), Is.True,
+                    "Bord droit hors des bornes a s=" + s);
+            }
+
+            var end = curve.Sample(curve.Length);
+            Assert.That(bounds.Contains(end.Position + end.Right * end.HalfWidthRightMeters), Is.True,
+                "Bord droit hors des bornes a l'extremite.");
+        }
+
+        [Test]
+        public void ADisplacedWrongWayPoseCarriesBothFlagsAndKeepsItsIdentity()
+        {
+            var model = RoadModelCompiler.Compile(BuildModel());
+            var location = Localize(model, new Vector3(9f, 0f, 15f), South);
+
+            Assert.That(location.Localized, Is.True);
+            Assert.That(location.ElementId, Is.EqualTo(CorridorNB2));
+            Assert.That(location.HasFlag(RoadLocationFlags.OutsideEnvelope), Is.True);
+            Assert.That(location.HasFlag(RoadLocationFlags.WrongWay), Is.True,
+                "Les drapeaux sont composables : une pose deplacee a contresens les porte tous les deux.");
         }
     }
 }

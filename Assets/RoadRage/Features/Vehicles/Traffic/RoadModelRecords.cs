@@ -697,7 +697,11 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <summary>Distance maximale entre le point de reference et l'enveloppe acceptee, en metres.</summary>
         public float AcceptanceDistanceMeters;
 
-        /// <summary>Seuil d'erreur de cap absolue au-dela duquel la pose est a contresens, en degres.</summary>
+        /// <summary>
+        /// Seuil d'erreur de cap absolue au-dela duquel la pose est a contresens, en degres, dans
+        /// ]0, 90]. Le contrat fixe le SENS du drapeau a 90 deg : le profil peut resserrer le seuil,
+        /// jamais le relacher, sinon un contresens frontal cesserait d'etre signale.
+        /// </summary>
         public float WrongWayHeadingDegrees;
     }
 

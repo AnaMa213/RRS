@@ -45,7 +45,7 @@ context:
 
 - `Assets/RoadRage/Features/Vehicles/Traffic/RoadModelRecords.cs:293` -- `RoadCurveSample` : charge que la 5.26 interroge et produit. `:640` `RoadModelValidationProfile` (contient aujourd'hui `LocalizationScoreBandMeters` et `WrongWayHeadingDegrees`, a deplacer vers le profil de localisation). `:421` `LaneAdjacency.Side`. `:408` `LaneConnection`.
 - `.../Traffic/CompiledRoadModel.cs:83` -- `EffectiveLaneCorridor` et `:107` `CompiledJunctionMovement` : y exposer la courbe. `:643` `ReadOnlyCopy`.
-- `.../Traffic/RoadModelCompiler.cs:38` -- `Compile`, seul emetteur ; `CompilerSchemaVersion = 2` passe a 3 (representation du profil change).
+- `.../Traffic/RoadModelCompiler.cs:38` -- `Compile`, seul emetteur ; `CompilerSchemaVersion = 2` passe a **4** (3 : le profil de localisation sort du profil de validation et les tolerances geometriques y entrent ; 4, nettoyage : le seuil d'ancrage AD-48 `GroundingMaxOffAxisDegrees` entre dans le profil de validation, il etait une constante du validateur donc absent de toute charge canonique).
 - `.../Traffic/RoadModelValidator.cs:111` -- `Validate` structurel ; codes 1-18 ; `:660` `CheckSamples`. La geometrie s'execute seulement si le structurel est vide (references resolues).
 - `.../Traffic/RoadModelCanonicalWriter.cs:14,108` -- `RoadModelCanonicalPayload` et `ComputeFingerprint` publics : cible directe des tests de couverture de champ que la geometrie interdit de muter isolement.
 - `Assets/RoadRage/Tests/EditMode/Story525RoadWorldModelTests.cs:81` -- fixture synthetique geometriquement incoherente ; `:342` `VersionOf` ; `:389` `MoveE1Onto` (suppose E1 d'ordre maximal) ; `:629-641`, `:1565` mutations d'ordre/datum ; `:591,755` extremites de connexion ; `:734-738` tangente/up non unitaires ; `:763` `Side`.
@@ -63,6 +63,7 @@ context:
 - [x] `Assets/RoadRage/Tests/EditMode/Story526GeometryAndLocalizationTests.cs` -- chaque ligne de la matrice, matrice de signes, tolerance de corde, un cas par code geometrique, determinisme, garde source (aucun `Rigidbody`/`Transform`/`MonoBehaviour`/`Splines`/`InternalsVisibleTo`).
 - [x] `docs/setup/story-5-26-geometry-localization-notes.md` -- score, deux profils et regle de schema, codes, choix de fixture.
 - [x] `sprint-status.yaml` -> `in-progress` ; `graphify update .`.
+- [x] Revue 2026-09-23 -- **code 19 rendu a la forme du repere** : `RoadUpFlipped` (32) et `TangentOpposesChord` (33) ont leur propre code ; `Ambiguous` rendu au contrat AD-45 (le rival du meme rang compte qu'il soit accepte ou non) ; `WrongWayHeadingDegrees` borne a ]0, 90] comme le contrat fixe le sens du drapeau ; le domaine du gabarit du profil (`MaxVehicleHalfWidthMeters`, `MaxVehicleLengthMeters`) est verifie strictement positif ; la comparaison `LateralOrder` / `LaneSide` couvre tout l'intervalle d'adjacence par une grille au pas de longueur du profil ; `Bounds`, la surcharge de `Project`, les drapeaux composes, le signe des bords d'un membre antiparallele et la lecture des quatre seuils dans le profil sont prouves par des tests dedies. Spec et notes alignees sur le livrable (schema 4, code 31, ancrage AD-48).
 
 **Acceptance Criteria:**
 - Given un corridor ou mouvement compile, when il est echantillonne ou projete, then il rend position, tangente, road-up, courbure signee et largeurs gauche/droite a `s`, et la projection ne sort jamais de `[0, Length]`.
@@ -70,6 +71,34 @@ context:
 - Given une source geometriquement invalide, when elle est compilee, then aucune `RoadModelVersion` n'est emise, et aucun autre membre public ne rend de version pour elle.
 - Given la suite 5.25 apres adaptation, when elle tourne, then chaque champ canonique reste prouve par mutation, sur `Compile` ou sur le writer public.
 - Given la suite EditMode complete, when elle tourne, then elle est verte, `TrafficOracleTests` et `Story59ParameterizedDriverModelTests` sans modification.
+
+### Review Findings
+
+Revue du 2026-09-23 (baseline `0909f89` -> `b8e9f85`, couches blind-hunter / edge-case-hunter / verification-gap / acceptance-auditor). Les quatre decisions ont ete tranchees par le proprietaire le 2026-09-23 puis appliquees avec les correctifs ; les trois reports sont inscrits dans `deferred-work.md`.
+
+- [x] [Review][Decision -> Patch] Code 19 separe en trois motifs — **Resolu (a)** : `RoadUpFlipped` (32) et `TangentOpposesChord` (33) ont leur propre code ; le code 19 ne porte plus que la forme du repere (unitaire, orthogonal). `RoadGeometryValidator.CheckShape` emet un motif par code, l'enum et les notes sont alignes, les tests attendent 32 / 33 au lieu de 19. [Assets/RoadRage/Features/Vehicles/Traffic/RoadGeometryValidator.cs]
+- [x] [Review][Decision -> Patch] `Ambiguous` rendu au contrat AD-45 — **Resolu (a)** : le rival est tout candidat du meme rang, accepte ou non ; le filtre qui rendait muet le seul cas atteignable (precedent retenu par l'hysteresis au-dela de l'acceptation) est retire, la note de story est alignee. [Assets/RoadRage/Features/Vehicles/Traffic/RoadLocalization.cs]
+- [x] [Review][Decision -> Patch] Seuil de contresens borne a 90 deg — **Resolu (a)** : `WrongWayHeadingDegrees` est valide dans ]0, 90], le contrat fixant le sens du drapeau ; l'importeur et les fixtures posaient deja 90, la doc du champ et les notes sont alignees, les deux tests de version utilisaient des valeurs devenues hors domaine (100 -> 80, 90 + pas -> 89 + pas). [Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs]
+- [x] [Review][Decision -> Patch] Accord `LateralOrder` / `LaneSide` sur tout l'intervalle — **Resolu (a)** : `CheckAdjacency` ajoute une grille au pas de longueur du profil (plafonnee a 512 points par intervalle, garde de cout) et trie ses points de controle ; un desaccord entre deux echantillons authored est desormais vu, sans dependre de leur densite. [Assets/RoadRage/Features/Vehicles/Traffic/RoadGeometryValidator.cs]
+- [x] [Review][Patch] Test : signe des bords d'enveloppe pour un membre antiparallele au datum [Story526GeometryAndLocalizationTests.cs:AnAntiparallelMemberKeepsItsOwnRightOnTheDatumSide]
+- [x] [Review][Patch] Test : les quatre seuils geometriques (couture position/tangente, longueur/corde, recouvrement) sont lus dans le profil [Story526GeometryAndLocalizationTests.cs:TheSeamLengthAndOverlapTolerancesAreReadFromTheValidationProfile]
+- [x] [Review][Patch] Test : la branche « ordre » du code 27 comme unique declencheur [Story526GeometryAndLocalizationTests.cs:TheOrderHalfOfTheLaneSideCheckIsLoadBearingOnItsOwn]
+- [x] [Review][Patch] Test : surcharge `Project(point, sMin, sMax)` (restriction, `sMax < sMin`, depassement mesure sur la fenetre) [Story526GeometryAndLocalizationTests.cs:ProjectionOverAWindowIsRestrictedAndMeasuresTheWindowOverrun]
+- [x] [Review][Patch] Test : marge conservatrice de `Bounds` (largeur discontinue, virage serre) [Story526GeometryAndLocalizationTests.cs:BoundsCoverTheWidthEnvelopeAcrossADiscontinuousWidthOnASharpTurn]
+- [x] [Review][Patch] Test : drapeaux composes (`OutsideEnvelope` + `WrongWay`) et invariants du resultat localise [Story526GeometryAndLocalizationTests.cs:ADisplacedWrongWayPoseCarriesBothFlagsAndKeepsItsIdentity]
+- [x] [Review][Patch] Test : `AssertFieldCoveredButGeometricallyForbidden` asserte desormais le code geometrique attendu, sur ses onze sites [Story525RoadWorldModelTests.cs:482]
+- [x] [Review][Patch] Test : la revendication de packaging est verifiee (aucun `.asmdef` dans `Traffic/`, aucune reference `Spline` dans les asmdefs, aucune dependance directe a `com.unity.splines`) [Story526GeometryAndLocalizationTests.cs:TheStory526SourcesStayPureAndPackageIndependent]
+- [x] [Review][Patch] Doc : `RoadLocationCandidate.Rank` documente la condition `|normal| <= acceptation` [RoadLocalization.cs:84]
+- [x] [Review][Patch] Doc : `epic-5-context.md` ne declare plus d'index spatial 3D ni l'hysteresis dans le profil de validation [_bmad-output/implementation-artifacts/epic-5-context.md:54]
+- [x] [Review][Patch] Doc : `epic-5-context.md` republie le pointeur vers le contrat accepte et la regle « spec approuvee requise avant une story 5.24-5.48 » [_bmad-output/implementation-artifacts/epic-5-context.md:7]
+- [x] [Review][Patch] Doc : spec 5.26 alignee sur le livrable (schema 4, code 31, ancrage AD-48, clotures `deferred-work`) [_bmad-output/implementation-artifacts/spec-5-26-directed-arc-length-geometry-and-lane-localization.md:48]
+- [x] [Review][Patch] Profil : `MaxVehicleHalfWidthMeters` et `MaxVehicleLengthMeters` doivent etre strictement positifs (la marge laterale reste authoree sans borne basse) [RoadModelValidator.cs:238]
+- [x] [Review][Patch] Test : le balayage de tout l'intervalle d'adjacence est prouve par un corridor cible en V dont les echantillons s'accordent et le milieu contredit [Story526GeometryAndLocalizationTests.cs:ALaneSideThatFlipsBetweenTwoAuthoredSamplesIsCaughtByTheIntervalCheck]
+- [x] [Review][Defer] La courbure signee n'est jamais recoupee avec la geometrie des echantillons [RoadModelRecords.cs:293] — deferred, hors matrice de validation approuvee
+- [x] [Review][Defer] Aucun plafond de volume d'echantillons produits (profondeur 16 par segment authored) [RoadCurveBuilder.cs:184] — deferred, budget AD-42 / 5.46
+- [x] [Review][Defer] Repere degenere possible **entre** deux echantillons (road-up interpole parallele a la tangente rend un `Right` nul) [RoadCurve.cs:283] — deferred, inatteignable sur une carte plate
+
+**Verification de cloture (2026-09-23)** : `.\scripts\validate.ps1 -TestMode EditMode` -> `OK`, suite **798/798** (791 avant la revue, +7 tests), 0 erreur Console dans la fenetre, `scriptCompilationFailed=false`, aucune scene modifiee.
 
 ## Design Notes
 

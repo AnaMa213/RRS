@@ -38,9 +38,13 @@ nettoyage final de la 5.26 y ajoute le seuil d'ancrage AD-48 (`GroundingMaxOffAx
 etait une constante du validateur et n'entrait donc dans aucune charge : **schema 3 -> 4**.
 
 Domaine : chaque tolerance, la bande, l'hysteresis, l'acceptation et le seuil d'ancrage doivent
-etre strictement positifs (l'ancrage dans ]0, 90[ : 90 deg accepterait une perpendiculaire), et le
-seuil de contresens dans ]0, 180] ; sinon `NumericValueOutOfRange` (un profil non renseigne ne
-compile pas).
+etre strictement positifs (l'ancrage dans ]0, 90[ : 90 deg accepterait une perpendiculaire), le
+seuil de contresens dans ]0, 90] (le contrat AD-45 fixe le SENS du drapeau a 90 deg : le profil
+peut resserrer le seuil, jamais le relacher), et le gabarit versionne
+(`MaxVehicleHalfWidthMeters`, `MaxVehicleLengthMeters`) strictement positif ; sinon
+`NumericValueOutOfRange` (un profil non renseigne ne compile pas). La marge laterale
+(`LateralClearanceMarginMeters`) reste authoree sans borne basse : zero y est une decision
+explicite (aucune marge exigee), pas un oubli.
 
 **Plafonds approuves (nettoyage 5.26).** Le profil peut etre plus strict que le contrat, jamais
 plus laxiste : `SeamGapToleranceMeters` > 0,05 m, `SeamTangentToleranceDegrees` > 5 deg et
@@ -57,7 +61,9 @@ Puis **relations**. Un code par defaut, jamais groupe ; chaque issue nomme l'id 
 
 | Code | Defaut | Sujet |
 | --- | --- | --- |
-| 19 `NonOrthonormalFrame` | tangente ou road-up non unitaire ou non orthogonaux (1e-3), road-up retourne (`up . monde-haut <= 0`), tangente opposee a sa corde | corridor / mouvement |
+| 19 `NonOrthonormalFrame` | forme du repere : tangente ou road-up non unitaire, ou non orthogonaux (1e-3) | corridor / mouvement |
+| 32 `RoadUpFlipped` | road-up retourne (`up . monde-haut <= 0`) : echange gauche et droite en silence | corridor / mouvement |
+| 33 `TangentOpposesChord` | tangente opposee ou perpendiculaire a sa corde : le sens de marche ne suit plus la geometrie | corridor / mouvement |
 | 20 `InconsistentCurveLength` | `s0` != 0, `LengthMeters` != dernier `s`, ou pas de `s` != corde | corridor / mouvement |
 | 21 `NonPositiveHalfWidth` | demi-largeur <= 0 | corridor / mouvement |
 | 22 `ArcPositionOutOfDomain` | intervalle d'adjacence vide ou hors domaine, `s` de portail hors domaine | adjacence / portail |
@@ -75,6 +81,11 @@ Procedure AD-48 : chaque corridor est projete au plus proche point sur le datum,
 intervalle de recouvrement (trouve dans les deux sens de projection) ; puis chaque paire d'ordres
 croissants dont les intervalles se recouvrent plus qu'en un point est comparee sur les abscisses
 des deux traces. Rien n'est derive, reordonne ni repare.
+
+L'accord `LateralOrder` / `LaneSide` d'une adjacence est verifie sur **tout son intervalle** :
+bornes et echantillons authored, plus une grille au pas de longueur du profil (`LengthToleranceMeters`,
+plafonnee a 512 points par intervalle, garde de cout). La resolution du verdict est ainsi versionnee
+avec le modele au lieu de dependre de la densite des echantillons authorés.
 
 `RoadModelVersion` reste emise par le seul `Compile` reussi, geometrie comprise ; `Validate` vide
 signifie toujours « compilable ».
@@ -104,7 +115,8 @@ acceptation) ; candidats a distance d'enveloppe <= voisinage. Tri par `(rang, sc
   **cumulables** : un element de route departage deux successeurs du precedent.
 - **Acceptation** : distance 3D a l'enveloppe <= seuil. `localized=false` si aucun candidat accepte ;
   aucune identite d'element, alternatives possibles.
-- **Marge** : ecart de score avec le candidat suivant du meme rang (parmi les acceptes si localise).
+- **Marge** : ecart de score avec le candidat suivant du meme rang, **accepte ou non** (contrat
+  AD-45 : `Ambiguous` decrit l'ensemble des candidats, pas le seul resultat retenu).
   `Ambiguous` si marge < bande ; `confidence = clamp01(marge / bande)`, 1 sans rival du meme rang,
   0 si non localise.
 - **Drapeaux** : `WrongWay` si |cap| > seuil ; `OutsideEnvelope` si la reference depasse une
@@ -155,6 +167,26 @@ au-dela de la couture NB2 -> mouvement, le precedent garde son identite (`s` bor
   differente change la version.
 - Les deux entrees de `deferred-work.md` (invariants geometriques de la 5.25, adjacence de sens
   oppose) sont CLOSES le 2026-09-23 : couvertes par les codes 19-23, 26 et 27 et par leurs tests.
+
+## Revue post-livraison (2026-09-23)
+
+- **Codes** : le code 19 ne porte plus que la forme du repere ; `RoadUpFlipped` (32) et
+  `TangentOpposesChord` (33) ont leur propre code de motif.
+- **`Ambiguous`** : le rival est tout candidat du meme rang, accepte ou non. Le filtre precedent
+  rendait muet le seul cas atteignable (element precedent retenu par l'hysteresis au-dela du seuil
+  d'acceptation).
+- **Contresens** : `WrongWayHeadingDegrees` est borne a ]0, 90], le sens du drapeau etant fixe par
+  le contrat.
+- **Profil** : le gabarit (`MaxVehicleHalfWidthMeters`, `MaxVehicleLengthMeters`) doit etre
+  strictement positif.
+- **AD-48** : l'accord cote/ordre d'une adjacence balaie tout l'intervalle (grille au pas de
+  `LengthToleranceMeters`, plafond de 512 points).
+- **Preuves ajoutees** : signe des bords d'enveloppe d'un membre antiparallele, lecture des quatre
+  seuils geometriques dans le profil, moitie « ordre » du code 27 comme unique declencheur,
+  desaccord entre deux echantillons authored, surcharge de `Project`, marge conservatrice de
+  `Bounds`, drapeaux composes, garde de packaging (asmdef + `Packages/manifest.json`).
+- **Reportes** (`deferred-work.md`) : courbure signee jamais recoupee, volume d'echantillons non
+  plafonne, repere nul possible entre deux echantillons (pente forte en un pas).
 
 ## Hors perimetre, laisse ouvert
 

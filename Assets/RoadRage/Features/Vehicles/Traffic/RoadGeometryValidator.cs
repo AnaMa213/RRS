@@ -20,6 +20,12 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <summary>Tolerance numerique d'un repere unitaire et orthogonal (sans unite).</summary>
         private const float UnitTolerance = 1e-3f;
 
+        /// <summary>
+        /// Plafond du nombre de points ajoutes par un intervalle d'adjacence pour couvrir tout
+        /// l'intervalle. Garde de cout, jamais un invariant de contrat.
+        /// </summary>
+        private const int MaxAdjacencyCheckpoints = 512;
+
         internal static void Validate(RoadModelSource source, List<RoadModelValidationIssue> issues)
         {
             var profile = source.ValidationProfile;
@@ -130,7 +136,7 @@ namespace RoadRage.Features.Vehicles.Traffic
 
             for (int i = 0; i < adjacencies.Length; i++)
             {
-                CheckAdjacency(issues, adjacencies[i], corridorById, curves, datumBySection);
+                CheckAdjacency(issues, adjacencies[i], corridorById, curves, datumBySection, profile);
             }
 
             var sections = source.Sections ?? new RoadSection[0];
@@ -165,6 +171,8 @@ namespace RoadRage.Features.Vehicles.Traffic
         {
             float tolerance = profile.LengthToleranceMeters;
             string frameDefect = null;
+            string upDefect = null;
+            string chordDefect = null;
             string lengthDefect = null;
             string widthDefect = null;
 
@@ -188,19 +196,21 @@ namespace RoadRage.Features.Vehicles.Traffic
                     frameDefect = "echantillon " + i;
                 }
 
-                // Un road-up retourne echange silencieusement gauche et droite.
-                if (frameDefect == null && !(Vector3.Dot(sample.Up, Vector3.up) > 0f))
+                // Un road-up retourne echange silencieusement gauche et droite : motif propre (code 32),
+                // le repere lui-meme restant unitaire et orthogonal.
+                if (upDefect == null && !(Vector3.Dot(sample.Up, Vector3.up) > 0f))
                 {
-                    frameDefect = "echantillon " + i + " (road-up retourne)";
+                    upDefect = "echantillon " + i;
                 }
 
-                // Une tangente opposee a sa corde inverse le sens de marche sans rien casser d'autre.
-                if (frameDefect == null && i > 0)
+                // Une tangente opposee a sa corde inverse le sens de marche sans rien casser d'autre :
+                // motif propre (code 33).
+                if (chordDefect == null && i > 0)
                 {
                     Vector3 chord = sample.Position - samples[i - 1].Position;
                     if (!(Vector3.Dot(chord, sample.Tangent) > 0f && Vector3.Dot(chord, samples[i - 1].Tangent) > 0f))
                     {
-                        frameDefect = "echantillon " + i + " (tangente opposee a la corde)";
+                        chordDefect = "echantillon " + i;
                     }
                 }
 
@@ -224,6 +234,19 @@ namespace RoadRage.Features.Vehicles.Traffic
             {
                 issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.NonOrthonormalFrame, subject,
                     typeName + " : tangente/road-up non orthonormes a l'" + frameDefect + "."));
+            }
+
+            if (upDefect != null)
+            {
+                issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.RoadUpFlipped, subject,
+                    typeName + " : road-up retourne (dote negativement au monde-haut) a l'" + upDefect
+                        + ", ce qui echange gauche et droite."));
+            }
+
+            if (chordDefect != null)
+            {
+                issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.TangentOpposesChord, subject,
+                    typeName + " : tangente opposee ou perpendiculaire a sa corde a l'" + chordDefect + "."));
             }
 
             if (lengthDefect != null)
@@ -307,7 +330,8 @@ namespace RoadRage.Features.Vehicles.Traffic
             LaneAdjacency adjacency,
             Dictionary<RoadId, LaneCorridor> corridorById,
             Dictionary<RoadId, RoadCurve> curves,
-            Dictionary<RoadId, LaneCorridor> datumBySection)
+            Dictionary<RoadId, LaneCorridor> datumBySection,
+            RoadModelValidationProfile profile)
         {
             var from = corridorById[adjacency.FromCorridorId];
             var to = corridorById[adjacency.ToCorridorId];
@@ -329,6 +353,24 @@ namespace RoadRage.Features.Vehicles.Traffic
             }
 
             checkpoints.Add(adjacency.FromEndSMeters);
+
+            // « Sur tout l'intervalle d'adjacence » (AD-48) : les seuls echantillons authored ne
+            // suffisent pas, un desaccord peut naitre entre deux d'entre eux. On ajoute une grille au
+            // pas de longueur du profil de validation : la resolution du verdict est ainsi versionnee
+            // avec le modele, et deux implementations du meme profil rendent le meme verdict. Le
+            // plafond de points est un garde de cout, pas un invariant : il ne mord que sur un profil
+            // plus fin que la carte ne le justifie.
+            float span = adjacency.FromEndSMeters - adjacency.FromStartSMeters;
+            float step = Mathf.Max(profile.LengthToleranceMeters, span / MaxAdjacencyCheckpoints);
+            if (step > 0f && !float.IsInfinity(step))
+            {
+                for (float s = adjacency.FromStartSMeters + step; s < adjacency.FromEndSMeters; s += step)
+                {
+                    checkpoints.Add(s);
+                }
+            }
+
+            checkpoints.Sort();
 
             bool wantRight = adjacency.Side == LaneSide.Right;
             string sideDefect = null;

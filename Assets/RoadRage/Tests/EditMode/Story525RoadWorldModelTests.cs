@@ -479,14 +479,16 @@ namespace RoadRage.Tests.EditMode
         /// Champ canonique dont la mutation isolee est geometriquement interdite : il est prouve sur
         /// le writer public, et Compile rejette la meme mutation.
         /// </summary>
-        private static void AssertFieldCoveredButGeometricallyForbidden(Action<RoadModelSource> mutate, string because)
+        private static void AssertFieldCoveredButGeometricallyForbidden(Action<RoadModelSource> mutate, RoadModelValidationCode code, string because)
         {
             Assert.That(FingerprintOf(mutate), Is.Not.EqualTo(FingerprintOf(null)), because);
 
             var source = BuildModel();
             mutate(source);
-            Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(source); },
+            var exception = Assert.Throws<RoadModelCompilationException>(delegate { RoadModelCompiler.Compile(source); },
                 "La geometrie doit rejeter cette mutation : " + because);
+            Assert.That(exception.HasCode(code), Is.True,
+                "Le rejet doit porter le code " + code + ", pas un autre motif : " + exception.Message);
         }
 
         /// <summary>Mutation parametree par un ecart, pour eprouver un pas de quantification.</summary>
@@ -720,10 +722,12 @@ namespace RoadRage.Tests.EditMode
             // prouve sur le writer, rejete par Compile (5.26).
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Connections[0].FromCorridorId = CorridorD2; },
+                RoadModelValidationCode.ConnectionSeamBroken,
                 "Topologie : comportemental.");
 
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Movements[MovementM1Index].ToCorridorId = CorridorD2; },
+                RoadModelValidationCode.MovementSeamBroken,
                 "Mouvement : comportemental.");
 
             AssertVersionChanges(
@@ -763,6 +767,7 @@ namespace RoadRage.Tests.EditMode
                     source.Corridors[CorridorA1Index].LateralOrder = 1;
                     source.Corridors[CorridorA1BIndex].LateralOrder = 0;
                 },
+                RoadModelValidationCode.NonMonotoneLateralOrder,
                 "Ordre transversal : position semantique authoree, pas un ordre d'enregistrement.");
 
             AssertVersionChanges(
@@ -840,7 +845,7 @@ namespace RoadRage.Tests.EditMode
                 "Profil de localisation : seuil d'acceptation.");
 
             AssertVersionChanges(
-                delegate(RoadModelSource source) { source.LocalizationProfile.WrongWayHeadingDegrees = 100f; },
+                delegate(RoadModelSource source) { source.LocalizationProfile.WrongWayHeadingDegrees = 80f; },
                 "Profil de localisation : seuil de contresens.");
 
             // ---------------------------------------------------------- section
@@ -889,19 +894,23 @@ namespace RoadRage.Tests.EditMode
             // unitaire, donc prouves sur le writer et rejetes par Compile (5.26).
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].LengthMeters = 21f; },
+                RoadModelValidationCode.InconsistentCurveLength,
                 "Longueur de corridor.");
 
             // ---------------------------------------------------------- echantillons de courbe
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].Samples[1].SMeters = 11f; },
+                RoadModelValidationCode.InconsistentCurveLength,
                 "Abscisse curviligne d'un echantillon.");
 
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].Samples[1].Tangent = new Vector3(0.1f, 0f, 0.99f); },
+                RoadModelValidationCode.NonOrthonormalFrame,
                 "Tangente d'un echantillon.");
 
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Corridors[CorridorA1Index].Samples[1].Up = new Vector3(0f, 0.9f, 0.1f); },
+                RoadModelValidationCode.NonOrthonormalFrame,
                 "Haut route d'un echantillon.");
 
             AssertVersionChanges(
@@ -919,6 +928,7 @@ namespace RoadRage.Tests.EditMode
 
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Connections[0].ToCorridorId = CorridorD2; },
+                RoadModelValidationCode.ConnectionSeamBroken,
                 "Corridor d'arrivee d'une connexion.");
 
             AssertVersionChanges(
@@ -927,6 +937,7 @@ namespace RoadRage.Tests.EditMode
 
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Adjacencies[0].Side = LaneSide.Left; },
+                RoadModelValidationCode.LaneSideDisagreement,
                 "Cote d'adjacence.");
 
             AssertVersionChanges(
@@ -964,10 +975,12 @@ namespace RoadRage.Tests.EditMode
 
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Movements[MovementM1Index].FromCorridorId = CorridorA2; },
+                RoadModelValidationCode.MovementSeamBroken,
                 "Corridor d'approche d'un mouvement.");
 
             AssertFieldCoveredButGeometricallyForbidden(
                 delegate(RoadModelSource source) { source.Movements[MovementM1Index].LengthMeters = 10f; },
+                RoadModelValidationCode.InconsistentCurveLength,
                 "Longueur d'un mouvement.");
 
             AssertVersionChanges(
@@ -1086,7 +1099,7 @@ namespace RoadRage.Tests.EditMode
 
             AssertStepIsLoadBearing(
                 RoadModelCanonicalWriter.DegreeStep,
-                delegate(RoadModelSource source, float delta) { source.LocalizationProfile.WrongWayHeadingDegrees = 90f + delta; },
+                delegate(RoadModelSource source, float delta) { source.LocalizationProfile.WrongWayHeadingDegrees = 89f + delta; },
                 "degres");
 
             AssertStepIsLoadBearing(
