@@ -1,11 +1,27 @@
 <#
-Chaine de verification RRS (AD-5, AD-7, AD-8, AD-9 -- architecture-RRS-devworkflow-2026-09-17).
-AD-4 (verification declenchee par l'utilisateur) abrogee le 2026-09-18 : l'agent execute ce script
-directement.
-
-unity status -> recompile -> recompile_status -> console --level error -> tests cibles -> list_open_scenes + git status
-Echoue ferme a chaque etape (AD-8) : `status` != ready, CLI muet, commande inconnue, timeout, resultat
-illisible ou absent = echec explicite. Un test en echec est un echec.
+# Chaine de verification RRS (AD-5, AD-7, AD-8, AD-9 -- architecture-RRS-devworkflow-2026-09-17).
+# AD-4 (verification declenchee par l'utilisateur) abrogee le 2026-09-18 : l'agent execute ce script
+# directement.
+#
+# unity status -> stabilisation -> curseur Console -> recompile -> recompile_status -> console --since
+# -> tests cibles -> console --since -> list_open_scenes + git status
+#
+# AD-7 ne porte que sur la FENETRE DE VALIDATION : le curseur Console est capture a l'ouverture
+# (editeur stabilise, avant `recompile`) et seules les entrees de sequence STRICTEMENT superieures a ce
+# curseur comptent. Une erreur de compilation d'un etat intermediaire deja corrige, ou une erreur
+# laissee par une commande CLI rejetee, ne rougit donc plus la porte pour le reste de la session
+# d'Editeur ; une erreur produite pendant la fenetre (recompilation de ce run, tests cibles, sortie de
+# Play Mode) la rougit toujours. Rien ne depend de `clear_console`, qui ne vide pas la memoire tampon
+# du pipeline.
+#
+# La fenetre rend muettes les erreurs ANTERIEURES, pas un build encore casse : `recompile_status`
+# rapporte la derniere DEMANDE et un `recompile` sans changement l'ecrase (`failed:true` devient
+# `up_to_date, failed:false`, mesure le 2026-09-23). L'etat courant est donc lu a sa source,
+# `EditorUtility.scriptCompilationFailed` : vrai tant que la compilation des scripts est en echec, il
+# reste bloquant quel que soit l'age de l'entree Console correspondante.
+#
+# Echoue ferme a chaque etape (AD-8) : `status` != ready, CLI muet, commande inconnue, timeout, resultat
+# illisible ou absent = echec explicite. Un test en echec est un echec.
 
 Usage :
   scripts\validate.ps1                                    # EditMode complet
@@ -111,6 +127,98 @@ function Get-CmdResult {
     return $result
 }
 
+function Wait-EditorSettled {
+    # Attend la fin d'une compilation ou d'un rechargement de domaine avant d'ouvrir ou d'interroger la
+    # fenetre de validation. `editor_status` est main-thread requis : pendant un rechargement il peut ne
+    # pas repondre, et c'est l'etat a attendre, pas un echec. Budget borne, puis echec ferme (AD-8) : un
+    # editeur qui ne se stabilise pas ne valide rien.
+    param(
+        [Parameter(Mandatory)][string]$Reason,
+        [Parameter(Mandatory)][int]$TimeoutSec
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    do {
+        $state = $null
+        $raw = & unity cmd editor_status --format json 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            try {
+                $state = ((($raw | Out-String).Trim()) | ConvertFrom-Json).data.result
+            }
+            catch {
+                $state = $null
+            }
+        }
+        # Egalite explicite a $false : un champ absent n'est pas une stabilisation (fail-closed).
+        if ($state -and $state.compiling -eq $false -and $state.domainReloadInProgress -eq $false) {
+            Write-Host "  editeur stabilise (compiling=false, domainReloadInProgress=false)" -ForegroundColor DarkGray
+            return
+        }
+        Start-Sleep -Seconds 1
+    } while ((Get-Date) -lt $deadline)
+
+    Fail "Editeur toujours en compilation ou rechargement de domaine apres ${TimeoutSec}s ($Reason, AD-8)."
+}
+
+function Invoke-ConsoleQuery {
+    # Requete Console de la fenetre de validation. La doc du package pipeline demande au client de
+    # tolerer les erreurs de connexion pendant un rechargement de domaine ("The client must tolerate
+    # connection errors during a domain reload (recompile, target switch)") : une reponse muette ou
+    # illisible est retentee un nombre borne d'essais, puis l'echec est ferme (AD-8). Un refus logique
+    # de l'editeur (`success:false`) n'est jamais retente : il n'est pas transitoire.
+    param(
+        [Parameter(Mandatory)][string[]]$CliArgs,
+        [int]$Attempts = 5,
+        [int]$DelaySec = 2
+    )
+
+    $exitCode = $null
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        $raw = & unity @CliArgs --format json 2>&1
+        $exitCode = $LASTEXITCODE
+        $rawText = ($raw | Out-String).Trim()
+
+        if ($exitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($rawText)) {
+            $parsed = $null
+            try {
+                $parsed = $rawText | ConvertFrom-Json
+            }
+            catch {
+                $parsed = $null
+            }
+            if ($null -ne $parsed) {
+                if ($parsed.success) {
+                    return (Get-CmdResult $parsed)
+                }
+                $errText = if ($parsed.errors) { $parsed.errors -join '; ' } else { 'raison inconnue' }
+                Fail "unity $($CliArgs -join ' ') : $errText"
+            }
+        }
+        if ($attempt -lt $Attempts) {
+            Start-Sleep -Seconds $DelaySec
+        }
+    }
+    Fail "unity $($CliArgs -join ' ') : commande muette ou code de sortie $exitCode apres $Attempts essais (AD-8)."
+}
+
+function Assert-NoConsoleErrorInWindow {
+    # Gate AD-7. Seules comptent les entrees de sequence STRICTEMENT superieures au curseur ("only
+    # return entries newer than this seq"). Une erreur anterieure a l'ouverture de la fenetre
+    # appartient a l'histoire de la session d'Editeur, pas a l'etat du code : elle est ignoree, jamais
+    # reparee. Une erreur de la fenetre, quelle qu'en soit la source, est un echec.
+    param([Parameter(Mandatory)][string]$Phase)
+
+    $entries = (Invoke-ConsoleQuery -CliArgs @('cmd', 'console', '--level', 'error', '--since', "$($script:ConsoleBaseline)")).entries
+    if ($entries -and $entries.Count -gt 0) {
+        foreach ($entry in $entries) {
+            Write-Host "  [ERROR] seq $($entry.seq) $($entry.message)" -ForegroundColor Red
+        }
+        Fail "$($entries.Count) erreur(s) en Console depuis le curseur $($script:ConsoleBaseline) ($Phase, AD-7)."
+    }
+    $script:Summary['Erreurs Console'] = "0 depuis le curseur $($script:ConsoleBaseline)"
+    Write-Host "  0 erreur depuis le curseur $($script:ConsoleBaseline)" -ForegroundColor DarkGray
+}
+
 # --- Etape 0 : version CLI figee (AGENTS.md, non revalidee automatiquement) ---
 Write-Step "Version Unity CLI"
 $cliVersion = (& unity --version 2>&1 | Out-String).Trim()
@@ -139,11 +247,31 @@ if ($instance.state -ne 'ready') {
 $script:Summary['Editeur'] = "port $($instance.port), Unity $($instance.version), ready"
 Write-Host "  port $($instance.port), Unity $($instance.version), etat ready" -ForegroundColor DarkGray
 
-# --- Etape 2 : recompile ---
+# --- Etape 2 : stabilisation de l'editeur (compilation / rechargement de domaine) ---
+# La fenetre ne s'ouvre qu'une fois l'editeur stabilise : une compilation encore en cours appartient a
+# l'etat anterieur de la session, pas a ce run. C'est le contraire du comportement d'avant, ou la
+# Console etait relue depuis le debut de la session d'Editeur.
+Write-Step "editeur stabilise (compiling / domainReloadInProgress)"
+Wait-EditorSettled -Reason 'ouverture de la fenetre de validation' -TimeoutSec $RecompileTimeoutSec
+
+# --- Etape 3 : curseur Console, borne basse unique du gate AD-7 ---
+# `console` rend la tete du journal capture quel que soit --level : les entrees rendues ici sont donc
+# toutes hors fenetre. Elles servent de mesure informative (jamais de gate) et prouvent l'attribution.
+Write-Step "unity cmd console (curseur de fenetre)"
+$openProbe = Invoke-ConsoleQuery -CliArgs @('cmd', 'console', '--level', 'error')
+if ($null -eq $openProbe.cursor) {
+    Fail "curseur Console absent de la reponse d'ouverture (AD-8)."
+}
+$script:ConsoleBaseline = [int64]$openProbe.cursor
+$historicalErrors = @($openProbe.entries)
+$script:Summary['Curseur Console'] = "$($script:ConsoleBaseline) ($($historicalErrors.Count) erreur(s) anterieure(s) ignoree(s))"
+Write-Host "  curseur $($script:ConsoleBaseline) ; $($historicalErrors.Count) erreur(s) anterieure(s) hors fenetre" -ForegroundColor DarkGray
+
+# --- Etape 4 : recompile ---
 Write-Step "unity cmd recompile"
 Invoke-UnityJson -CliArgs @('cmd', 'recompile') | Out-Null
 
-# --- Etape 3 : recompile_status (poll jusqu'a etat terminal) ---
+# --- Etape 5 : recompile_status (poll jusqu'a etat terminal) ---
 Write-Step "unity cmd recompile_status"
 $deadline = (Get-Date).AddSeconds($RecompileTimeoutSec)
 $recompileStatus = $null
@@ -161,19 +289,36 @@ if ($recompileStatus -notin @('completed', 'up_to_date', 'idle')) {
 $script:Summary['Recompilation'] = $recompileStatus
 Write-Host "  recompile_status: $recompileStatus" -ForegroundColor DarkGray
 
-# --- Etape 4 : console --level error (gate) + warnings hors Assets/Synty (info, AD-7) ---
-Write-Step "unity cmd console --level error"
-$errorEntries = (Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'console', '--level', 'error'))).entries
-if ($errorEntries -and $errorEntries.Count -gt 0) {
-    foreach ($entry in $errorEntries) {
-        Write-Host "  [ERROR] $($entry.message)" -ForegroundColor Red
-    }
-    Fail "$($errorEntries.Count) erreur(s) en Console (AD-7)."
-}
-$script:Summary['Erreurs Console'] = '0'
-Write-Host "  0 erreur" -ForegroundColor DarkGray
+# --- Etape 6 : gate AD-7 (fenetre ouverte a l'etape 3) + warnings hors Assets/Synty (info) ---
+# `unity cmd recompile` peut declencher un rechargement de domaine meme quand rien n'a change : on
+# attend sa fin avant d'interroger la Console, sinon la requete part dans le vide (doc du package :
+# "The client must tolerate connection errors during a domain reload").
+Write-Step "stabilisation apres recompile + unity cmd console --level error --since $($script:ConsoleBaseline)"
+Wait-EditorSettled -Reason 'gate Console apres recompile' -TimeoutSec $RecompileTimeoutSec
+Assert-NoConsoleErrorInWindow -Phase 'apres recompile'
 
-$warningEntries = (Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'console', '--level', 'warning'))).entries
+# --- Etape 7 : etat de compilation courant (complement du gate, jamais un remplacement) ---
+# Un build casse dont l'erreur a ete produite AVANT la fenetre (compilation deja tentee et echouee,
+# rien de modifie depuis) est invisible pour `--since` : c'est precisement l'etat que `recompile`
+# n'essaie plus et que `recompile_status` ne rapporte plus. Sans ce controle, cet etat deviendrait
+# muet alors que la version precedente du script rougissait dessus (AD-7 ne doit pas faiblir).
+# Les entrees Console affichees ici sont du CONTEXTE, jamais une decision : le gate reste la fenetre.
+Write-Step "etat de compilation courant (EditorUtility.scriptCompilationFailed)"
+$compileState = Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'eval', '--code', 'return UnityEditor.EditorUtility.scriptCompilationFailed;'))
+if ($compileState.result -ne $false) {
+    $contextEntries = (Invoke-ConsoleQuery -CliArgs @('cmd', 'console', '--level', 'error', '--tail', '5')).entries
+    foreach ($entry in $contextEntries) {
+        $firstLine = ($entry.message -split "`n")[0]
+        Write-Host "  [historique, contexte] seq $($entry.seq) $firstLine" -ForegroundColor Yellow
+    }
+    Fail "La compilation des scripts est en echec (EditorUtility.scriptCompilationFailed) : l'etat courant ne peut pas etre valide, meme si l'erreur Console est anterieure a la fenetre. Corriger, laisser l'editeur recompiler, puis relancer."
+}
+$script:Summary['Etat de compilation'] = 'sain (scriptCompilationFailed=false)'
+Write-Host "  scriptCompilationFailed=false" -ForegroundColor DarkGray
+
+# Les avertissements restent volontairement lus sur toute la session (informatif, hors gate) : le
+# curseur ne borne que les erreurs.
+$warningEntries = (Invoke-ConsoleQuery -CliArgs @('cmd', 'console', '--level', 'warning')).entries
 $relevantWarnings = @($warningEntries | Where-Object { $_.message -notlike '*Assets/Synty/*' })
 $script:Summary['Avertissements hors Synty'] = "$($relevantWarnings.Count) (informatif, hors gate)"
 Write-Host "  $($relevantWarnings.Count) avertissement(s) hors Assets/Synty/ (informatif, ne bloque pas)" -ForegroundColor DarkGray
@@ -197,7 +342,7 @@ foreach ($group in $warningGroups) {
     $shownGroups++
 }
 
-# --- Etape 5 : tests cibles (AD-9) ---
+# --- Etape 8 : tests cibles (AD-9) ---
 $modes = if ($TestMode -eq 'Both') { @('EditMode', 'PlayMode') } else { @($TestMode) }
 foreach ($mode in $modes) {
     Write-Step "unity cmd run_tests --mode $mode"
@@ -234,7 +379,14 @@ foreach ($mode in $modes) {
     $script:Summary["Tests $mode"] = "$($testStatus.summary.passed)/$($testStatus.summary.total) passes"
 }
 
-# --- Etape 6 : list_open_scenes + git status (etat final, garde-fou AGENTS.md) ---
+# --- Etape 9 : gate AD-7 apres tests (la fenetre court jusqu'ici) ---
+# Une erreur produite par la suite de tests, ou par la sortie de Play Mode (rechargement de domaine),
+# appartient a la fenetre : elle rougit la porte exactement comme une erreur de compilation de ce run.
+Write-Step "stabilisation apres tests + unity cmd console --level error --since $($script:ConsoleBaseline)"
+Wait-EditorSettled -Reason 'gate Console apres tests' -TimeoutSec $RecompileTimeoutSec
+Assert-NoConsoleErrorInWindow -Phase 'apres tests'
+
+# --- Etape 10 : list_open_scenes + git status (etat final, garde-fou AGENTS.md) ---
 Write-Step "unity cmd list_open_scenes + git status"
 $scenes = (Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'list_open_scenes'))).scenes
 foreach ($scene in $scenes) {
