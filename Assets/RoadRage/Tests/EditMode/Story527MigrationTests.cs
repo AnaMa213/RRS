@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -326,13 +327,41 @@ namespace RoadRage.Tests.EditMode
             }
         }
 
+        [Test]
+        public void TheSourceHashChangesWhenTheSourceChanges()
+        {
+            RunOnMvpRunWith(delegate(Scene scene)
+            {
+                var set = V1SourceSet.Extract(scene);
+                var again = V1SourceSet.Extract(scene);
+                Assert.That(again.SourceHash, Is.EqualTo(set.SourceHash), "Deux extractions de la meme scene : memes octets canoniques.");
+                Assert.That(V1SourceSet.ComputeSourceHash(set), Is.EqualTo(set.SourceHash), "Le hash publie par l'extraction est celui de son texte canonique.");
+
+                // Mutations en memoire de l'ensemble EXTRAIT, jamais de la scene : la pose d'un noeud
+                // et les poids authores font partie de la source, le decor deplace non.
+                set.Nodes[0].Position += new Vector3(1f, 0f, 0f);
+                string moved = V1SourceSet.ComputeSourceHash(set);
+                Assert.That(moved, Is.Not.EqualTo(set.SourceHash), "Un noeud deplace d'un metre change le hash de source.");
+
+                var edge = set.Edges.First(e => !e.IsConnectorJoin);
+                edge.Weight += 0.5f;
+                Assert.That(V1SourceSet.ComputeSourceHash(set), Is.Not.EqualTo(moved), "Un poids de virage change le hash de source.");
+
+                // Le rapport publie ce hash dans sa liaison : une source qui a change, meme d'un seul
+                // noeud deplace, fait refuser le rapport precedent par Verify sur `source-hash` au
+                // prochain import frais. C'est pourquoi le rapport committe doit etre regenere.
+            });
+        }
+
         // ================================================================== liaison du rapport
 
         [Test]
         public void TheCommittedReportAndLineageMatchAFreshImport()
         {
-            string lineage = CommittedLineage();
-            string report = File.ReadAllText(MigrationReport.ReportPath);
+            // Chemins absolus resolus depuis la racine du projet (LineageFullPath / ReportFullPath) :
+            // la comparaison ne depend pas du repertoire courant du runner.
+            string lineage = File.ReadAllText(MigrationReport.LineageFullPath);
+            string report = File.ReadAllText(MigrationReport.ReportFullPath);
             var run = RunOnMvpRun(lineage);
 
             Assert.That(MigrationReport.Verify(report, lineage, run.Binding), Is.Empty,
@@ -527,6 +556,20 @@ namespace RoadRage.Tests.EditMode
             Assert.That(run.ReportText, Is.Null);
         }
 
+        [TestCase("FormatInconnu", "format absent ou inconnu")]
+        [TestCase("GenreInconnu", "genre inconnu")]
+        [TestCase("IdIllisible", "identifiant illisible")]
+        [TestCase("CleEnDouble", "cle en double")]
+        public void EveryLineageRefusalGateIsAHardFailure(string corruption, string reason)
+        {
+            var run = RunOnMvpRun(CorruptLineage(corruption));
+
+            Assert.That(run.Succeeded, Is.False);
+            Assert.That(run.Failures.Single(), Does.Contain(reason));
+            Assert.That(run.LineageJson, Is.Null, "Une lignee refusee n'est jamais reserialisee.");
+            Assert.That(run.ReportText, Is.Null, "Rien n'est produit : le refus est dur, jamais repare.");
+        }
+
         [Test]
         public void ASeedDisplacedOffItsApproachAxisIsADeviationNotAnException()
         {
@@ -576,6 +619,113 @@ namespace RoadRage.Tests.EditMode
             Assert.That(geometric.Select(i => i.Code + "|" + i.SubjectId + "|" + i.Message).Distinct().Count(), Is.EqualTo(geometric.Count));
         }
 
+        [Test]
+        public void TheValidationSplitNamesTheGeometricCodesOnly()
+        {
+            // Source minimale ecrite a la main : une section, un corridor droit de 30 m a deux
+            // echantillons, aucun carrefour. Un seul defaut : la couture passe a 0,06 m, au-dessus
+            // du plafond approuve de 0,05 m.
+            var section = new RoadSection();
+            section.Id = RoadId.New();
+            section.RoadClass = RoadClass.Local;
+            section.DefaultSpeedLimitMetersPerSecond = 13.9f;
+            section.DefaultAllowedVehicleClasses = VehicleClassMask.Car;
+
+            var start = new RoadCurveSample();
+            start.SMeters = 0f;
+            start.Position = Vector3.zero;
+            start.Tangent = Vector3.forward;
+            start.Up = Vector3.up;
+            start.CurvaturePerMeter = 0f;
+            start.HalfWidthLeftMeters = 2f;
+            start.HalfWidthRightMeters = 2f;
+            var end = start;
+            end.SMeters = 30f;
+            end.Position = new Vector3(0f, 0f, 30f);
+
+            var corridor = new LaneCorridor();
+            corridor.Id = RoadId.New();
+            corridor.SectionId = section.Id;
+            corridor.Samples = new[] { start, end };
+            corridor.LengthMeters = 30f;
+            corridor.LateralOrder = 0;
+            corridor.IsCrossSectionDatum = true;
+
+            var source = new RoadModelSource();
+            source.ModelId = RoadId.New();
+            source.Label = "source minimale 5.27";
+            source.Sections = new[] { section };
+            source.Corridors = new[] { corridor };
+
+            // Les valeurs de l'importeur de migration, a une exception pres : SeamGapToleranceMeters
+            // relache le plafond approuve.
+            source.ValidationProfile = new RoadModelValidationProfile
+            {
+                MaxVehicleHalfWidthMeters = 1.03f,
+                MaxVehicleLengthMeters = 4.5f,
+                LateralClearanceMarginMeters = 0.25f,
+                SeamGapToleranceMeters = 0.06f,
+                SeamTangentToleranceDegrees = 5f,
+                LengthToleranceMeters = 0.05f,
+                EnvelopeOverlapToleranceMeters = 0.05f,
+                GroundingMaxOffAxisDegrees = 45f
+            };
+            source.LocalizationProfile = new RoadLocalizationProfile
+            {
+                ScoreBandMeters = 0.15f,
+                HysteresisMeters = 0.1f,
+                AcceptanceDistanceMeters = 2.5f,
+                WrongWayHeadingDegrees = 90f
+            };
+
+            var structural = new List<RoadModelValidationIssue>();
+            var geometric = new List<RoadModelValidationIssue>();
+            Assert.That(MigrationReport.ValidateSource(source, structural, geometric), Is.Null, "Un profil hors plafond n'emet aucune version.");
+
+            // `ProfileToleranceAboveApprovedCeiling` (31) vient du validateur SEMANTIQUE, pas du
+            // validateur geometrique : une regle naive "code >= 19 = geometrique" le classerait en
+            // geometrie. Le split doit le nommer structurel, et la geometrie saine reste vide.
+            Assert.That(structural.Count, Is.EqualTo(1));
+            Assert.That(structural[0].Code, Is.EqualTo(RoadModelValidationCode.ProfileToleranceAboveApprovedCeiling));
+            Assert.That(geometric, Is.Empty, "La geometrie du corridor minimal est saine : le seul defaut est le profil.");
+        }
+
+        [Test]
+        public void TheFormattingHelperIsDeterministic()
+        {
+            // Precision fixe : metres et poids a 4 decimales, degres a 3 ; les zeros finaux sont des
+            // octets du rapport, jamais tronques.
+            Assert.That(MigrationFormat.Meters(3f), Is.EqualTo("3.0000"));
+            Assert.That(MigrationFormat.Meters(0.05f), Is.EqualTo("0.0500"));
+            Assert.That(MigrationFormat.Meters(1.23456f), Is.EqualTo("1.2346"));
+            Assert.That(MigrationFormat.Degrees(30f), Is.EqualTo("30.000"));
+            Assert.That(MigrationFormat.Degrees(1.23456f), Is.EqualTo("1.235"));
+            Assert.That(MigrationFormat.Weight(1f), Is.EqualTo("1.0000"));
+            Assert.That(MigrationFormat.Weight(0.4f), Is.EqualTo("0.4000"));
+
+            // -0 se normalise : un signe sans valeur ne doit pas changer les octets du rapport. Un
+            // negatif qui arrondit a zero perd son signe ; un negatif reel le garde.
+            Assert.That(MigrationFormat.Meters(-0f), Is.EqualTo("0.0000"));
+            Assert.That(MigrationFormat.Degrees(-0f), Is.EqualTo("0.000"));
+            Assert.That(MigrationFormat.Weight(-0f), Is.EqualTo("0.0000"));
+            Assert.That(MigrationFormat.Meters(-0.00001f), Is.EqualTo("0.0000"));
+            Assert.That(MigrationFormat.Meters(-0.5f), Is.EqualTo("-0.5000"));
+
+            // Culture invariante : le separateur decimal reste le point sous une culture a virgule.
+            var previous = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = new CultureInfo("fr-FR");
+                Assert.That(MigrationFormat.Meters(1.5f), Is.EqualTo("1.5000"));
+                Assert.That(MigrationFormat.Degrees(1.5f), Is.EqualTo("1.500"));
+                Assert.That(MigrationFormat.Weight(0.25f), Is.EqualTo("0.2500"));
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = previous;
+            }
+        }
+
         // ================================================================== helpers
 
         private static string RemoveFirstMovementRecord(string committed, out string key, out string id)
@@ -590,7 +740,37 @@ namespace RoadRage.Tests.EditMode
 
         private static string CommittedLineage()
         {
-            return File.ReadAllText(MigrationReport.LineagePath);
+            // Chemin absolu resolu depuis la racine du projet : aucune lecture d'artefact committe
+            // ne depend du repertoire courant du runner.
+            return File.ReadAllText(MigrationReport.LineageFullPath);
+        }
+
+        /// <summary>
+        /// Fabrique une lignee refusee en editant le texte committe (jamais en l'ecrivant a la main,
+        /// ce qui la ferait diverger du format reel) : un seul defaut a la fois.
+        /// </summary>
+        private static string CorruptLineage(string corruption)
+        {
+            string committed = CommittedLineage();
+            switch (corruption)
+            {
+                case "FormatInconnu":
+                    return Regex.Replace(committed, "\"Format\": 1", "\"Format\": 2");
+                case "GenreInconnu":
+                    return Regex.Replace(committed, "\"Kind\": \"Corridor\"", "\"Kind\": \"Boulevard\"");
+                case "IdIllisible":
+                    return Regex.Replace(committed, "\"Id\": \"[0-9a-f]{32}\"", "\"Id\": \"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\"");
+                case "CleEnDouble":
+                    var match = Regex.Match(committed, "\\{\\s*\"Key\": \"([^\"]+)\",\\s*\"Kind\": \"([^\"]+)\",\\s*\"Id\": \"([0-9a-f]{32})\"\\s*\\}");
+                    Assert.That(match.Success, Is.True);
+                    // Meme cle, identite distincte : le refus doit venir de la CLE, pas du doublon d'identite.
+                    string otherId = (match.Groups[3].Value[0] == '0' ? "1" : "0") + match.Groups[3].Value.Substring(1);
+                    string duplicate = "{\"Key\": \"" + match.Groups[1].Value + "\", \"Kind\": \"" + match.Groups[2].Value + "\", \"Id\": \"" + otherId + "\"}";
+                    return committed.Insert(match.Index, duplicate + ",\n        ");
+                default:
+                    Assert.Fail("Corruption sans fabrique : " + corruption);
+                    return null;
+            }
         }
 
         private static int Dispositions(V1ImportResult import, SourceItemKind item)
@@ -609,6 +789,14 @@ namespace RoadRage.Tests.EditMode
         {
             var alreadyOpen = SceneManager.GetSceneByPath(MvpRunScenePath);
             bool wasOpen = alreadyOpen.IsValid() && alreadyOpen.isLoaded;
+            if (wasOpen)
+            {
+                // Une scene deja ouverte mais modifiee decrirait un etat non sauve, pas la scene du
+                // disque : toute mesure doit refuser de porter sur autre chose que l'authoring committe.
+                Assert.That(alreadyOpen.isDirty, Is.False,
+                    "MVP_Run est ouvert avec des modifications non sauvegardees : la mesure decrirait un etat non sauve, pas la scene du disque.");
+            }
+
             var scene = wasOpen ? alreadyOpen : EditorSceneManager.OpenScene(MvpRunScenePath, OpenSceneMode.Additive);
             try
             {
@@ -621,6 +809,147 @@ namespace RoadRage.Tests.EditMode
                     EditorSceneManager.CloseScene(scene, true);
                 }
             }
+        }
+
+        [Test]
+        public void ANegativeAuthoredChoiceWeightIsARefusedForm()
+        {
+            // L'importeur ne peut refuser une forme que si l'extraction a reussi : on mute donc la
+            // source REELLE plutot que de fabriquer un faux module, et le meme ensemble sert de
+            // temoin avant mutation — sans quoi le test ne prouverait pas que le refus vient du poids.
+            RunOnMvpRunWith(delegate(Scene scene)
+            {
+                var set = V1SourceSet.Extract(scene);
+                Assert.That(set.IsValid, Is.True, string.Join("\n", set.Failures.ToArray()));
+                Assert.That(MigrationReport.Run(set, CommittedLineage()).Succeeded, Is.True,
+                    "Le temoin non mute doit passer : sinon le refus ne viendrait pas de la mutation.");
+
+                V1Edge choice = null;
+                foreach (var module in set.Modules)
+                {
+                    foreach (var node in module.Nodes)
+                    {
+                        if (node.Outgoing.Count < 2)
+                        {
+                            continue;
+                        }
+
+                        foreach (var edge in node.Outgoing)
+                        {
+                            if (!edge.IsConnectorJoin)
+                            {
+                                choice = edge;
+                                break;
+                            }
+                        }
+
+                        if (choice != null)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (choice != null)
+                    {
+                        break;
+                    }
+                }
+
+                Assert.That(choice, Is.Not.Null, "La carte reelle porte des choix authores (noeuds de decision).");
+                choice.Weight = -1f;
+
+                var refused = MigrationReport.Run(set, CommittedLineage());
+                Assert.That(refused.Succeeded, Is.False, "Un poids de choix negatif est une forme non disposable.");
+                Assert.That(refused.Failures.Count, Is.EqualTo(1), string.Join("\n", refused.Failures.ToArray()));
+                Assert.That(refused.ReportText, Is.Null, "Rien n'est produit pour une forme refusee.");
+                Assert.That(refused.LineageJson, Is.Null);
+            });
+        }
+
+        [Test]
+        public void TheSharedCoreReadsThePriorLineageAndWritesBothFilesThroughInjectedPaths()
+        {
+            // Le noyau que le menu appelle : chemins injectes, donc les artefacts committes ne sont
+            // jamais touches. Trois passages : premier import, relecture de la lignee ecrite, puis
+            // lignee vide qui doit refuser sans rien ecrire.
+            RunOnMvpRunWith(delegate(Scene scene)
+            {
+                string directory = Path.GetFullPath(Path.Combine("Temp", "Story527CoreTest"));
+                Directory.CreateDirectory(directory);
+                string lineageFile = Path.Combine(directory, "core-lineage.json");
+                string reportFile = Path.Combine(directory, "core-report.md");
+                try
+                {
+                    string error;
+                    Assert.That(MigrationReport.Migrate(scene, lineageFile, reportFile, out error), Is.True, error);
+                    string firstLineage = File.ReadAllText(lineageFile);
+                    Assert.That(firstLineage, Is.Not.Empty);
+                    Assert.That(File.ReadAllText(reportFile), Does.Contain("## Coupes transversales (AD-48)"));
+
+                    Assert.That(MigrationReport.Migrate(scene, lineageFile, reportFile, out error), Is.True, error);
+                    Assert.That(File.ReadAllText(lineageFile), Is.EqualTo(firstLineage),
+                        "La lignee ecrite doit etre RELUE par le passage suivant, pas refrappee.");
+
+                    File.WriteAllText(lineageFile, string.Empty);
+                    Assert.That(MigrationReport.Migrate(scene, lineageFile, reportFile, out error), Is.False);
+                    Assert.That(error, Does.Contain("Lignee vide"));
+                    Assert.That(File.ReadAllText(lineageFile), Is.Empty, "Un passage refuse n'ecrit rien.");
+                }
+                finally
+                {
+                    Directory.Delete(directory, true);
+                }
+            });
+        }
+
+        [Test]
+        public void AConnectorWithoutAnyJoinCandidateIsAHardFailure()
+        {
+            // Un module isole : ses connecteurs n'ont aucun candidat a moins du seuil de jointure, donc
+            // la decouverte doit refuser la forme au lieu de fabriquer une topologie.
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/RoadRage/Prefabs/Greybox_RoadSegment_TwoWay.prefab");
+            var settings = AssetDatabase.LoadAssetAtPath<TrafficSettingsDef>("Assets/RoadRage/ScriptableObjects/Vehicles/TrafficSettingsDef_Default.asset");
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(settings, Is.Not.Null);
+
+            var root = EditorUtility.CreateGameObjectWithHideFlags("LaneGraphRoot", HideFlags.HideAndDontSave, typeof(LaneGraph));
+            var serialized = new SerializedObject(root.GetComponent<LaneGraph>());
+            serialized.FindProperty("trafficSettings").objectReferenceValue = settings;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            // Scene d'apercu : l'instance de prefab a besoin d'une scene, et une scene d'apercu ne
+            // touche ni la hierarchie ouverte ni l'etat "sale" d'une scene reelle.
+            var bench = EditorSceneManager.NewPreviewScene();
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, bench);
+            // Le graph porte ses modules comme enfants (comme RunRoot/LaneGraph dans MVP_Run) : sans
+            // ce lien, l'extraction refuse des noeuds « hors du LaneGraph ».
+            instance.transform.SetParent(root.transform);
+            try
+            {
+                // Racine unique : le graph, dont le module est desormais un enfant (une racine
+                // supplementaire ferait visiter chaque noeud deux fois).
+                var set = V1SourceSet.Extract(new[] { root }, string.Empty, V1SourceSet.RecognisedPrefabs);
+                Assert.That(set.IsValid, Is.False, "Un connecteur sans candidat de jointure est orphelin.");
+                Assert.That(set.Failures.Any(f => f.Contains("orphelin")), Is.True, string.Join("\n", set.Failures.ToArray()));
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(bench);
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ThePreFlightRefusalsRefuseBeforeAnythingIsWritten()
+        {
+            // Les deux seules decisions que le menu prend avant d'ouvrir la scene : le noyau est
+            // eprouve ici parce que le menu lui-meme ecrit les vrais fichiers.
+            Assert.That(MigrationReport.RefusalReason(true, false, false), Does.Contain("Play Mode"));
+            Assert.That(MigrationReport.RefusalReason(false, true, true), Does.Contain("non sauvegardees"));
+            Assert.That(MigrationReport.RefusalReason(false, true, false), Is.Null,
+                "Scene ouverte et propre : le passage est permis.");
+            Assert.That(MigrationReport.RefusalReason(false, false, true), Is.Null,
+                "Une scene non ouverte est ouverte par le menu ; son etat de salissure ne le concerne pas.");
         }
     }
 }

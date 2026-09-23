@@ -4,7 +4,7 @@ importer-version: 1
 compiler-schema-version: 4
 model-id: 419bd12ec9b5fe710e8a3719692c7982
 lineage-hash: f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4
-body-hash: 67efd55513fb648b4454d1cca219aa6ca1a944cf3ad9412128b13171d0c38f6f
+body-hash: f813250621a5541c003088e51c7dba3dc73ed23291dc933533427dce1ee2f298
 -->
 # Rapport de migration V1 -> V2 : MVP_Run (Story 5.27)
 
@@ -34,7 +34,7 @@ Ensemble prouve : chaque LaneNode appartient a une instance d'un prefab reconnu,
 | `Assets/RoadRage/Prefabs/Greybox_TunnelPortal.prefab` | 4 | 16 |
 | **Total** | **25** | **204** |
 
-Aretes authorees : 176 ; jointures de connecteurs : 56 ; noeuds hors module : 0 (sinon l'import echoue).
+Aretes authorees : 176 ; jointures de connecteurs : 56 ; noeuds hors module : aucun (un noeud hors module fait echouer l'extraction).
 
 ## Modele candidat
 
@@ -50,6 +50,57 @@ Aretes authorees : 176 ; jointures de connecteurs : 56 ; noeuds hors module : 0 
 | ConflictZone | 0 (jamais inventees) |
 | SignalPlan | 0 (aucun signal en V1) |
 | Portal | 8 |
+
+## Coupes transversales (AD-48)
+
+Ordre lateral et datum de chaque section du modele candidat, tels qu'importes (V1 n'en porte aucun) : AD-48 exige que la 5.27 dispose les deux explicitement.
+
+| Section | `LateralOrder` | Corridor | Datum de coupe |
+|---|---:|---|---|
+| `410b074af81719b5992afb35a5d20cbd` | 0 | `49980393f36fca422e64472c8ccc009c` | - |
+| `410b074af81719b5992afb35a5d20cbd` | 1 | `4f8c2539b5152e69c8fe4d64939f96b9` | oui |
+| `42134703636fbc25221f6dc2ca06c793` | 0 | `4b5540b59d5cd5141bb4bb279d10fb96` | oui |
+| `4261bcbef0b8a38b712c649286b082ba` | 0 | `433f39ba8eeb012212b7d5a05468b09d` | - |
+| `4261bcbef0b8a38b712c649286b082ba` | 1 | `4f4e0f3e7e8b2b6b059a8a6edab2bc90` | oui |
+| `42de5da740b31ac0176161c776f3d4a1` | 0 | `4403c568617df5ea8f9a2fdf743748ad` | - |
+| `42de5da740b31ac0176161c776f3d4a1` | 1 | `4d0941441253fa2a0e6c10dfc9caea8e` | oui |
+| `431aab2ccfb1de591d13a38baa04b796` | 0 | `4db6ebc158e0dff4369373f117f51690` | - |
+| `431aab2ccfb1de591d13a38baa04b796` | 1 | `4d5c15fca8e24f15b1bdf0f0695acebf` | oui |
+| `443ed3bc9f5371ef4f1439781cd012a8` | 0 | `4feeebdeeefd1a0f872a7e456b3a5287` | - |
+| `443ed3bc9f5371ef4f1439781cd012a8` | 1 | `4dc46e84668993d38378e9cfd4f366b4` | oui |
+| `44687593778b414acca9ab06ece502b1` | 0 | `41aade042322996080b638a3a86e1088` | oui |
+| `4581e2ae94d3287b91ad57e31a9fe989` | 0 | `4f56ef8aae6bfffcbc337d463dd2fd9f` | - |
+| `4581e2ae94d3287b91ad57e31a9fe989` | 1 | `48c833c71f68abef819cb5a36c99208f` | oui |
+| `4640b60be5be840f1fa778f300b64d84` | 0 | `48e681e799268186449903ef2aa3258f` | oui |
+| `46c85a9afac17bde2153665adab63fbc` | 0 | `4f3543b1218b82af65b5b8fc58457fb3` | - |
+| `46c85a9afac17bde2153665adab63fbc` | 1 | `4097b38e7bf2ad82edd9087f6d56ae8b` | oui |
+| `46f7f22596a1e5204781d18a86e839ad` | 0 | `4680aaa6ee1678ef03909266658047b6` | - |
+| `46f7f22596a1e5204781d18a86e839ad` | 1 | `4d56a92042f124db7947938fefa7c7a7` | oui |
+| `4730190af6f78f0cd48d4bb005c9f091` | 0 | `427041528b28cda9499c4ab5aafe0d9c` | oui |
+| `4796d8afab7aafe3c213381ce7be51b8` | 0 | `41d3971913a0bc729dacb328aaa17495` | oui |
+| `47b9c1ab789b84066b536acecec183ab` | 0 | `4516fd525d5bf0205cb47b0093ab0794` | - |
+| `47b9c1ab789b84066b536acecec183ab` | 1 | `47de8d1a8e71016a20b301b8a86852a5` | oui |
+| `4815e26dcb7e3aa355dfa72569096986` | 0 | `4c3fbf9d31b3efe44c908138001098b8` | oui |
+| `488cff3f9501412fcae92bf829779984` | 0 | `4bc86d56e68c64ed3454e51566dd43bc` | - |
+| `488cff3f9501412fcae92bf829779984` | 1 | `455e4360eac83d9900ad7ea698758890` | oui |
+| `48b41f08eb1eee61a4e6281a4e963893` | 0 | `40e937a99618cac3ce12d56586514283` | - |
+| `48b41f08eb1eee61a4e6281a4e963893` | 1 | `46b219bca5cdaf1087d30d9622fab0a5` | oui |
+| `49ecb9240fd46b56a68f2ba5f9b575aa` | 0 | `4e67d7a19f6083c020b14cda38733f93` | oui |
+| `4a53609938eef355087249c1b74ca6b0` | 0 | `4ec40e5f82f7a65bed1dc3d9679f8693` | oui |
+| `4ad222fbe3e52d2a5b6f86b332946c80` | 0 | `4970addfd3bf6360c8191bf0f3eeafb7` | - |
+| `4ad222fbe3e52d2a5b6f86b332946c80` | 1 | `4ae5e1290d8b815bcb8f509e915fef89` | oui |
+| `4b08788f2b3434539d6daf47c410c6a4` | 0 | `42ad3d5187bfa4104bf4917b93ede39e` | - |
+| `4b08788f2b3434539d6daf47c410c6a4` | 1 | `44d95c53b9c058de55da54065eed7882` | oui |
+| `4b33ebfdfb0a4ef2c2c6cbb267a5f2be` | 0 | `43e96165bde1e8229cf8d27082d6b798` | oui |
+| `4b5389d91d5915f3196d95d243bc789f` | 0 | `4e878e4befb474cfbdc785346bd6f6a4` | oui |
+| `4b8232a70eb5574526502f1072cb50bd` | 0 | `4d1d749db78465cdc4e90ee844e3d898` | - |
+| `4b8232a70eb5574526502f1072cb50bd` | 1 | `456446f0213cdfedcbcb6d32f7ee7db6` | oui |
+| `4c56cbc620e585a5373ea0ea9acae384` | 0 | `4eb54bbcb45c5ab91993e545746f24a9` | - |
+| `4c56cbc620e585a5373ea0ea9acae384` | 1 | `4bc735b758e931a2e6a2faa6a7cf198b` | oui |
+| `4dab8dc01f01a819f72ef4dc8a8a459d` | 0 | `4ccc97c5021ae91587883344ee3ca299` | oui |
+| `4de2f43948bbec45fce0fbe76d4658ad` | 0 | `432025ce90895a6728955c79e3edfb9e` | oui |
+| `4f545c3fada86d11df7692a0081aa1a5` | 0 | `45daa67f26d456b653f543a16ea6dba5` | - |
+| `4f545c3fada86d11df7692a0081aa1a5` | 1 | `43cf13ae1ef6b701bbcd906cdea7df90` | oui |
 
 ## Lignee et identites
 
@@ -156,12 +207,12 @@ Valeurs mesurees sur la source et le modele candidat. Aucun seuil n'est relache 
 | Couture de mouvement : ecart de demi-largeur | m | 144 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.0500 | 144 | 0 | 0 |
 | Corde compilee (critere de subdivision 5.26) | m | 116 | 0.0000 | 0.0001 | 0.0205 | 0.0244 | <= 0.0500 | 116 | 0 | 0 |
 | Degagement lateral (demi-largeur - demi-gabarit - marge) | m | 116 | 0.7200 | 0.7200 | 0.7200 | 0.7200 | >= 0 | 116 | 0 | 0 |
-| Derive de noeud source vers la courbe | m | 224 | 0.0000 | 0.0000 | 4.2399 | 4.2401 | <= 0.1000 | 200 | 0 | 24 |
+| Derive de noeud source vers la courbe | m | 200 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.1000 | 200 | 0 | 24 |
 | Derive de portail | m | 8 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.0500 | 8 | 0 | 0 |
 
 Origine des seuils :
 
-- Ecart de connecteur (source V1) : herite de V1 : decouverte de jointure (TrafficSettingsDef.connectorJoinDistance).
+- Ecart de connecteur (source V1) : herite de V1 : decouverte de jointure (TrafficSettingsDef.connectorJoinDistance, lue dans la source).
 - Angle de connecteur (source V1) : herite de V1 : test Dot > 0.
 - Couture : ecart de position : cible V2 proposee, jamais mesuree avant ce rapport.
 - Couture : ecart de tangente : cible V2 proposee, jamais mesuree avant ce rapport.
@@ -170,6 +221,8 @@ Origine des seuils :
 - Degagement lateral (demi-largeur - demi-gabarit - marge) : cible V2 proposee : demi-gabarit 1.0300 + marge 0.2500.
 - Derive de noeud source vers la courbe : cible V2 proposee ; seule exception approuvee : noeud de decision lisse par un mouvement tournant, et seulement si la graine reste sur l'axe de son approche (ecart <= 0.1000 m) ; sinon deviation a corriger.
 - Derive de portail : cible V2 proposee, jamais mesuree avant ce rapport.
+
+Les colonnes min, p50, p95 et max portent sur la population dans le seuil (`n`) ; les valeurs hors seuil sont listees ci-dessous avec leur classe, jamais fondues dans ces statistiques.
 
 ### Deviations a corriger (authoring)
 
@@ -439,34 +492,34 @@ Semantique absente de V1, jamais inventee. Aucune adjacence de meme sens n'exist
 | Portail | `4ce14124d3729e5b3ad1174c8653a99d` portal:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-1574439523:Entry | Enveloppe candidate (longueur = gabarit max du profil, demi-largeur = corridor) : revue requise. |
 | Portail | `4882b42dcf37410f4f629825c30f5f99` portal:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-234956567:Entry | Enveloppe candidate (longueur = gabarit max du profil, demi-largeur = corridor) : revue requise. |
 | Portail | `48d96a31a823c14dc3c3c55e08da6bbb` portal:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-75338410:Entry | Enveloppe candidate (longueur = gabarit max du profil, demi-largeur = corridor) : revue requise. |
-| Section | `4730190af6f78f0cd48d4bb005c9f091` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4dab8dc01f01a819f72ef4dc8a8a459d` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `49ecb9240fd46b56a68f2ba5f9b575aa` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4b5389d91d5915f3196d95d243bc789f` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4b8232a70eb5574526502f1072cb50bd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1045154302 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `443ed3bc9f5371ef4f1439781cd012a8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1574439523 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `46c85a9afac17bde2153665adab63fbc` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-234956567 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `42de5da740b31ac0176161c776f3d4a1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-75338410 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `47b9c1ab789b84066b536acecec183ab` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1227312198 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4ad222fbe3e52d2a5b6f86b332946c80` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1335115730 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4c56cbc620e585a5373ea0ea9acae384` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1375911139 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `46f7f22596a1e5204781d18a86e839ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1461432457 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `48b41f08eb1eee61a4e6281a4e963893` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1516681040 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4b08788f2b3434539d6daf47c410c6a4` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1812162174 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `410b074af81719b5992afb35a5d20cbd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-235211969 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4f545c3fada86d11df7692a0081aa1a5` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-531979442 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4261bcbef0b8a38b712c649286b082ba` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-539479367 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `488cff3f9501412fcae92bf829779984` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-656642079 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4581e2ae94d3287b91ad57e31a9fe989` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-972045385 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `431aab2ccfb1de591d13a38baa04b796` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-981631451 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `44687593778b414acca9ab06ece502b1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4a53609938eef355087249c1b74ca6b0` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4815e26dcb7e3aa355dfa72569096986` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4796d8afab7aafe3c213381ce7be51b8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4640b60be5be840f1fa778f300b64d84` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4b33ebfdfb0a4ef2c2c6cbb267a5f2be` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `4de2f43948bbec45fce0fbe76d4658ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
-| Section | `42134703636fbc25221f6dc2ca06c793` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077 | Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente). |
+| Section | `4730190af6f78f0cd48d4bb005c9f091` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4dab8dc01f01a819f72ef4dc8a8a459d` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `49ecb9240fd46b56a68f2ba5f9b575aa` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4b5389d91d5915f3196d95d243bc789f` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4b8232a70eb5574526502f1072cb50bd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1045154302 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `443ed3bc9f5371ef4f1439781cd012a8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-1574439523 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `46c85a9afac17bde2153665adab63fbc` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-234956567 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `42de5da740b31ac0176161c776f3d4a1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1470702659269911219-75338410 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `47b9c1ab789b84066b536acecec183ab` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1227312198 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4ad222fbe3e52d2a5b6f86b332946c80` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1335115730 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4c56cbc620e585a5373ea0ea9acae384` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1375911139 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `46f7f22596a1e5204781d18a86e839ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1461432457 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `48b41f08eb1eee61a4e6281a4e963893` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1516681040 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4b08788f2b3434539d6daf47c410c6a4` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-1812162174 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `410b074af81719b5992afb35a5d20cbd` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-235211969 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4f545c3fada86d11df7692a0081aa1a5` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-531979442 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4261bcbef0b8a38b712c649286b082ba` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-539479367 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `488cff3f9501412fcae92bf829779984` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-656642079 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4581e2ae94d3287b91ad57e31a9fe989` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-972045385 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `431aab2ccfb1de591d13a38baa04b796` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7270336988349436968-981631451 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `44687593778b414acca9ab06ece502b1` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4a53609938eef355087249c1b74ca6b0` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4815e26dcb7e3aa355dfa72569096986` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4796d8afab7aafe3c213381ce7be51b8` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4640b60be5be840f1fa778f300b64d84` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4b33ebfdfb0a4ef2c2c6cbb267a5f2be` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `4de2f43948bbec45fce0fbe76d4658ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
+| Section | `42134703636fbc25221f6dc2ca06c793` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077 | Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente). |
 | Signal | `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | Aucune signalisation en V1 : declarer explicitement le carrefour non signalise, sans plan implicite. |
 | Signal | `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | Aucune signalisation en V1 : declarer explicitement le carrefour non signalise, sans plan implicite. |
 | Signal | `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | Aucune signalisation en V1 : declarer explicitement le carrefour non signalise, sans plan implicite. |
@@ -481,7 +534,7 @@ Fixtures de localisation sur la carte reelle : bloquees tant que le modele ne co
 
 ## Dispositions des elements source
 
-Chaque element source recoit une disposition typee. Rejets : 0 (toute forme non disposable fait echouer l'import).
+Chaque element source recoit une disposition typee ; toute forme non disposable fait echouer l'import, donc un rapport produit ne peut pas porter de rejet.
 
 ### Noeuds (204)
 

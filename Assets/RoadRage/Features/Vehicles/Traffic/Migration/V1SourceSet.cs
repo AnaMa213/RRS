@@ -155,19 +155,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             get { return Failures.Count == 0; }
         }
 
-        public V1Node FindNode(string key)
-        {
-            for (int i = 0; i < Nodes.Count; i++)
-            {
-                if (Nodes[i].Key == key)
-                {
-                    return Nodes[i];
-                }
-            }
-
-            return null;
-        }
-
         /// <summary>Extrait la source de <paramref name="scene"/> avec les prefabs reconnus par defaut.</summary>
         public static V1SourceSet Extract(Scene scene)
         {

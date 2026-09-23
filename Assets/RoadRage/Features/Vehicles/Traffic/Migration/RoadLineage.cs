@@ -111,9 +111,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 lineage._live.Add(entry.Key, entry);
             }
 
+            var tombstoneKeys = new HashSet<string>(StringComparer.Ordinal);
             foreach (var record in layout.Tombstones ?? new FileRecord[0])
             {
-                lineage._tombstones.Add(ParseEntry(record, seenIds));
+                var tombstone = ParseEntry(record, seenIds);
+                if (lineage._live.ContainsKey(tombstone.Key) || !tombstoneKeys.Add(tombstone.Key))
+                {
+                    throw new FormatException("Lignee : cle " + tombstone.Key
+                        + " a la fois vivante et tombstonee, ou tombstonee deux fois : une cle porte une seule identite.");
+                }
+
+                lineage._tombstones.Add(tombstone);
             }
 
             lineage.SortTombstones();

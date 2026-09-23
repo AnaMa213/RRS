@@ -112,10 +112,29 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public const string LineagePath = "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json";
         public const string ReportPath = "_bmad-output/implementation-artifacts/migration-report-5-27-mvp-run.md";
 
+        /// <summary>Chemin absolu de la lignee committée, resolu depuis la racine du projet.</summary>
+        public static string LineageFullPath
+        {
+            get { return Path.Combine(Directory.GetParent(Application.dataPath).FullName, LineagePath); }
+        }
+
+        /// <summary>Chemin absolu du rapport committé, resolu depuis la racine du projet.</summary>
+        public static string ReportFullPath
+        {
+            get { return Path.Combine(Directory.GetParent(Application.dataPath).FullName, ReportPath); }
+        }
+
         // ---------------------------------------------------------------- seuils publies tels quels
-        private const float ConnectorGapGate = 0.75f;
         private const float ConnectorAngleGate = 90f;
+        /// <summary>Derive maximale admise entre un noeud source et la courbe qui le porte, en metres.</summary>
         private const float NodeDriftGate = 0.10f;
+
+        /// <summary>
+        /// Borne d'ecart hors axe admise pour l'exception approuvee (graine developpee par un virage).
+        /// Meme valeur que <see cref="NodeDriftGate" /> aujourd'hui, mais c'est une autre decision :
+        /// deux criteres distincts ne doivent pas partager une constante. Garde de cout.
+        /// </summary>
+        private const float SeedOffAxisGate = 0.10f;
         private const float PortalDriftGate = 0.05f;
 
         /// <summary>Passage complet en memoire. Echec (source, import, lignee) = aucun texte produit.</summary>
@@ -202,18 +221,34 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return compiled;
         }
 
-        /// <summary>Codes 19+ : emis par le seul validateur geometrique (Story 5.26).</summary>
+        /// <summary>Codes emis par le seul validateur geometrique, et eux seuls.</summary>
         private static bool AllGeometric(IReadOnlyList<RoadModelValidationIssue> issues)
         {
             foreach (var issue in issues)
             {
-                if (issue.Code < RoadModelValidationCode.NonOrthonormalFrame)
+                if (!IsGeometricCode(issue.Code))
                 {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Le validateur geometrique (Story 5.26) emet les codes a partir de 19, avec une exception :
+        /// `ProfileToleranceAboveApprovedCeiling` (31) vit dans le validateur semantique. Un code
+        /// numerote par erreur sous 19, ou une nouvelle valeur d'enum non classee ici, ferait tomber la
+        /// source dans la branche mixte. C'est ce que pin `TheValidationSplitNamesTheGeometricCodesOnly`.
+        /// </summary>
+        private static bool IsGeometricCode(RoadModelValidationCode code)
+        {
+            if (code < RoadModelValidationCode.NonOrthonormalFrame)
+            {
+                return false;
+            }
+
+            return code != RoadModelValidationCode.ProfileToleranceAboveApprovedCeiling;
         }
 
         private static void SortIssues(List<RoadModelValidationIssue> issues)
@@ -238,14 +273,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             var import = run.Import;
             var profile = import.Source.ValidationProfile;
 
-            var gap = NewMetric(run, "Ecart de connecteur (source V1)", "m", "<= " + MigrationFormat.Meters(ConnectorGapGate),
-                "herite de V1 : decouverte de jointure (TrafficSettingsDef.connectorJoinDistance)");
+            var gapGate = import.SourceSet.ConnectorJoinDistanceMeters;
+            var gap = NewMetric(run, "Ecart de connecteur (source V1)", "m", "<= " + MigrationFormat.Meters(gapGate),
+                "herite de V1 : decouverte de jointure (TrafficSettingsDef.connectorJoinDistance, lue dans la source)");
             var angle = NewMetric(run, "Angle de connecteur (source V1)", "deg", "< " + MigrationFormat.Degrees(ConnectorAngleGate),
                 "herite de V1 : test Dot > 0");
             foreach (var join in import.SourceSet.Joins)
             {
                 string subject = join.From.Module.Label + " / " + join.From.Label + " -> " + join.To.Module.Label + " / " + join.To.Label;
-                Add(gap, subject, join.GapMeters, join.GapMeters <= ConnectorGapGate);
+                Add(gap, subject, join.GapMeters, join.GapMeters <= gapGate);
                 Add(angle, subject, join.AngleDegrees, join.AngleDegrees < ConnectorAngleGate);
             }
 
@@ -321,7 +357,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 Vector3 offset = movement.Seed.Position - approachEnd.Position;
                 float along = Vector3.Dot(offset, approachEnd.Tangent);
                 float offAxis = (offset - approachEnd.Tangent * along).magnitude;
-                bool onApproachAxis = along >= 0f && offAxis <= NodeDriftGate;
+                bool onApproachAxis = along >= 0f && offAxis <= SeedOffAxisGate;
                 measure.Class = value <= NodeDriftGate ? MeasureClass.Within
                     : Mathf.Abs(movement.TurnDegrees) >= V1RoadModelImporter.TurningThresholdDegrees && onApproachAxis ? MeasureClass.JustifiedException
                     : MeasureClass.DeviationToCorrect;
@@ -540,7 +576,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             text.Append("| **Total** | **").Append(modules).Append("** | **").Append(set.Nodes.Count).Append("** |\n\n");
             text.Append("Aretes authorees : ").Append(set.Edges.Count - set.Joins.Count).Append(" ; jointures de connecteurs : ").Append(set.Joins.Count)
-                .Append(" ; noeuds hors module : 0 (sinon l'import echoue).\n\n");
+                .Append(" ; noeuds hors module : aucun (un noeud hors module fait echouer l'extraction).\n\n");
 
             // ------------------------------------------------ modele candidat
             text.Append("## Modele candidat\n\n| Enregistrement | Nombre |\n|---|---:|\n");
@@ -558,6 +594,35 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             // ------------------------------------------------ lignee
             var lineage = import.Lineage;
+            // ------------------------------------------------ coupes transversales (AD-48)
+            // AD-48 exige de la 5.27 qu'elle renseigne ET dispose `LateralOrder` et le datum de chaque
+            // section dans le rapport : un datum arbitraire qui n'y apparait pas est un echec admis.
+            text.Append("## Coupes transversales (AD-48)\n\n");
+            text.Append("Ordre lateral et datum de chaque section du modele candidat, tels qu'importes (V1 n'en porte aucun) : AD-48 exige que la 5.27 dispose les deux explicitement.\n\n");
+            text.Append("| Section | `LateralOrder` | Corridor | Datum de coupe |\n|---|---:|---|---|\n");
+            var sections = new List<RoadSection>(import.Source.Sections);
+            sections.Sort(delegate(RoadSection a, RoadSection b) { return a.Id.CompareTo(b.Id); });
+            foreach (var section in sections)
+            {
+                var members = new List<LaneCorridor>();
+                foreach (var corridor in import.Source.Corridors)
+                {
+                    if (corridor.SectionId == section.Id)
+                    {
+                        members.Add(corridor);
+                    }
+                }
+
+                members.Sort(delegate(LaneCorridor a, LaneCorridor b) { return a.LateralOrder.CompareTo(b.LateralOrder); });
+                foreach (var corridor in members)
+                {
+                    text.Append("| `").Append(section.Id).Append("` | ").Append(corridor.LateralOrder).Append(" | `").Append(corridor.Id).Append("` | ")
+                        .Append(corridor.IsCrossSectionDatum ? "oui" : "-").Append(" |\n");
+                }
+            }
+
+            text.Append('\n');
+
             text.Append("## Lignee et identites\n\n");
             text.Append("- Identites preservees : ").Append(lineage.Preserved.Count).Append('\n');
             text.Append("- Identites frappees (nouvelles) : ").Append(lineage.Minted.Count).Append(lineage.ModelIdMinted ? " (premier import : RoadModelId frappe)" : string.Empty).Append('\n');
@@ -609,10 +674,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             text.Append("| Mesure | Unite | n | min | p50 | p95 | max | Seuil | Dans le seuil | Deviations | Exceptions |\n|---|---|---:|---:|---:|---:|---:|---|---:|---:|---:|\n");
             foreach (var metric in run.Metrics)
             {
+                // Les statistiques portent sur la population DANS le seuil : melanger a la population
+                // nominale les exceptions approuvees (lissage des noeuds de decision) produit un p95 qui
+                // ne decrit ni l'une ni l'autre. Deviations et exceptions sont listees plus bas, chacune
+                // avec sa valeur propre et sa deviation max.
                 var values = new List<float>();
                 foreach (var value in metric.Values)
                 {
-                    values.Add(value.Value);
+                    if (value.Class == MeasureClass.Within)
+                    {
+                        values.Add(value.Value);
+                    }
                 }
 
                 values.Sort();
@@ -629,6 +701,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 text.Append("- ").Append(metric.Title).Append(" : ").Append(metric.Origin).Append(".\n");
             }
 
+            text.Append("\nLes colonnes min, p50, p95 et max portent sur la population dans le seuil (`n`) ; ")
+                .Append("les valeurs hors seuil sont listees ci-dessous avec leur classe, jamais fondues dans ces statistiques.\n");
+
             text.Append('\n');
             MeasureList(text, run, MeasureClass.DeviationToCorrect, "Deviations a corriger (authoring)");
             MeasureList(text, run, MeasureClass.JustifiedException, "Exceptions justifiees (lissage des noeuds de decision par les virages)");
@@ -640,7 +715,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             text.Append("| Entree | Sorties atteintes |\n|---|---|\n");
             foreach (var pair in run.Reachability)
             {
-                text.Append("| ").Append(pair.Key).Append(" | ").Append(pair.Value.Count == 0 ? "aucune" : string.Join("<br>", pair.Value.ToArray())).Append(" |\n");
+                text.Append("| ").Append(Cell(pair.Key)).Append(" | ").Append(pair.Value.Count == 0 ? "aucune" : Cell(string.Join("<br>", pair.Value.ToArray()))).Append(" |\n");
             }
 
             text.Append('\n');
@@ -667,7 +742,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 movements.Sort(delegate(ImportedCurve a, ImportedCurve b) { return string.CompareOrdinal(a.Key, b.Key); });
                 foreach (var movement in movements)
                 {
-                    text.Append("| ").Append(movement.Label).Append(" | `").Append(import.IdOf(movement.Key)).Append("` | ")
+                    text.Append("| ").Append(Cell(movement.Label)).Append(" | `").Append(import.IdOf(movement.Key)).Append("` | ")
                         .Append(MigrationFormat.Weight(movement.KeyEdge.Weight)).Append(" | ").Append(MigrationFormat.Degrees(movement.TurnDegrees)).Append(" |\n");
                 }
 
@@ -676,7 +751,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             // ------------------------------------------------ taches
             text.Append("## Taches d'authoring (Story 5.28)\n\n");
-            text.Append("Semantique absente de V1, jamais inventee. Aucune adjacence de meme sens n'existe dans la source : aucune tache d'adjacence hors celles listees.\n\n");
+            text.Append("Semantique absente de V1, jamais inventee. ")
+                .Append(import.Source.Adjacencies.Length == 0
+                    ? "Aucune adjacence de meme sens n'existe dans la source : aucune tache d'adjacence hors celles listees.\n\n"
+                    : "La source porte " + import.Source.Adjacencies.Length + " adjacence(s) de meme sens, disposee(s) ci-dessous.\n\n");
             text.Append("| Categorie | Sujet | Tache |\n|---|---|---|\n");
             var tasks = new List<AuthoringTask>(import.Tasks);
             tasks.Sort(delegate(AuthoringTask a, AuthoringTask b)
@@ -686,7 +764,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             });
             foreach (var task in tasks)
             {
-                text.Append("| ").Append(task.Category).Append(" | `").Append(import.IdOf(task.SubjectKey)).Append("` ").Append(task.SubjectKey).Append(" | ").Append(task.Text).Append(" |\n");
+                text.Append("| ").Append(task.Category).Append(" | `").Append(import.IdOf(task.SubjectKey)).Append("` ").Append(Cell(task.SubjectKey)).Append(" | ").Append(Cell(task.Text)).Append(" |\n");
             }
 
             text.Append('\n');
@@ -694,7 +772,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             // ------------------------------------------------ dispositions
             text.Append("## Dispositions des elements source\n\n");
-            text.Append("Chaque element source recoit une disposition typee. Rejets : 0 (toute forme non disposable fait echouer l'import).\n\n");
+            text.Append("Chaque element source recoit une disposition typee ; toute forme non disposable fait ")
+                .Append("echouer l'import, donc un rapport produit ne peut pas porter de rejet.\n\n");
             foreach (SourceItemKind item in Enum.GetValues(typeof(SourceItemKind)))
             {
                 int count = 0;
@@ -712,8 +791,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         continue;
                     }
 
-                    text.Append("| ").Append(disposition.SourceLabel).Append(" | `").Append(disposition.SourceKey).Append("` | ").Append(disposition.Kind)
-                        .Append(" | `").Append(import.IdOf(disposition.TargetKey)).Append("` | ").Append(disposition.Detail).Append(" |\n");
+                    text.Append("| ").Append(Cell(disposition.SourceLabel)).Append(" | `").Append(disposition.SourceKey).Append("` | ").Append(disposition.Kind)
+                        .Append(" | `").Append(import.IdOf(disposition.TargetKey)).Append("` | ").Append(Cell(disposition.Detail)).Append(" |\n");
                 }
 
                 text.Append('\n');
@@ -734,8 +813,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     return "Poids de virage authores";
                 case SourceItemKind.ConnectorMatch:
                     return "Jointures de connecteurs";
-                default:
+                case SourceItemKind.PortalRole:
                     return "Roles de portail";
+                default:
+                    throw new ArgumentException("Categorie de source sans titre : " + item + ". Ajouter son libelle ici, jamais un repli silencieux.");
             }
         }
 
@@ -800,7 +881,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 {
                     if (value.Class == measureClass)
                     {
-                        rows.Add("| " + metric.Title + " | " + value.Subject + " | " + FormatValue(value.Value, metric) + " | " + metric.Threshold + " |");
+                        rows.Add("| " + metric.Title + " | " + Cell(value.Subject) + " | " + FormatValue(value.Value, metric) + " | " + metric.Threshold + " |");
                     }
                 }
             }
@@ -958,32 +1039,27 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         [MenuItem("RoadRage/Traffic V2/Migrer MVP_Run")]
         public static void MigrateMvpRun()
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode)
-            {
-                Debug.LogError("[Traffic V2] Migration interdite en Play Mode : la source serait l'etat runtime, pas l'authoring.");
-                return;
-            }
-
             var open = SceneManager.GetSceneByPath(ScenePath);
             bool inHierarchy = open.IsValid();
             bool wasLoaded = inHierarchy && open.isLoaded;
-            if (wasLoaded && open.isDirty)
+            string refusal = RefusalReason(EditorApplication.isPlayingOrWillChangePlaymode, wasLoaded, inHierarchy && open.isDirty);
+            if (refusal != null)
             {
-                Debug.LogError("[Traffic V2] MVP_Run a des modifications non sauvegardees : la source ne serait pas celle du disque. Migration annulee.");
+                Debug.LogError(refusal);
                 return;
             }
 
             var scene = wasLoaded ? open : EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Additive);
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                Debug.LogError("[Traffic V2] MVP_Run illisible : migration annulee, rien n'est ecrit.");
+                return;
+            }
+
             try
             {
-                string root = Directory.GetParent(Application.dataPath).FullName;
-                string lineageFile = Path.Combine(root, LineagePath);
-
-                // Fichier absent = premier import (null) ; fichier vide = echec dur dans Parse.
-                string prior = File.Exists(lineageFile) ? File.ReadAllText(lineageFile) : null;
-                var run = Run(scene, prior);
                 string error;
-                if (!TryWrite(run, lineageFile, Path.Combine(root, ReportPath), out error))
+                if (!Migrate(scene, LineageFullPath, ReportFullPath, out error))
                 {
                     Debug.LogError("[Traffic V2] " + error);
                     return;
@@ -1032,6 +1108,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 Replace(lineageTemp, lineageFile);
                 Replace(reportTemp, reportFile);
             }
+            catch (IOException exception)
+            {
+                // Le remplacement peut echouer pour une raison du systeme de fichiers (destination
+                // verrouillee, disque plein) : c'est un echec de migration, pas une exception brute.
+                error = "Ecriture impossible : " + exception.Message;
+                return false;
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                error = "Ecriture refusee par le systeme de fichiers : " + exception.Message;
+                return false;
+            }
             finally
             {
                 if (File.Exists(lineageTemp))
@@ -1047,6 +1135,42 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             error = null;
             return true;
+        }
+
+        /// <summary>
+        /// Refus pre-vol d'une migration : <c>null</c> si le passage peut etre tente, sinon le message
+        /// exact que le menu journalise. Extrait pour etre eprouve sans toucher aux fichiers reels :
+        /// aucun refus n'ecrit quoi que ce soit, et c'est la seule chose que le menu decide avant
+        /// d'ouvrir la scene.
+        /// </summary>
+        public static string RefusalReason(bool playMode, bool wasLoaded, bool isDirty)
+        {
+            if (playMode)
+            {
+                return "[Traffic V2] Migration interdite en Play Mode : la source serait l'etat runtime, pas l'authoring.";
+            }
+
+            if (wasLoaded && isDirty)
+            {
+                return "[Traffic V2] MVP_Run a des modifications non sauvegardees : la source ne serait pas celle du disque. Migration annulee.";
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Le passage lui-meme, sans scene a ouvrir ni refus pre-vol : relit la lignee a l'emplacement
+        /// demande (fichier absent = premier import, fichier vide ou incoherent = echec dur dans
+        /// `Parse`), importe la scene fournie, puis ecrit fail-closed aux deux chemins demandes.
+        ///
+        /// C'est ce que le menu appelle avec les chemins du projet. Les tests l'appellent avec des
+        /// chemins temporaires : c'est la seule facon d'eprouver la selection de chemin, la relecture
+        /// de la lignee et l'ecriture sans toucher aux artefacts committes.
+        /// </summary>
+        public static bool Migrate(Scene scene, string lineageFile, string reportFile, out string error)
+        {
+            string prior = File.Exists(lineageFile) ? File.ReadAllText(lineageFile) : null;
+            return TryWrite(Run(scene, prior), lineageFile, reportFile, out error);
         }
 
         private static void Replace(string temp, string destination)

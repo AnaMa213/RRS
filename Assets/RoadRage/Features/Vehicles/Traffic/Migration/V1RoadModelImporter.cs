@@ -1050,7 +1050,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 foreach (var section in _result.Sections)
                 {
                     Task("Largeur", section.Key, "Largeur candidate " + MigrationFormat.Meters(section.HalfWidthMeters) + " m par cote (" + section.WidthOrigin + ") : revue requise avant d'etre authoritative.");
-                    Task("Section", section.Key, "Vitesse limite et classes de vehicules absentes de V1 : a authorer (0 m/s et aucune classe en attendant, jamais un defaut invente).");
+                    Task("Section", section.Key, "Vitesse limite, classes de vehicules et surface absentes de V1 : a authorer (0 m/s, aucune classe et le defaut d'enum `Asphalt` en attendant, jamais un defaut invente).");
 
                     if (CountSameDirectionPairs(section) > 0)
                     {
