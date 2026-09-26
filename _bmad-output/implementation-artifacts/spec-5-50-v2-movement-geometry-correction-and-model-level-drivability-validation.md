@@ -2,7 +2,8 @@
 title: 'Story 5.50 -- Correction de la geometrie des mouvements V2 et validation de conduisibilite au niveau modele'
 type: 'feature'
 created: '2026-09-26'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_commit: '780de0d64e694a3a3f6b0aa8fdf32f9776294728'
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/planning-artifacts/epics.md'

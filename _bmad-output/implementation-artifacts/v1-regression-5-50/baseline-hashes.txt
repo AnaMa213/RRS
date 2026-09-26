@@ -1,0 +1,10 @@
+# Empreintes de reference (Story 5.50), capturees le 2026-09-26 avant toute modification de production
+# baseline_commit 780de0d64e694a3a3f6b0aa8fdf32f9776294728
+lineage-sha256 (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json): f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4
+source-hash (V1SourceSet.Extract, MVP_Run charge, isDirty=false): b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc
+report-5-27-sha256 (_bmad-output/implementation-artifacts/migration-report-5-27-mvp-run.md): 61cedbb899f0ea7c24f8deb3a4b91f109732acd316d473b274ad1b70359de40c
+road-model-format1-sha256 (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json): fa3a3e057e03a5e6c5f2bdc572360c75314778d7c9cb296980f8446de2050a28
+overlay-5-28-sha256 (_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt): 875cada7c34b5a6b675ff665ea55874bb1d07fa2be072a19f454e14296cd3d9b
+report-5-28-sha256 (_bmad-output/implementation-artifacts/migration-report-5-28-mvp-run.md): 9f832c16b081a6d9fe7cfd14a0b53b8e8ea7dc83d35367fdb20fde5fa613c55c
+authoring-5-28-sha256 (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json): 7ab9948c349ee068f71fef07ca915276bf69de59e8a2a6e7ddda36fcbaab222b
+editmode: 837/838 (seul echec GateAIsOpenedOnlyByTheOwnersBoundSignoff)

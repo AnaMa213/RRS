@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 09-23-2026
+last_updated: 09-26-2026
 # 2026-09-22 planning run: the Traffic V2 replacement stories now exist as
 # 5.24-5.48, planned INSIDE Epic 5 because building the AI traffic network is
 # Epic 5's own unfinished mission. This filing decision supersedes section 3.14
@@ -177,7 +177,7 @@ development_status:
   # Inserted 2026-09-25 (sprint-change-proposal-2026-09-25.md): the 2026-09-24
   # overlay review found undrivable V2 movement geometry (5.50) and right-turn
   # corner conflicts (5.51). Both run BEFORE the 5.28 sign-off, in this order.
-  5-50-v2-movement-geometry-correction-and-model-level-drivability-validation: backlog
+  5-50-v2-movement-geometry-correction-and-model-level-drivability-validation: in-progress
   5-51-junction-corner-clearance-for-right-turns: backlog
   5-29-deterministic-strategic-route-plan: backlog
   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog
