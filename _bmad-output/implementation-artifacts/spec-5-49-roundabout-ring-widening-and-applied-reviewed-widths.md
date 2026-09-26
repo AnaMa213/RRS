@@ -41,6 +41,8 @@ context:
 
 </frozen-after-approval>
 
+*Renegociation approuvee le 2026-09-25 (invariant d'axe d'anneau), a realiser par la Story 5.50 -- voir Spec Change Log. Le bloc gele ci-dessus reste l'etat livre par la 5.49.*
+
 ## Code Map
 
 - `.../Traffic/Migration/AuthoredRoadModel.cs:259-389` -- `ApplyDecisions` : bloc « largeurs revues » a remplacer (compare -> applique) ; `Copy` (:570) est SUPERFICIEL (tableaux et `Samples` partages avec `import.Source`) : cloner avant ecriture. `PipelineVersion` (:128) 1 -> 2. `RenderBody` (:1032), section « Largeurs revues » (:1135) ; nouvelle section giratoires apres elle.
@@ -76,6 +78,15 @@ context:
 - Given le changement physique, when la source V1 est re-extraite, then le `source-hash` et le SHA-256 des octets de la lignee egalent les empreintes pre-changement et aucune identite n'est frappee ni retiree.
 - Given les suites V1 avant/apres, when elles sont comparees, then chaque delta est liste pour le proprietaire et aucun n'est accepte d'office.
 - Given les artefacts regeneres, when la suite EditMode complete tourne, then seul `GateAIsOpenedOnlyByTheOwnersBoundSignoff` echoue (sign-off absent, 5.28) et les artefacts committes egalent un pipeline frais.
+
+## Spec Change Log
+
+- **2026-09-25 -- renegociation approuvee par le proprietaire (sprint-change-proposal-2026-09-25.md), a realiser par la Story 5.50 (axe) et par la Story 5.28 a sa reprise (preuve physique des giratoires).**
+  Invariant gele renegocie (Always) : « l'axe importe/compile (representation cordes + Hermite, mesure ~5,83-6,19 m du centre) est la geometrie de reference acceptee et reste INCHANGE ». Remplacement approuve : l'axe de l'anneau deviendra le cercle exact ajuste sur les noeuds V1 d'anneau (rayon 6,0 m), chaque noeud associe par lignee a 0,10 m au plus du cercle ; les noeuds ne bougent pas.
+  Conditionnel (matrice, `EndpointInterpolation` 2,0 -> 4,0 m sur les entrees et sorties) : conserve, sauf echec des regles de repli de la 5.50 sur une entree ou une sortie ; une autre loi de largeur exigera alors une decision du proprietaire.
+  Preuve physique : les mesures 5.49 (residus a deux gabarits, rayons d'ilot et de chaussee) ont ete faites sur l'ancienne geometrie V2. `RoundaboutClearance` sera etendu par la 5.28 a sa reprise pour les recalculer sur les trajectoires finales 5.50 (balayage conservateur de l'empreinte, transitions vers les corridors adjacents incluses, residu d'anneau recalcule), et c'est cette preuve recalculee que liera la Gate A. Un residu non positif arretera le travail pour une decision du proprietaire.
+  Inchange : geometrie physique et largeurs appliquees de la 5.49, cible contraignante (4,0 / 4,0 m, ilot <= 1,75 m, chaussee >= 10,25 m), hash source et lignee, un seul corridor d'anneau.
+  Design Notes « L'axe ne change pas, donc les candidats de conflit non plus » : vrai pour la 5.49 seule ; avec la 5.50, les candidats changeront et passeront par le differentiel exhaustif et la reconfirmation du proprietaire.
 
 ## Design Notes
 
