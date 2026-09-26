@@ -2241,12 +2241,17 @@ So that the conflict zones, the Gate A review and every later planning layer are
 - Each zone stays owned by its movements' junction, and no cross-junction pair is created.
 - Every element shorter than `MaxVehicleLengthMeters` inside or between junctions is listed in the report.
 - The rule applies uniformly to the 9 junctions.
+- **Conservative between samples (owner, 2026-09-26):** a pair is found whenever the true swept regions of the two moving footprints, each inflated by `LateralClearanceMarginMeters` and δ_c, touch on any interval between consecutive poses, seams (one interval with Δp = seam gap, Δθ = heading jump) and the reach beyond movement ends included. With ρ = √((`MaxVehicleLengthMeters`/2)² + `MaxVehicleHalfWidthMeters`²) and, per interval, δ = |Δp| + ρ·|Δθ|, a pair is a candidate if, for some interval I of one movement, J of the other and end poses a of I, b of J: dist(F_a, F_b) ≤ δ_I/2 + δ_J/2 + 2·(margin + δ_c). Footprint distance is exact or underestimated, never overestimated; an interval with |Δθ| ≥ 90° fails closed. The zone volume is the axis-aligned box of F ⊕ B(δ/2 + margin + δ_c) over the contributing intervals.
+- **Proof obligation:** the bound is proven for two moving footprints on the compiled reference (positions linear, normalized-interpolated heading monotone): for any body point, its displacement to pose i plus to pose i+1 is at most δ, so one end pose is within δ/2. It coincides with the 5.51 interval bound but is derived here, not imported (settles the question left open by the 2026-09-25 proposal).
 
 **Decision reconfirmation:**
 - Pair identities are stable. Each conflict decision records the geometry fingerprint of its pair: the canonical geometry of both member movements and the zone volume.
 - A decision whose fingerprint no longer matches becomes a **historical proposal**. It is shown in a targeted review of the changed pairs only, and it blocks Gate A until the owner explicitly reconfirms it or changes it.
 - Pairs with identical geometry keep their decisions. A new pair needs an owner decision. A removed pair leaves an orphan decision that the owner disposes of explicitly; it never receives a new active decision. Both stay hard failures until resolved.
 - The pipeline never writes, transfers, deletes or approves a decision.
+- **Bootstrap of the 76 existing decisions (owner, 2026-09-26):** they carry no fingerprint, and the format-1 model holding their geometry is refused once the document format becomes 2. Before any importer, format or sweep change, the unchanged pipeline computes a **historical fingerprint table** on the committed `MVP_Run` model: per decision, the pair keys, the canonical geometry hash of each member movement, the zone volume and the fingerprint (versioned fingerprint schema). It refuses if the fresh `ModelVersion` differs from the committed document's; the table's SHA-256 and that of a byte copy of the format-1 model are recorded.
+- The table is Editor-only review data: never read by `RoadModelDocument.Load`, the compiler, the validator or runtime, and it never yields a `CompiledRoadModel`; a test asserts that no source outside the migration tooling references it.
+- **Owner-only reconfirmation actions:** "reconfirm unchanged pairs" writes the fresh fingerprint only where historical fingerprint = fresh fingerprint (geometry **and** volume); it never touches a pair whose member geometry or volume changed or a pair absent from the table, and it reconfirms nothing if the table's hash or schema version does not match (fail closed). Changed pairs are reconfirmed one at a time ("reconfirm this pair", old and new geometry and volume shown) or by the owner's own edit. The pipeline never invokes either action.
 
 **Gate A isolation view (read-only):**
 - one movement alone: start and end markers, direction chevrons, minimum radius and speed ceiling, the curve drawn in red where it breaks the admission rule, optional envelope, and its V1 source nodes;
@@ -2256,10 +2261,13 @@ So that the conflict zones, the Gate A review and every later planning layer are
 
 **Non-goals:** no physical change (5.51); no V1 change; no roundabout or junction control kind (5.35); no runtime; no Gate A signature; no decision written by the agent; no second ring corridor or adjacency.
 
-**Must NOT be copied:** moving `LaneNode`s to shape curves; relaxing a gate or reshaping accepted geometry to make a test pass; a pipeline-only drivability gate; drift measured against the nearest curve; carrying a decision onto changed geometry.
+**Must NOT be copied:** moving `LaneNode`s to shape curves; relaxing a gate or reshaping accepted geometry to make a test pass; a pipeline-only drivability gate; drift measured against the nearest curve; carrying a decision onto changed geometry; reusing another story's bound without its own proof; reconfirming a changed pair in bulk; changing production code before the reference checkpoint.
 
 **Execution sequence (binding):**
-1. Implement the importer, drivability, validation, document, sweep, diff and isolation-view changes; synthetic tests pass.
+0. **Reference checkpoint** (local, Editor connected, before any production C# change): add only a golden test fixture — a deterministic undeclared model (literal `ModelId` and samples covering a section, straight and arc corridors, a junction, a movement and a portal; no randomness, no clock) plus the 5.25 and 5.26 fixtures read through reflection from the test assembly (their files unchanged). An explicit capture test records each model's `CompiledRoadModel.Version`; `git diff --stat` shows only that fixture; commit it with the baseline hashes (lineage, V1 source hash, 5.27 report, committed 5.28 artifacts) and a byte copy of the format-1 model. No `InternalsVisibleTo`.
+1a. Add a read-only public accessor for the canonical bytes, with no behaviour change; capture the golden bytes and accept them only if their SHA-256 prefix equals the step-0 `Version` — otherwise HALT.
+1b. Capture the historical fingerprint table (see Decision reconfirmation).
+1c. Implement the importer, drivability, validation, document, sweep, diff and isolation-view changes; synthetic tests pass.
 2. Run the pipeline in **diff mode**. Diff mode is read-only: it writes only a review report. It never writes the decisions, model, overlay or Gate A report. It publishes the exhaustive diff: new, removed, materially changed and following pairs; per-element geometry changes; the drivability tables.
 3. **HALT: owner decisions.** Present the new pairs (to decide), the materially changed pairs (historical proposals to reconfirm or change) and the removed pairs (orphan decisions to dispose of explicitly), each viewable in the isolation view. The agent never edits, transfers, deletes or approves a decision. The owner makes every change, by his own edit or explicit tool action.
 4. Resume only when no decision is missing, orphaned or unconfirmed. Compile with the owner's decisions, then regenerate the definitive 5.27 report and 5.28 artifacts. Run the full EditMode suite.
@@ -2267,7 +2275,7 @@ So that the conflict zones, the Gate A review and every later planning layer are
 
 **EditMode verification:**
 - **Unchanged tests:** the 5.25/5.26/5.27 files are unchanged and pass.
-- **Canonical compatibility:** a golden canonical hash of an undeclared model is captured before the change and still matches.
+- **Canonical compatibility:** the undeclared models captured at step 0 compile, after the change, to canonical bytes equal to the step-1a golden bytes and to the step-0 `Version`.
 - **Document format:** an extra member in a format-1 document is refused as non-canonical; a format-2 document is refused by the format-1 path.
 - **Admission boundary:** R_adm = 4.0344 m is admitted with a ceiling equal to 0.25 m/s; 4.0064 m is refused. A left/right radius grid from 3.5 to 20 m shows that admission, "ceiling ≥ 0.25 m/s" and "R ≥ R_adm" agree. The ceiling never decreases as the radius grows, and is "none" from 10.93 m.
 - **Channel consistency:**
@@ -2286,8 +2294,8 @@ So that the conflict zones, the Gate A review and every later planning layer are
   - all corridors and movements are admitted;
   - the lineage and the source hash are byte-identical;
   - no identity is minted or retired.
-- **Candidates:** a synthetic chain with a corridor shorter than half a vehicle between two movements finds the pair; ordinary following is published as such.
-- **Diff and reconfirmation:** the exhaustive candidate diff is published; a decision on a changed pair blocks Gate A until reconfirmed.
+- **Candidates:** a synthetic chain with a corridor shorter than half a vehicle between two movements finds the pair; ordinary following is published as such; three pairs that touch only between sampled poses — a translation crossing between two poses 10 m apart, a corner touching only during an interval's rotation, a contact only within a seam interval — are found, and a pose-only check provably misses each.
+- **Diff and reconfirmation:** the exhaustive candidate diff is published; a decision on a changed pair blocks Gate A until reconfirmed; the historical table covers the 76 decisions exactly; the unchanged-pairs action never reconfirms a pair whose geometry or volume changed or that is absent from the table, and fails closed on a tampered table.
 - **Regenerated artifacts:** the committed artifacts equal a fresh pipeline run.
 
 **PlayMode verification:** none. No runtime, physical or V1 change; V1 traffic code does not reference Traffic V2, which a test asserts. A visual check of the 9 junctions and of the segments whose V2 geometry changed happens in the Editor, under the double state guard.
@@ -2324,7 +2332,7 @@ So that the conflict zones, the Gate A review and every later planning layer are
 
 **Given** the full-footprint candidate sweep
 **When** candidates are generated for the 9 junctions
-**Then** pairs are found across elements shorter than half a vehicle, ordinary following is published as following, and every zone stays owned by its junction
+**Then** pairs are found across elements shorter than half a vehicle, between sampled poses and across seams, ordinary following is published as following, and every zone stays owned by its junction
 
 **Given** the exhaustive candidate and geometry diff
 **When** it contains new, removed or materially changed pairs

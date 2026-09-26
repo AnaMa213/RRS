@@ -234,6 +234,8 @@ Racine : `Assets/RoadRage/Features/Vehicles/Traffic/`.
 
 ## Spec Change Log
 
+- **2026-09-26 -- report de P1-P3 dans la story normative (sprint-change-proposal-2026-09-26.md, approuve par le proprietaire).** Les exigences P1 (balayage conservateur entre echantillons), P2 (amorce des 76 decisions historiques) et P3 (checkpoint de reference executable) figurent desormais dans la Story 5.50 d'`epics.md` (Conflict candidates, Decision reconfirmation, Execution sequence 0/1a/1b/1c, EditMode verification, Must NOT be copied, AC du balayage). La mention « absentes de la Story 5.50 d'`epics.md` » du bloc gele est donc historique ; le bloc gele n'est pas modifie. Aucun changement d'exigence.
+
 ## Design Notes
 
 **Derivations.**

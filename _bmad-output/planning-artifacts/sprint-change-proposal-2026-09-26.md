@@ -7,7 +7,7 @@
 
 **Trigger:** owner review of the 5.50 spec (`bmad-build`, CHECKPOINT 1, 2026-09-26): "[E] targeted modification" request, then "[A] approve and carry P1–P3 into the story".
 
-**Status:** drafted in batch mode on 2026-09-26; awaiting owner approval. `epics.md` is not modified until approval.
+**Status:** drafted in batch mode and **approved by Kenan on 2026-09-26**; applied the same day to `epics.md` (Story 5.50), with a pointer line in the 2026-09-25 proposal and an entry in the 5.50 spec's Spec Change Log.
 
 **Scope classification:** **Minor.** One story is refined: Story 5.50, backlog, spec ready-for-dev. No epic, AD, contract row, SPEC requirement or other story changes.
 
