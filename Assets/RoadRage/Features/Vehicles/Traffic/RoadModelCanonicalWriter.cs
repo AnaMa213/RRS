@@ -87,7 +87,26 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// </exception>
         public static void ComputeFingerprint(RoadModelCanonicalPayload payload, out ulong high, out ulong low)
         {
-            byte[] digest;
+            ComputeFingerprint(CreateBytes(payload), out high, out low);
+        }
+
+        /// <summary>
+        /// Retourne une vue en lecture seule des octets canoniques exacts ayant produit la version
+        /// d'un modele compile. Le tampon expose est une copie : aucun consommateur ne peut alterer
+        /// le modele ni son empreinte.
+        /// </summary>
+        public static ReadOnlyMemory<byte> GetCanonicalBytes(CompiledRoadModel model)
+        {
+            if (model == null)
+            {
+                throw new ArgumentNullException("model");
+            }
+
+            return new ReadOnlyMemory<byte>(model.CopyCanonicalBytes());
+        }
+
+        internal static byte[] CreateBytes(RoadModelCanonicalPayload payload)
+        {
             using (var stream = new MemoryStream())
             {
                 using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
@@ -95,10 +114,16 @@ namespace RoadRage.Features.Vehicles.Traffic
                     Write(writer, payload);
                 }
 
-                using (var sha = SHA256.Create())
-                {
-                    digest = sha.ComputeHash(stream.ToArray());
-                }
+                return stream.ToArray();
+            }
+        }
+
+        internal static void ComputeFingerprint(byte[] canonicalBytes, out ulong high, out ulong low)
+        {
+            byte[] digest;
+            using (var sha = SHA256.Create())
+            {
+                digest = sha.ComputeHash(canonicalBytes);
             }
 
             high = ReadBigEndianUInt64(digest, 0);

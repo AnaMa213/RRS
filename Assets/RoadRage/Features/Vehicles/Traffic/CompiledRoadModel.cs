@@ -264,6 +264,7 @@ namespace RoadRage.Features.Vehicles.Traffic
         private readonly CompiledConflictZone[] _conflictZones;
         private readonly CompiledSignalPlan[] _signalPlans;
         private readonly Portal[] _portals;
+        private readonly byte[] _canonicalBytes;
 
         private readonly Dictionary<RoadId, int> _corridorIndex = new Dictionary<RoadId, int>();
         private readonly Dictionary<RoadId, int> _junctionIndex = new Dictionary<RoadId, int>();
@@ -294,7 +295,8 @@ namespace RoadRage.Features.Vehicles.Traffic
             JunctionControl[] controls,
             ConflictZone[] conflictZones,
             SignalPlan[] signalPlans,
-            Portal[] portals)
+            Portal[] portals,
+            byte[] canonicalBytes)
         {
             ModelId = modelId;
             Version = version;
@@ -306,6 +308,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             _adjacencies = (LaneAdjacency[])adjacencies.Clone();
             _junctions = (Junction[])junctions.Clone();
             _portals = (Portal[])portals.Clone();
+            _canonicalBytes = (byte[])canonicalBytes.Clone();
 
             _corridors = new EffectiveLaneCorridor[corridors.Length];
             for (int i = 0; i < corridors.Length; i++)
@@ -464,6 +467,11 @@ namespace RoadRage.Features.Vehicles.Traffic
         public IReadOnlyList<Portal> Portals
         {
             get { return _portals; }
+        }
+
+        internal byte[] CopyCanonicalBytes()
+        {
+            return (byte[])_canonicalBytes.Clone();
         }
 
         // ------------------------------------------------------------------ index chauds

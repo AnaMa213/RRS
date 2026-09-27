@@ -82,9 +82,10 @@ namespace RoadRage.Features.Vehicles.Traffic
             payload.SignalPlans = signalPlans;
             payload.Portals = portals;
 
+            byte[] canonicalBytes = RoadModelCanonicalWriter.CreateBytes(payload);
             ulong high;
             ulong low;
-            RoadModelCanonicalWriter.ComputeFingerprint(payload, out high, out low);
+            RoadModelCanonicalWriter.ComputeFingerprint(canonicalBytes, out high, out low);
 
             var version = new RoadModelVersion(CompilerSchemaVersion, high, low);
 
@@ -102,7 +103,8 @@ namespace RoadRage.Features.Vehicles.Traffic
                 controls,
                 conflictZones,
                 signalPlans,
-                portals);
+                portals,
+                canonicalBytes);
         }
 
         /// <summary>

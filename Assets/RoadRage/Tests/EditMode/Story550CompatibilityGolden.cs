@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using NUnit.Framework;
 using RoadRage.Features.Vehicles.Traffic;
@@ -25,7 +26,13 @@ namespace RoadRage.Tests.EditMode
         public void CaptureGolden()
         {
             Directory.CreateDirectory(GoldenDirectory);
-            File.WriteAllText(GoldenPath, CurrentVersions(), new UTF8Encoding(false));
+            CompiledCase[] cases = CompileCases();
+            File.WriteAllText(GoldenPath, CurrentVersions(cases), new UTF8Encoding(false));
+            for (int i = 0; i < cases.Length; i++)
+            {
+                File.WriteAllBytes(Path.Combine(GoldenDirectory, cases[i].FileName), cases[i].CanonicalBytes);
+            }
+
             Assert.That(File.Exists(GoldenPath), Is.True);
         }
 
@@ -34,18 +41,66 @@ namespace RoadRage.Tests.EditMode
         {
             Assert.That(File.Exists(GoldenPath), Is.True,
                 "Executer explicitement CaptureGolden avant toute modification de production.");
-            Assert.That(CurrentVersions(), Is.EqualTo(File.ReadAllText(GoldenPath)));
+            CompiledCase[] cases = CompileCases();
+            Assert.That(CurrentVersions(cases), Is.EqualTo(File.ReadAllText(GoldenPath)));
+            for (int i = 0; i < cases.Length; i++)
+            {
+                string path = Path.Combine(GoldenDirectory, cases[i].FileName);
+                Assert.That(File.Exists(path), Is.True, path + " absent.");
+                Assert.That(cases[i].CanonicalBytes, Is.EqualTo(File.ReadAllBytes(path)), cases[i].Label);
+                AssertCanonicalHashMatchesVersion(cases[i]);
+            }
         }
 
-        private static string CurrentVersions()
+        private static CompiledCase[] CompileCases()
         {
-            return string.Join("\n", new[]
+            return new[]
             {
-                "golden-undeclared=" + RoadModelCompiler.Compile(GoldenUndeclaredSource()).Version,
-                "story-5.25=" + RoadModelCompiler.Compile(FixtureSource(typeof(Story525RoadWorldModelTests))).Version,
-                "story-5.26=" + RoadModelCompiler.Compile(FixtureSource(typeof(Story526GeometryAndLocalizationTests))).Version,
-                string.Empty
-            });
+                CompileCase("golden-undeclared", "golden-undeclared.bin", GoldenUndeclaredSource()),
+                CompileCase("story-5.25", "golden-story-5-25.bin", FixtureSource(typeof(Story525RoadWorldModelTests))),
+                CompileCase("story-5.26", "golden-story-5-26.bin", FixtureSource(typeof(Story526GeometryAndLocalizationTests)))
+            };
+        }
+
+        private static CompiledCase CompileCase(string label, string fileName, RoadModelSource source)
+        {
+            CompiledRoadModel model = RoadModelCompiler.Compile(source);
+            return new CompiledCase(label, fileName, model.Version, RoadModelCanonicalWriter.GetCanonicalBytes(model).ToArray());
+        }
+
+        private static string CurrentVersions(CompiledCase[] cases)
+        {
+            var lines = new string[cases.Length + 1];
+            for (int i = 0; i < cases.Length; i++)
+            {
+                lines[i] = cases[i].Label + "=" + cases[i].Version;
+            }
+
+            lines[lines.Length - 1] = string.Empty;
+            return string.Join("\n", lines);
+        }
+
+        private static void AssertCanonicalHashMatchesVersion(CompiledCase value)
+        {
+            byte[] digest;
+            using (var sha = SHA256.Create())
+            {
+                digest = sha.ComputeHash(value.CanonicalBytes);
+            }
+
+            Assert.That(ReadBigEndianUInt64(digest, 0), Is.EqualTo(value.Version.High), value.Label + " high");
+            Assert.That(ReadBigEndianUInt64(digest, 8), Is.EqualTo(value.Version.Low), value.Label + " low");
+        }
+
+        private static ulong ReadBigEndianUInt64(byte[] bytes, int offset)
+        {
+            ulong value = 0UL;
+            for (int i = 0; i < 8; i++)
+            {
+                value = (value << 8) | bytes[offset + i];
+            }
+
+            return value;
         }
 
         private static RoadModelSource FixtureSource(Type fixtureType)
@@ -230,6 +285,25 @@ namespace RoadRage.Tests.EditMode
                 AcceptanceDistanceMeters = 2.5f,
                 WrongWayHeadingDegrees = 90f
             };
+        }
+
+        private sealed class CompiledCase
+        {
+            public CompiledCase(string label, string fileName, RoadModelVersion version, byte[] canonicalBytes)
+            {
+                Label = label;
+                FileName = fileName;
+                Version = version;
+                CanonicalBytes = canonicalBytes;
+            }
+
+            public string Label { get; private set; }
+
+            public string FileName { get; private set; }
+
+            public RoadModelVersion Version { get; private set; }
+
+            public byte[] CanonicalBytes { get; private set; }
         }
     }
 }
