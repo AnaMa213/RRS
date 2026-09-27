@@ -102,9 +102,15 @@ namespace RoadRage.Tests.EditMode
         public void CandidatesComeFromTheVersionedProfileAndAreInvariantToResamplingAndPairOrder()
         {
             var run = Fresh();
-            var model = run.Compiled;
-            float radius = AuthoredRoadModel.SweptRadius(model.ValidationProfile);
-            Assert.That(radius, Is.EqualTo(model.ValidationProfile.MaxVehicleHalfWidthMeters + model.ValidationProfile.LateralClearanceMarginMeters));
+
+            // Le balayage 5.50 existe des la compilation 1 et AuthoredRun le conserve meme si le
+            // rapprochement des decisions attend encore le proprietaire (HALT de la 5.28) : ce test
+            // de lecture le couvre sans exiger que le pipeline soit resolu.
+            Assert.That(run.CandidateModel, Is.Not.Null, string.Join("\n", run.Failures.ToArray()));
+            var model = run.CandidateModel;
+            var profile = model.ValidationProfile;
+            float radius = AuthoredRoadModel.SweptRadius(profile);
+            Assert.That(radius, Is.EqualTo(profile.MaxVehicleHalfWidthMeters + profile.LateralClearanceMarginMeters));
 
             foreach (var candidate in run.Candidates)
             {
@@ -114,26 +120,30 @@ namespace RoadRage.Tests.EditMode
             }
 
             var pair = run.Candidates[0];
-            var a = Movement(model, pair.MovementA).Curve;
-            var b = Movement(model, pair.MovementB).Curve;
+            var a = Movement(model, pair.MovementA);
+            var b = Movement(model, pair.MovementB);
 
-            Assert.That(AuthoredRoadModel.SweptOverlap(a, b, radius, out RoadBoundsBox forward), Is.True);
-            Assert.That(AuthoredRoadModel.SweptOverlap(b, a, radius, out RoadBoundsBox backward), Is.True);
-            Assert.That(backward.Center, Is.EqualTo(forward.Center));
-            Assert.That(backward.Extents, Is.EqualTo(forward.Extents));
-            Assert.That(forward.Center, Is.EqualTo(pair.Volume.Center));
+            // Critere du pipeline 5.50 (distance exacte des empreintes) : verdict et volume
+            // identiques dans les deux sens -- l'ordre des paires ne change rien.
+            var forward = ConflictSweep.Evaluate(new List<List<SweepPose>> { ConflictSweep.Poses(a.Samples) }, new List<List<SweepPose>> { ConflictSweep.Poses(b.Samples) }, profile);
+            var backward = ConflictSweep.Evaluate(new List<List<SweepPose>> { ConflictSweep.Poses(b.Samples) }, new List<List<SweepPose>> { ConflictSweep.Poses(a.Samples) }, profile);
+            Assert.That(forward.IsCandidate, Is.True);
+            Assert.That(backward.IsCandidate, Is.True);
+            Assert.That(backward.Volume.Center, Is.EqualTo(forward.Volume.Center));
+            Assert.That(backward.Volume.Extents, Is.EqualTo(forward.Volume.Extents));
 
-            // Meme courbe, echantillonnage double : meme verdict, meme volume aux arrondis pres.
-            var resampled = Resample(Movement(model, pair.MovementA).Samples, a);
-            Assert.That(resampled.Count, Is.GreaterThan(Movement(model, pair.MovementA).Samples.Count));
-            Assert.That(AuthoredRoadModel.SweptOverlap(new RoadCurve(resampled), b, radius, out RoadBoundsBox dense), Is.True);
-            Assert.That((dense.Center - forward.Center).magnitude, Is.LessThan(1e-3f));
-            Assert.That((dense.Extents - forward.Extents).magnitude, Is.LessThan(1e-3f));
+            // Meme courbe, echantillonnage double : meme verdict. La borne conservatrice de la 5.50
+            // entre poses ne perd jamais un contact vu par l'echantillonnage direct.
+            var resampled = Resample(a.Samples, a.Curve);
+            Assert.That(resampled.Count, Is.GreaterThan(a.Samples.Count));
+            var dense = ConflictSweep.Evaluate(new List<List<SweepPose>> { ConflictSweep.Poses(resampled) }, new List<List<SweepPose>> { ConflictSweep.Poses(b.Samples) }, profile);
+            Assert.That(dense.IsCandidate, Is.True);
 
             // Et une paire disjointe reste disjointe apres re-echantillonnage.
             var far = FarPair(model);
-            Assert.That(AuthoredRoadModel.SweptOverlap(far.Key.Curve, far.Value.Curve, radius, out RoadBoundsBox none), Is.False);
-            Assert.That(AuthoredRoadModel.SweptOverlap(new RoadCurve(Resample(far.Key.Samples, far.Key.Curve)), far.Value.Curve, radius, out none), Is.False);
+            RoadBoundsBox none;
+            Assert.That(AuthoredRoadModel.SweptOverlap(far.Key.Samples, far.Value.Samples, profile, out none), Is.False);
+            Assert.That(AuthoredRoadModel.SweptOverlap(Resample(far.Key.Samples, far.Key.Curve), far.Value.Samples, profile, out none), Is.False);
         }
 
         [Test]
@@ -367,6 +377,23 @@ namespace RoadRage.Tests.EditMode
             Assert.That(build, Is.Not.Null);
             var source = (RoadModelSource)build.Invoke(null, null);
             source.DrivabilityProfile = V1RoadModelImporter.DrivabilityProfile();
+
+            // Story 5.50 : le demi-tour M3 relie des bandes espacees de 5 m (rayon 2,5 m) : sous
+            // R_adm = 4,0344 m il n'est pas admissible. La copie 5.28 le retire -- le type
+            // JunctionMovement reste couvert par M1, M2 et M4, admissibles -- et retire ses
+            // references du controle, de la zone de conflit et du groupe de signalisation.
+            var m2 = source.Movements.Single(m => m.Label == "M2");
+            var m3 = source.Movements.Single(m => m.Label == "M3");
+            var m4 = source.Movements.Single(m => m.Label == "M4");
+            source.Movements = source.Movements.Where(m => m.Id != m3.Id).ToArray();
+            for (int i = 0; i < source.Controls.Length; i++)
+            {
+                source.Controls[i].ControlledMovementIds = source.Controls[i].ControlledMovementIds.Where(id => id != m3.Id).ToArray();
+            }
+
+            source.ConflictZones[0].MemberMovementIds = new[] { m2.Id, m4.Id };
+            source.SignalPlans[0].Groups[1].MemberMovementIds = new[] { m4.Id };
+
             source.Corridors[1].HasSpeedLimitOverride = true;
             source.Corridors[1].SpeedLimitOverrideMetersPerSecond = 8.5f;
             source.Corridors[1].HasSurfaceOverride = true;
@@ -427,7 +454,10 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void AStaleOrHandEditedReportIsRejected()
         {
+            // Pendant le HALT de la 5.50 (decisions en attente), le pipeline frais n'aboutit pas :
+            // l'absence de rapport est constatee par la garde, jamais par un acces non garde.
             var run = Fresh();
+            Assert.That(run.Succeeded, Is.True, string.Join("\n", run.Failures.ToArray()));
             string edited = run.ReportText.Replace("6 vertes sur 6", "6 vertes sur 6 (edite)");
             Assert.That(AuthoredRoadModel.VerifyReport(edited, run).Single(), Does.Contain("body-hash"));
 
@@ -452,6 +482,7 @@ namespace RoadRage.Tests.EditMode
         {
             // Sign-off en memoire, jamais ecrit : il eprouve la verification, il ne signe rien.
             var run = Fresh();
+            Assert.That(run.Succeeded, Is.True, string.Join("\n", run.Failures.ToArray()));
             var instances = run.Overlay.Select(i => i.Key).ToList();
             string signoff = AuthoredRoadModel.RenderSignoff(run, "Testeur", "test@example.invalid", instances, new DateTime(2026, 9, 23, 0, 0, 0, DateTimeKind.Utc));
             Assert.That(AuthoredRoadModel.VerifySignoff(signoff, run), Is.Empty);
@@ -490,7 +521,8 @@ namespace RoadRage.Tests.EditMode
         public void ANonPositiveSweptRadiusIsRefusedInsteadOfLoopingForever()
         {
             var run = Fresh();
-            var curve = run.Compiled.Movements[0].Curve;
+            Assert.That(run.CandidateModel, Is.Not.Null, string.Join("\n", run.Failures.ToArray()));
+            var curve = run.CandidateModel.Movements[0].Curve;
             RoadBoundsBox volume;
             Assert.Throws<ArgumentOutOfRangeException>(() => AuthoredRoadModel.SweptOverlap(curve, curve, 0f, out volume));
             Assert.Throws<ArgumentOutOfRangeException>(() => AuthoredRoadModel.SweptOverlap(curve, curve, -1f, out volume));
@@ -636,9 +668,35 @@ namespace RoadRage.Tests.EditMode
             return File.ReadAllText(AuthoredRoadModel.FullPath(projectRelative));
         }
 
+        private static AuthoredRun _committedRun;
+
+        /// <summary>
+        /// Le pipeline a decisions committees est une FONCTION PURE de la scene MVP_Run et des
+        /// fichiers committes (extraction, import, compilation, balayage, empreintes) : le recalculer
+        /// par test ne change pas le resultat, seulement le temps. Le resultat est donc partage au
+        /// sein d'UNE execution de fixture, sous trois conditions verifiees : aucun test ne mute le
+        /// run retourne (ils lisent et travaillent sur des copies), le resultat est demonte en fin
+        /// de fixture ([OneTimeTearDown]), et les tests a decisions modifiees gardent chacun leur
+        /// propre run via RunWith (le HALT de la 5.28 n'est jamais contourne : les memes tests
+        /// echouent avec le meme message).
+        /// </summary>
         private static AuthoredRun Fresh()
         {
-            return RunWith(Committed(AuthoredRoadModel.DecisionsPath));
+            if (_committedRun == null)
+            {
+                _committedRun = RunWith(Committed(AuthoredRoadModel.DecisionsPath));
+            }
+
+            return _committedRun;
+        }
+
+        [OneTimeTearDown]
+        public void ReleaseTheSharedPipeline()
+        {
+            // Une execution ulterieure du meme processus (filtre, relance) ne doit jamais relire un
+            // resultat calcule avant un changement de fichiers : le partage ne vit que le temps
+            // d'une execution de fixture.
+            _committedRun = null;
         }
 
         private static AuthoredRun RunWith(string decisions)

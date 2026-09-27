@@ -94,6 +94,34 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public string Text;
     }
 
+    /// <summary>Operation d'authoring autorisee qui deplace une borne V2 au nom d'un noeud V1.</summary>
+    public enum DisplacementKind
+    {
+        /// <summary>La borne d'un corridor d'anneau glisse sur le cercle pour donner sa longueur a la transition.</summary>
+        RingAnchorShift,
+
+        /// <summary>La borne d'entree ou de sortie d'anneau recule pour laisser la place au mouvement.</summary>
+        PortalBoundaryTrim
+    }
+
+    /// <summary>
+    /// Rattachement explicite d'un deplacement autorise : le noeud V1 nomme, son element (la courbe
+    /// dont la borne a bouge), la borne V2 visee et l'operation qui l'a deplacee, avec la distance
+    /// que l'operation a reellement appliquee. Journal d'import en memoire : jamais serialise, jamais
+    /// une empreinte. Un noeud n'est publie comme deplace par le rapport que si ce journal le nomme
+    /// ET si la distance mesuree concorde avec la distance attendue ; sinon la mesure reste une
+    /// deviation a corriger. Aucune courbe voisine n'entre dans cette decision.
+    /// </summary>
+    public sealed class PublishedDisplacement
+    {
+        public string ElementKey;
+        public string ElementLabel;
+        public bool AtStart;
+        public V1Node Node;
+        public DisplacementKind Kind;
+        public float ExpectedMeters;
+    }
+
     /// <summary>Courbe produite (corridor ou mouvement) et ce qu'il faut pour la mesurer.</summary>
     public sealed class ImportedCurve
     {
@@ -179,6 +207,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public readonly List<AuthoringTask> Tasks = new List<AuthoringTask>();
         public readonly Dictionary<string, RoadId> IdByKey = new Dictionary<string, RoadId>(StringComparer.Ordinal);
 
+        /// <summary>Deplacements autorises, rattaches a leur noeud, leur element et leur borne (journal d'import).</summary>
+        public readonly List<PublishedDisplacement> PublishedDisplacements = new List<PublishedDisplacement>();
+
         public bool Succeeded
         {
             get { return Failures.Count == 0 && Source != null; }
@@ -227,6 +258,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         /// <summary>Tolerance de corde du contrat (0,05 m) passee au constructeur de courbe 5.26.</summary>
         public const float ChordToleranceMeters = 0.05f;
+
+        /// <summary>
+        /// Longueur du raccourcissement des bornes d'entree et de sortie d'anneau. Le mouvement
+        /// couvre l'ancien connecteur et le journal de deplacement publie l'operation ; la distance
+        /// attendue publiee est celle que le trim a reellement appliquee.
+        /// </summary>
+        public const float RoundaboutBoundaryTrimMeters = 2.5f;
 
         /// <summary>Pas des points de controle d'un mouvement Hermite, en metres.</summary>
         private const float MovementControlStepMeters = 0.25f;
@@ -873,18 +911,22 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 }
 
                 // Les connecteurs V1 sont des ancres de topologie, pas des raccords tangentiels.
-                // Pour les entrees/sorties d'anneau seulement, la borne V2 glisse d'un metre le
-                // long de l'axe adjacent ; le mouvement couvre l'ancien connecteur et le rapport
-                // publie le deplacement d'ancre.
+                // Pour les entrees/sorties d'anneau seulement, la borne V2 glisse de 2,5 m le
+                // long de l'axe adjacent ; le mouvement couvre l'ancien connecteur et le journal
+                // de deplacement publie le noeud, l'element et la borne (PublishedDisplacement).
                 if (role == MovementRole.RoundaboutEntry && !from.EndTrimmedForDrivability)
                 {
-                    TrimEnd(from, 2.5f);
+                    Vector3 oldEnd = from.Curve.Sample(from.Curve.Length).Position;
+                    TrimEnd(from, RoundaboutBoundaryTrimMeters);
                     from.EndTrimmedForDrivability = true;
+                    RecordTrimmedBoundary(from, oldEnd, false);
                 }
                 else if (role == MovementRole.RoundaboutExit && !to.StartTrimmedForDrivability)
                 {
-                    TrimStart(to, 2.5f);
+                    Vector3 oldStart = to.Curve.Sample(0f).Position;
+                    TrimStart(to, RoundaboutBoundaryTrimMeters);
                     to.StartTrimmedForDrivability = true;
+                    RecordTrimmedBoundary(to, oldStart, true);
                 }
 
                 var fromEnd = from.Curve.Sample(from.Curve.Length);
@@ -1484,8 +1526,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 CircleFit circle;
                 if (curve.IsRing && _circleByModule.TryGetValue(curve.Module, out circle))
                 {
+                    Vector3 anchorFirst = nodes[0].Position;
+                    Vector3 anchorLast = nodes[nodes.Count - 1].Position;
                     curve.Samples = BuildCircleArc(circle, nodes, halfWidth);
                     deviation = MeasureChordDeviation(curve.Samples);
+                    // Meme operation, deux bornes : chaque ancre nomme son noeud V1 et la distance
+                    // que le glissement lui a reellement appliquee.
+                    RecordDisplacement(curve, nodes[0], true, DisplacementKind.RingAnchorShift,
+                        (curve.Samples[0].Position - anchorFirst).magnitude);
+                    RecordDisplacement(curve, nodes[nodes.Count - 1], false, DisplacementKind.RingAnchorShift,
+                        (curve.Samples[curve.Samples.Length - 1].Position - anchorLast).magnitude);
                 }
                 else
                 {
@@ -1974,6 +2024,47 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 sample.HalfWidthLeftMeters = point.HalfWidthLeftMeters;
                 sample.HalfWidthRightMeters = point.HalfWidthRightMeters;
                 return sample;
+            }
+
+            /// <summary>
+            /// Rattache un trim de portail a chaque noeud V1 qui etait EXACTEMENT sur l'ancienne
+            /// borne (le point de fusion) : le noeud, l'element et la borne sont nommes ensemble.
+            /// La distance attendue est celle que l'operation a reellement appliquee ; un noeud
+            /// absent de ce journal ne pourra jamais etre publie comme deplace.
+            /// </summary>
+            private void RecordTrimmedBoundary(ImportedCurve curve, Vector3 oldBoundary, bool atStart)
+            {
+                Vector3 newBoundary = atStart
+                    ? curve.Curve.Sample(0f).Position
+                    : curve.Curve.Sample(curve.Curve.Length).Position;
+                float expected = (newBoundary - oldBoundary).magnitude;
+                foreach (var node in curve.VertexNodes)
+                {
+                    if ((node.Position - oldBoundary).magnitude <= 1e-3f)
+                    {
+                        RecordDisplacement(curve, node, atStart, DisplacementKind.PortalBoundaryTrim, expected);
+                    }
+                }
+
+                foreach (var node in curve.MergedNodes)
+                {
+                    if ((node.Position - oldBoundary).magnitude <= 1e-3f)
+                    {
+                        RecordDisplacement(curve, node, atStart, DisplacementKind.PortalBoundaryTrim, expected);
+                    }
+                }
+            }
+
+            private void RecordDisplacement(ImportedCurve curve, V1Node node, bool atStart, DisplacementKind kind, float expectedMeters)
+            {
+                var record = new PublishedDisplacement();
+                record.ElementKey = curve.Key;
+                record.ElementLabel = curve.Label;
+                record.AtStart = atStart;
+                record.Node = node;
+                record.Kind = kind;
+                record.ExpectedMeters = expectedMeters;
+                _result.PublishedDisplacements.Add(record);
             }
 
             private bool Register(string key, RoadRecordKind kind, string sourceDescription)

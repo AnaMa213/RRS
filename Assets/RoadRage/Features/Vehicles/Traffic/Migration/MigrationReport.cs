@@ -24,7 +24,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     {
         Within = 0,
         DeviationToCorrect = 1,
-        JustifiedException = 2
+        JustifiedException = 2,
+
+        /// <summary>Deplacement autorise, rattache a son noeud, son element, sa borne et son operation.</summary>
+        PublishedDisplacement = 3
     }
 
     public struct MeasureValue
@@ -32,6 +35,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public string Subject;
         public float Value;
         public MeasureClass Class;
+
+        // ------------------------------------------------ deplacement publie seulement
+        /// <summary>Distance attendue de l'operation tracee (0 pour les autres classes).</summary>
+        public float ExpectedMeters;
+
+        /// <summary>Operation d'authoring nommee (nul pour les autres classes).</summary>
+        public string Operation;
+
+        /// <summary>Borne V2 visee : "debut" ou "fin" (nul pour les autres classes).</summary>
+        public string Boundary;
     }
 
     public sealed class Metric
@@ -136,6 +149,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// </summary>
         private const float SeedOffAxisGate = 0.10f;
         private const float PortalDriftGate = 0.05f;
+
+        /// <summary>
+        /// Concordance exigee entre la distance mesuree et la distance attendue d'un deplacement
+        /// publie : au-dela, le noeud reste une deviation a corriger. Une vraie deviation n'est
+        /// donc jamais absorbee par le journal d'operation, et aucune courbe voisine n'entre dans
+        /// cette decision.
+        /// </summary>
+        private const float PublishedDisplacementToleranceMeters = 0.05f;
 
         /// <summary>Passage complet en memoire. Echec (source, import, lignee) = aucun texte produit.</summary>
         public static MigrationRun Run(Scene scene, string priorLineageJson)
@@ -324,19 +345,27 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             var drift = NewMetric(run, "Derive de noeud source vers la courbe", "m", "<= " + MigrationFormat.Meters(NodeDriftGate),
                 "cible V2 proposee ; seule exception approuvee : noeud de decision lisse par un mouvement tournant, "
-                + "et seulement si la graine reste sur l'axe de son approche (ecart <= " + MigrationFormat.Meters(NodeDriftGate) + " m) ; sinon deviation a corriger");
+                + "et seulement si la graine reste sur l'axe de son approche (ecart <= " + MigrationFormat.Meters(NodeDriftGate) + " m) ; sinon deviation a corriger. "
+                + "Un noeud nomme par une operation d'authoring tracee (glissement d'ancre d'anneau, borne de portail) est publie comme deplacement, jamais ignore.");
+            var published = new Dictionary<string, PublishedDisplacement>(StringComparer.Ordinal);
+            foreach (var displacement in import.PublishedDisplacements)
+            {
+                if (displacement.Node != null && displacement.ElementKey != null && displacement.Node.Key != null)
+                {
+                    published[displacement.ElementKey + ">" + displacement.Node.Key] = displacement;
+                }
+            }
+
             foreach (var corridor in import.Corridors)
             {
                 foreach (var node in corridor.VertexNodes)
                 {
-                    float value = corridor.Curve.Project(node.Position).DistanceMeters;
-                    Add(drift, node.Module.Label + " / " + node.Label + " -> " + corridor.Label, value, value <= NodeDriftGate);
+                    AddCorridorDrift(drift, corridor, node, string.Empty, published);
                 }
 
                 foreach (var node in corridor.MergedNodes)
                 {
-                    float value = corridor.Curve.Project(node.Position).DistanceMeters;
-                    Add(drift, node.Module.Label + " / " + node.Label + " (fusionne) -> " + corridor.Label, value, value <= NodeDriftGate);
+                    AddCorridorDrift(drift, corridor, node, " (fusionne)", published);
                 }
             }
 
@@ -371,6 +400,45 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 float value = (portal.Node.Position - portal.Corridor.Curve.Sample(portal.SMeters).Position).magnitude;
                 Add(portalDrift, portal.Node.Module.Label + " / " + portal.Node.Label + " (" + portal.Role + ")", value, value <= PortalDriftGate);
             }
+        }
+
+        /// <summary>
+        /// Derive d'un noeud de corridor. Un noeud hors seuil n'est publie comme deplacement
+        /// autorise que si une operation d'authoring l'a nomme avec son element (journal
+        /// d'import) ET si la distance mesuree concorde avec la distance attendue de cette
+        /// operation ; sinon — et sans jamais regarder une courbe voisine — il reste une
+        /// deviation a corriger.
+        /// </summary>
+        private static void AddCorridorDrift(Metric drift, ImportedCurve corridor, V1Node node, string suffix, Dictionary<string, PublishedDisplacement> published)
+        {
+            float value = corridor.Curve.Project(node.Position).DistanceMeters;
+            var measure = new MeasureValue();
+            measure.Subject = node.Module.Label + " / " + node.Label + suffix + " -> " + corridor.Label;
+            measure.Value = value;
+            if (value <= NodeDriftGate)
+            {
+                measure.Class = MeasureClass.Within;
+            }
+            else
+            {
+                PublishedDisplacement displacement;
+                if (published.TryGetValue(corridor.Key + ">" + node.Key, out displacement)
+                    && Mathf.Abs(value - displacement.ExpectedMeters) <= PublishedDisplacementToleranceMeters)
+                {
+                    measure.Class = MeasureClass.PublishedDisplacement;
+                    measure.ExpectedMeters = displacement.ExpectedMeters;
+                    measure.Operation = displacement.Kind == DisplacementKind.RingAnchorShift
+                        ? "glissement d'ancre d'anneau"
+                        : "raccourcissement de borne de portail";
+                    measure.Boundary = displacement.AtStart ? "debut" : "fin";
+                }
+                else
+                {
+                    measure.Class = MeasureClass.DeviationToCorrect;
+                }
+            }
+
+            drift.Values.Add(measure);
         }
 
         private static void Seam(Metric gap, Metric tangent, Metric width, string subject, RoadCurvePoint a, RoadCurvePoint b, RoadModelValidationProfile profile)
@@ -670,8 +738,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             // ------------------------------------------------ mesures
             text.Append("## Mesures geometriques\n\n");
-            text.Append("Valeurs mesurees sur la source et le modele candidat. Aucun seuil n'est relache ici : un depassement est une deviation a corriger, sauf categorie d'exception approuvee par le spec.\n\n");
-            text.Append("| Mesure | Unite | n | min | p50 | p95 | max | Seuil | Dans le seuil | Deviations | Exceptions |\n|---|---|---:|---:|---:|---:|---:|---|---:|---:|---:|\n");
+            text.Append("Valeurs mesurees sur la source et le modele candidat. Aucun seuil n'est relache ici : un depassement est une deviation a corriger, sauf categorie d'exception approuvee par le spec ou deplacement publie par une operation d'authoring tracee.\n\n");
+            text.Append("| Mesure | Unite | n | min | p50 | p95 | max | Seuil | Dans le seuil | Deviations | Exceptions | Deplacements publies |\n|---|---|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|\n");
             foreach (var metric in run.Metrics)
             {
                 // Les statistiques portent sur la population DANS le seuil : melanger a la population
@@ -692,7 +760,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     .Append(" | ").Append(Stat(values, 0f, metric)).Append(" | ").Append(Stat(values, 0.5f, metric))
                     .Append(" | ").Append(Stat(values, 0.95f, metric)).Append(" | ").Append(Stat(values, 1f, metric))
                     .Append(" | ").Append(metric.Threshold).Append(" | ").Append(metric.Count(MeasureClass.Within))
-                    .Append(" | ").Append(metric.Count(MeasureClass.DeviationToCorrect)).Append(" | ").Append(metric.Count(MeasureClass.JustifiedException)).Append(" |\n");
+                    .Append(" | ").Append(metric.Count(MeasureClass.DeviationToCorrect)).Append(" | ").Append(metric.Count(MeasureClass.JustifiedException))
+                    .Append(" | ").Append(metric.Count(MeasureClass.PublishedDisplacement)).Append(" |\n");
             }
 
             text.Append("\nOrigine des seuils :\n\n");
@@ -707,6 +776,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             text.Append('\n');
             MeasureList(text, run, MeasureClass.DeviationToCorrect, "Deviations a corriger (authoring)");
             MeasureList(text, run, MeasureClass.JustifiedException, "Exceptions justifiees (lissage des noeuds de decision par les virages)");
+            MeasureDisplacements(text, run);
 
             // ------------------------------------------------ portee
             text.Append("## Portee entrees -> sorties\n\n");
@@ -894,6 +964,47 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             rows.Sort(StringComparer.Ordinal);
             text.Append("| Mesure | Sujet | Valeur | Seuil |\n|---|---|---:|---|\n");
+            foreach (var row in rows)
+            {
+                text.Append(row).Append('\n');
+            }
+
+            text.Append('\n');
+        }
+
+        /// <summary>
+        /// Deplacements publies : chaque ligne joint le noeud V1, son element, la borne V2 deplacee
+        /// et l'operation d'authoring qui l'a deplacee, avec la distance attendue (celle que
+        /// l'operation a reellement appliquee) et la distance mesuree (projection du noeud sur sa
+        /// courbe). Un noeud n'entre ici que si l'operation l'a nomme ; la concordance des deux
+        /// distances a deja ete verifiee a la mesure.
+        /// </summary>
+        private static void MeasureDisplacements(StringBuilder text, MigrationRun run)
+        {
+            text.Append("### Deplacements publies (ancres d'anneau et bornes de portail)\n\n");
+            var rows = new List<string>();
+            foreach (var metric in run.Metrics)
+            {
+                foreach (var value in metric.Values)
+                {
+                    if (value.Class != MeasureClass.PublishedDisplacement)
+                    {
+                        continue;
+                    }
+
+                    rows.Add("| " + metric.Title + " | " + Cell(value.Subject) + " | " + Cell(value.Operation) + " | " + Cell(value.Boundary)
+                        + " | " + FormatValue(value.ExpectedMeters, metric) + " | " + FormatValue(value.Value, metric) + " |");
+                }
+            }
+
+            if (rows.Count == 0)
+            {
+                text.Append("Aucun.\n\n");
+                return;
+            }
+
+            rows.Sort(StringComparer.Ordinal);
+            text.Append("| Mesure | Sujet | Operation | Borne | Attendu | Mesure |\n|---|---|---|---:|---:|\n");
             foreach (var row in rows)
             {
                 text.Append(row).Append('\n');

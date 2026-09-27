@@ -629,11 +629,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             var min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
             var max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
-            foreach (var pathA in pathsA)
+            var framesA = Frames(pathsA, halfLength, halfWidth);
+            var framesB = Frames(pathsB, halfLength, halfWidth);
+            for (int pa = 0; pa < pathsA.Count; pa++)
             {
-                foreach (var pathB in pathsB)
+                for (int pb = 0; pb < pathsB.Count; pb++)
                 {
-                    EvaluatePaths(pathA, pathB, halfLength, halfWidth, rho, inflation, sweep, ref min, ref max);
+                    EvaluatePaths(pathsA[pa], framesA[pa], pathsB[pb], framesB[pb], halfWidth, rho, inflation, sweep, ref min, ref max);
                 }
             }
 
@@ -652,8 +654,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         private static void EvaluatePaths(
             List<SweepPose> a,
+            PoseFrame[] framesA,
             List<SweepPose> b,
-            float halfLength,
+            PoseFrame[] framesB,
             float halfWidth,
             float rho,
             float inflation,
@@ -669,21 +672,44 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 deltaB[ib] = Delta(b[ib], b[Math.Min(ib + 1, b.Count - 1)], rho);
             }
 
+            // Lignes de distances AABB reutilisees : la ligne du combo suivant est celle du combo courant.
+            int pointsB = b.Count;
+            var lineCur = new float[pointsB];
+            var lineNext = new float[pointsB];
+            for (int ib = 0; ib < pointsB; ib++)
+            {
+                lineCur[ib] = AabbDistance(framesA[0], framesB[ib]);
+            }
+
             for (int ia = 0; ia < intervalsA; ia++)
             {
                 SweepPose a0 = a[ia];
-                SweepPose a1 = a[Math.Min(ia + 1, a.Count - 1)];
+                int ia1 = Math.Min(ia + 1, a.Count - 1);
+                SweepPose a1 = a[ia1];
+                PoseFrame frameA0 = framesA[ia];
+                PoseFrame frameA1 = framesA[ia1];
                 float deltaA = Delta(a0, a1, rho);
+                if (ia1 != ia)
+                {
+                    for (int ib = 0; ib < pointsB; ib++)
+                    {
+                        lineNext[ib] = AabbDistance(framesA[ia1], framesB[ib]);
+                    }
+                }
+                else
+                {
+                    var same = lineCur;
+                    lineCur = lineNext;
+                    lineNext = same;
+                }
+
                 for (int ib = 0; ib < intervalsB; ib++)
                 {
+                    int ib1 = Math.Min(ib + 1, b.Count - 1);
                     SweepPose b0 = b[ib];
-                    SweepPose b1 = b[Math.Min(ib + 1, b.Count - 1)];
+                    SweepPose b1 = b[ib1];
                     float bound = 0.5f * deltaA + 0.5f * deltaB[ib] + 2f * inflation;
-                    float envelope = Min4(
-                        AabbDistance(a0, b0, halfLength, halfWidth),
-                        AabbDistance(a0, b1, halfLength, halfWidth),
-                        AabbDistance(a1, b0, halfLength, halfWidth),
-                        AabbDistance(a1, b1, halfLength, halfWidth));
+                    float envelope = Min4(lineCur[ib], lineCur[ib1], lineNext[ib], lineNext[ib1]);
                     sweep.EnvelopeSlackMeters = Math.Min(sweep.EnvelopeSlackMeters, envelope - bound);
                     if (envelope > bound)
                     {
@@ -692,16 +718,31 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     }
 
                     sweep.EnvelopeSelected = true;
-                    SweepPose witnessA;
-                    SweepPose witnessB;
-                    float exact = ClosestEndpoints(a0, a1, b0, b1, halfLength, halfWidth, out witnessA, out witnessB);
+                    int closest = ClosestIndex(frameA0, frameA1, framesB[ib], framesB[ib1], out float exact);
                     float slack = exact - bound;
                     if (slack < sweep.ExactSlackMeters)
                     {
                         sweep.ExactSlackMeters = slack;
                         sweep.HasWitness = true;
-                        sweep.WitnessA = witnessA;
-                        sweep.WitnessB = witnessB;
+                        switch (closest)
+                        {
+                            case 0:
+                                sweep.WitnessA = a0;
+                                sweep.WitnessB = b0;
+                                break;
+                            case 1:
+                                sweep.WitnessA = a0;
+                                sweep.WitnessB = b1;
+                                break;
+                            case 2:
+                                sweep.WitnessA = a1;
+                                sweep.WitnessB = b0;
+                                break;
+                            default:
+                                sweep.WitnessA = a1;
+                                sweep.WitnessB = b1;
+                                break;
+                        }
                     }
 
                     if (slack > 0f)
@@ -710,52 +751,45 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     }
 
                     sweep.ExactProven = true;
-                    Encapsulate(ref min, ref max, a0, halfLength, halfWidth, 0.5f * deltaA + inflation);
-                    Encapsulate(ref min, ref max, a1, halfLength, halfWidth, 0.5f * deltaA + inflation);
-                    Encapsulate(ref min, ref max, b0, halfLength, halfWidth, 0.5f * deltaB[ib] + inflation);
-                    Encapsulate(ref min, ref max, b1, halfLength, halfWidth, 0.5f * deltaB[ib] + inflation);
+                    Encapsulate(ref min, ref max, frameA0, a0.Position.y, halfWidth, 0.5f * deltaA + inflation);
+                    Encapsulate(ref min, ref max, frameA1, a1.Position.y, halfWidth, 0.5f * deltaA + inflation);
+                    Encapsulate(ref min, ref max, framesB[ib], b0.Position.y, halfWidth, 0.5f * deltaB[ib] + inflation);
+                    Encapsulate(ref min, ref max, framesB[ib1], b1.Position.y, halfWidth, 0.5f * deltaB[ib] + inflation);
                 }
+
+                var swap = lineCur;
+                lineCur = lineNext;
+                lineNext = swap;
             }
         }
 
-        private static float ClosestEndpoints(
-            SweepPose a0,
-            SweepPose a1,
-            SweepPose b0,
-            SweepPose b1,
-            float halfLength,
-            float halfWidth,
-            out SweepPose witnessA,
-            out SweepPose witnessB)
+        /// <summary>Index 0..3 (a0b0, a0b1, a1b0, a1b1) du couple d'extremites le plus proche, dans l'ordre de comparaison historique.</summary>
+        private static int ClosestIndex(in PoseFrame a0, in PoseFrame a1, in PoseFrame b0, in PoseFrame b1, out float best)
         {
-            witnessA = a0;
-            witnessB = b0;
-            float best = RectangleDistance(a0, b0, halfLength, halfWidth);
-            float d = RectangleDistance(a0, b1, halfLength, halfWidth);
+            int index = 0;
+            best = RectangleDistance(a0, b0);
+            float d = RectangleDistance(a0, b1);
             if (d < best)
             {
                 best = d;
-                witnessA = a0;
-                witnessB = b1;
+                index = 1;
             }
 
-            d = RectangleDistance(a1, b0, halfLength, halfWidth);
+            d = RectangleDistance(a1, b0);
             if (d < best)
             {
                 best = d;
-                witnessA = a1;
-                witnessB = b0;
+                index = 2;
             }
 
-            d = RectangleDistance(a1, b1, halfLength, halfWidth);
+            d = RectangleDistance(a1, b1);
             if (d < best)
             {
                 best = d;
-                witnessA = a1;
-                witnessB = b1;
+                index = 3;
             }
 
-            return best;
+            return index;
         }
 
         /// <summary>Premiere hypothese violee (cap degenere ou rotation >= 90 deg), nul sinon.</summary>
@@ -797,9 +831,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Distance exacte entre deux rectangles orientes du plan (0 s'ils se recoupent).</summary>
         public static float RectangleDistance(SweepPose a, SweepPose b, float halfLength, float halfWidth)
         {
-            var ca = Corners(a, halfLength, halfWidth);
-            var cb = Corners(b, halfLength, halfWidth);
-            if (Overlap(ca, cb))
+            return RectangleDistance(Frame(a, halfLength, halfWidth), Frame(b, halfLength, halfWidth));
+        }
+
+        private static float RectangleDistance(in PoseFrame a, in PoseFrame b)
+        {
+            if (Overlap(a, b))
             {
                 return 0f;
             }
@@ -807,14 +844,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             float best = float.PositiveInfinity;
             for (int i = 0; i < 4; i++)
             {
-                Vector2 e0 = cb[i];
-                Vector2 e1 = cb[(i + 1) % 4];
-                Vector2 f0 = ca[i];
-                Vector2 f1 = ca[(i + 1) % 4];
+                Vector2 e0 = Corner(b, i);
+                Vector2 e1 = Corner(b, (i + 1) % 4);
+                Vector2 f0 = Corner(a, i);
+                Vector2 f1 = Corner(a, (i + 1) % 4);
                 for (int k = 0; k < 4; k++)
                 {
-                    best = Math.Min(best, PointSegment(ca[k], e0, e1));
-                    best = Math.Min(best, PointSegment(cb[k], f0, f1));
+                    best = Math.Min(best, PointSegment(Corner(a, k), e0, e1));
+                    best = Math.Min(best, PointSegment(Corner(b, k), f0, f1));
                 }
             }
 
@@ -824,44 +861,93 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Distance entre les boites englobantes axees (AABB) des deux rectangles : minore la distance exacte.</summary>
         public static float AabbDistance(SweepPose a, SweepPose b, float halfLength, float halfWidth)
         {
-            Vector2 amin;
-            Vector2 amax;
-            Vector2 bmin;
-            Vector2 bmax;
-            Aabb(a, halfLength, halfWidth, out amin, out amax);
-            Aabb(b, halfLength, halfWidth, out bmin, out bmax);
-            float dx = Math.Max(0f, Math.Max(amin.x - bmax.x, bmin.x - amax.x));
-            float dz = Math.Max(0f, Math.Max(amin.y - bmax.y, bmin.y - amax.y));
+            return AabbDistance(Frame(a, halfLength, halfWidth), Frame(b, halfLength, halfWidth));
+        }
+
+        private static float AabbDistance(in PoseFrame a, in PoseFrame b)
+        {
+            float dx = Math.Max(0f, Math.Max(a.Min.x - b.Max.x, b.Min.x - a.Max.x));
+            float dz = Math.Max(0f, Math.Max(a.Min.y - b.Max.y, b.Min.y - a.Max.y));
             return Mathf.Sqrt(dx * dx + dz * dz);
         }
 
         public static Vector2[] Corners(SweepPose pose, float halfLength, float halfWidth)
         {
+            var frame = Frame(pose, halfLength, halfWidth);
+            return new[] { frame.C0, frame.C1, frame.C2, frame.C3 };
+        }
+
+        /// <summary>Boite et coins du rectangle d'une pose, calcules une seule fois puis reutilises.</summary>
+        private struct PoseFrame
+        {
+            public Vector2 Min;
+            public Vector2 Max;
+            public Vector2 C0;
+            public Vector2 C1;
+            public Vector2 C2;
+            public Vector2 C3;
+        }
+
+        private static PoseFrame Frame(SweepPose pose, float halfLength, float halfWidth)
+        {
             Vector2 forward = pose.Heading * halfLength;
             Vector2 right = new Vector2(pose.Heading.y, -pose.Heading.x) * halfWidth;
             Vector2 c = pose.Plan;
-            return new[] { c + forward + right, c + forward - right, c - forward - right, c - forward + right };
-        }
-
-        private static void Aabb(SweepPose pose, float halfLength, float halfWidth, out Vector2 min, out Vector2 max)
-        {
             float ex = Mathf.Abs(pose.Heading.x) * halfLength + Mathf.Abs(pose.Heading.y) * halfWidth;
             float ez = Mathf.Abs(pose.Heading.y) * halfLength + Mathf.Abs(pose.Heading.x) * halfWidth;
-            var extents = new Vector2(ex, ez);
-            min = pose.Plan - extents;
-            max = pose.Plan + extents;
+            var frame = new PoseFrame();
+            frame.Min = new Vector2(c.x - ex, c.y - ez);
+            frame.Max = new Vector2(c.x + ex, c.y + ez);
+            frame.C0 = c + forward + right;
+            frame.C1 = c + forward - right;
+            frame.C2 = c - forward - right;
+            frame.C3 = c - forward + right;
+            return frame;
         }
 
-        private static bool Overlap(Vector2[] a, Vector2[] b)
+        private static PoseFrame[][] Frames(IList<List<SweepPose>> paths, float halfLength, float halfWidth)
+        {
+            var frames = new PoseFrame[paths.Count][];
+            for (int i = 0; i < paths.Count; i++)
+            {
+                var path = paths[i];
+                var row = new PoseFrame[path.Count];
+                for (int k = 0; k < path.Count; k++)
+                {
+                    row[k] = Frame(path[k], halfLength, halfWidth);
+                }
+
+                frames[i] = row;
+            }
+
+            return frames;
+        }
+
+        private static Vector2 Corner(in PoseFrame frame, int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return frame.C0;
+                case 1:
+                    return frame.C1;
+                case 2:
+                    return frame.C2;
+                default:
+                    return frame.C3;
+            }
+        }
+
+        private static bool Overlap(in PoseFrame a, in PoseFrame b)
         {
             return !Separated(a, b) && !Separated(b, a);
         }
 
-        private static bool Separated(Vector2[] owner, Vector2[] other)
+        private static bool Separated(in PoseFrame owner, in PoseFrame other)
         {
             for (int i = 0; i < 2; i++)
             {
-                Vector2 edge = owner[i + 1] - owner[i];
+                Vector2 edge = Corner(owner, i + 1) - Corner(owner, i);
                 var axis = new Vector2(-edge.y, edge.x);
                 float minA;
                 float maxA;
@@ -878,16 +964,22 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return false;
         }
 
-        private static void Project(Vector2[] points, Vector2 axis, out float min, out float max)
+        private static void Project(in PoseFrame frame, Vector2 axis, out float min, out float max)
         {
             min = float.PositiveInfinity;
             max = float.NegativeInfinity;
-            foreach (var point in points)
-            {
-                float value = Vector2.Dot(point, axis);
-                min = Math.Min(min, value);
-                max = Math.Max(max, value);
-            }
+            float value = Vector2.Dot(frame.C0, axis);
+            min = Math.Min(min, value);
+            max = Math.Max(max, value);
+            value = Vector2.Dot(frame.C1, axis);
+            min = Math.Min(min, value);
+            max = Math.Max(max, value);
+            value = Vector2.Dot(frame.C2, axis);
+            min = Math.Min(min, value);
+            max = Math.Max(max, value);
+            value = Vector2.Dot(frame.C3, axis);
+            min = Math.Min(min, value);
+            max = Math.Max(max, value);
         }
 
         private static float PointSegment(Vector2 p, Vector2 s0, Vector2 s1)
@@ -903,13 +995,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return Math.Min(Math.Min(a, b), Math.Min(c, d));
         }
 
-        private static void Encapsulate(ref Vector3 min, ref Vector3 max, SweepPose pose, float halfLength, float halfWidth, float grow)
+        private static void Encapsulate(ref Vector3 min, ref Vector3 max, in PoseFrame frame, float y, float halfWidth, float grow)
         {
-            Vector2 pmin;
-            Vector2 pmax;
-            Aabb(pose, halfLength, halfWidth, out pmin, out pmax);
-            min = Vector3.Min(min, new Vector3(pmin.x - grow, pose.Position.y - halfWidth - grow, pmin.y - grow));
-            max = Vector3.Max(max, new Vector3(pmax.x + grow, pose.Position.y + halfWidth + grow, pmax.y + grow));
+            min = Vector3.Min(min, new Vector3(frame.Min.x - grow, y - halfWidth - grow, frame.Min.y - grow));
+            max = Vector3.Max(max, new Vector3(frame.Max.x + grow, y + halfWidth + grow, frame.Max.y + grow));
         }
 
         private static void SetVolume(PairSweep sweep, Vector3 min, Vector3 max, float minVerticalExtent)

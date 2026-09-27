@@ -420,16 +420,41 @@ namespace RoadRage.Tests.EditMode
             return Directory.GetFiles(AuthoredRoadModel.FullPath("Assets/RoadRage/Features"), "*.cs", SearchOption.AllDirectories);
         }
 
+        private static AuthoredRun _sharedRun;
+        private static PairReviewModel _sharedReview;
+
+        /// <summary>
+        /// Run committe, table historique verifiee et revue construite sont des fonctions pures des
+        /// fichiers committes et de la scene : les recalculer par test ne change pas un octet du
+        /// resultat, seulement le temps. Partage au sein d'UNE execution de fixture : aucun test ne
+        /// mute le modele de revue ni le run (lectures seules), le resultat est demonte en fin de
+        /// fixture, et le test du differentiel garde son propre appel a BuildReviewDiff pour couvrir
+        /// l'API du menu.
+        /// </summary>
         private static PairReviewModel Review(out AuthoredRun run)
         {
-            AuthoredRun result = null;
-            WithMvpRun(scene => result = AuthoredRoadModel.Run(scene, Committed(MigrationReport.LineagePath), Committed(AuthoredRoadModel.DecisionsPath)));
-            run = result;
-            var table = PairGeometryFingerprint.VerifyHistoricalTable(
-                Committed(PairGeometryFingerprint.HistoricalPath),
-                Committed(PairGeometryFingerprint.BaselineHashesPath),
-                Committed(PairGeometryFingerprint.BaselineModelPath));
-            return PairReview.Build(run, table, Committed(PairGeometryFingerprint.BaselineModelPath));
+            if (_sharedReview == null)
+            {
+                AuthoredRun result = null;
+                WithMvpRun(scene => result = AuthoredRoadModel.Run(scene, Committed(MigrationReport.LineagePath), Committed(AuthoredRoadModel.DecisionsPath)));
+                var table = PairGeometryFingerprint.VerifyHistoricalTable(
+                    Committed(PairGeometryFingerprint.HistoricalPath),
+                    Committed(PairGeometryFingerprint.BaselineHashesPath),
+                    Committed(PairGeometryFingerprint.BaselineModelPath));
+                _sharedRun = result;
+                _sharedReview = PairReview.Build(result, table, Committed(PairGeometryFingerprint.BaselineModelPath));
+            }
+
+            run = _sharedRun;
+            return _sharedReview;
+        }
+
+        [OneTimeTearDown]
+        public void ReleaseTheSharedReview()
+        {
+            // Meme contrat que la fixture 5.28 : le partage ne survit pas a l'execution de fixture.
+            _sharedRun = null;
+            _sharedReview = null;
         }
 
         private static string Committed(string projectRelative)
