@@ -308,7 +308,7 @@ namespace RoadRage.Tests.EditMode
         public void OnlyTheReviewWindowCallsTheOwnerActions()
         {
             string[] callers = Sources().Where(path => File.ReadAllText(path).Contains("PairReviewActions.")).ToArray();
-            Assert.That(callers.Select(Path.GetFileName).ToArray(), Is.EquivalentTo(new[] { "PairReviewWindow.cs" }),
+            Assert.That(callers.Select(path => Path.GetFileName(path)).ToArray(), Is.EquivalentTo(new[] { "PairReviewWindow.cs" }),
                 "Le pipeline, le differentiel et la capture n'appellent jamais une action du proprietaire.");
         }
 
