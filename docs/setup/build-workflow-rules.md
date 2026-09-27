@@ -190,3 +190,27 @@ Usage contextuel, jamais par reflexe :
 - **Blender MCP** — uniquement pour du travail 3D reel.
 - **`claude --bare`** — optionnel, hors du cycle de story (gros logs, triage isole). Ne pas
   l'integrer au workflow.
+
+## 6. Exception bornee — decisions de conflit Story 5.50
+
+L'amendement proprietaire `5.50-AUTO-DECISIONS-v1`, approuve le 2026-09-27, autorise le run
+`bmad-build` de la Story 5.50 a produire et ecrire toutes les dispositions de paires sans checkpoint
+paire par paire. Cette exception est valide seulement si :
+
+- la fonction de classification est deterministe, versionnee et executee sur des entrees epinglees ;
+- chaque decision porte sa `PairKey`, sa revision, son empreinte geometrique, son motif, sa preuve,
+  le `RoadModelVersion` et les versions exactes du balayage et de la politique ;
+- un rejet possede un certificat complet de separation ; toute incertitude devient un conflit
+  conservateur accepte ;
+- le manifeste d'audit couvre aussi les suivis, faux candidats, revisions remplacees et tombstones ;
+- l'ecriture est transactionnelle et une seconde execution ne propose aucun changement ;
+- les tests adversariaux et les scenarios de circulation des neuf carrefours satisfont les portes
+  de securite, maximalite et progression bornees de l'amendement approuve.
+
+L'agent execute la fonction ; il ne classe aucune paire par jugement LLM. Une geometrie ou une
+version differente invalide la revision precedente et impose un nouveau run, jamais un transfert
+silencieux. L'ambiguite d'une paire ne provoque pas de HALT. Les HALT sont reserves aux changements
+de contrat, aux defauts systemiques non resolus ou a l'absence de politique sure et bornee.
+
+Cette exception ne s'etend a aucune autre story et n'autorise jamais la revue ni la signature de
+Gate A, qui restent des actes proprietaire distincts.

@@ -2178,7 +2178,7 @@ As a solo developer,
 I want every V2 corridor and junction movement of `MVP_Run` to describe a trajectory the AI vehicle can physically follow, and the model to refuse any that it cannot,
 So that the conflict zones, the Gate A review and every later planning layer are built on drivable reference geometry instead of importer artefacts.
 
-**Capability delivered:** corrected V2 geometry for the 4 roundabouts (ring, entries, exits, continuations) and for the 24 turning movements of the crossroads and T junctions; a declared, vehicle-derived drivability profile validated at model level and required at runtime admission; conflict candidates swept with the full vehicle footprint across seams, with an exhaustive diff and targeted owner reconfirmation of changed pairs; a Gate A isolation view of one movement; regenerated 5.27 and 5.28 artifacts ready for re-review.
+**Capability delivered:** corrected V2 geometry for the 4 roundabouts (ring, entries, exits, continuations) and for the 24 turning movements of the crossroads and T junctions; a declared, vehicle-derived drivability profile validated at model level and required at runtime admission; conflict candidates swept with the full vehicle footprint across seams, with an exhaustive diff and deterministic delegated disposition under the one-time owner-approved policy `5.50-AUTO-DECISIONS-v1`; a Gate A isolation view of one movement; regenerated 5.27 and 5.28 artifacts ready for re-review.
 
 **Why here:** Gate A signs the overlays and the conflict decisions. The diagnostic of 2026-09-24 shows that the roundabout curves are not drivable and that the left-turn shape starts turning at the junction boundary; signing either would freeze undrivable reference paths into every later story.
 
@@ -2196,7 +2196,7 @@ So that the conflict zones, the Gate A review and every later planning layer are
 - one logical ring corridor; the 5.49 physical geometry and applied widths are kept unless new evidence requires a separate owner decision;
 - left turns follow the option-B intent (aligned entry, turn started at the right place, natural exit) without a pre-imposed line–arc–line construction or a fixed radius; curvature-continuous construction is preferred;
 - drivability is validated **at model level** through a declared profile (below), not by a pipeline-only gate; the frozen 5.25/5.26 fixtures stay unchanged;
-- conflict decisions on materially changed geometry are never carried over automatically.
+- conflict decisions on materially changed geometry are never carried over silently: an approved deterministic run must emit a new revision bound to the fresh fingerprint and explicitly superseding the prior revision.
 
 **Renegotiated frozen invariants (owner, 2026-09-25):**
 - 5.49 "the imported/compiled ring centreline (chords plus Hermite, ~5.83–6.19 m) is the accepted reference geometry and stays unchanged" is **superseded**: the ring centreline becomes the exact circle fitted from the V1 ring nodes (radius 6.0 m), each lineage-associated node within 0.10 m of it. The nodes themselves do not move;
@@ -2246,12 +2246,15 @@ So that the conflict zones, the Gate A review and every later planning layer are
 
 **Decision reconfirmation:**
 - Pair identities are stable. Each conflict decision records the geometry fingerprint of its pair: the canonical geometry of both member movements and the zone volume.
-- A decision whose fingerprint no longer matches becomes a **historical proposal**. It is shown in a targeted review of the changed pairs only, and it blocks Gate A until the owner explicitly reconfirms it or changes it.
-- Pairs with identical geometry keep their decisions. A new pair needs an owner decision. A removed pair leaves an orphan decision that the owner disposes of explicitly; it never receives a new active decision. Both stay hard failures until resolved.
-- The pipeline never writes, transfers, deletes or approves a decision.
+- A decision whose fingerprint no longer matches becomes a **historical proposal**. It blocks Gate A until it is superseded by a verified revision from the approved deterministic policy, or by an explicit owner action outside that delegation.
+- Pairs with identical geometry keep their decisions. A new pair needs a disposition. A removed pair leaves an orphan decision preserved as a tombstone before removal from the active set. Missing, stale and untraced orphan decisions stay hard failures.
+- Outside an explicit approved delegation the pipeline never writes, transfers, deletes or approves a decision. Under `5.50-AUTO-DECISIONS-v1`, it may apply only the complete, validated and transactionally written plan described below.
 - **Bootstrap of the 76 existing decisions (owner, 2026-09-26):** they carry no fingerprint, and the format-1 model holding their geometry is refused once the document format becomes 2. Before any importer, format or sweep change, the unchanged pipeline computes a **historical fingerprint table** on the committed `MVP_Run` model: per decision, the pair keys, the canonical geometry hash of each member movement, the zone volume and the fingerprint (versioned fingerprint schema). It refuses if the fresh `ModelVersion` differs from the committed document's; the table's SHA-256 and that of a byte copy of the format-1 model are recorded.
 - The table is Editor-only review data: never read by `RoadModelDocument.Load`, the compiler, the validator or runtime, and it never yields a `CompiledRoadModel`; a test asserts that no source outside the migration tooling references it.
-- **Owner-only reconfirmation actions:** "reconfirm unchanged pairs" writes the fresh fingerprint only where historical fingerprint = fresh fingerprint (geometry **and** volume); it never touches a pair whose member geometry or volume changed or a pair absent from the table, and it reconfirms nothing if the table's hash or schema version does not match (fail closed). Changed pairs are reconfirmed one at a time ("reconfirm this pair", old and new geometry and volume shown) or by the owner's own edit. The pipeline never invokes either action.
+- **Manual fallback actions:** "reconfirm unchanged pairs" writes the fresh fingerprint only where historical fingerprint = fresh fingerprint (geometry **and** volume); it never touches a pair whose member geometry or volume changed or a pair absent from the table, and it reconfirms nothing if the table's hash or schema version does not match (fail closed). These actions remain available but are not used by the delegated run.
+- **Automated delegation (owner, 2026-09-27):** `5.50-AUTO-DECISIONS-v1` authorizes one complete run on pinned inputs. In ordinal `PairKey` order it classifies each pair as `Following`, `ConflictProven`, `ProvenDisjoint` or `ConservativeConflict`. A rejection requires a complete positive separation certificate over every path/interval combination; absence of a contact witness is not a rejection proof. Every inconclusive or fail-closed pair is accepted conservatively without a pair-level HALT.
+- Each output records `DecisionRunId`, `DecisionRevisionId`, the current and superseded fingerprints, both movement hashes, quantified volume, classification, reason code, proof hash, exact `RoadModelVersion`, importer/pipeline/compiler/fingerprint/sweep/policy versions and all numeric tolerances. A changed geometry always creates a new revision; no decision is silently transferred.
+- An Editor-only audit manifest preserves active results, following pairs, proven false candidates, superseded revisions and tombstones. The authoring file contains only active compiler decisions linked to their revision and evidence hashes. New zone identities are minted once into the plan and then reused; applying the plan is atomic and a second run must produce no change.
 
 **Gate A isolation view (read-only):**
 - one movement alone: start and end markers, direction chevrons, minimum radius and speed ceiling, the curve drawn in red where it breaks the admission rule, optional envelope, and its V1 source nodes;
@@ -2259,19 +2262,19 @@ So that the conflict zones, the Gate A review and every later planning layer are
 
 **Published per element:** minimum radius, speed ceiling (with every value under 0.25 m/s listed as refused, plus the full distribution), net versus cumulative heading change, seam heading and curvature jumps, largest disagreement between stored curvature and the three-point circle, and anchor displacement.
 
-**Non-goals:** no physical change (5.51); no V1 change; no roundabout or junction control kind (5.35); no runtime; no Gate A signature; no decision written by the agent; no second ring corridor or adjacency.
+**Non-goals:** no physical change (5.51); no V1 change; no roundabout or junction control kind (5.35); no runtime; no Gate A signature; no decision outside the approved deterministic function; no LLM/manual pair classification; no second ring corridor or adjacency.
 
-**Must NOT be copied:** moving `LaneNode`s to shape curves; relaxing a gate or reshaping accepted geometry to make a test pass; a pipeline-only drivability gate; drift measured against the nearest curve; carrying a decision onto changed geometry; reusing another story's bound without its own proof; reconfirming a changed pair in bulk; changing production code before the reference checkpoint.
+**Must NOT be copied:** moving `LaneNode`s to shape curves; relaxing a gate or reshaping accepted geometry to make a test pass; a pipeline-only drivability gate; drift measured against the nearest curve; carrying a decision onto changed geometry; rejecting without a complete separation proof; classifying by label, image or LLM judgment; reusing another story's bound without its own proof; changing production code before the reference checkpoint.
 
 **Execution sequence (binding):**
 0. **Reference checkpoint** (local, Editor connected, before any production C# change): add only a golden test fixture — a deterministic undeclared model (literal `ModelId` and samples covering a section, straight and arc corridors, a junction, a movement and a portal; no randomness, no clock) plus the 5.25 and 5.26 fixtures read through reflection from the test assembly (their files unchanged). An explicit capture test records each model's `CompiledRoadModel.Version`; `git diff --stat` shows only that fixture; commit it with the baseline hashes (lineage, V1 source hash, 5.27 report, committed 5.28 artifacts) and a byte copy of the format-1 model. No `InternalsVisibleTo`.
 1a. Add a read-only public accessor for the canonical bytes, with no behaviour change; capture the golden bytes and accept them only if their SHA-256 prefix equals the step-0 `Version` — otherwise HALT.
 1b. Capture the historical fingerprint table (see Decision reconfirmation).
 1c. Implement the importer, drivability, validation, document, sweep, diff and isolation-view changes; synthetic tests pass.
-2. Run the pipeline in **diff mode**. Diff mode is read-only: it writes only a review report. It never writes the decisions, model, overlay or Gate A report. It publishes the exhaustive diff: new, removed, materially changed and following pairs; per-element geometry changes; the drivability tables.
-3. **HALT: owner decisions.** Present the new pairs (to decide), the materially changed pairs (historical proposals to reconfirm or change) and the removed pairs (orphan decisions to dispose of explicitly), each viewable in the isolation view. The agent never edits, transfers, deletes or approves a decision. The owner makes every change, by his own edit or explicit tool action.
-4. Resume only when no decision is missing, orphaned or unconfirmed. Compile with the owner's decisions, then regenerate the definitive 5.27 report and 5.28 artifacts. Run the full EditMode suite.
-5. The story is not marked complete while any owner decision is unresolved.
+2. Run the pipeline in **diff mode**, then the delegated classifier in plan mode. Both are read-only. The plan pins every input/version, covers every pair exactly once, emits per-pair proof records and is generated twice byte-identically after one-time allocation of new zone identities.
+3. Run the adversarial proof suite and the nine-junction traffic harness. Any uncertain pair becomes `ConservativeConflict`; ambiguity alone never halts. Correct ordinary defects and rerun. HALT only for an uncovered contract change, an unresolved systemic integrity/determinism defect, or the absence of any safe bounded policy.
+4. If every gate passes, atomically replace the decisions and audit manifest. Rerun the classifier: zero proposed change, identical hashes, no missing/stale/untraced-orphan decision.
+5. Compile with the delegated decisions, regenerate the definitive 5.27 report and 5.28 artifacts, and run the full EditMode suite. Gate A remains closed and unsigned pending its distinct owner review.
 
 **EditMode verification:**
 - **Unchanged tests:** the 5.25/5.26/5.27 files are unchanged and pass.
@@ -2296,6 +2299,8 @@ So that the conflict zones, the Gate A review and every later planning layer are
   - no identity is minted or retired.
 - **Candidates:** a synthetic chain with a corridor shorter than half a vehicle between two movements finds the pair; ordinary following is published as such; three pairs that touch only between sampled poses — a translation crossing between two poses 10 m apart, a corner touching only during an interval's rotation, a contact only within a seam interval — are found, and a pose-only check provably misses each.
 - **Diff and reconfirmation:** the exhaustive candidate diff is published; a decision on a changed pair blocks Gate A until reconfirmed; the historical table covers the 76 decisions exactly; the unchanged-pairs action never reconfirms a pair whose geometry or volume changed or that is absent from the table, and fails closed on a tampered table.
+- **Delegated decisions:** every pair belongs to exactly one classification; every rejection has an independently rechecked full separation certificate; every unresolved proof becomes an accepted conservative conflict; two plan runs are byte-identical and a post-apply run proposes no change. Changed geometry creates a new revision linked to the old one.
+- **Nine-junction traffic harness:** per junction, single movements, every accepted pair, all movements together, saturated cyclic arrivals and following traffic satisfy mutual exclusion, non-empty progress, maximal compatible grants, no following/proven-disjoint blocker and bounded wait of at most the junction movement count in grant rounds.
 - **Regenerated artifacts:** the committed artifacts equal a fresh pipeline run.
 
 **PlayMode verification:** none. No runtime, physical or V1 change; V1 traffic code does not reference Traffic V2, which a test asserts. A visual check of the 9 junctions and of the segments whose V2 geometry changed happens in the Editor, under the double state guard.
@@ -2304,7 +2309,7 @@ So that the conflict zones, the Gate A review and every later planning layer are
 - the per-element drivability table;
 - the anchor displacement and V1-node association table;
 - the exhaustive candidate and decision diff, with the targeted reconfirmation list;
-- the owner's resolution of every new, removed and materially changed pair (from the step-3 HALT), with no decision missing, orphaned or unconfirmed;
+- the approved automation grant, complete audit manifest and deterministic resolution of every new, removed and materially changed pair, with no decision missing, stale, orphaned without tombstone or bound to another fingerprint;
 - the regenerated 5.27 report (`ImporterVersion` 2) and 5.28 artifacts, with the `RoadModelVersion` change recorded.
 
 **Unlocks:** 5.51 (physical corner clearance sized on the final right-turn curves).
@@ -2336,7 +2341,8 @@ So that the conflict zones, the Gate A review and every later planning layer are
 
 **Given** the exhaustive candidate and geometry diff
 **When** it contains new, removed or materially changed pairs
-**Then** work halts for owner decisions, no decision is written, transferred, deleted or approved by the agent, and the definitive 5.28 artifacts are regenerated only after every pair is resolved
+**Then** the approved deterministic policy classifies and dispositions every pair without a pair-level HALT, rejects only with a complete separation proof, accepts every uncertainty conservatively, records an independently verifiable revision bound to the exact geometry/model/sweep versions, and never transfers a decision silently
+**And** the definitive 5.28 artifacts are regenerated only after the complete plan passes the adversarial and nine-junction traffic gates; Gate A remains unsigned
 
 **Given** a decision whose pair geometry changed
 **When** Gate A is evaluated
