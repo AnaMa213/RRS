@@ -1,0 +1,136 @@
+using System;
+using System.IO;
+using NUnit.Framework;
+using RoadRage.Features.Vehicles.Traffic.Migration;
+using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
+
+namespace RoadRage.Tests.EditMode
+{
+    /// <summary>Story 5.50 -- fonction deleguee, manifeste et harnais de progression.</summary>
+    public sealed class Story550AutomatedPairDecisionTests
+    {
+        private static AuthoredRun _run;
+        private static AutomatedPairDecisionPlan _plan;
+
+        [Test]
+        public void TwoPlansReuseAllocatedIdentitiesAndAreByteIdentical()
+        {
+            AuthoredRun run = Run();
+            AutomatedPairDecisionPlan first = AutomatedPairDecisionPolicy.CreatePlan(run);
+            AutomatedPairDecisionPlan second = AutomatedPairDecisionPolicy.CreatePlan(run, null, first.AllocatedIds);
+
+            Assert.That(second.DecisionRunId, Is.EqualTo(first.DecisionRunId));
+            Assert.That(second.DecisionsText, Is.EqualTo(first.DecisionsText));
+            Assert.That(second.ManifestText, Is.EqualTo(first.ManifestText));
+        }
+
+        [Test]
+        public void TheRealDifferentialIsExhaustiveAndEveryActiveDecisionIsFormatFour()
+        {
+            AuthoredRun run = Run();
+            AutomatedPairDecisionPlan plan = Plan();
+            var decisions = AuthoringDecisions.Parse(plan.DecisionsText);
+
+            Assert.That(plan.DecisionsText, Does.StartWith("{\n    \"Format\": 4,"));
+            Assert.That(decisions.Conflicts, Has.Count.EqualTo(run.Candidates.Count));
+            Assert.That(plan.ManifestText, Does.Contain("\"Classification\": \"Following\""));
+            Assert.That(plan.ManifestText, Does.Contain("\"Classification\": \"ProvenDisjoint\""));
+            Assert.That(plan.ManifestText, Does.Contain("\"DecisionRevisionId\""));
+            Assert.That(plan.ManifestText, Does.Contain("\"EvidenceHash\""));
+            Assert.That(plan.ManifestText, Does.Contain("\"DecisionRunId\""));
+            foreach (var decision in decisions.Conflicts)
+            {
+                Assert.That(decision.DecisionRevisionId, Has.Length.EqualTo(64));
+                Assert.That(decision.EvidenceHash, Has.Length.EqualTo(64));
+                Assert.That(decision.DecisionRunId, Is.EqualTo(plan.DecisionRunId));
+                Assert.That(decision.GeometryFingerprint, Has.Length.EqualTo(64));
+            }
+        }
+
+        [Test]
+        public void TamperedEvidenceIsRejectedBeforeAnyWrite()
+        {
+            AutomatedPairDecisionPlan source = Plan();
+            var tampered = new AutomatedPairDecisionPlan
+            {
+                DecisionRunId = source.DecisionRunId,
+                DecisionsText = source.DecisionsText,
+                ManifestText = TamperFirstHash(source.ManifestText, "\"EvidenceHash\": \"")
+            };
+
+            Assert.Throws<InvalidOperationException>(() =>
+                AutomatedPairDecisionPolicy.ValidatePlan(tampered, Run().PairSweeps.Count));
+        }
+
+        [Test]
+        public void TheNineJunctionHarnessProvesSafetyMaximalityProgressAndBoundedWait()
+        {
+            Assert.DoesNotThrow(() => AutomatedPairDecisionPolicy.ValidateTrafficScenarios(Run(), Plan()));
+        }
+
+        private static string TamperFirstHash(string text, string marker)
+        {
+            int start = text.IndexOf(marker, StringComparison.Ordinal);
+            Assert.That(start, Is.GreaterThanOrEqualTo(0));
+            start += marker.Length;
+            char replacement = text[start] == '0' ? '1' : '0';
+            return text.Substring(0, start) + replacement + text.Substring(start + 1);
+        }
+
+        private static AutomatedPairDecisionPlan Plan()
+        {
+            if (_plan == null)
+            {
+                _plan = AutomatedPairDecisionPolicy.CreatePlan(Run());
+            }
+
+            return _plan;
+        }
+
+        private static AuthoredRun Run()
+        {
+            if (_run == null)
+            {
+                WithMvpRun(delegate(Scene scene)
+                {
+                    _run = AuthoredRoadModel.Run(scene,
+                        File.ReadAllText(AuthoredRoadModel.FullPath(MigrationReport.LineagePath)),
+                        File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath)));
+                });
+            }
+
+            return _run;
+        }
+
+        [OneTimeTearDown]
+        public void Release()
+        {
+            _plan = null;
+            _run = null;
+        }
+
+        private static void WithMvpRun(Action<Scene> body)
+        {
+            Scene existing = SceneManager.GetSceneByPath(MigrationReport.ScenePath);
+            bool loaded = existing.IsValid() && existing.isLoaded;
+            if (loaded)
+            {
+                Assert.That(existing.isDirty, Is.False);
+            }
+
+            Scene scene = loaded ? existing : EditorSceneManager.OpenScene(MigrationReport.ScenePath, OpenSceneMode.Additive);
+            try
+            {
+                body(scene);
+            }
+            finally
+            {
+                if (!loaded)
+                {
+                    EditorSceneManager.CloseScene(scene, true);
+                }
+            }
+        }
+    }
+}

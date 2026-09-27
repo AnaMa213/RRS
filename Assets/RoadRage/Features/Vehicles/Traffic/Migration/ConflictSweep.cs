@@ -207,6 +207,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     /// </summary>
     public static class ConflictSweep
     {
+        public const int AlgorithmVersion = 1;
         public const float DegenerateHeadingEpsilon = 1e-6f;
         public const float FailClosedHeadingRadians = 0.5f * Mathf.PI;
 

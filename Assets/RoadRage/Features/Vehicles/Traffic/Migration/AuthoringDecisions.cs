@@ -21,6 +21,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         Rejected = 1
     }
 
+    /// <summary>Classe de preuve qui autorise une decision de paire format 4.</summary>
+    public enum AutomatedPairClassification
+    {
+        Following = 0,
+        ConflictProven = 1,
+        ProvenDisjoint = 2,
+        ConservativeConflict = 3
+    }
+
     /// <summary>Disposition d'une tache que ni un controle, ni un conflit, ni une largeur ne dispose.</summary>
     public enum TaskDispositionKind
     {
@@ -80,6 +89,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         /// <summary>Empreinte de geometrie et de volume explicitement reconfirmee par le proprietaire.</summary>
         public string GeometryFingerprint;
+
+        /// <summary>Identites et preuve de la revision 5.50 qui porte cette decision.</summary>
+        public string DecisionRevisionId;
+        public string EvidenceHash;
+        public string DecisionRunId;
+        public string SupersedesDecisionRevisionId;
+        public AutomatedPairClassification Classification;
+        public string ModelVersion;
+        public int ImporterVersion;
+        public int PipelineVersion;
+        public int CompilerSchemaVersion;
+        public int FingerprintSchemaVersion;
+        public int ConflictSweepAlgorithmVersion;
+        public int DecisionPolicyVersion;
     }
 
     public struct WidthDecision
@@ -124,7 +147,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
     public sealed class AuthoringDecisions
     {
-        public const int FormatVersion = 3;
+        public const int FormatVersion = 4;
+        public const int HistoricalFormatVersion = 3;
         public const int LegacyFormatVersion = 2;
 
         /// <summary>Categories 5.27 disposees par leurs donnees typees, jamais par une disposition libre.</summary>
@@ -177,7 +201,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 throw new FormatException("Decisions illisibles : " + exception.Message);
             }
 
-            if (layout == null || (layout.Format != FormatVersion && layout.Format != LegacyFormatVersion))
+            if (layout == null || (layout.Format != FormatVersion && layout.Format != HistoricalFormatVersion
+                && layout.Format != LegacyFormatVersion))
             {
                 throw new FormatException("Decisions : format absent ou inconnu.");
             }
@@ -214,9 +239,29 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                 conflict.Decision = ParseEnum<ConflictDecisionKind>(record.Decision, "conflit " + pair);
                 conflict.Reason = record.Reason ?? string.Empty;
-                conflict.GeometryFingerprint = layout.Format == FormatVersion
+                conflict.GeometryFingerprint = layout.Format >= HistoricalFormatVersion
                     ? OptionalFingerprint(record.GeometryFingerprint, pair)
                     : string.Empty;
+                if (layout.Format == FormatVersion)
+                {
+                    conflict.DecisionRevisionId = RequiredSha256(record.DecisionRevisionId, "revision " + pair);
+                    conflict.EvidenceHash = RequiredSha256(record.EvidenceHash, "preuve " + pair);
+                    conflict.DecisionRunId = RequiredSha256(record.DecisionRunId, "run " + pair);
+                    conflict.SupersedesDecisionRevisionId = OptionalSha256(record.SupersedesDecisionRevisionId, "revision remplacee " + pair);
+                    conflict.Classification = ParseEnum<AutomatedPairClassification>(record.Classification, "classification " + pair);
+                    conflict.ModelVersion = Required(record.ModelVersion, "Conflicts.ModelVersion");
+                    conflict.ImporterVersion = PositiveVersion(record.ImporterVersion, "ImporterVersion " + pair);
+                    conflict.PipelineVersion = PositiveVersion(record.PipelineVersion, "PipelineVersion " + pair);
+                    conflict.CompilerSchemaVersion = PositiveVersion(record.CompilerSchemaVersion, "CompilerSchemaVersion " + pair);
+                    conflict.FingerprintSchemaVersion = PositiveVersion(record.FingerprintSchemaVersion, "FingerprintSchemaVersion " + pair);
+                    conflict.ConflictSweepAlgorithmVersion = PositiveVersion(record.ConflictSweepAlgorithmVersion, "ConflictSweepAlgorithmVersion " + pair);
+                    conflict.DecisionPolicyVersion = PositiveVersion(record.DecisionPolicyVersion, "DecisionPolicyVersion " + pair);
+                    if ((conflict.Decision == ConflictDecisionKind.Rejected) != (conflict.Classification == AutomatedPairClassification.ProvenDisjoint)
+                        || conflict.Classification == AutomatedPairClassification.Following)
+                    {
+                        throw new FormatException("Decisions : classification incompatible avec la decision " + pair + ".");
+                    }
+                }
                 if (conflict.Decision == ConflictDecisionKind.Accepted)
                 {
                     conflict.Id = RequiredId(record.Id, "conflit " + pair);
@@ -298,7 +343,19 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     MovementKeyB = c.MovementKeyB,
                     Decision = c.Decision.ToString(),
                     Reason = c.Reason,
-                    GeometryFingerprint = c.GeometryFingerprint
+                    GeometryFingerprint = c.GeometryFingerprint,
+                    DecisionRevisionId = c.DecisionRevisionId,
+                    EvidenceHash = c.EvidenceHash,
+                    DecisionRunId = c.DecisionRunId,
+                    SupersedesDecisionRevisionId = c.SupersedesDecisionRevisionId,
+                    Classification = c.Classification.ToString(),
+                    ModelVersion = c.ModelVersion,
+                    ImporterVersion = c.ImporterVersion,
+                    PipelineVersion = c.PipelineVersion,
+                    CompilerSchemaVersion = c.CompilerSchemaVersion,
+                    FingerprintSchemaVersion = c.FingerprintSchemaVersion,
+                    ConflictSweepAlgorithmVersion = c.ConflictSweepAlgorithmVersion,
+                    DecisionPolicyVersion = c.DecisionPolicyVersion
                 };
             }).ToArray();
             layout.Widths = Widths.ConvertAll(delegate(WidthDecision w)
@@ -504,6 +561,31 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return value;
         }
 
+        private static string RequiredSha256(string value, string what)
+        {
+            if (!PairGeometryFingerprint.IsSha256(value))
+            {
+                throw new FormatException("Decisions : SHA-256 invalide pour " + what + ".");
+            }
+
+            return value;
+        }
+
+        private static string OptionalSha256(string value, string what)
+        {
+            return string.IsNullOrEmpty(value) ? string.Empty : RequiredSha256(value, what);
+        }
+
+        private static int PositiveVersion(int value, string what)
+        {
+            if (value <= 0)
+            {
+                throw new FormatException("Decisions : version non positive pour " + what + ".");
+            }
+
+            return value;
+        }
+
         private static string Required(string value, string what)
         {
             if (string.IsNullOrEmpty(value) || value.Trim().Length == 0)
@@ -589,6 +671,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public string Decision;
             public string Reason;
             public string GeometryFingerprint;
+            public string DecisionRevisionId;
+            public string EvidenceHash;
+            public string DecisionRunId;
+            public string SupersedesDecisionRevisionId;
+            public string Classification;
+            public string ModelVersion;
+            public int ImporterVersion;
+            public int PipelineVersion;
+            public int CompilerSchemaVersion;
+            public int FingerprintSchemaVersion;
+            public int ConflictSweepAlgorithmVersion;
+            public int DecisionPolicyVersion;
         }
 
         [Serializable]
