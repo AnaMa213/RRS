@@ -21,7 +21,71 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         private const string PairTag = "RRS-PAIR-GEOMETRY";
         private const string MovementTag = "RRS-MOVEMENT-GEOMETRY";
-        private const string HistoricalHashLabel = "historical-pair-fingerprints-sha256";
+        public const string HistoricalHashLabel = "historical-pair-fingerprints-sha256";
+
+        public static HistoricalPairFingerprintTable VerifyHistoricalTable(
+            string tableText,
+            string baselineHashesText,
+            string baselineModelText)
+        {
+            if (string.IsNullOrEmpty(tableText) || string.IsNullOrEmpty(baselineHashesText)
+                || string.IsNullOrEmpty(baselineModelText))
+            {
+                throw new FormatException("Table historique 5.50 : table ou liaison de reference absente.");
+            }
+
+            string expectedHash = null;
+            string[] lines = baselineHashesText.Replace("\r\n", "\n").Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (!lines[i].StartsWith(HistoricalHashLabel + " ", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                int separator = lines[i].LastIndexOf(": ", StringComparison.Ordinal);
+                if (separator >= 0)
+                {
+                    expectedHash = lines[i].Substring(separator + 2).Trim();
+                }
+            }
+
+            string actualHash = V1SourceSet.Sha256Hex(tableText);
+            if (!IsSha256(expectedHash) || !string.Equals(expectedHash, actualHash, StringComparison.Ordinal))
+            {
+                throw new FormatException("Table historique 5.50 alteree : SHA-256 " + actualHash
+                    + ", attendu " + (expectedHash ?? "absent") + ".");
+            }
+
+            HistoricalPairFingerprintTable table = HistoricalPairFingerprintTable.Parse(tableText);
+            string modelHash = V1SourceSet.Sha256Hex(baselineModelText);
+            if (!string.Equals(table.SourceModelSha256, modelHash, StringComparison.Ordinal))
+            {
+                throw new FormatException("Table historique 5.50 : modele source " + table.SourceModelSha256
+                    + ", attendu " + modelHash + ".");
+            }
+
+            return table;
+        }
+
+        internal static bool IsSha256(string value)
+        {
+            if (value == null || value.Length != 64)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+                if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         public static string Compute(
             string keyA,
@@ -324,6 +388,39 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 || string.IsNullOrEmpty(table.SourceModelVersion))
             {
                 throw new FormatException("Table historique 5.50 : format, schema ou liaison invalide.");
+            }
+
+            if (!PairGeometryFingerprint.IsSha256(table.SourceModelSha256))
+            {
+                throw new FormatException("Table historique 5.50 : SHA-256 du modele source invalide.");
+            }
+
+            string previous = null;
+            var pairs = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < table.Pairs.Length; i++)
+            {
+                HistoricalPairFingerprintRecord record = table.Pairs[i];
+                if (record == null || string.IsNullOrEmpty(record.MovementKeyA)
+                    || string.IsNullOrEmpty(record.MovementKeyB)
+                    || string.CompareOrdinal(record.MovementKeyA, record.MovementKeyB) >= 0
+                    || (record.Decision != ConflictDecisionKind.Accepted.ToString()
+                        && record.Decision != ConflictDecisionKind.Rejected.ToString())
+                    || !PairGeometryFingerprint.IsSha256(record.MovementHashA)
+                    || !PairGeometryFingerprint.IsSha256(record.MovementHashB)
+                    || !PairGeometryFingerprint.IsSha256(record.Fingerprint)
+                    || record.ExtentXMillimeters < 0 || record.ExtentYMillimeters < 0
+                    || record.ExtentZMillimeters < 0)
+                {
+                    throw new FormatException("Table historique 5.50 : enregistrement " + i + " invalide.");
+                }
+
+                string pair = AuthoredRoadModel.PairKey(record.MovementKeyA, record.MovementKeyB);
+                if (!pairs.Add(pair) || (previous != null && string.CompareOrdinal(previous, pair) >= 0))
+                {
+                    throw new FormatException("Table historique 5.50 : paire dupliquee ou ordre non canonique.");
+                }
+
+                previous = pair;
             }
 
             return table;

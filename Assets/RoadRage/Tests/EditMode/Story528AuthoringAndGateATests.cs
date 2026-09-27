@@ -335,7 +335,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(label, Is.Not.EqualTo(model));
             Assert.That(Assert.Throws<FormatException>(() => RoadModelDocument.Load(label)).Message, Does.Contain("integrite"));
 
-            string spaced = model.Replace("{\"Format\":1,", "{\"Format\": 1,");
+            string spaced = model.Replace("{\"Format\":2,", "{\"Format\": 2,");
             Assert.That(Assert.Throws<FormatException>(() => RoadModelDocument.Load(spaced)).Message, Does.Contain("non canonique"));
 
             // Chaque champ de liaison, un par un : un caractere de chaque hash ou de la version, chaque entier.
@@ -366,6 +366,7 @@ namespace RoadRage.Tests.EditMode
             var build = typeof(Story525RoadWorldModelTests).GetMethod("BuildModel", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.That(build, Is.Not.Null);
             var source = (RoadModelSource)build.Invoke(null, null);
+            source.DrivabilityProfile = V1RoadModelImporter.DrivabilityProfile();
             source.Corridors[1].HasSpeedLimitOverride = true;
             source.Corridors[1].SpeedLimitOverrideMetersPerSecond = 8.5f;
             source.Corridors[1].HasSurfaceOverride = true;

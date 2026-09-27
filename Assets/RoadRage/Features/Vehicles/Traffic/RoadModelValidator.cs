@@ -91,7 +91,19 @@ namespace RoadRage.Features.Vehicles.Traffic
         RoadUpFlipped = 32,
 
         /// <summary>Tangente opposee ou perpendiculaire a sa corde : le sens de marche ne suit plus la geometrie.</summary>
-        TangentOpposesChord = 33
+        TangentOpposesChord = 33,
+
+        // ---------------------------------------------------------------- conduisibilite (Story 5.50)
+        DrivabilityProfileInvalid = 34,
+        DrivabilityAdmissionFailed = 35,
+        DrivabilityReferenceDeviation = 36,
+        DrivabilityChordHeadingInconsistent = 37,
+        DrivabilitySeamDiscontinuity = 38,
+        DrivabilityRoadUpVaries = 39,
+        DrivabilityTangentCurvatureMismatch = 40,
+        DrivabilityEnvelopeFold = 41,
+        DrivabilityInnerRadiusFold = 42,
+        DrivabilityEnvelopeSeamBroken = 43
     }
 
     /// <summary>Un echec de validation : son code stable, l'identifiant fautif et un message.</summary>
@@ -257,6 +269,8 @@ namespace RoadRage.Features.Vehicles.Traffic
             CheckFinite(issues, source.LocalizationProfile.HysteresisMeters, source.ModelId, "LocalizationProfile.HysteresisMeters");
             CheckFinite(issues, source.LocalizationProfile.AcceptanceDistanceMeters, source.ModelId, "LocalizationProfile.AcceptanceDistanceMeters");
             CheckFinite(issues, source.LocalizationProfile.WrongWayHeadingDegrees, source.ModelId, "LocalizationProfile.WrongWayHeadingDegrees");
+
+            CheckDrivabilityProfile(issues, source.DrivabilityProfile, source.ModelId);
 
             // Domaine des profils (5.26) : une tolerance ou un seuil nul (profil non renseigne) ne
             // doit jamais compiler en silence.
@@ -645,6 +659,53 @@ namespace RoadRage.Features.Vehicles.Traffic
         private static bool IsFinite(float value)
         {
             return !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+
+        private static void CheckDrivabilityProfile(
+            List<RoadModelValidationIssue> issues,
+            DrivabilityProfile profile,
+            RoadId subject)
+        {
+            if (!profile.Declared)
+            {
+                return;
+            }
+
+            string defect = null;
+            if (!IsFinite(profile.WheelbaseMeters) || !(profile.WheelbaseMeters > 0f))
+            {
+                defect = "WheelbaseMeters doit etre fini et strictement positif";
+            }
+            else if (!IsFinite(profile.ReferencePointAheadRearAxleMeters)
+                || !(profile.ReferencePointAheadRearAxleMeters >= 0f))
+            {
+                defect = "ReferencePointAheadRearAxleMeters doit etre fini et positif ou nul";
+            }
+            else if (!IsFinite(profile.LowSpeedLockDegrees) || !IsFinite(profile.HighSpeedLockDegrees)
+                || !(profile.LowSpeedLockDegrees > profile.HighSpeedLockDegrees)
+                || !(profile.HighSpeedLockDegrees > 0f) || !(profile.LowSpeedLockDegrees < 90f))
+            {
+                defect = "les angles de braquage doivent verifier 0 < HighSpeedLockDegrees < LowSpeedLockDegrees < 90";
+            }
+            else if (!IsFinite(profile.FullReductionSpeedMetersPerSecond)
+                || !(profile.FullReductionSpeedMetersPerSecond > 0f))
+            {
+                defect = "FullReductionSpeedMetersPerSecond doit etre fini et strictement positif";
+            }
+            else if (!IsFinite(profile.SteeringInactiveBelowMetersPerSecond)
+                || !(profile.SteeringInactiveBelowMetersPerSecond >= 0f)
+                || !(profile.SteeringInactiveBelowMetersPerSecond < profile.FullReductionSpeedMetersPerSecond))
+            {
+                defect = "SteeringInactiveBelowMetersPerSecond doit appartenir a [0, FullReductionSpeedMetersPerSecond[";
+            }
+
+            if (defect != null)
+            {
+                issues.Add(new RoadModelValidationIssue(
+                    RoadModelValidationCode.DrivabilityProfileInvalid,
+                    subject,
+                    "DrivabilityProfile : " + defect + "."));
+            }
         }
 
         /// <summary>Strictement positif ; une valeur non finie est deja rapportee par CheckFinite.</summary>

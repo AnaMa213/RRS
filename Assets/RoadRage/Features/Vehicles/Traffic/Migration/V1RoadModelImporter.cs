@@ -116,6 +116,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public int LateralOrder;
         public bool IsDatum;
         public bool IsRing;
+        public bool StartTrimmedForDrivability;
+        public bool EndTrimmedForDrivability;
 
         // ---------------------------------------------------------------- mouvement
         public V1Edge KeyEdge;
@@ -221,7 +223,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     public static class V1RoadModelImporter
     {
         /// <summary>Version de l'importeur : tout changement de regle de decoupage ou de cle l'incremente.</summary>
-        public const int ImporterVersion = 1;
+        public const int ImporterVersion = 2;
 
         /// <summary>Tolerance de corde du contrat (0,05 m) passee au constructeur de courbe 5.26.</summary>
         public const float ChordToleranceMeters = 0.05f;
@@ -231,6 +233,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         /// <summary>Pas angulaire maximal entre deux points de controle d'un mouvement, en degres.</summary>
         private const float MovementControlStepDegrees = 1f;
+
+        /// <summary>
+        /// Les ancres V1 merge/split sont 7,5 deg avant le raccord tangent. Les bornes du corridor
+        /// d'anneau glissent davantage pour donner a la transition a courbure continue sa longueur ;
+        /// les noeuds restent sur le meme cercle et sont couverts par les mouvements adjacents.
+        /// </summary>
+        private const float RoundaboutAnchorShiftDegrees = 28.85f;
 
         /// <summary>Au-dela, en valeur absolue, un mouvement tourne (etiquette et classement du lissage).</summary>
         public const float TurningThresholdDegrees = 30f;
@@ -257,6 +266,24 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             profile.HysteresisMeters = 0.1f;
             profile.AcceptanceDistanceMeters = 2.5f;
             profile.WrongWayHeadingDegrees = 90f;
+            return profile;
+        }
+
+        /// <summary>
+        /// Copie des valeurs de VehicleProfileDef_Default qui gouvernent l'autorite de braquage.
+        /// La geometrie des essieux donne L=3,10 m et le point de reference est a 1,55 m de
+        /// l'essieu arriere ; les quatre autres valeurs sont les champs de direction du profil.
+        /// </summary>
+        public static DrivabilityProfile DrivabilityProfile()
+        {
+            var profile = new DrivabilityProfile();
+            profile.Declared = true;
+            profile.WheelbaseMeters = 3.10f;
+            profile.ReferencePointAheadRearAxleMeters = 1.55f;
+            profile.LowSpeedLockDegrees = 40f;
+            profile.HighSpeedLockDegrees = 16f;
+            profile.FullReductionSpeedMetersPerSecond = 26f;
+            profile.SteeringInactiveBelowMetersPerSecond = 0.25f;
             return profile;
         }
 
@@ -292,6 +319,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             private readonly Dictionary<V1Edge, SourceDisposition> _edgeDisposition = new Dictionary<V1Edge, SourceDisposition>();
             private readonly Dictionary<V1Node, SourceDisposition> _nodeDisposition = new Dictionary<V1Node, SourceDisposition>();
             private readonly Dictionary<V1Node, ImportedJunction> _junctionOfSeed = new Dictionary<V1Node, ImportedJunction>();
+            private readonly Dictionary<V1Module, CircleFit> _circleByModule = new Dictionary<V1Module, CircleFit>();
+
+            private struct CircleFit
+            {
+                public Vector3 Center;
+                public float Radius;
+                public Vector3 Up;
+            }
 
             public ImportContext(V1SourceSet set, V1ImportResult result)
             {
@@ -581,6 +616,30 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     return;
                 }
 
+                if (module.Kind == V1ModuleKind.Roundabout)
+                {
+                    var ringNodes = new List<V1Node>();
+                    for (int r = 0; r < rings.Count; r++)
+                    {
+                        for (int n = 0; n < rings[r].Count; n++)
+                        {
+                            if (!ringNodes.Contains(rings[r][n]))
+                            {
+                                ringNodes.Add(rings[r][n]);
+                            }
+                        }
+                    }
+
+                    CircleFit fit;
+                    if (!TryFitCircle(ringNodes, out fit))
+                    {
+                        Fail("Anneau de '" + module.Label + "' : cercle des noeuds V1 indeterminable.");
+                        return;
+                    }
+
+                    _circleByModule[module] = fit;
+                }
+
                 var seeds = new List<V1Node>();
                 foreach (var node in module.Nodes)
                 {
@@ -813,6 +872,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     return false;
                 }
 
+                // Les connecteurs V1 sont des ancres de topologie, pas des raccords tangentiels.
+                // Pour les entrees/sorties d'anneau seulement, la borne V2 glisse d'un metre le
+                // long de l'axe adjacent ; le mouvement couvre l'ancien connecteur et le rapport
+                // publie le deplacement d'ancre.
+                if (role == MovementRole.RoundaboutEntry && !from.EndTrimmedForDrivability)
+                {
+                    TrimEnd(from, 2.5f);
+                    from.EndTrimmedForDrivability = true;
+                }
+                else if (role == MovementRole.RoundaboutExit && !to.StartTrimmedForDrivability)
+                {
+                    TrimStart(to, 2.5f);
+                    to.StartTrimmedForDrivability = true;
+                }
+
                 var fromEnd = from.Curve.Sample(from.Curve.Length);
                 var toStart = to.Curve.Sample(0f);
                 Vector3 p0 = fromEnd.Position;
@@ -822,46 +896,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 {
                     Fail("Mouvement '" + edge.From.Label + "' -> '" + edge.To.Label + "' de longueur nulle.");
                     return false;
-                }
-
-                // Hermite cubique dense : tangentes d'extremite = tangentes des corridors, echelle =
-                // corde. Le constructeur 5.26 passe ensuite par ces points.
-                Vector3 m0 = fromEnd.Tangent * chord;
-                Vector3 m1 = toStart.Tangent * chord;
-                // Densite : au plus un pas de longueur ET un pas d'angle. Le constructeur 5.26 estime
-                // la tangente d'extremite sur les derniers points : sur un virage serre, un pas
-                // purement metrique laissait ~13 degres d'ecart de couture (mesure du premier rapport).
-                float estimate = 0f;
-                float turn = 0f;
-                Vector3 previous = p0;
-                Vector3 previousDirection = fromEnd.Tangent;
-                for (int k = 1; k <= 64; k++)
-                {
-                    Vector3 p = Hermite(p0, m0, p1, m1, k / 64f);
-                    Vector3 step = p - previous;
-                    estimate += step.magnitude;
-                    if (step.sqrMagnitude > 1e-12f)
-                    {
-                        turn += Vector3.Angle(previousDirection, step);
-                        previousDirection = step;
-                    }
-
-                    previous = p;
-                }
-
-                turn += Vector3.Angle(previousDirection, toStart.Tangent);
-                int steps = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(estimate / MovementControlStepMeters, turn / MovementControlStepDegrees)), 8, 512);
-                var positions = new Vector3[steps + 1];
-                var ups = new Vector3[steps + 1];
-                var left = new float[steps + 1];
-                var right = new float[steps + 1];
-                for (int k = 0; k <= steps; k++)
-                {
-                    float u = (float)k / steps;
-                    positions[k] = Hermite(p0, m0, p1, m1, u);
-                    ups[k] = Vector3.Lerp(fromEnd.Up, toStart.Up, u).normalized;
-                    left[k] = Mathf.Lerp(fromEnd.HalfWidthLeftMeters, toStart.HalfWidthLeftMeters, u);
-                    right[k] = Mathf.Lerp(fromEnd.HalfWidthRightMeters, toStart.HalfWidthRightMeters, u);
                 }
 
                 var movement = new ImportedCurve();
@@ -876,18 +910,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 movement.TurnDegrees = fromEnd.SignedHeadingDegrees(toStart.Tangent);
                 movement.Label = junction.Module.Label + ": " + edge.From.Label + " -> " + edge.To.Label + " (" + Describe(role, movement.TurnDegrees) + ")";
 
-                try
+                CircleFit circle;
+                if (role == MovementRole.RoundaboutContinuation && from.IsRing && to.IsRing
+                    && _circleByModule.TryGetValue(junction.Module, out circle))
                 {
-                    float deviation;
-                    movement.Samples = RoadCurveBuilder.Build(positions, ups, left, right, ChordToleranceMeters, out deviation);
-                    movement.ChordDeviationMeters = deviation;
-                    movement.Curve = new RoadCurve(movement.Samples);
+                    float sign = Mathf.Sign(Vector3.Dot(Vector3.Cross(circle.Up,
+                        (p0 - circle.Center).normalized), fromEnd.Tangent));
+                    movement.Samples = BuildCircleArc(circle, p0, p1, sign,
+                        fromEnd.HalfWidthLeftMeters, toStart.HalfWidthLeftMeters,
+                        fromEnd.HalfWidthRightMeters, toStart.HalfWidthRightMeters);
                 }
-                catch (ArgumentException exception)
+                else
                 {
-                    Fail("Courbe du mouvement " + movement.Label + " : " + exception.Message);
-                    return false;
+                    movement.Samples = BuildSmoothCurve(fromEnd, toStart);
                 }
+
+                movement.ChordDeviationMeters = MeasureChordDeviation(movement.Samples);
+                movement.Curve = new RoadCurve(movement.Samples);
 
                 Register(movement.Key, RoadRecordKind.Movement, "arete '" + edge.From.Label + "' -> '" + edge.To.Label + "' de '" + junction.Module.Label + "'");
                 junction.Movements.Add(movement);
@@ -914,13 +953,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 }
 
                 return turnDegrees > 0f ? "droite" : "gauche";
-            }
-
-            private static Vector3 Hermite(Vector3 p0, Vector3 m0, Vector3 p1, Vector3 m1, float u)
-            {
-                float u2 = u * u;
-                float u3 = u2 * u;
-                return (2f * u3 - 3f * u2 + 1f) * p0 + (u3 - 2f * u2 + u) * m0 + (-2f * u3 + 3f * u2) * p1 + (u3 - u2) * m1;
             }
 
             private void BoundaryCheck(ImportedJunction junction)
@@ -1113,6 +1145,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 source.Label = "MVP_Run (import V1, Story 5.27)";
                 source.ValidationProfile = ValidationProfile();
                 source.LocalizationProfile = LocalizationProfile();
+                source.DrivabilityProfile = DrivabilityProfile();
 
                 var manifest = new List<ImportManifestEntry>();
 
@@ -1448,7 +1481,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             private bool Finish(ImportedCurve curve, List<V1Node> nodes, float halfWidth)
             {
                 float deviation;
-                curve.Samples = BuildCurve(nodes, halfWidth, halfWidth, curve.Label, out deviation);
+                CircleFit circle;
+                if (curve.IsRing && _circleByModule.TryGetValue(curve.Module, out circle))
+                {
+                    curve.Samples = BuildCircleArc(circle, nodes, halfWidth);
+                    deviation = MeasureChordDeviation(curve.Samples);
+                }
+                else
+                {
+                    curve.Samples = BuildCurve(nodes, halfWidth, halfWidth, curve.Label, out deviation);
+                }
                 if (curve.Samples == null)
                 {
                     return false;
@@ -1457,6 +1499,481 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 curve.ChordDeviationMeters = deviation;
                 curve.Curve = new RoadCurve(curve.Samples);
                 return Register(curve.Key, RoadRecordKind.Corridor, "voie " + curve.Label);
+            }
+
+            private static bool TryFitCircle(List<V1Node> nodes, out CircleFit fit)
+            {
+                fit = default(CircleFit);
+                if (nodes == null || nodes.Count < 3)
+                {
+                    return false;
+                }
+
+                Vector3 origin = nodes[0].Position;
+                double aa = 0d;
+                double ab = 0d;
+                double bb = 0d;
+                double ac = 0d;
+                double bc = 0d;
+                for (int i = 1; i < nodes.Count; i++)
+                {
+                    double a = 2d * (nodes[i].Position.x - origin.x);
+                    double b = 2d * (nodes[i].Position.z - origin.z);
+                    double c = nodes[i].Position.x * nodes[i].Position.x + nodes[i].Position.z * nodes[i].Position.z
+                        - origin.x * origin.x - origin.z * origin.z;
+                    aa += a * a;
+                    ab += a * b;
+                    bb += b * b;
+                    ac += a * c;
+                    bc += b * c;
+                }
+
+                double determinant = aa * bb - ab * ab;
+                if (Math.Abs(determinant) < 1e-9d)
+                {
+                    return false;
+                }
+
+                float cx = (float)((ac * bb - bc * ab) / determinant);
+                float cz = (float)((bc * aa - ac * ab) / determinant);
+                float y = 0f;
+                float radius = 0f;
+                Vector3 up = Vector3.zero;
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    y += nodes[i].Position.y;
+                    radius += new Vector2(nodes[i].Position.x - cx, nodes[i].Position.z - cz).magnitude;
+                    up += nodes[i].Up;
+                }
+
+                fit.Center = new Vector3(cx, y / nodes.Count, cz);
+                fit.Radius = radius / nodes.Count;
+                fit.Up = up.normalized;
+                return fit.Radius > 0f && fit.Up.sqrMagnitude > 0.99f;
+            }
+
+            private static RoadCurveSample[] BuildCircleArc(CircleFit circle, List<V1Node> nodes, float halfWidth)
+            {
+                Vector3 first = (nodes[0].Position - circle.Center).normalized;
+                float total = 0f;
+                Vector3 previous = first;
+                for (int i = 1; i < nodes.Count; i++)
+                {
+                    Vector3 radial = (nodes[i].Position - circle.Center).normalized;
+                    total += Vector3.SignedAngle(previous, radial, circle.Up);
+                    previous = radial;
+                }
+
+                float sign = Mathf.Sign(total);
+                float shift = Mathf.Min(RoundaboutAnchorShiftDegrees, Mathf.Abs(total) * 0.475f);
+                Vector3 shiftedFirst = Quaternion.AngleAxis(sign * shift, circle.Up) * first;
+                Vector3 last = (nodes[nodes.Count - 1].Position - circle.Center).normalized;
+                Vector3 shiftedLast = Quaternion.AngleAxis(-sign * shift, circle.Up) * last;
+                return BuildCircleArc(circle,
+                    shiftedFirst * circle.Radius + circle.Center,
+                    shiftedLast * circle.Radius + circle.Center,
+                    sign,
+                    halfWidth, halfWidth, halfWidth, halfWidth,
+                    Mathf.Abs(total) - 2f * shift);
+            }
+
+            private static RoadCurveSample[] BuildCircleArc(
+                CircleFit circle,
+                Vector3 start,
+                Vector3 end,
+                float sign,
+                float leftStart,
+                float leftEnd,
+                float rightStart,
+                float rightEnd,
+                float explicitDegrees = -1f)
+            {
+                Vector3 radial0 = (start - circle.Center).normalized;
+                Vector3 radial1 = (end - circle.Center).normalized;
+                float degrees = explicitDegrees >= 0f ? explicitDegrees : Vector3.Angle(radial0, radial1);
+                int steps = Mathf.Max(2, Mathf.CeilToInt(degrees / 1f));
+                var samples = new RoadCurveSample[steps + 1];
+                float length = circle.Radius * degrees * Mathf.Deg2Rad;
+                for (int i = 0; i <= steps; i++)
+                {
+                    float t = (float)i / steps;
+                    Vector3 radial = Quaternion.AngleAxis(sign * degrees * t, circle.Up) * radial0;
+                    samples[i].SMeters = length * t;
+                    samples[i].Position = circle.Center + radial * circle.Radius;
+                    samples[i].Tangent = sign * Vector3.Cross(circle.Up, radial).normalized;
+                    samples[i].Up = circle.Up;
+                    samples[i].CurvaturePerMeter = sign / circle.Radius;
+                    samples[i].HalfWidthLeftMeters = Mathf.Lerp(leftStart, leftEnd, t);
+                    samples[i].HalfWidthRightMeters = Mathf.Lerp(rightStart, rightEnd, t);
+                }
+
+                return samples;
+            }
+
+            private static RoadCurveSample[] BuildSmoothCurve(RoadCurvePoint start, RoadCurvePoint end)
+            {
+                Vector3 chordVector = end.Position - start.Position;
+                float chord = chordVector.magnitude;
+                float headingRadians = start.SignedHeadingDegrees(end.Tangent) * Mathf.Deg2Rad;
+                const int integrationSteps = 256;
+                const float residualToleranceMeters = 0.05005f;
+                float bestC = 0f;
+                float bestAngle = float.PositiveInfinity;
+                Vector3 bestNormalizedEnd = Vector3.zero;
+                float bestFeasibleCurvature = float.PositiveInfinity;
+                float feasibleC = 0f;
+                Vector3 feasibleNormalizedEnd = Vector3.zero;
+                float admittedMaximumCurvature = 1f
+                    / RoadModelCompiler.AdmissionRadiusMeters(DrivabilityProfile());
+                float bestAdmittedResidual = float.PositiveInfinity;
+                float admittedC = 0f;
+                Vector3 admittedNormalizedEnd = Vector3.zero;
+                for (int candidate = 0; candidate <= 400; candidate++)
+                {
+                    float c = Mathf.Lerp(-2f, 2f, candidate / 400f);
+                    Vector3 normalizedEnd = IntegrateNormalizedEnd(start, headingRadians, c, integrationSteps);
+
+                    float angle = Vector3.Angle(normalizedEnd, chordVector);
+                    if (angle < bestAngle)
+                    {
+                        bestAngle = angle;
+                        bestC = c;
+                        bestNormalizedEnd = normalizedEnd;
+                    }
+
+                    float candidateLength;
+                    float residualMeters;
+                    float maximumCurvature;
+                    EvaluateSmoothCandidate(start, chordVector, headingRadians, c, normalizedEnd,
+                        out candidateLength, out residualMeters, out maximumCurvature);
+                    if (candidateLength > 0f && residualMeters <= residualToleranceMeters
+                        && maximumCurvature < bestFeasibleCurvature)
+                    {
+                        bestFeasibleCurvature = maximumCurvature;
+                        feasibleC = c;
+                        feasibleNormalizedEnd = normalizedEnd;
+                    }
+
+                    if (candidateLength > 0f && residualMeters < bestAdmittedResidual
+                        && maximumCurvature <= admittedMaximumCurvature)
+                    {
+                        bestAdmittedResidual = residualMeters;
+                        admittedC = c;
+                        admittedNormalizedEnd = normalizedEnd;
+                    }
+                }
+
+                if (!float.IsPositiveInfinity(bestAdmittedResidual)
+                    || !float.IsPositiveInfinity(bestFeasibleCurvature))
+                {
+                    float coarseC = !float.IsPositiveInfinity(bestAdmittedResidual) ? admittedC : feasibleC;
+                    for (int candidate = 0; candidate <= 200; candidate++)
+                    {
+                        float c = coarseC + Mathf.Lerp(-0.01f, 0.01f, candidate / 200f);
+                        Vector3 normalizedEnd = IntegrateNormalizedEnd(start, headingRadians, c, integrationSteps);
+                        float candidateLength;
+                        float residualMeters;
+                        float maximumCurvature;
+                        EvaluateSmoothCandidate(start, chordVector, headingRadians, c, normalizedEnd,
+                            out candidateLength, out residualMeters, out maximumCurvature);
+                        if (candidateLength > 0f && residualMeters <= residualToleranceMeters
+                            && maximumCurvature < bestFeasibleCurvature)
+                        {
+                            bestFeasibleCurvature = maximumCurvature;
+                            feasibleC = c;
+                            feasibleNormalizedEnd = normalizedEnd;
+                        }
+
+
+                        if (candidateLength > 0f && residualMeters < bestAdmittedResidual
+                            && maximumCurvature <= admittedMaximumCurvature)
+                        {
+                            bestAdmittedResidual = residualMeters;
+                            admittedC = c;
+                            admittedNormalizedEnd = normalizedEnd;
+                        }
+                    }
+                }
+
+                if (!float.IsPositiveInfinity(bestAdmittedResidual))
+                {
+                    bestC = admittedC;
+                    bestNormalizedEnd = admittedNormalizedEnd;
+                }
+                else if (!float.IsPositiveInfinity(bestFeasibleCurvature))
+                {
+                    bestC = feasibleC;
+                    bestNormalizedEnd = feasibleNormalizedEnd;
+                }
+
+                float length = Vector3.Dot(chordVector, bestNormalizedEnd) / bestNormalizedEnd.sqrMagnitude;
+                if (!(length > 0f))
+                {
+                    length = chord;
+                }
+
+                const int steps = 256;
+                var samples = new RoadCurveSample[steps + 1];
+                Vector3[] positions = new Vector3[steps + 1];
+                positions[0] = start.Position;
+                float ds = length / steps;
+                for (int i = 1; i <= steps; i++)
+                {
+                    float middle = (i - 0.5f) / steps;
+                    Vector3 direction = Quaternion.AngleAxis(
+                        headingRadians * HeadingFraction(middle, bestC) * Mathf.Rad2Deg,
+                        start.Up) * start.Tangent;
+                    positions[i] = positions[i - 1] + direction * ds;
+                }
+
+                Vector3 residual = end.Position - positions[steps];
+                for (int i = 0; i <= steps; i++)
+                {
+                    float t = (float)i / steps;
+                    positions[i] += residual * QuinticSmoothStep(t);
+                }
+
+                float s = 0f;
+                for (int i = 0; i <= steps; i++)
+                {
+                    float t = (float)i / steps;
+                    Vector3 direction = Quaternion.AngleAxis(
+                        headingRadians * HeadingFraction(t, bestC) * Mathf.Rad2Deg,
+                        start.Up) * start.Tangent;
+                    float headingDerivative = headingRadians * CurvatureShape(t, bestC);
+                    Vector3 derivative = length * direction
+                        + residual * QuinticSmoothStepDerivative(t);
+                    Vector3 secondDerivative = length * headingDerivative
+                        * Vector3.Cross(start.Up, direction)
+                        + residual * QuinticSmoothStepSecondDerivative(t);
+                    if (i > 0)
+                    {
+                        s += Vector3.Distance(positions[i - 1], positions[i]);
+                    }
+
+                    samples[i].SMeters = s;
+                    samples[i].Position = positions[i];
+                    samples[i].Tangent = derivative.normalized;
+                    samples[i].Up = Vector3.Lerp(start.Up, end.Up, t).normalized;
+                    samples[i].CurvaturePerMeter = Curvature(derivative, secondDerivative, samples[i].Up);
+                    samples[i].HalfWidthLeftMeters = Mathf.Lerp(start.HalfWidthLeftMeters, end.HalfWidthLeftMeters, t);
+                    samples[i].HalfWidthRightMeters = Mathf.Lerp(start.HalfWidthRightMeters, end.HalfWidthRightMeters, t);
+                }
+
+                samples[0].Position = start.Position;
+                samples[0].Tangent = start.Tangent;
+                samples[steps].Position = end.Position;
+                samples[steps].Tangent = end.Tangent;
+
+                return samples;
+            }
+
+            private static float QuinticSmoothStep(float t)
+            {
+                return t * t * t * (10f + t * (-15f + 6f * t));
+            }
+
+            private static float QuinticSmoothStepDerivative(float t)
+            {
+                return 30f * t * t * (1f - t) * (1f - t);
+            }
+
+            private static float QuinticSmoothStepSecondDerivative(float t)
+            {
+                return 60f * t * (1f - t) * (1f - 2f * t);
+            }
+
+            private static Vector3 IntegrateNormalizedEnd(
+                RoadCurvePoint start,
+                float headingRadians,
+                float c,
+                int integrationSteps)
+            {
+                Vector3 normalizedEnd = Vector3.zero;
+                for (int i = 0; i < integrationSteps; i++)
+                {
+                    float t = (i + 0.5f) / integrationSteps;
+                    normalizedEnd += Quaternion.AngleAxis(
+                        headingRadians * HeadingFraction(t, c) * Mathf.Rad2Deg,
+                        start.Up) * start.Tangent / integrationSteps;
+                }
+
+                return normalizedEnd;
+            }
+
+            private static void EvaluateSmoothCandidate(
+                RoadCurvePoint start,
+                Vector3 chordVector,
+                float headingRadians,
+                float c,
+                Vector3 normalizedEnd,
+                out float length,
+                out float residualMeters,
+                out float maximumCurvature)
+            {
+                length = Vector3.Dot(chordVector, normalizedEnd) / normalizedEnd.sqrMagnitude;
+                residualMeters = (chordVector - normalizedEnd * length).magnitude;
+                Vector3 residual = chordVector - normalizedEnd * length;
+                maximumCurvature = 0f;
+                for (int sample = 0; sample <= 256; sample++)
+                {
+                    float t = sample / 256f;
+                    Vector3 direction = Quaternion.AngleAxis(
+                        headingRadians * HeadingFraction(t, c) * Mathf.Rad2Deg,
+                        start.Up) * start.Tangent;
+                    float headingDerivative = headingRadians * CurvatureShape(t, c);
+                    Vector3 derivative = length * direction
+                        + residual * QuinticSmoothStepDerivative(t);
+                    Vector3 secondDerivative = length * headingDerivative
+                        * Vector3.Cross(start.Up, direction)
+                        + residual * QuinticSmoothStepSecondDerivative(t);
+                    maximumCurvature = Mathf.Max(maximumCurvature,
+                        Mathf.Abs(Curvature(derivative, secondDerivative, start.Up)));
+                }
+
+                if (!(length > 0f))
+                {
+                    maximumCurvature = float.PositiveInfinity;
+                }
+            }
+
+            private static float HeadingFraction(float t, float c)
+            {
+                float t2 = t * t;
+                float t3 = t2 * t;
+                float t4 = t3 * t;
+                return 3f * t2 - 2f * t3 + c * (6f * t3 - 3f * t4 - 3f * t2);
+            }
+
+            private static float CurvatureShape(float t, float c)
+            {
+                return 6f * t * (1f - t) * (1f + c * (2f * t - 1f));
+            }
+
+            private static float MaximumCurvature(
+                RoadCurvePoint start,
+                RoadCurvePoint end,
+                float startScale,
+                float endScale,
+                int steps)
+            {
+                float maximum = 0f;
+                for (int i = 0; i <= steps; i++)
+                {
+                    Vector3 position;
+                    Vector3 derivative;
+                    Vector3 second;
+                    Quintic(start, startScale, end, endScale,
+                        (float)i / steps, out position, out derivative, out second);
+                    maximum = Mathf.Max(maximum, Mathf.Abs(Curvature(derivative, second, start.Up)));
+                }
+
+                return maximum;
+            }
+
+            private static void Quintic(
+                RoadCurvePoint start,
+                float startScale,
+                RoadCurvePoint end,
+                float endScale,
+                float t,
+                out Vector3 position,
+                out Vector3 derivative,
+                out Vector3 second)
+            {
+                Vector3 p0 = start.Position;
+                Vector3 p1 = end.Position;
+                Vector3 v0 = start.Tangent * startScale;
+                Vector3 v1 = end.Tangent * endScale;
+                Vector3 a0 = Vector3.Cross(start.Up, start.Tangent).normalized
+                    * start.CurvaturePerMeter * startScale * startScale;
+                Vector3 a1 = Vector3.Cross(end.Up, end.Tangent).normalized
+                    * end.CurvaturePerMeter * endScale * endScale;
+                Vector3 c2 = 0.5f * a0;
+                Vector3 d = p1 - p0 - v0 - c2;
+                Vector3 v = v1 - v0 - a0;
+                Vector3 a = a1 - a0;
+                Vector3 c3 = 10f * d - 4f * v + 0.5f * a;
+                Vector3 c4 = -15f * d + 7f * v - a;
+                Vector3 c5 = 6f * d - 3f * v + 0.5f * a;
+                float t2 = t * t;
+                float t3 = t2 * t;
+                float t4 = t3 * t;
+                float t5 = t4 * t;
+                position = p0 + v0 * t + c2 * t2 + c3 * t3 + c4 * t4 + c5 * t5;
+                derivative = v0 + 2f * c2 * t + 3f * c3 * t2 + 4f * c4 * t3 + 5f * c5 * t4;
+                second = 2f * c2 + 6f * c3 * t + 12f * c4 * t2 + 20f * c5 * t3;
+            }
+
+            private static float Curvature(Vector3 derivative, Vector3 second, Vector3 up)
+            {
+                float speed = derivative.magnitude;
+                return speed <= 1e-6f ? float.PositiveInfinity
+                    : Vector3.Dot(Vector3.Cross(derivative, second), up) / (speed * speed * speed);
+            }
+
+            private static float MeasureChordDeviation(RoadCurveSample[] samples)
+            {
+                float maximum = 0f;
+                for (int i = 1; i < samples.Length; i++)
+                {
+                    float turn = Vector3.Angle(samples[i - 1].Tangent, samples[i].Tangent) * Mathf.Deg2Rad;
+                    float curvature = Mathf.Max(Mathf.Abs(samples[i - 1].CurvaturePerMeter), Mathf.Abs(samples[i].CurvaturePerMeter));
+                    if (curvature > 1e-6f)
+                    {
+                        maximum = Mathf.Max(maximum, (1f / curvature) * (1f - Mathf.Cos(turn * 0.5f)));
+                    }
+                }
+
+                return maximum;
+            }
+
+            private static void TrimEnd(ImportedCurve curve, float meters)
+            {
+                float end = Mathf.Max(curve.Curve.StartS + 0.1f, curve.Curve.Length - meters);
+                var kept = new List<RoadCurveSample>();
+                for (int i = 0; i < curve.Samples.Length; i++)
+                {
+                    if (curve.Samples[i].SMeters < end - 1e-4f)
+                    {
+                        kept.Add(curve.Samples[i]);
+                    }
+                }
+
+                kept.Add(Sample(curve.Curve.Sample(end), end));
+                curve.Samples = kept.ToArray();
+                curve.Curve = new RoadCurve(curve.Samples);
+            }
+
+            private static void TrimStart(ImportedCurve curve, float meters)
+            {
+                float start = Mathf.Min(curve.Curve.Length - 0.1f, curve.Curve.StartS + meters);
+                var kept = new List<RoadCurveSample> { Sample(curve.Curve.Sample(start), 0f) };
+                for (int i = 0; i < curve.Samples.Length; i++)
+                {
+                    if (curve.Samples[i].SMeters > start + 1e-4f)
+                    {
+                        RoadCurveSample sample = curve.Samples[i];
+                        sample.SMeters -= start;
+                        kept.Add(sample);
+                    }
+                }
+
+                curve.Samples = kept.ToArray();
+                curve.Curve = new RoadCurve(curve.Samples);
+            }
+
+            private static RoadCurveSample Sample(RoadCurvePoint point, float s)
+            {
+                var sample = new RoadCurveSample();
+                sample.SMeters = s;
+                sample.Position = point.Position;
+                sample.Tangent = point.Tangent;
+                sample.Up = point.Up;
+                sample.CurvaturePerMeter = point.CurvaturePerMeter;
+                sample.HalfWidthLeftMeters = point.HalfWidthLeftMeters;
+                sample.HalfWidthRightMeters = point.HalfWidthRightMeters;
+                return sample;
             }
 
             private bool Register(string key, RoadRecordKind kind, string sourceDescription)

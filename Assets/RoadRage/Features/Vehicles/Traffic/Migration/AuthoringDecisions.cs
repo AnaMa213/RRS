@@ -77,6 +77,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public string MovementKeyB;
         public ConflictDecisionKind Decision;
         public string Reason;
+
+        /// <summary>Empreinte de geometrie et de volume explicitement reconfirmee par le proprietaire.</summary>
+        public string GeometryFingerprint;
     }
 
     public struct WidthDecision
@@ -115,11 +118,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public RoadId MovementB;
         public RoadBoundsBox Volume;
+        public string GeometryFingerprint;
+        public bool Following;
     }
 
     public sealed class AuthoringDecisions
     {
-        public const int FormatVersion = 2;
+        public const int FormatVersion = 3;
+        public const int LegacyFormatVersion = 2;
 
         /// <summary>Categories 5.27 disposees par leurs donnees typees, jamais par une disposition libre.</summary>
         public const string ControlCategory = "Controle";
@@ -171,7 +177,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 throw new FormatException("Decisions illisibles : " + exception.Message);
             }
 
-            if (layout == null || layout.Format != FormatVersion)
+            if (layout == null || (layout.Format != FormatVersion && layout.Format != LegacyFormatVersion))
             {
                 throw new FormatException("Decisions : format absent ou inconnu.");
             }
@@ -208,6 +214,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                 conflict.Decision = ParseEnum<ConflictDecisionKind>(record.Decision, "conflit " + pair);
                 conflict.Reason = record.Reason ?? string.Empty;
+                conflict.GeometryFingerprint = layout.Format == FormatVersion
+                    ? Required(record.GeometryFingerprint, "Conflicts.GeometryFingerprint " + pair)
+                    : string.Empty;
                 if (conflict.Decision == ConflictDecisionKind.Accepted)
                 {
                     conflict.Id = RequiredId(record.Id, "conflit " + pair);
@@ -288,7 +297,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     MovementKeyA = c.MovementKeyA,
                     MovementKeyB = c.MovementKeyB,
                     Decision = c.Decision.ToString(),
-                    Reason = c.Reason
+                    Reason = c.Reason,
+                    GeometryFingerprint = c.GeometryFingerprint
                 };
             }).ToArray();
             layout.Widths = Widths.ConvertAll(delegate(WidthDecision w)
@@ -363,6 +373,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     MovementKeyA = string.CompareOrdinal(a, b) < 0 ? a : b,
                     MovementKeyB = string.CompareOrdinal(a, b) < 0 ? b : a,
                     Decision = ConflictDecisionKind.Accepted,
+                    GeometryFingerprint = candidate.GeometryFingerprint,
                     Reason = "Enveloppes balayees d'approches differentes en recoupement (croisement ou convergence) : zone materialisee."
                 });
             }
@@ -557,6 +568,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public string MovementKeyB;
             public string Decision;
             public string Reason;
+            public string GeometryFingerprint;
         }
 
         [Serializable]

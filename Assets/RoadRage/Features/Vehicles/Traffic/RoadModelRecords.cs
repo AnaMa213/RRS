@@ -706,6 +706,23 @@ namespace RoadRage.Features.Vehicles.Traffic
     }
 
     /// <summary>
+    /// Autorite de braquage du vehicule de reference. Les valeurs authorees sont les seules donnees
+    /// persistantes ; rayons, braquage requis et plafond de vitesse sont derives par le compilateur.
+    /// Un profil non declare conserve exactement la charge canonique historique.
+    /// </summary>
+    [Serializable]
+    public struct DrivabilityProfile
+    {
+        public bool Declared;
+        public float WheelbaseMeters;
+        public float ReferencePointAheadRearAxleMeters;
+        public float LowSpeedLockDegrees;
+        public float HighSpeedLockDegrees;
+        public float FullReductionSpeedMetersPerSecond;
+        public float SteeringInactiveBelowMetersPerSecond;
+    }
+
+    /// <summary>
     /// Conteneur source complet passe a <see cref="RoadModelCompiler.Compile"/>. Le compilateur ne
     /// connait rien d'autre : il ne se souvient d'aucun import precedent et ne persiste rien.
     /// </summary>
@@ -720,6 +737,8 @@ namespace RoadRage.Features.Vehicles.Traffic
         public RoadModelValidationProfile ValidationProfile;
 
         public RoadLocalizationProfile LocalizationProfile;
+
+        public DrivabilityProfile DrivabilityProfile;
 
         public RoadSection[] Sections;
         public LaneCorridor[] Corridors;

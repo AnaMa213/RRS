@@ -17,6 +17,7 @@ namespace RoadRage.Features.Vehicles.Traffic
         public RoadId ModelId;
         public RoadModelValidationProfile ValidationProfile;
         public RoadLocalizationProfile LocalizationProfile;
+        public DrivabilityProfile DrivabilityProfile;
         public RoadSection[] Sections;
         public EffectiveLaneCorridor[] Corridors;
         public LaneConnection[] Connections;
@@ -155,6 +156,18 @@ namespace RoadRage.Features.Vehicles.Traffic
             WriteMeters(writer, payload.LocalizationProfile.HysteresisMeters);
             WriteMeters(writer, payload.LocalizationProfile.AcceptanceDistanceMeters);
             WriteDegrees(writer, payload.LocalizationProfile.WrongWayHeadingDegrees);
+
+            // Compatibilite binaire 5.25/5.26 : aucun octet de presence. Le bloc entier n'existe
+            // que pour un profil explicitement declare.
+            if (payload.DrivabilityProfile.Declared)
+            {
+                WriteMeters(writer, payload.DrivabilityProfile.WheelbaseMeters);
+                WriteMeters(writer, payload.DrivabilityProfile.ReferencePointAheadRearAxleMeters);
+                WriteDegrees(writer, payload.DrivabilityProfile.LowSpeedLockDegrees);
+                WriteDegrees(writer, payload.DrivabilityProfile.HighSpeedLockDegrees);
+                WriteSpeed(writer, payload.DrivabilityProfile.FullReductionSpeedMetersPerSecond);
+                WriteSpeed(writer, payload.DrivabilityProfile.SteeringInactiveBelowMetersPerSecond);
+            }
 
             var sections = SortedCopy(payload.Sections, delegate(RoadSection a, RoadSection b) { return a.Id.CompareTo(b.Id); });
             writer.Write(sections.Length);

@@ -157,6 +157,278 @@ namespace RoadRage.Features.Vehicles.Traffic
                     CheckCrossSection(issues, members, datumBySection[sections[i].Id], curves, profile);
                 }
             }
+
+            if (source.DrivabilityProfile.Declared)
+            {
+                ValidateDrivability(source, issues);
+            }
+        }
+
+        // ------------------------------------------------------------------ conduisibilite 5.50
+
+        private static void ValidateDrivability(RoadModelSource source, List<RoadModelValidationIssue> issues)
+        {
+            var corridors = source.Corridors ?? new LaneCorridor[0];
+            var movements = source.Movements ?? new JunctionMovement[0];
+            for (int i = 0; i < corridors.Length; i++)
+            {
+                CheckDrivableCurve(issues, corridors[i].Samples, corridors[i].Id, "LaneCorridor", source.DrivabilityProfile);
+            }
+
+            for (int i = 0; i < movements.Length; i++)
+            {
+                CheckDrivableCurve(issues, movements[i].Samples, movements[i].Id, "JunctionMovement", source.DrivabilityProfile);
+            }
+
+            var corridorById = new Dictionary<RoadId, LaneCorridor>();
+            for (int i = 0; i < corridors.Length; i++)
+            {
+                corridorById[corridors[i].Id] = corridors[i];
+            }
+
+            for (int i = 0; i < movements.Length; i++)
+            {
+                JunctionMovement movement = movements[i];
+                CheckEnvelopeSeam(issues, corridorById[movement.FromCorridorId].Samples,
+                    movement.Samples, movement.Id, 0, source.ValidationProfile.SeamGapToleranceMeters);
+                CheckEnvelopeSeam(issues, movement.Samples,
+                    corridorById[movement.ToCorridorId].Samples, movement.Id, movement.Samples.Length - 1,
+                    source.ValidationProfile.SeamGapToleranceMeters);
+            }
+        }
+
+        private static void CheckDrivableCurve(
+            List<RoadModelValidationIssue> issues,
+            RoadCurveSample[] samples,
+            RoadId subject,
+            string typeName,
+            DrivabilityProfile profile)
+        {
+            float admissionRadius = RoadModelCompiler.AdmissionRadiusMeters(profile);
+            float maxCurvature = 1f / admissionRadius;
+            Vector3 up0 = samples[0].Up;
+            Vector3 witnessPosition = samples[0].Position;
+            Vector3 witnessTangent = samples[0].Tangent.normalized;
+
+            for (int i = 0; i < samples.Length; i++)
+            {
+                RoadCurveSample sample = samples[i];
+                float ceiling = RoadModelCompiler.SteeringSpeedCeilingMetersPerSecond(profile, sample.CurvaturePerMeter);
+                if (float.IsNaN(ceiling) || ceiling + 1e-4f < profile.SteeringInactiveBelowMetersPerSecond
+                    || Mathf.Abs(sample.CurvaturePerMeter) > maxCurvature + 1e-5f)
+                {
+                    issues.Add(DrivabilityIssue(RoadModelValidationCode.DrivabilityAdmissionFailed, subject,
+                        typeName, i, "admission", "rayon " + Radius(sample.CurvaturePerMeter)
+                            + " m, plafond " + Ceiling(ceiling) + " m/s, minimum "
+                            + Format(profile.SteeringInactiveBelowMetersPerSecond) + " m/s"));
+                    break;
+                }
+
+                if (Vector3.Angle(up0, sample.Up) > UnitTolerance * Mathf.Rad2Deg)
+                {
+                    issues.Add(DrivabilityIssue(RoadModelValidationCode.DrivabilityRoadUpVaries, subject,
+                        typeName, i, "C4", "road-up variable"));
+                    break;
+                }
+
+                if (i == 0)
+                {
+                    continue;
+                }
+
+                RoadCurveSample previous = samples[i - 1];
+                float ds = sample.SMeters - previous.SMeters;
+                float signedHeading = 0.5f * (previous.CurvaturePerMeter + sample.CurvaturePerMeter) * ds * Mathf.Rad2Deg;
+                Vector3 expectedTangent = Quaternion.AngleAxis(signedHeading, up0) * witnessTangent;
+                if ((expectedTangent.normalized - sample.Tangent.normalized).magnitude > UnitTolerance)
+                {
+                    issues.Add(DrivabilityIssue(RoadModelValidationCode.DrivabilityTangentCurvatureMismatch, subject,
+                        typeName, i, "C5", "ecart tangente/courbure "
+                            + Format(Vector3.Angle(expectedTangent, sample.Tangent)) + " deg"));
+                }
+
+                Vector3 chord = sample.Position - previous.Position;
+                float chordHeading = Vector3.SignedAngle(witnessTangent, chord.normalized, up0);
+                float minHeading;
+                float maxHeading;
+                HeadingRange(previous.CurvaturePerMeter, sample.CurvaturePerMeter, ds,
+                    out minHeading, out maxHeading);
+                const float headingNoiseDegrees = UnitTolerance * Mathf.Rad2Deg;
+                if (chordHeading < minHeading - headingNoiseDegrees || chordHeading > maxHeading + headingNoiseDegrees)
+                {
+                    issues.Add(DrivabilityIssue(RoadModelValidationCode.DrivabilityChordHeadingInconsistent, subject,
+                        typeName, i, "C2", "cap de corde " + Format(chordHeading)
+                            + " deg hors [" + Format(minHeading) + ", " + Format(maxHeading) + "]"));
+                }
+
+                Vector3 segmentStart = witnessPosition;
+                Vector3 integratedHalf = Integrate(segmentStart, witnessTangent, up0,
+                    previous.CurvaturePerMeter, sample.CurvaturePerMeter, ds, 0.5f);
+                Vector3 chordHalf = Vector3.Lerp(previous.Position, sample.Position, 0.5f);
+                if ((integratedHalf - chordHalf).magnitude > 0.05f + 1e-4f)
+                {
+                    issues.Add(DrivabilityIssue(RoadModelValidationCode.DrivabilityReferenceDeviation, subject,
+                        typeName, i, "C1", "ecart temoin/corde "
+                            + Format((integratedHalf - chordHalf).magnitude) + " m"));
+                }
+
+                witnessPosition = Integrate(segmentStart, witnessTangent, up0,
+                    previous.CurvaturePerMeter, sample.CurvaturePerMeter, ds, 1f);
+                if ((witnessPosition - sample.Position).magnitude > 0.05f + 1e-4f)
+                {
+                    issues.Add(DrivabilityIssue(RoadModelValidationCode.DrivabilityReferenceDeviation, subject,
+                        typeName, i, "C1", "ecart temoin/echantillon "
+                            + Format((witnessPosition - sample.Position).magnitude) + " m"));
+                }
+
+                float turn = Vector3.Angle(previous.Tangent, sample.Tangent) * Mathf.Deg2Rad;
+                float cosine = Mathf.Min(Mathf.Cos(Vector3.Angle(previous.Tangent, chord) * Mathf.Deg2Rad),
+                    Mathf.Cos(Vector3.Angle(sample.Tangent, chord) * Mathf.Deg2Rad));
+                float width = Mathf.Max(Mathf.Max(previous.HalfWidthLeftMeters, sample.HalfWidthLeftMeters),
+                    Mathf.Max(previous.HalfWidthRightMeters, sample.HalfWidthRightMeters));
+                if (!(chord.magnitude * cosine > width * 2f * Mathf.Tan(turn * 0.5f)))
+                {
+                    issues.Add(DrivabilityIssue(RoadModelValidationCode.DrivabilityEnvelopeFold, subject,
+                        typeName, i, "F1", "enveloppe repliee entre les echantillons " + (i - 1) + " et " + i));
+                }
+
+                if (MaxInnerWidthCurvature(previous, sample) >= 1f - 1e-6f)
+                {
+                    issues.Add(DrivabilityIssue(RoadModelValidationCode.DrivabilityInnerRadiusFold, subject,
+                        typeName, i, "F2", "demi-largeur interieure x courbure >= 1"));
+                }
+
+                witnessTangent = expectedTangent.normalized;
+            }
+        }
+
+        private static RoadModelValidationIssue DrivabilityIssue(
+            RoadModelValidationCode code,
+            RoadId subject,
+            string typeName,
+            int sample,
+            string rule,
+            string detail)
+        {
+            return new RoadModelValidationIssue(code, subject,
+                typeName + " " + subject + ", echantillon " + sample + ", regle " + rule + " : " + detail + ".");
+        }
+
+        private static Vector3 Integrate(
+            Vector3 start,
+            Vector3 tangent,
+            Vector3 up,
+            float k0,
+            float k1,
+            float ds,
+            float fraction)
+        {
+            int steps = Mathf.Max(8, Mathf.CeilToInt(ds * fraction / 0.01f));
+            float length = ds * fraction;
+            float h = length / steps;
+            Vector3 position = start;
+            for (int n = 0; n < steps; n++)
+            {
+                float s = (n + 0.5f) * h;
+                float headingRadians = k0 * s + 0.5f * (k1 - k0) * s * s / ds;
+                position += (Quaternion.AngleAxis(headingRadians * Mathf.Rad2Deg, up) * tangent) * h;
+            }
+
+            return position;
+        }
+
+        private static void HeadingRange(float k0, float k1, float ds, out float minDegrees, out float maxDegrees)
+        {
+            float end = 0.5f * (k0 + k1) * ds * Mathf.Rad2Deg;
+            float min = Mathf.Min(0f, end);
+            float max = Mathf.Max(0f, end);
+            if (Mathf.Abs(k1 - k0) > 1e-8f)
+            {
+                float s = -k0 * ds / (k1 - k0);
+                if (s > 0f && s < ds)
+                {
+                    float value = (k0 * s + 0.5f * (k1 - k0) * s * s / ds) * Mathf.Rad2Deg;
+                    min = Mathf.Min(min, value);
+                    max = Mathf.Max(max, value);
+                }
+            }
+
+            minDegrees = min;
+            maxDegrees = max;
+        }
+
+        private static float MaxInnerWidthCurvature(RoadCurveSample a, RoadCurveSample b)
+        {
+            float maximum = Mathf.Max(InnerProduct(a, 0f, a, b), InnerProduct(a, 1f, a, b));
+            float dk = b.CurvaturePerMeter - a.CurvaturePerMeter;
+            float dwLeft = b.HalfWidthLeftMeters - a.HalfWidthLeftMeters;
+            float dwRight = b.HalfWidthRightMeters - a.HalfWidthRightMeters;
+            maximum = Mathf.Max(maximum, ProductCritical(a.CurvaturePerMeter, dk,
+                a.HalfWidthLeftMeters, dwLeft, -1f));
+            maximum = Mathf.Max(maximum, ProductCritical(a.CurvaturePerMeter, dk,
+                a.HalfWidthRightMeters, dwRight, 1f));
+            return maximum;
+        }
+
+        private static float InnerProduct(RoadCurveSample ignored, float t, RoadCurveSample a, RoadCurveSample b)
+        {
+            float k = Mathf.Lerp(a.CurvaturePerMeter, b.CurvaturePerMeter, t);
+            float width = k >= 0f
+                ? Mathf.Lerp(a.HalfWidthRightMeters, b.HalfWidthRightMeters, t)
+                : Mathf.Lerp(a.HalfWidthLeftMeters, b.HalfWidthLeftMeters, t);
+            return Mathf.Abs(k) * width;
+        }
+
+        private static float ProductCritical(float k0, float dk, float w0, float dw, float requiredSign)
+        {
+            if (Mathf.Abs(2f * dk * dw) < 1e-8f)
+            {
+                return 0f;
+            }
+
+            float t = -(k0 * dw + dk * w0) / (2f * dk * dw);
+            float k = k0 + dk * t;
+            if (t <= 0f || t >= 1f || Mathf.Sign(k) != requiredSign)
+            {
+                return 0f;
+            }
+
+            return Mathf.Abs(k) * (w0 + dw * t);
+        }
+
+        private static void CheckEnvelopeSeam(
+            List<RoadModelValidationIssue> issues,
+            RoadCurveSample[] from,
+            RoadCurveSample[] to,
+            RoadId subject,
+            int sample,
+            float tolerance)
+        {
+            RoadCurveSample a = from[from.Length - 1];
+            RoadCurveSample b = to[0];
+            Vector3 rightA = Vector3.Cross(a.Up, a.Tangent).normalized;
+            Vector3 rightB = Vector3.Cross(b.Up, b.Tangent).normalized;
+            float left = ((a.Position - rightA * a.HalfWidthLeftMeters)
+                - (b.Position - rightB * b.HalfWidthLeftMeters)).magnitude;
+            float right = ((a.Position + rightA * a.HalfWidthRightMeters)
+                - (b.Position + rightB * b.HalfWidthRightMeters)).magnitude;
+            if (left > tolerance || right > tolerance)
+            {
+                issues.Add(DrivabilityIssue(RoadModelValidationCode.DrivabilityEnvelopeSeamBroken, subject,
+                    "JunctionMovement", sample, "F3", "ecarts d'enveloppe gauche/droite "
+                        + Format(left) + "/" + Format(right) + " m"));
+            }
+        }
+
+        private static string Radius(float curvature)
+        {
+            return Mathf.Abs(curvature) <= 1e-8f ? "aucun" : Format(1f / Mathf.Abs(curvature));
+        }
+
+        private static string Ceiling(float ceiling)
+        {
+            return float.IsPositiveInfinity(ceiling) ? "aucun"
+                : float.IsNaN(ceiling) ? "invalide" : Format(ceiling);
         }
 
         // ------------------------------------------------------------------ forme

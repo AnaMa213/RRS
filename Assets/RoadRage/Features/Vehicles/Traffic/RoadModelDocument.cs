@@ -28,7 +28,7 @@ namespace RoadRage.Features.Vehicles.Traffic
     /// </summary>
     public static class RoadModelDocument
     {
-        public const int Format = 1;
+        public const int Format = 2;
 
         /// <summary>
         /// Compile la source (seul un modele compilable est persiste) et rend le document. Deux
@@ -37,6 +37,11 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <exception cref="RoadModelCompilationException">Source non compilable : rien n'est produit.</exception>
         public static string Serialize(RoadModelSource source, RoadModelProvenance provenance)
         {
+            if (source == null || !source.DrivabilityProfile.Declared)
+            {
+                throw new FormatException("Document de modele format 2 : profil de conduisibilite non declare.");
+            }
+
             var compiled = RoadModelCompiler.Compile(source);
             var model = ToDto(source);
 
@@ -111,6 +116,10 @@ namespace RoadRage.Features.Vehicles.Traffic
             }
 
             var source = FromDto(document.Model);
+            if (!source.DrivabilityProfile.Declared)
+            {
+                throw new FormatException("Document de modele format 2 : profil de conduisibilite non declare.");
+            }
             var compiled = RoadModelCompiler.Compile(source);
             if (compiled.Version.ToString() != document.Binding.ModelVersion)
             {
@@ -210,6 +219,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             model.Label = source.Label ?? string.Empty;
             model.ValidationProfile = source.ValidationProfile;
             model.LocalizationProfile = source.LocalizationProfile;
+            model.DrivabilityProfile = source.DrivabilityProfile;
 
             model.Sections = Map(source.Sections, delegate(RoadSection r)
             {
@@ -384,6 +394,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             source.Label = model.Label;
             source.ValidationProfile = model.ValidationProfile;
             source.LocalizationProfile = model.LocalizationProfile;
+            source.DrivabilityProfile = model.DrivabilityProfile;
 
             source.Sections = Map(model.Sections, delegate(SectionDto d)
             {
@@ -660,6 +671,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             public string Label;
             public RoadModelValidationProfile ValidationProfile;
             public RoadLocalizationProfile LocalizationProfile;
+            public DrivabilityProfile DrivabilityProfile;
             public SectionDto[] Sections;
             public CorridorDto[] Corridors;
             public ConnectionDto[] Connections;

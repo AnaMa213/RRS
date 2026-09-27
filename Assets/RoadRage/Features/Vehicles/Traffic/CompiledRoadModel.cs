@@ -286,6 +286,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             RoadModelVersion version,
             RoadModelValidationProfile profile,
             RoadLocalizationProfile localizationProfile,
+            DrivabilityProfile drivabilityProfile,
             RoadSection[] sections,
             EffectiveLaneCorridor[] corridors,
             LaneConnection[] connections,
@@ -302,6 +303,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             Version = version;
             ValidationProfile = profile;
             LocalizationProfile = localizationProfile;
+            DrivabilityProfile = drivabilityProfile;
 
             _sections = (RoadSection[])sections.Clone();
             _connections = (LaneConnection[])connections.Clone();
@@ -418,6 +420,9 @@ namespace RoadRage.Features.Vehicles.Traffic
 
         /// <summary>Parametres de requete de <see cref="RoadLocalizer"/>, versionnes avec le modele.</summary>
         public RoadLocalizationProfile LocalizationProfile { get; private set; }
+
+        /// <summary>Profil de conduisibilite declare et versionne du modele.</summary>
+        public DrivabilityProfile DrivabilityProfile { get; private set; }
 
         public IReadOnlyList<RoadSection> Sections
         {

@@ -33,6 +33,65 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// </summary>
         public const int CompilerSchemaVersion = 4;
 
+        /// <summary>Braquage disponible a une vitesse donnee, interpolation lineaire bornee.</summary>
+        public static float AvailableLockDegrees(DrivabilityProfile profile, float speedMetersPerSecond)
+        {
+            float t = Math.Max(0f, Math.Min(1f, Math.Abs(speedMetersPerSecond) / profile.FullReductionSpeedMetersPerSecond));
+            return profile.LowSpeedLockDegrees + (profile.HighSpeedLockDegrees - profile.LowSpeedLockDegrees) * t;
+        }
+
+        /// <summary>Rayon du point de reference pour un angle de braquage.</summary>
+        public static float RadiusMeters(DrivabilityProfile profile, float lockDegrees)
+        {
+            double radians = lockDegrees * Math.PI / 180d;
+            double rearRadius = profile.WheelbaseMeters / Math.Tan(radians);
+            return (float)Math.Sqrt(rearRadius * rearRadius
+                + profile.ReferencePointAheadRearAxleMeters * profile.ReferencePointAheadRearAxleMeters);
+        }
+
+        /// <summary>Rayon minimal admis a la vitesse minimale ou la direction est active.</summary>
+        public static float AdmissionRadiusMeters(DrivabilityProfile profile)
+        {
+            return RadiusMeters(profile, AvailableLockDegrees(profile, profile.SteeringInactiveBelowMetersPerSecond));
+        }
+
+        /// <summary>
+        /// Plafond cinematique pour une courbure absolue. <see cref="float.PositiveInfinity"/>
+        /// signifie qu'aucun plafond n'est impose par le braquage. Une geometrie a l'interieur du
+        /// point de reference rend <see cref="float.NaN"/> sans tenter de racine invalide.
+        /// </summary>
+        public static float SteeringSpeedCeilingMetersPerSecond(DrivabilityProfile profile, float curvaturePerMeter)
+        {
+            float curvature = Math.Abs(curvaturePerMeter);
+            if (curvature <= 0f)
+            {
+                return float.PositiveInfinity;
+            }
+
+            double radius = 1d / curvature;
+            double offset = profile.ReferencePointAheadRearAxleMeters;
+            if (!(radius > offset))
+            {
+                return float.NaN;
+            }
+
+            double rearRadius = Math.Sqrt(radius * radius - offset * offset);
+            double required = Math.Atan(profile.WheelbaseMeters / rearRadius) * 180d / Math.PI;
+            if (required <= profile.HighSpeedLockDegrees)
+            {
+                return float.PositiveInfinity;
+            }
+
+            if (required > profile.LowSpeedLockDegrees)
+            {
+                return 0f;
+            }
+
+            return (float)(profile.FullReductionSpeedMetersPerSecond
+                * (profile.LowSpeedLockDegrees - required)
+                / (profile.LowSpeedLockDegrees - profile.HighSpeedLockDegrees));
+        }
+
         /// <summary>
         /// Compile une source en modele immuable versionne.
         /// </summary>
@@ -71,6 +130,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             payload.ModelId = source.ModelId;
             payload.ValidationProfile = source.ValidationProfile;
             payload.LocalizationProfile = source.LocalizationProfile;
+            payload.DrivabilityProfile = source.DrivabilityProfile;
             payload.Sections = sections;
             payload.Corridors = corridors;
             payload.Connections = connections;
@@ -94,6 +154,7 @@ namespace RoadRage.Features.Vehicles.Traffic
                 version,
                 source.ValidationProfile,
                 source.LocalizationProfile,
+                source.DrivabilityProfile,
                 sections,
                 corridors,
                 connections,
