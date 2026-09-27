@@ -293,6 +293,8 @@ namespace RoadRage.Tests.EditMode
             Assert.That(sweep.Relation, Is.EqualTo(PairRelation.FailClosed));
             Assert.That(sweep.IsCandidate, Is.True, "Echec ferme : candidat par prudence, jamais ecarte.");
             Assert.That(sweep.FailClosedReason, Does.Contain("90"));
+            Assert.That(sweep.HasVolume, Is.True, "Un echec ferme publie toujours un volume de couverture.");
+            Assert.That(sweep.Volume.Extents.x, Is.GreaterThan(50f), "Le volume couvre les deux trajectoires, pas une pose isolee.");
         }
 
         [Test]
@@ -326,6 +328,32 @@ namespace RoadRage.Tests.EditMode
             var paths = ConflictSweep.Paths(graph, m, ConflictSweep.Reach(Profile()), out failure);
             Assert.That(paths, Is.Null);
             Assert.That(failure, Does.Contain("ramifiee"));
+        }
+
+        // ============================================================ bords de l'API
+
+        [Test]
+        public void ASinglePoseTrajectoryKeepsTheExactEnvelopeComparison()
+        {
+            // Deux poses isolees, tres eloignees : le filtre englobant doit rester actif et rendre
+            // NoContact (la ligne voisine non remplie faisait passer toute paire pour EnvelopeOnly).
+            var a = new List<SweepPose> { Pose(0f, 0f, 0f) };
+            var b = new List<SweepPose> { Pose(100f, 0f, 0f) };
+            PairSweep sweep = Sweep(a, b);
+
+            Assert.That(sweep.EnvelopeSelected, Is.False);
+            Assert.That(sweep.Relation, Is.EqualTo(PairRelation.NoContact));
+            Assert.That(sweep.EnvelopeSlackMeters, Is.GreaterThan(0f), "La marge englobante publiee est reelle, jamais nulle par accident.");
+        }
+
+        [Test]
+        public void APathWithoutPosesFailsClosed()
+        {
+            var empty = new List<SweepPose>();
+            PairSweep sweep = ConflictSweep.Evaluate(One(empty), One(Line(100f, 100f, 110f, 100f, 1f)), Profile());
+
+            Assert.That(sweep.Relation, Is.EqualTo(PairRelation.FailClosed));
+            Assert.That(sweep.FailClosedReason, Does.Contain("aucune pose"));
         }
 
         // ============================================================ suivi et portee

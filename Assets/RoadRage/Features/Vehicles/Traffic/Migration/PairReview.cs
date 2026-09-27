@@ -730,7 +730,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public static string ReconfirmUnchanged(string decisionsText, PairReviewModel review, out int count)
         {
             count = 0;
-            var decisions = AuthoringDecisions.Parse(decisionsText);
+            AuthoringDecisions decisions = ParseApplicable(decisionsText);
             for (int i = 0; i < decisions.Conflicts.Count; i++)
             {
                 ConflictDecision decision = decisions.Conflicts[i];
@@ -755,7 +755,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public static string ReconfirmPair(string decisionsText, PairReviewEntry entry)
         {
             RequireFresh(entry, "reconfirmer");
-            var decisions = AuthoringDecisions.Parse(decisionsText);
+            AuthoringDecisions decisions = ParseApplicable(decisionsText);
             int index = IndexOf(decisions, entry);
             if (index < 0)
             {
@@ -788,7 +788,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 throw new InvalidOperationException("Seule la decision d'une paire retiree peut etre disposee.");
             }
 
-            var decisions = AuthoringDecisions.Parse(decisionsText);
+            AuthoringDecisions decisions = ParseApplicable(decisionsText);
             int index = IndexOf(decisions, entry);
             if (index < 0)
             {
@@ -797,6 +797,28 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             decisions.Conflicts.RemoveAt(index);
             return decisions.Serialize();
+        }
+
+        /// <summary>
+        /// Une action du proprietaire ne peut reecrire qu'un fichier deja au format courant : au
+        /// format 4, toute decision porte une revision ; un fichier historique (2/3) n'en a aucune,
+        /// et le reecrire en format 4 produirait un fichier illisible. Ces decisions appartiennent
+        /// au plan deterministe 5.50-AUTO-DECISIONS-v1, jamais a une action manuelle.
+        /// </summary>
+        private static AuthoringDecisions ParseApplicable(string decisionsText)
+        {
+            var decisions = AuthoringDecisions.Parse(decisionsText);
+            for (int i = 0; i < decisions.Conflicts.Count; i++)
+            {
+                if (string.IsNullOrEmpty(decisions.Conflicts[i].DecisionRevisionId))
+                {
+                    throw new InvalidOperationException(
+                        "Revue manuelle impossible : des decisions sans revision (format historique). "
+                        + "Appliquer d'abord le plan deterministe approuve 5.50-AUTO-DECISIONS-v1.");
+                }
+            }
+
+            return decisions;
         }
 
         private static void RequireFresh(PairReviewEntry entry, string action)

@@ -690,18 +690,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 PoseFrame frameA0 = framesA[ia];
                 PoseFrame frameA1 = framesA[ia1];
                 float deltaA = Delta(a0, a1, rho);
-                if (ia1 != ia)
+                // lineNext est rempli pour TOUTE pose d'extremite, y compris la trajectoire a pose
+                // unique (ia1 == ia) : un lineNext laisse a zero faisait passer toute paire par le
+                // filtre englobant (envelope = 0) et publiait une marge fausse.
+                for (int ib = 0; ib < pointsB; ib++)
                 {
-                    for (int ib = 0; ib < pointsB; ib++)
-                    {
-                        lineNext[ib] = AabbDistance(framesA[ia1], framesB[ib]);
-                    }
-                }
-                else
-                {
-                    var same = lineCur;
-                    lineCur = lineNext;
-                    lineNext = same;
+                    lineNext[ib] = AabbDistance(framesA[ia1], framesB[ib]);
                 }
 
                 for (int ib = 0; ib < intervalsB; ib++)
@@ -798,6 +792,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         {
             foreach (var path in paths)
             {
+                if (path.Count == 0)
+                {
+                    return "trajectoire " + side + " : aucune pose";
+                }
+
                 for (int i = 0; i < path.Count; i++)
                 {
                     if (path[i].Degenerate)

@@ -2,7 +2,7 @@
 title: 'Story 5.50 -- Correction de la geometrie des mouvements V2 et validation de conduisibilite au niveau modele'
 type: 'feature'
 created: '2026-09-26'
-status: 'in-progress'
+status: 'done'
 baseline_commit: '780de0d64e694a3a3f6b0aa8fdf32f9776294728'
 review_loop_iteration: 0
 context:
@@ -302,3 +302,62 @@ La borne coincide avec celle de la 5.51, mais elle est demontree ici pour deux e
 - Sous double garde :
   - controle visuel des 9 carrefours et des segments dont la geometrie V2 a change ;
   - vue d'isolement sur chaque paire soumise au proprietaire.
+
+## Suggested Review Order
+
+**Balayage conservateur et decisions de paires (P1)**
+
+- Point d'entree : relation, preuve exacte, volume publie et echecs fermes du balayage.
+  [`ConflictSweep.cs:603`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweep.cs#L603)
+- Correction de revue : la ligne voisine est remplie pour toute pose, pose unique comprise.
+  [`ConflictSweep.cs:693`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweep.cs#L693)
+- Fonction deleguee `5.50-AUTO-DECISIONS-v1` : classification, certificats, revisions, application atomique.
+  [`AutomatedPairDecisionPolicy.cs:38`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L38)
+- Formats de decisions : le format 4 exige revision et preuve ; 2 et 3 restent historiques.
+  [`AuthoringDecisions.cs:150`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoringDecisions.cs#L150)
+
+**Geometrie et validation de conduisibilite**
+
+- Importeur version 2 : anneau au cercle exact, bornes raccourcies, journal des deplacements publies.
+  [`V1RoadModelImporter.cs:257`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/V1RoadModelImporter.cs#L257)
+- Phase de conduisibilite : admission, C1-C5, F1-F3, messages nommant element, echantillon et regle.
+  [`RoadGeometryValidator.cs:169`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadGeometryValidator.cs#L169)
+- Codes stables 34 a 43 : l'admission refusee est nommee, jamais un NaN.
+  [`RoadModelValidator.cs:97`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs#L97)
+- Document format 2 : refuse un profil non declare et tout autre format, jamais repare.
+  [`RoadModelDocument.cs:31`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelDocument.cs#L31)
+- Empreinte 128 bits : prefixe du SHA-256 des octets canoniques, seule valeur capturable.
+  [`RoadModelCanonicalWriter.cs:89`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelCanonicalWriter.cs#L89)
+- Table historique des 76 decisions ; recapture inerte apres la 5.50 (report consigne).
+  [`PairGeometryFingerprint.cs:127`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/PairGeometryFingerprint.cs#L127)
+- Rapport de migration : derive par lignee et deplacement publie des bornes.
+  [`MigrationReport.cs:30`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/MigrationReport.cs#L30)
+
+**Revue des paires et ecritures du proprietaire**
+
+- Fenetre de revue : filtres, vue d'isolement, lecture seule tant qu'aucune action n'est confirmee.
+  [`PairReviewWindow.cs:19`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/PairReviewWindow.cs#L19)
+- Actions du proprietaire ; correction de revue : refus d'un fichier historique sans revision.
+  [`PairReview.cs:724`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/PairReview.cs#L724)
+
+**Verification (EditMode)**
+
+- Balayage : pose unique et trajectoire vide gardees par des tests.
+  [`Story550ConflictSweepTests.cs:17`](../../Assets/RoadRage/Tests/EditMode/Story550ConflictSweepTests.cs#L17)
+- Conduisibilite : bornes d'admission, refus C2/C4/C5/F2, document, copie du profil vehicule.
+  [`Story550DrivabilityTests.cs:79`](../../Assets/RoadRage/Tests/EditMode/Story550DrivabilityTests.cs#L79)
+- Politique automatisee : preuves, revisions et falsifications refusees.
+  [`Story550AutomatedPairDecisionTests.cs:11`](../../Assets/RoadRage/Tests/EditMode/Story550AutomatedPairDecisionTests.cs#L11)
+- Revue des paires : differentiel, actions en memoire, garde du format historique.
+  [`Story550PairReviewTests.cs:286`](../../Assets/RoadRage/Tests/EditMode/Story550PairReviewTests.cs#L286)
+- Verrou d'empreinte : une decision perimee reste une proposition, la Gate A reste fermee.
+  [`Story528AuthoringAndGateATests.cs:331`](../../Assets/RoadRage/Tests/EditMode/Story528AuthoringAndGateATests.cs#L331)
+- Reference doree : modeles non declares inchanges octet pour octet.
+  [`Story550CompatibilityGolden.cs:26`](../../Assets/RoadRage/Tests/EditMode/Story550CompatibilityGolden.cs#L26)
+
+**Autorisation du lot et exception bornee**
+
+- Amendement approuve : dispositions de paires automatisees, preuves et manifeste d'audit.
+  [`sprint-change-proposal-2026-09-27.md:1`](../planning-artifacts/sprint-change-proposal-2026-09-27.md#L1)
+- Exception bornee du run : le pipeline reste seul ecrivain des decisions.
+  [`build-workflow-rules.md:194`](../../docs/setup/build-workflow-rules.md#L194)

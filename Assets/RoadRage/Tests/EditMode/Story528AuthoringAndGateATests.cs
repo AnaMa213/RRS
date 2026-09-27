@@ -328,6 +328,24 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void AStaleFingerprintIsAHistoricalProposalThatBlocksTheGate()
+        {
+            // Une decision appliquee dont l'empreinte ne correspond plus a la fraiche est une
+            // proposition historique : elle n'est ni appliquee, ni convertie en zone.
+            var decisions = CommittedDecisions();
+            int index = decisions.Conflicts.FindIndex(delegate(ConflictDecision decision)
+            {
+                return !string.IsNullOrEmpty(decision.GeometryFingerprint);
+            });
+            Assert.That(index, Is.GreaterThanOrEqualTo(0), "Premisse : chaque decision appliquee porte une empreinte.");
+            ConflictDecision stale = decisions.Conflicts[index];
+            stale.GeometryFingerprint = new string('a', 64);
+            decisions.Conflicts[index] = stale;
+
+            AssertRefused(RunWith(decisions.Serialize()), "Proposition historique non reconfirmee");
+        }
+
+        [Test]
         public void ATamperedOrDivergentPersistedModelIsRefusedNeverRepaired()
         {
             string model = Committed(AuthoredRoadModel.ModelPath);

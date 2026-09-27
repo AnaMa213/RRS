@@ -266,12 +266,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// </summary>
         public const float RoundaboutBoundaryTrimMeters = 2.5f;
 
-        /// <summary>Pas des points de controle d'un mouvement Hermite, en metres.</summary>
-        private const float MovementControlStepMeters = 0.25f;
-
-        /// <summary>Pas angulaire maximal entre deux points de controle d'un mouvement, en degres.</summary>
-        private const float MovementControlStepDegrees = 1f;
-
         /// <summary>
         /// Les ancres V1 merge/split sont 7,5 deg avant le raccord tangent. Les bornes du corridor
         /// d'anneau glissent davantage pour donner a la transition a courbure continue sa longueur ;

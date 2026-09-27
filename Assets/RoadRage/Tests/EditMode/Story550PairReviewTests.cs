@@ -283,6 +283,25 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void OwnerActionsRefuseALegacyFileWithoutRevisions()
+        {
+            // Un fichier au format 3 se lit sans revision : le reecrire en format 4 exigerait des
+            // revisions qu'aucune action manuelle n'emet (elles appartiennent au plan deterministe).
+            string text = Committed(AuthoredRoadModel.DecisionsPath)
+                .Replace("\"Format\": " + AuthoringDecisions.FormatVersion, "\"Format\": " + AuthoringDecisions.HistoricalFormatVersion);
+            var legacy = AuthoringDecisions.Parse(text).Conflicts;
+            Assert.That(legacy[0].DecisionRevisionId, Is.Null.Or.Empty, "Premisse : un format historique se lit sans revision.");
+
+            var entry = Entry(legacy[0], PairReviewStatus.Modified, FingerprintB, FingerprintA);
+            Assert.Throws<InvalidOperationException>(() => PairReviewActions.ReconfirmPair(text, entry));
+
+            var review = new PairReviewModel();
+            review.Entries.Add(Entry(legacy[0], PairReviewStatus.Unchanged, FingerprintA, FingerprintA));
+            int count;
+            Assert.Throws<InvalidOperationException>(() => PairReviewActions.ReconfirmUnchanged(text, review, out count));
+        }
+
+        [Test]
         public void ReconfirmingEmitsFormatFourAndFormatThreeReadsAsHistorical()
         {
             string text = Committed(AuthoredRoadModel.DecisionsPath);
