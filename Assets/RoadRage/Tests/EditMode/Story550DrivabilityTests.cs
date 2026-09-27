@@ -22,17 +22,17 @@ namespace RoadRage.Tests.EditMode
             AuthoringDecisions decisions = AuthoringDecisions.Parse(File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath)));
 
             Assert.That(table.Pairs, Has.Length.EqualTo(76));
-            var active = new HashSet<string>(decisions.Conflicts.Select(delegate(ConflictDecision decision)
+            var active = new HashSet<string>(decisions.Conflicts.Select(delegate (ConflictDecision decision)
             {
                 return AuthoredRoadModel.PairKey(decision.MovementKeyA, decision.MovementKeyB);
             }), StringComparer.Ordinal);
             var superseding = new HashSet<string>(decisions.Conflicts
-                .Where(delegate(ConflictDecision decision) { return !string.IsNullOrEmpty(decision.SupersedesDecisionRevisionId); })
-                .Select(delegate(ConflictDecision decision)
+                .Where(delegate (ConflictDecision decision) { return !string.IsNullOrEmpty(decision.SupersedesDecisionRevisionId); })
+                .Select(delegate (ConflictDecision decision)
                 {
                     return AuthoredRoadModel.PairKey(decision.MovementKeyA, decision.MovementKeyB);
                 }), StringComparer.Ordinal);
-            var actual = new HashSet<string>(table.Pairs.Select(delegate(HistoricalPairFingerprintRecord record)
+            var actual = new HashSet<string>(table.Pairs.Select(delegate (HistoricalPairFingerprintRecord record)
             {
                 return AuthoredRoadModel.PairKey(record.MovementKeyA, record.MovementKeyB);
             }), StringComparer.Ordinal);
@@ -48,7 +48,7 @@ namespace RoadRage.Tests.EditMode
             string features = AuthoredRoadModel.FullPath("Assets/RoadRage/Features");
             string marker = nameof(HistoricalPairFingerprintTable);
             string[] offenders = Directory.GetFiles(features, "*.cs", SearchOption.AllDirectories)
-                .Where(delegate(string path)
+                .Where(delegate (string path)
                 {
                     string normalized = path.Replace('\\', '/');
                     return !normalized.Contains("/Traffic/Migration/") && File.ReadAllText(path).Contains(marker);
@@ -82,26 +82,26 @@ namespace RoadRage.Tests.EditMode
                 "Controle : le modele synthetique declare compile.");
 
             RoadModelSource admission = SyntheticSource();
-            MutateSecondSample(admission, delegate(RoadCurveSample[] samples) { samples[1].CurvaturePerMeter = 1f / 3.5f; });
+            MutateSecondSample(admission, delegate (RoadCurveSample[] samples) { samples[1].CurvaturePerMeter = 1f / 3.5f; });
             RoadModelCompilationException refused = CompileRefused(admission, RoadModelValidationCode.DrivabilityAdmissionFailed);
             string message = refused.Issues.First(i => i.Code == RoadModelValidationCode.DrivabilityAdmissionFailed).Message;
             Assert.That(message, Does.Contain("admission"), "Le refus nomme la regle.");
             Assert.That(message, Does.Contain("echantillon"), "Le refus nomme l'echantillon.");
 
             RoadModelSource up = SyntheticSource();
-            MutateSecondSample(up, delegate(RoadCurveSample[] samples) { samples[1].Up = Quaternion.AngleAxis(30f, samples[1].Tangent.normalized) * samples[1].Up; });
+            MutateSecondSample(up, delegate (RoadCurveSample[] samples) { samples[1].Up = Quaternion.AngleAxis(30f, samples[1].Tangent.normalized) * samples[1].Up; });
             CompileRefused(up, RoadModelValidationCode.DrivabilityRoadUpVaries);
 
             RoadModelSource tangent = SyntheticSource();
-            MutateSecondSample(tangent, delegate(RoadCurveSample[] samples) { samples[1].Tangent = Quaternion.AngleAxis(30f, samples[1].Up.normalized) * samples[1].Tangent; });
+            MutateSecondSample(tangent, delegate (RoadCurveSample[] samples) { samples[1].Tangent = Quaternion.AngleAxis(30f, samples[1].Up.normalized) * samples[1].Tangent; });
             CompileRefused(tangent, RoadModelValidationCode.DrivabilityTangentCurvatureMismatch);
 
             RoadModelSource chord = SyntheticSource();
-            MutateSecondSample(chord, delegate(RoadCurveSample[] samples) { samples[1].Position += Vector3.Cross(samples[1].Up, samples[1].Tangent).normalized * 1f; });
+            MutateSecondSample(chord, delegate (RoadCurveSample[] samples) { samples[1].Position += Vector3.Cross(samples[1].Up, samples[1].Tangent).normalized * 1f; });
             CompileRefused(chord, RoadModelValidationCode.DrivabilityChordHeadingInconsistent);
 
             RoadModelSource fold = SyntheticSource();
-            MutateSecondSample(fold, delegate(RoadCurveSample[] samples)
+            MutateSecondSample(fold, delegate (RoadCurveSample[] samples)
             {
                 samples[1].CurvaturePerMeter = 1f / 4.5f;
                 samples[1].HalfWidthLeftMeters = 4.6f;

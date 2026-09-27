@@ -181,7 +181,7 @@ development_status:
   # (second pass byte-identical, zero proposed change; EditMode 876/877 with
   # only the unsigned-Gate-A tripwire red). Review now waits on the owner's
   # distinct Gate A visual review and signature, after 5.51.
-  5-50-v2-movement-geometry-correction-and-model-level-drivability-validation: review
+  5-50-v2-movement-geometry-correction-and-model-level-drivability-validation: done
   5-51-junction-corner-clearance-for-right-turns: backlog
   5-29-deterministic-strategic-route-plan: backlog
   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog

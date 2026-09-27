@@ -1,14 +1,14 @@
 ---
-title: 'Story 5.50 -- Correction de la geometrie des mouvements V2 et validation de conduisibilite au niveau modele'
-type: 'feature'
-created: '2026-09-26'
-status: 'done'
-baseline_commit: '780de0d64e694a3a3f6b0aa8fdf32f9776294728'
+title: "Story 5.50 -- Correction de la geometrie des mouvements V2 et validation de conduisibilite au niveau modele"
+type: "feature"
+created: "2026-09-26"
+status: "done"
+baseline_commit: "780de0d64e694a3a3f6b0aa8fdf32f9776294728"
 review_loop_iteration: 0
 context:
-  - '{project-root}/_bmad-output/planning-artifacts/epics.md'
-  - '{project-root}/_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-25.md'
-  - '{project-root}/_bmad-output/implementation-artifacts/spec-5-28-junction-semantic-authoring-and-overlay-sign-off.md'
+  - "{project-root}/_bmad-output/planning-artifacts/epics.md"
+  - "{project-root}/_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-25.md"
+  - "{project-root}/_bmad-output/implementation-artifacts/spec-5-28-junction-semantic-authoring-and-overlay-sign-off.md"
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
@@ -18,6 +18,7 @@ context:
 **Problem:** Le diagnostic du 2026-09-24 montre que les mouvements V2 de `MVP_Run` ne sont pas conduisibles : entrees et sorties de giratoire jusqu'a un rayon de 0,25 m, anneau oscillant entre 5,83 et 6,19 m, virages a gauche qui tournent des la frontiere du carrefour. Aucune regle du validateur ne borne la courbure ni le repli d'enveloppe. Signer la Gate A figerait ces trajectoires dans toutes les stories suivantes.
 
 **Approach:** Normatif : `epics.md` Story 5.50 (lignes 2172-2338), plus les trois exigences du proprietaire du 2026-09-26 ci-dessous. Cette spec en est la projection d'execution et ne la resume pas.
+
 1. Capturer localement les references avant tout code : hash dore non declare, puis empreintes historiques des 76 paires.
 2. Reconstruire dans l'importeur l'anneau (cercle exact ajuste), les entrees, sorties et continuations tangentes, et les 24 virages selon la regle de frontiere de chaussee croisee.
 3. Ajouter un `DrivabilityProfile` declare, valide au niveau modele (admission R >= 4,0344 m, C1-C5, F1-F3) et exige par `RoadModelDocument.Load` (format 2).
@@ -25,6 +26,7 @@ context:
 5. Empreinter chaque decision de conflit, publier le differentiel en mode diff lecture seule, puis appliquer la politique deterministe deleguee `5.50-AUTO-DECISIONS-v1` approuvee globalement par le proprietaire le 2026-09-27.
 
 **Exigences du proprietaire (2026-09-26), absentes de la Story 5.50 d'`epics.md` :**
+
 - (P1) la garantie conservatrice entre echantillons du balayage des candidats. Verifie : la Story 5.50 d'`epics.md` ne la contient pas ; seule la 5.51 porte une borne entre poses, pour le degagement vehicule-obstacle (`epics.md:2469-2470`) ;
 - (P2) l'amorce des 76 decisions historiques ;
 - (P3) le checkpoint de reference executable.
@@ -34,6 +36,7 @@ Report dans `epics.md` : a trancher par le proprietaire.
 ## Boundaries & Constraints
 
 **Always:**
+
 - **V1 et identites.** Source V1, hash source, lignee 5.27 et identites identiques octet pour octet ; aucun `LaneNode` deplace.
 - **Anneau et 5.49.** Un seul corridor d'anneau ; geometrie physique et largeurs appliquees de la 5.49 conservees.
 - **Trajectoire de reference.** Referentiel de conduite = reference compilee (evaluation canonique `RoadCurve`). Toute preuve de confinement est gonflee de delta_c = 0,05 m. Le temoin n'existe que dans le validateur.
@@ -45,6 +48,7 @@ Report dans `epics.md` : a trancher par le proprietaire.
 - **Ordre d'execution.** Fichiers de tests 5.25/5.26/5.27 non modifies. Execution dans l'ordre des etapes ci-dessous (0, 1a, 1b, 1c, plan automatise, validation, application atomique, regeneration). Aucun HALT paire par paire.
 
 **Ask First:**
+
 - Toute exception a la regle de voie hors virages a droite.
 - Repli sur une construction a sauts de courbure.
 - Echec d'une regle de repli sur une entree ou une sortie (autre loi de largeur).
@@ -55,6 +59,7 @@ Report dans `epics.md` : a trancher par le proprietaire.
 - Tout ecart entre la spec et la story normative autre que P1-P3.
 
 **Never:**
+
 - Deplacer un `LaneNode`.
 - Relacher une porte, ou remodeler une geometrie acceptee, pour faire passer un test.
 - Porte de conduisibilite propre au pipeline.
@@ -67,32 +72,33 @@ Report dans `epics.md` : a trancher par le proprietaire.
 
 ## I/O & Edge-Case Matrix
 
-| Scenario | Input / State | Expected Output / Behavior | Error Handling |
-|----------|--------------|---------------------------|----------------|
-| Rayon limite | element declare, R = 4,0344 m | admis, plafond = 0,25 m/s | N/A |
-| Rayon refuse | R = 4,0064 m ; R <= 1,55 m | refuse ; aucun NaN produit | echec nommant element, echantillon, regle |
-| Canaux incoherents | tangentes tournees de 30 deg sur positions droites ; cercle stocke kappa 0 ou 2/R ; tangentes +2 deg sur cercle exact | refuse (C5 pour le dernier) | echec nommant element, echantillon, regle |
-| Repli | R 4,5 m, demi-largeur interieure 4,6 m ; pic F2 en milieu de segment | refuse | idem |
-| Couture | saut 1 deg a 4 m de demi-largeur / 0,5 deg | refuse / admis | idem |
-| Up variable | element declare, road-up non constant | refuse (C4) | idem |
-| Non declare | modele sans profil via `RoadModelDocument.Load` | refuse | echec explicite |
-| Format 1 | document format 1 lu par le chemin format 2, et inverse | refuse (format, re-serialisation, hash) | echec explicite |
-| Croisement entre poses | deux mouvements droits a pas de 10 m qui se croisent a mi-intervalle, aucune paire de poses echantillonnees en recouvrement | paire detectee ; un controle aux seules poses la manque (discrimination prouvee) | N/A |
-| Rotation entre poses | coin d'une empreinte qui ne touche l'autre que pendant la rotation d'un intervalle | paire detectee | N/A |
-| Couture balayee | contact uniquement dans l'intervalle franchissant une couture (saut de cap <= 5 deg) | paire detectee | N/A |
-| Chaine courte | corridor < demi-vehicule entre deux mouvements | paire trouvee | N/A |
-| Paire modifiee | empreinte historique != empreinte fraiche (geometrie OU volume) | nouvelle revision automatisee, liee a l'ancienne et a l'empreinte fraiche ; Gate A fermee jusqu'a application validee | jamais de transfert silencieux |
-| Paire nouvelle / retiree | candidat sans decision / decision sans candidat | decision automatisee / tombstone, apres preuve et validation exhaustives | aucune ecriture partielle |
-| Faux candidat | toutes les combinaisons chemin/intervalle ont un certificat de separation strictement positif | `Rejected`, preuve et marge publiees | sans certificat : conflit conservateur accepte |
-| Paire incertaine | preuve incomplete, limite numerique, cap degenere, rotation hors hypothese ou budget epuise | `Accepted` avec classification `ConservativeConflict` | aucun HALT paire par paire |
-| Run non deterministe | deux plans sur les memes entrees different | aucune decision ecrite | corriger et relancer ; HALT seulement si defaut systemique non resolu |
-| Table historique alteree | SHA-256 ou version de schema d'empreinte different | aucune paire reconfirmable, cause nommee | echec ferme |
+| Scenario                 | Input / State                                                                                                               | Expected Output / Behavior                                                                                            | Error Handling                                                        |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Rayon limite             | element declare, R = 4,0344 m                                                                                               | admis, plafond = 0,25 m/s                                                                                             | N/A                                                                   |
+| Rayon refuse             | R = 4,0064 m ; R <= 1,55 m                                                                                                  | refuse ; aucun NaN produit                                                                                            | echec nommant element, echantillon, regle                             |
+| Canaux incoherents       | tangentes tournees de 30 deg sur positions droites ; cercle stocke kappa 0 ou 2/R ; tangentes +2 deg sur cercle exact       | refuse (C5 pour le dernier)                                                                                           | echec nommant element, echantillon, regle                             |
+| Repli                    | R 4,5 m, demi-largeur interieure 4,6 m ; pic F2 en milieu de segment                                                        | refuse                                                                                                                | idem                                                                  |
+| Couture                  | saut 1 deg a 4 m de demi-largeur / 0,5 deg                                                                                  | refuse / admis                                                                                                        | idem                                                                  |
+| Up variable              | element declare, road-up non constant                                                                                       | refuse (C4)                                                                                                           | idem                                                                  |
+| Non declare              | modele sans profil via `RoadModelDocument.Load`                                                                             | refuse                                                                                                                | echec explicite                                                       |
+| Format 1                 | document format 1 lu par le chemin format 2, et inverse                                                                     | refuse (format, re-serialisation, hash)                                                                               | echec explicite                                                       |
+| Croisement entre poses   | deux mouvements droits a pas de 10 m qui se croisent a mi-intervalle, aucune paire de poses echantillonnees en recouvrement | paire detectee ; un controle aux seules poses la manque (discrimination prouvee)                                      | N/A                                                                   |
+| Rotation entre poses     | coin d'une empreinte qui ne touche l'autre que pendant la rotation d'un intervalle                                          | paire detectee                                                                                                        | N/A                                                                   |
+| Couture balayee          | contact uniquement dans l'intervalle franchissant une couture (saut de cap <= 5 deg)                                        | paire detectee                                                                                                        | N/A                                                                   |
+| Chaine courte            | corridor < demi-vehicule entre deux mouvements                                                                              | paire trouvee                                                                                                         | N/A                                                                   |
+| Paire modifiee           | empreinte historique != empreinte fraiche (geometrie OU volume)                                                             | nouvelle revision automatisee, liee a l'ancienne et a l'empreinte fraiche ; Gate A fermee jusqu'a application validee | jamais de transfert silencieux                                        |
+| Paire nouvelle / retiree | candidat sans decision / decision sans candidat                                                                             | decision automatisee / tombstone, apres preuve et validation exhaustives                                              | aucune ecriture partielle                                             |
+| Faux candidat            | toutes les combinaisons chemin/intervalle ont un certificat de separation strictement positif                               | `Rejected`, preuve et marge publiees                                                                                  | sans certificat : conflit conservateur accepte                        |
+| Paire incertaine         | preuve incomplete, limite numerique, cap degenere, rotation hors hypothese ou budget epuise                                 | `Accepted` avec classification `ConservativeConflict`                                                                 | aucun HALT paire par paire                                            |
+| Run non deterministe     | deux plans sur les memes entrees different                                                                                  | aucune decision ecrite                                                                                                | corriger et relancer ; HALT seulement si defaut systemique non resolu |
+| Table historique alteree | SHA-256 ou version de schema d'empreinte different                                                                          | aucune paire reconfirmable, cause nommee                                                                              | echec ferme                                                           |
 
 </frozen-after-approval>
 
 ## Code Map
 
 Racine : `Assets/RoadRage/Features/Vehicles/Traffic/`.
+
 - `RoadModelRecords.cs:643-678,713-735` -- `RoadModelValidationProfile` : gabarit 1,03 / 4,5 / 0,25 (:646,649,652), coutures (:658,661). `RoadModelSource` : y ajouter `DrivabilityProfile{Declared,...}`. Ne PAS l'ajouter au profil de validation, serialise en bloc par JsonUtility (`RoadModelDocument.cs:211,661`).
 - `RoadModelCanonicalWriter.cs:14-30,58,88-105,110-285,377` -- `ComputeFingerprint` public : empreinte 128 bits = prefixe du SHA-256 des octets canoniques. `Write` est PRIVE. Bloc declare ajoute apres Portals (:274-284), ecrit SEULEMENT si `Declared`, sans octet de presence (contrairement a `HasStopLine` :222-227).
 - `RoadModelCompiler.cs:34,44-106` -- `CompilerSchemaVersion = 4` inchange. Le payload est construit localement (:69), pas expose.
@@ -133,7 +139,8 @@ Racine : `Assets/RoadRage/Features/Vehicles/Traffic/`.
 
 **Execution:**
 
-*Etape 0 -- reference, en local avec Unity, AVANT tout changement C# de production (P3) :*
+_Etape 0 -- reference, en local avec Unity, AVANT tout changement C# de production (P3) :_
+
 - [ ] Garde. Arbre propre, noter `git rev-parse HEAD` ; double garde d'etat Editeur.
 - [ ] `Tests/EditMode/Story550CompatibilityGolden.cs` (seul fichier C# autorise a ce stade) :
   - `GoldenUndeclaredSource()` : modele non declare deterministe (ModelId litteral ; echantillons litteraux couvrant section, corridor droit, corridor en arc, jonction, mouvement, portail ; aucun aleatoire, aucune horloge).
@@ -145,13 +152,15 @@ Racine : `Assets/RoadRage/Features/Vehicles/Traffic/`.
 - [ ] `baseline-editmode.json`.
 - [ ] Commit « reference 5.50 ».
 
-*Etape 1a -- acces aux octets canoniques, sans changement de comportement :*
+_Etape 1a -- acces aux octets canoniques, sans changement de comportement :_
+
 - [ ] `RoadModelCanonicalWriter.cs` -- accesseur public en lecture seule des octets canoniques d'un modele compile.
 - [ ] `CaptureGolden` complete : ecrit `golden-undeclared.bin` pour chaque modele.
 - [ ] Le test exige que le prefixe du SHA-256 de ces octets egale la `Version` capturee a l'etape 0 ; sinon HALT.
 - [ ] Suite EditMode inchangee. Commit.
 
-*Etape 1b -- empreintes historiques, AVANT tout changement d'importeur, de format ou de balayage (P2) :*
+_Etape 1b -- empreintes historiques, AVANT tout changement d'importeur, de format ou de balayage (P2) :_
+
 - [ ] `Migration/PairGeometryFingerprint.cs` -- fonction pure, versionnee (`FingerprintSchemaVersion` 1). SHA-256 de :
   - la version de schema ;
   - les cles de paire ;
@@ -162,12 +171,14 @@ Racine : `Assets/RoadRage/Features/Vehicles/Traffic/`.
   - le hash de chaque mouvement ;
   - le volume ;
   - l'empreinte.
-  
+
   Il ecrit aussi la version de schema et le SHA-256 du modele source ; le fichier porte son propre SHA-256 dans `baseline-hashes.txt`.
+
 - [ ] Test : la table couvre les 76 decisions exactement, et aucune source hors `Migration/` ne la reference.
 - [ ] Commit.
 
-*Etape 1c -- implementation :*
+_Etape 1c -- implementation :_
+
 - [ ] `RoadModelRecords.cs`, `RoadModelCompiler.cs`, `RoadModelCanonicalWriter.cs` -- `DrivabilityProfile` et derivations ; bloc canonique ecrit seulement si declare.
 - [ ] `RoadGeometryValidator.cs`, `RoadModelValidator.cs` -- phase de conduisibilite :
   - admission, C1-C5, F1-F3 ;
@@ -226,6 +237,7 @@ Racine : `Assets/RoadRage/Features/Vehicles/Traffic/`.
   - `graphify update .`.
 
 **Acceptance Criteria:**
+
 - Given l'importeur corrige et la source V1 inchangee, when `MVP_Run` est importe, then :
   - hash source et lignee sont identiques octet pour octet ;
   - aucune identite n'est frappee ni retiree ;
@@ -254,27 +266,31 @@ Racine : `Assets/RoadRage/Features/Vehicles/Traffic/`.
 ## Design Notes
 
 **Derivations.**
+
 - Constantes : L = 3,10, a = 1,55.
 - Braquage disponible : delta(v) = lerp(40, 16, clamp01(|v|/26)) deg.
 - Rayon : R(delta) = sqrt((L/tan delta)^2 + a^2).
-- Plafond v*(kappa) : « aucun » si delta requis <= 16 deg (R >= 10,93 m).
-- Admission : v* >= 0,25 m/s, soit R >= 4,0344 m.
+- Plafond v\*(kappa) : « aucun » si delta requis <= 16 deg (R >= 10,93 m).
+- Admission : v\* >= 0,25 m/s, soit R >= 4,0344 m.
 - Garde R <= a avant toute racine.
 
 **Anneau, entrees et sorties, virages.**
-- *Anneau.* Cercle aux moindres carres sur les noeuds V1 d'anneau (6,0 m, chaque noeud <= 0,10 m). Les 3 corridors d'anneau et leurs cles restent ; leurs bornes glissent le long du cercle (deplacement publie).
-- *Entrees et sorties.* Construction a courbure continue, choisie et consignee dans le Spec Change Log : depart sur l'axe d'approche, raccord tangent, empreinte dans la voie d'approche jusqu'a l'entree dans l'enveloppe de l'anneau. Symetrique pour les sorties.
-- *Virages.* La frontiere est le bord proche de l'union des enveloppes du corridor de depart et de son partenaire antiparallele. Le virage reste droit dans la voie (<= 0,72 m de l'axe) jusqu'a elle, puis suit une construction a courbure continue, puis reste dans la voie de depart. Le depart anticipe n'est permis qu'aux virages a droite, avec sa distance publiee.
+
+- _Anneau._ Cercle aux moindres carres sur les noeuds V1 d'anneau (6,0 m, chaque noeud <= 0,10 m). Les 3 corridors d'anneau et leurs cles restent ; leurs bornes glissent le long du cercle (deplacement publie).
+- _Entrees et sorties._ Construction a courbure continue, choisie et consignee dans le Spec Change Log : depart sur l'axe d'approche, raccord tangent, empreinte dans la voie d'approche jusqu'a l'entree dans l'enveloppe de l'anneau. Symetrique pour les sorties.
+- _Virages._ La frontiere est le bord proche de l'union des enveloppes du corridor de depart et de son partenaire antiparallele. Le virage reste droit dans la voie (<= 0,72 m de l'axe) jusqu'a elle, puis suit une construction a courbure continue, puis reste dans la voie de depart. Le depart anticipe n'est permis qu'aux virages a droite, avec sa distance publiee.
 
 **Balayage conservateur (P1) -- preuve.**
-*Hypotheses.* Plan horizontal (road-up constant, C4). Empreinte rectangulaire centree sur le point de reference ; rho = sqrt((L_max/2)^2 + W^2), avec L_max = `MaxVehicleLengthMeters` et W = `MaxVehicleHalfWidthMeters`. Sur l'intervalle [i, i+1] d'une reference compilee :
-- la position est lineaire : |p(s) - p_i| + |p(s) - p_{i+1}| = |dp| ;
-- le cap de la tangente normalisee-interpolee est monotone entre theta_i et theta_{i+1} tant que |dtheta| < 90 deg (sinon echec ferme de l'intervalle) : |theta(s) - theta_i| + |theta(s) - theta_{i+1}| = |dtheta|.
+_Hypotheses._ Plan horizontal (road-up constant, C4). Empreinte rectangulaire centree sur le point de reference ; rho = sqrt((L_max/2)^2 + W^2), avec L_max = `MaxVehicleLengthMeters` et W = `MaxVehicleHalfWidthMeters`. Sur l'intervalle [i, i+1] d'une reference compilee :
 
-*Lemme.* Pour un point du corps b (|b| <= rho), |R(t)b - R(t')b| = 2|b|sin(|t-t'|/2) <= rho|t-t'|. La distance au pose i est donc bornee par D_i(s) = |p(s) - p_i| + rho|theta(s) - theta_i|. Comme D_i + D_{i+1} = |dp| + rho|dtheta| = delta, le min(D_i, D_{i+1}) <= delta/2. L'empreinte en s est donc incluse dans F_i ⊕ B(delta/2) ou dans F_{i+1} ⊕ B(delta/2).
+- la position est lineaire : |p(s) - p*i| + |p(s) - p*{i+1}| = |dp| ;
+- le cap de la tangente normalisee-interpolee est monotone entre theta*i et theta*{i+1} tant que |dtheta| < 90 deg (sinon echec ferme de l'intervalle) : |theta(s) - theta*i| + |theta(s) - theta*{i+1}| = |dtheta|.
 
-*Regle.* Une paire est candidate s'il existe un intervalle I de A et un intervalle J de B tels que, pour une paire d'extremites (a, b) :
+_Lemme._ Pour un point du corps b (|b| <= rho), |R(t)b - R(t')b| = 2|b|sin(|t-t'|/2) <= rho|t-t'|. La distance au pose i est donc bornee par D*i(s) = |p(s) - p_i| + rho|theta(s) - theta_i|. Comme D_i + D*{i+1} = |dp| + rho|dtheta| = delta, le min(D*i, D*{i+1}) <= delta/2. L'empreinte en s est donc incluse dans F*i ⊕ B(delta/2) ou dans F*{i+1} ⊕ B(delta/2).
+
+_Regle._ Une paire est candidate s'il existe un intervalle I de A et un intervalle J de B tels que, pour une paire d'extremites (a, b) :
 dist(F_a, F_b) <= delta_I/2 + delta_J/2 + 2(m + delta_c)
+
 - m est la marge du profil, appliquee par vehicule comme aujourd'hui (:866-869).
 - La distance rectangle-rectangle est exacte (polygones convexes) ou sous-estimee, jamais surestimee.
 - Les intervalles couvrent la chaine dirigee connectee sur toute la portee (`MaxVehicleLengthMeters`/2 au-dela des extremites, elements courts traverses).
@@ -284,21 +300,24 @@ dist(F_a, F_b) <= delta_I/2 + delta_J/2 + 2(m + delta_c)
 La borne coincide avec celle de la 5.51, mais elle est demontree ici pour deux empreintes mobiles, pas importee.
 
 **Amorce des 76 decisions (P2).**
-- *Pourquoi 1b.* Apres l'etape 1c, un document format 1 est refuse par `Load`. L'ancienne geometrie ne reste donc accessible que par la table de 1b, calculee sur le modele committe avant tout changement.
-- *Comment 1b est prouvee.* Par le refus en cas d'ecart de `ModelVersion` et par le SHA-256 du modele source.
-- *Isolation.* La table n'est lue que par le mode diff et les actions du proprietaire, toutes Editeur (`#if UNITY_EDITOR`). Elle ne produit jamais de `CompiledRoadModel`.
-- *Actions manuelles historiques.* Les menus de reconfirmation restent disponibles comme repli, mais le run approuve `5.50-AUTO-DECISIONS-v1` ne les appelle pas et n'exige aucune decision individuelle du proprietaire.
-- *Decision automatisee.* Le run epingle toutes ses entrees, classe dans l'ordre ordinal des `PairKey`, rejette seulement sur certificat exhaustif de separation et accepte toute preuve incomplete comme `ConservativeConflict`. Chaque sortie porte une revision liee a l'empreinte fraiche et a la revision qu'elle remplace. Les suivis, faux candidats, revisions remplacees et tombstones restent dans le manifeste Editor-only.
-- *Situation mesuree au moment de l'amendement.* Le differentiel contient 120 paires actives a disposer (76 modifiees, 44 nouvelles), 84 suivis ordinaires, 20 faux candidats AABB prouves par la distance exacte, 0 paire retiree et 0 echec ferme. Ces comptes sont controles mais jamais codes en dur.
+
+- _Pourquoi 1b._ Apres l'etape 1c, un document format 1 est refuse par `Load`. L'ancienne geometrie ne reste donc accessible que par la table de 1b, calculee sur le modele committe avant tout changement.
+- _Comment 1b est prouvee._ Par le refus en cas d'ecart de `ModelVersion` et par le SHA-256 du modele source.
+- _Isolation._ La table n'est lue que par le mode diff et les actions du proprietaire, toutes Editeur (`#if UNITY_EDITOR`). Elle ne produit jamais de `CompiledRoadModel`.
+- _Actions manuelles historiques._ Les menus de reconfirmation restent disponibles comme repli, mais le run approuve `5.50-AUTO-DECISIONS-v1` ne les appelle pas et n'exige aucune decision individuelle du proprietaire.
+- _Decision automatisee._ Le run epingle toutes ses entrees, classe dans l'ordre ordinal des `PairKey`, rejette seulement sur certificat exhaustif de separation et accepte toute preuve incomplete comme `ConservativeConflict`. Chaque sortie porte une revision liee a l'empreinte fraiche et a la revision qu'elle remplace. Les suivis, faux candidats, revisions remplacees et tombstones restent dans le manifeste Editor-only.
+- _Situation mesuree au moment de l'amendement._ Le differentiel contient 120 paires actives a disposer (76 modifiees, 44 nouvelles), 84 suivis ordinaires, 20 faux candidats AABB prouves par la distance exacte, 0 paire retiree et 0 echec ferme. Ces comptes sont controles mais jamais codes en dur.
 
 ## Verification
 
 **Commands (machine locale, Editeur connecte -- indisponible dans le conteneur cloud) :**
+
 - Etape 0 : `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story550CompatibilityGolden"` -- capture ecrite, comparaison verte, `git diff --stat` limite au fichier de test.
 - `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story550DrivabilityTests"` -- vert.
 - `.\scripts\validate.ps1 -TestMode EditMode` -- seul echec attendu `GateAIsOpenedOnlyByTheOwnersBoundSignoff`, 0 erreur Console.
 
 **Manual checks:**
+
 - Sous double garde :
   - controle visuel des 9 carrefours et des segments dont la geometrie V2 a change ;
   - vue d'isolement sur chaque paire soumise au proprietaire.

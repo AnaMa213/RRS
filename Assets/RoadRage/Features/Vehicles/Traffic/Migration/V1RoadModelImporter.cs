@@ -420,7 +420,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 }
 
                 AddTasks();
-                _result.Dispositions.Sort(delegate(SourceDisposition a, SourceDisposition b)
+                _result.Dispositions.Sort(delegate (SourceDisposition a, SourceDisposition b)
                 {
                     int byItem = a.Item.CompareTo(b.Item);
                     return byItem != 0 ? byItem : string.CompareOrdinal(a.SourceKey, b.SourceKey);
@@ -432,7 +432,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             private void ImportLaneModule(V1Module module)
             {
-                var lanes = Chains(module, delegate(V1Edge edge) { return true; }, true);
+                var lanes = Chains(module, delegate (V1Edge edge) { return true; }, true);
                 if (lanes == null)
                 {
                     return;
@@ -495,7 +495,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     lateral[pair.Value] = pair.Value == datum ? 0f : new RoadCurve(probe).Project(middle.Position).LateralOffsetMeters;
                 }
 
-                byLane.Sort(delegate(KeyValuePair<List<V1Node>, ImportedCurve> a, KeyValuePair<List<V1Node>, ImportedCurve> b)
+                byLane.Sort(delegate (KeyValuePair<List<V1Node>, ImportedCurve> a, KeyValuePair<List<V1Node>, ImportedCurve> b)
                 {
                     return lateral[a.Value].CompareTo(lateral[b.Value]);
                 });
@@ -636,7 +636,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 _result.Junctions.Add(junction);
 
                 // Arete interieure : entre deux noeuds interieurs, depuis un noeud a successeur unique.
-                Predicate<V1Edge> interior = delegate(V1Edge edge)
+                Predicate<V1Edge> interior = delegate (V1Edge edge)
                 {
                     return edge.From.Role == LaneNodeRole.Normal && edge.To.Role == LaneNodeRole.Normal
                         && edge.From.AuthoredSuccessorCount == 1;
@@ -1303,7 +1303,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     manifest.Add(Manifest(portal.Key, RoadRecordKind.Portal, record.Id, modelId, new List<V1Node> { portal.Node }));
                 }
 
-                manifest.Sort(delegate(ImportManifestEntry a, ImportManifestEntry b) { return string.CompareOrdinal(a.ImporterSlot, b.ImporterSlot); });
+                manifest.Sort(delegate (ImportManifestEntry a, ImportManifestEntry b) { return string.CompareOrdinal(a.ImporterSlot, b.ImporterSlot); });
                 var tombstones = _result.Lineage.Next.Tombstones;
                 var tombstoneIds = new RoadId[tombstones.Count];
                 for (int i = 0; i < tombstones.Count; i++)
@@ -1341,7 +1341,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             private static ImportManifestEntry Manifest(string key, RoadRecordKind kind, RoadId id, RoadId modelId, IList<V1Node> nodes)
             {
                 var sorted = new List<V1Node>(nodes);
-                sorted.Sort(delegate(V1Node a, V1Node b) { return string.CompareOrdinal(a.Key, b.Key); });
+                sorted.Sort(delegate (V1Node a, V1Node b) { return string.CompareOrdinal(a.Key, b.Key); });
                 var traces = new List<SourceTrace>();
                 string last = null;
                 foreach (var node in sorted)

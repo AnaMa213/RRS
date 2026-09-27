@@ -108,7 +108,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public PairReviewEntry Find(string pairKey)
         {
-            return Entries.Find(delegate(PairReviewEntry e) { return e.PairKey == pairKey; });
+            return Entries.Find(delegate (PairReviewEntry e) { return e.PairKey == pairKey; });
         }
 
         public string Label(RoadId id)
@@ -632,7 +632,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         private static void AppendEntries(StringBuilder text, PairReviewModel review, string title, PairReviewStatus status)
         {
-            var rows = review.Entries.FindAll(delegate(PairReviewEntry e) { return e.Status == status; });
+            var rows = review.Entries.FindAll(delegate (PairReviewEntry e) { return e.Status == status; });
             text.AppendLine();
             text.AppendLine("## " + title + " (" + rows.Count + ")");
             text.AppendLine();
@@ -831,7 +831,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         private static int IndexOf(AuthoringDecisions decisions, PairReviewEntry entry)
         {
-            return decisions.Conflicts.FindIndex(delegate(ConflictDecision d)
+            return decisions.Conflicts.FindIndex(delegate (ConflictDecision d)
             {
                 return d.MovementKeyA == entry.KeyA && d.MovementKeyB == entry.KeyB;
             });

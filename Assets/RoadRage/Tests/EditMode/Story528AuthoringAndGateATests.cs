@@ -333,7 +333,7 @@ namespace RoadRage.Tests.EditMode
             // Une decision appliquee dont l'empreinte ne correspond plus a la fraiche est une
             // proposition historique : elle n'est ni appliquee, ni convertie en zone.
             var decisions = CommittedDecisions();
-            int index = decisions.Conflicts.FindIndex(delegate(ConflictDecision decision)
+            int index = decisions.Conflicts.FindIndex(delegate (ConflictDecision decision)
             {
                 return !string.IsNullOrEmpty(decision.GeometryFingerprint);
             });

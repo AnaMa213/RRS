@@ -343,7 +343,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 }
             }
 
-            list.Sort(delegate(ShortElement x, ShortElement y) { return x.Id.CompareTo(y.Id); });
+            list.Sort(delegate (ShortElement x, ShortElement y) { return x.Id.CompareTo(y.Id); });
             return list;
         }
 
