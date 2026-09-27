@@ -215,7 +215,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 conflict.Decision = ParseEnum<ConflictDecisionKind>(record.Decision, "conflit " + pair);
                 conflict.Reason = record.Reason ?? string.Empty;
                 conflict.GeometryFingerprint = layout.Format == FormatVersion
-                    ? Required(record.GeometryFingerprint, "Conflicts.GeometryFingerprint " + pair)
+                    ? OptionalFingerprint(record.GeometryFingerprint, pair)
                     : string.Empty;
                 if (conflict.Decision == ConflictDecisionKind.Accepted)
                 {
@@ -483,6 +483,26 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         }
 
         // ================================================================== outils de parse
+
+        /// <summary>
+        /// Empreinte reconfirmee par le proprietaire : vide = non reconfirmee (proposition historique),
+        /// sinon un SHA-256 hexadecimal minuscule. Une action du proprietaire reecrit tout le fichier
+        /// en format 3 alors que les autres paires ne sont pas encore reconfirmees.
+        /// </summary>
+        private static string OptionalFingerprint(string value, string pair)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            if (!PairGeometryFingerprint.IsSha256(value))
+            {
+                throw new FormatException("Decisions : empreinte de geometrie invalide (SHA-256 hexadecimal attendu) : " + pair + ".");
+            }
+
+            return value;
+        }
 
         private static string Required(string value, string what)
         {

@@ -118,6 +118,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Candidats generes sur le modele compile sans zones ; nul tant que la compilation 1 n'a pas reussi.</summary>
         public List<ConflictCandidate> Candidates;
 
+        /// <summary>Modele compile sans zones sur lequel les candidats ont ete balayes ; conserve meme si le rapprochement echoue.</summary>
+        public CompiledRoadModel CandidateModel;
+
+        /// <summary>Balayage de toutes les paires (candidats, suivi, selection englobante seule, sans contact).</summary>
+        public List<PairSweep> PairSweeps;
+
         public RoadModelSource Source;
         public CompiledRoadModel Compiled;
         public readonly List<LocalizationFixture> Fixtures = new List<LocalizationFixture>();
@@ -226,7 +232,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return run;
             }
 
-            run.Candidates = Candidates(withoutZones);
+            run.CandidateModel = withoutZones;
+            run.PairSweeps = ConflictSweep.Analyze(withoutZones);
+            run.Candidates = ConflictSweep.ToCandidates(run.PairSweeps);
             PopulateCandidateFingerprints(run, withoutZones);
             var zones = MatchConflicts(run);
             if (run.Failures.Count > 0)
@@ -834,45 +842,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         // ============================================================ candidats de conflit
 
         /// <summary>
-        /// Candidats d'un modele compile : paires de mouvements du meme carrefour, d'approches
-        /// differentes, dont les enveloppes balayees au gabarit max du profil se recoupent. Une paire
-        /// de meme approche est du suivi, jamais un candidat. Hors ligne seulement.
+        /// Candidats d'un modele compile : paires de mouvements du meme carrefour, ni de meme approche
+        /// ni en suivi, dont le balayage conservateur prouve un contact possible (voir
+        /// <see cref="ConflictSweep"/>). Hors ligne seulement.
         /// </summary>
         public static List<ConflictCandidate> Candidates(CompiledRoadModel model)
         {
-            float radius = SweptRadius(model.ValidationProfile);
-            var candidates = new List<ConflictCandidate>();
-            foreach (var junction in model.Junctions)
-            {
-                var ids = model.GetMovementsInJunction(junction.Id);
-                for (int i = 0; i < ids.Count; i++)
-                {
-                    CompiledJunctionMovement a;
-                    model.TryGetMovement(ids[i], out a);
-                    for (int j = i + 1; j < ids.Count; j++)
-                    {
-                        CompiledJunctionMovement b;
-                        model.TryGetMovement(ids[j], out b);
-                        if (a.FromCorridorId == b.FromCorridorId)
-                        {
-                            continue;
-                        }
-
-                        RoadBoundsBox volume;
-                        if (SweptOverlap(a.Samples, b.Samples, model.ValidationProfile, out volume))
-                        {
-                            var candidate = new ConflictCandidate();
-                            candidate.JunctionId = junction.Id;
-                            candidate.MovementA = ids[i];
-                            candidate.MovementB = ids[j];
-                            candidate.Volume = volume;
-                            candidates.Add(candidate);
-                        }
-                    }
-                }
-            }
-
-            return candidates;
+            return ConflictSweep.ToCandidates(ConflictSweep.Analyze(model));
         }
 
         private static void PopulateCandidateFingerprints(AuthoredRun run, CompiledRoadModel model)
@@ -942,9 +918,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         }
 
         /// <summary>
-        /// Balayage conservateur 5.50. Les AABB des rectangles orientes sous-estiment leur distance ;
-        /// la borne d'intervalle ajoute delta/2 a chaque extremite et ne peut donc manquer un contact
-        /// entre poses. Un saut de cap de 90 deg ou plus echoue ferme en declarant la paire candidate.
+        /// Balayage conservateur 5.50 de deux trajectoires sans prolongement : delegue a
+        /// <see cref="ConflictSweep.Evaluate"/> (distance exacte des empreintes, borne d'intervalle).
         /// </summary>
         public static bool SweptOverlap(
             IReadOnlyList<RoadCurveSample> a,
@@ -952,182 +927,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             RoadModelValidationProfile profile,
             out RoadBoundsBox volume)
         {
+            volume = default(RoadBoundsBox);
             if (a == null || b == null || a.Count == 0 || b.Count == 0)
             {
-                volume = default(RoadBoundsBox);
                 return false;
             }
 
-            float halfLength = 0.5f * profile.MaxVehicleLengthMeters;
-            float halfWidth = profile.MaxVehicleHalfWidthMeters;
-            float rho = Mathf.Sqrt(halfLength * halfLength + halfWidth * halfWidth);
-            float inflation = profile.LateralClearanceMarginMeters + V1RoadModelImporter.ChordToleranceMeters;
-            Vector3 broadMinA;
-            Vector3 broadMaxA;
-            Vector3 broadMinB;
-            Vector3 broadMaxB;
-            CurveSweepAabb(a, halfLength, halfWidth, rho, inflation, out broadMinA, out broadMaxA);
-            CurveSweepAabb(b, halfLength, halfWidth, rho, inflation, out broadMinB, out broadMaxB);
-            if (AabbDistance(broadMinA, broadMaxA, broadMinB, broadMaxB) > 0f)
-            {
-                volume = default(RoadBoundsBox);
-                return false;
-            }
-
-            bool hit = false;
-            Vector3 min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-            Vector3 max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
-
-            int intervalsA = Mathf.Max(1, a.Count - 1);
-            int intervalsB = Mathf.Max(1, b.Count - 1);
-            for (int ia = 0; ia < intervalsA; ia++)
-            {
-                RoadCurveSample a0 = a[Mathf.Min(ia, a.Count - 1)];
-                RoadCurveSample a1 = a[Mathf.Min(ia + 1, a.Count - 1)];
-                float angleA = Vector3.Angle(a0.Tangent, a1.Tangent) * Mathf.Deg2Rad;
-                float deltaA = (a1.Position - a0.Position).magnitude + rho * angleA;
-                for (int ib = 0; ib < intervalsB; ib++)
-                {
-                    RoadCurveSample b0 = b[Mathf.Min(ib, b.Count - 1)];
-                    RoadCurveSample b1 = b[Mathf.Min(ib + 1, b.Count - 1)];
-                    float angleB = Vector3.Angle(b0.Tangent, b1.Tangent) * Mathf.Deg2Rad;
-                    float deltaB = (b1.Position - b0.Position).magnitude + rho * angleB;
-                    bool failClosed = angleA >= 0.5f * Mathf.PI || angleB >= 0.5f * Mathf.PI;
-                    float bound = 0.5f * deltaA + 0.5f * deltaB + 2f * inflation;
-                    if (!failClosed && !EndpointBoxesWithin(a0, a1, b0, b1, halfLength, halfWidth, bound))
-                    {
-                        continue;
-                    }
-
-                    hit = true;
-                    EncapsulateSwept(ref min, ref max, a0, halfLength, halfWidth, 0.5f * deltaA + inflation);
-                    EncapsulateSwept(ref min, ref max, a1, halfLength, halfWidth, 0.5f * deltaA + inflation);
-                    EncapsulateSwept(ref min, ref max, b0, halfLength, halfWidth, 0.5f * deltaB + inflation);
-                    EncapsulateSwept(ref min, ref max, b1, halfLength, halfWidth, 0.5f * deltaB + inflation);
-                }
-            }
-
-            volume = default(RoadBoundsBox);
-            if (!hit)
-            {
-                return false;
-            }
-
-            volume.Center = 0.5f * (min + max);
-            volume.Extents = 0.5f * (max - min);
-            volume.Extents.y = Mathf.Max(volume.Extents.y, halfWidth + inflation);
-            return true;
-        }
-
-        private static bool EndpointBoxesWithin(
-            RoadCurveSample a0,
-            RoadCurveSample a1,
-            RoadCurveSample b0,
-            RoadCurveSample b1,
-            float halfLength,
-            float halfWidth,
-            float bound)
-        {
-            return BoxDistance(a0, b0, halfLength, halfWidth) <= bound
-                || BoxDistance(a0, b1, halfLength, halfWidth) <= bound
-                || BoxDistance(a1, b0, halfLength, halfWidth) <= bound
-                || BoxDistance(a1, b1, halfLength, halfWidth) <= bound;
-        }
-
-        private static float BoxDistance(RoadCurveSample a, RoadCurveSample b, float halfLength, float halfWidth)
-        {
-            Vector3 amin;
-            Vector3 amax;
-            Vector3 bmin;
-            Vector3 bmax;
-            FootprintAabb(a, halfLength, halfWidth, out amin, out amax);
-            FootprintAabb(b, halfLength, halfWidth, out bmin, out bmax);
-            return AabbDistance(amin, amax, bmin, bmax);
-        }
-
-        private static float AabbDistance(Vector3 amin, Vector3 amax, Vector3 bmin, Vector3 bmax)
-        {
-            float dx = Mathf.Max(0f, Mathf.Max(amin.x - bmax.x, bmin.x - amax.x));
-            float dz = Mathf.Max(0f, Mathf.Max(amin.z - bmax.z, bmin.z - amax.z));
-            return Mathf.Sqrt(dx * dx + dz * dz);
-        }
-
-        private static void CurveSweepAabb(
-            IReadOnlyList<RoadCurveSample> samples,
-            float halfLength,
-            float halfWidth,
-            float rho,
-            float inflation,
-            out Vector3 min,
-            out Vector3 max)
-        {
-            min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-            max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
-            float intervalGrow = 0f;
-            for (int i = 0; i < samples.Count; i++)
-            {
-                Vector3 localMin;
-                Vector3 localMax;
-                FootprintAabb(samples[i], halfLength, halfWidth, out localMin, out localMax);
-                min = Vector3.Min(min, localMin);
-                max = Vector3.Max(max, localMax);
-                if (i > 0)
-                {
-                    float angle = Vector3.Angle(samples[i - 1].Tangent, samples[i].Tangent) * Mathf.Deg2Rad;
-                    if (angle >= 0.5f * Mathf.PI)
-                    {
-                        intervalGrow = float.PositiveInfinity;
-                    }
-                    else if (!float.IsPositiveInfinity(intervalGrow))
-                    {
-                        float delta = Vector3.Distance(samples[i - 1].Position, samples[i].Position) + rho * angle;
-                        intervalGrow = Mathf.Max(intervalGrow, 0.5f * delta);
-                    }
-                }
-            }
-
-            if (float.IsPositiveInfinity(intervalGrow))
-            {
-                min = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
-                max = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-                return;
-            }
-
-            Vector3 grow = new Vector3(intervalGrow + inflation, intervalGrow + inflation, intervalGrow + inflation);
-            min -= grow;
-            max += grow;
-        }
-
-        private static void EncapsulateSwept(
-            ref Vector3 min,
-            ref Vector3 max,
-            RoadCurveSample pose,
-            float halfLength,
-            float halfWidth,
-            float inflation)
-        {
-            Vector3 localMin;
-            Vector3 localMax;
-            FootprintAabb(pose, halfLength, halfWidth, out localMin, out localMax);
-            Vector3 grow = new Vector3(inflation, inflation, inflation);
-            min = Vector3.Min(min, localMin - grow);
-            max = Vector3.Max(max, localMax + grow);
-        }
-
-        private static void FootprintAabb(
-            RoadCurveSample pose,
-            float halfLength,
-            float halfWidth,
-            out Vector3 min,
-            out Vector3 max)
-        {
-            Vector3 forward = Vector3.ProjectOnPlane(pose.Tangent, pose.Up).normalized;
-            Vector3 right = Vector3.Cross(pose.Up, forward).normalized;
-            float extentX = Mathf.Abs(forward.x) * halfLength + Mathf.Abs(right.x) * halfWidth;
-            float extentZ = Mathf.Abs(forward.z) * halfLength + Mathf.Abs(right.z) * halfWidth;
-            Vector3 extents = new Vector3(extentX, halfWidth, extentZ);
-            min = pose.Position - extents;
-            max = pose.Position + extents;
+            var sweep = ConflictSweep.Evaluate(
+                new List<List<SweepPose>> { ConflictSweep.Poses(a) },
+                new List<List<SweepPose>> { ConflictSweep.Poses(b) },
+                profile);
+            volume = sweep.Volume;
+            return sweep.IsCandidate;
         }
 
         private static void CollectOverlap(RoadCurve from, RoadCurve other, float radius, List<Vector3> hits)
@@ -2067,148 +1878,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             AuthoredRun run = Run(set, lineageText, decisionsText);
-            if (run.Candidates == null || run.Decisions == null || run.Import == null)
+            try
             {
-                error = "Differentiel 5.50 refuse avant la production des candidats :\n- "
-                    + string.Join("\n- ", run.Failures.ToArray());
+                return PairReview.Render(PairReview.Build(run, historical, baselineModelText));
+            }
+            catch (FormatException exception)
+            {
+                error = "Differentiel 5.50 refuse : " + exception.Message;
                 return null;
             }
-
-            for (int i = 0; i < run.Failures.Count; i++)
-            {
-                string failure = run.Failures[i];
-                if (!failure.StartsWith("Proposition historique non reconfirmee : ", StringComparison.Ordinal)
-                    && !failure.StartsWith("Candidat de conflit non dispose : ", StringComparison.Ordinal)
-                    && !failure.StartsWith("Decision de conflit sans candidat : ", StringComparison.Ordinal))
-                {
-                    error = "Differentiel 5.50 refuse : " + failure;
-                    return null;
-                }
-            }
-
-            Dictionary<RoadId, string> keys = AuthoringDecisions.KeysById(run.Import);
-            var fresh = new Dictionary<string, ConflictCandidate>(StringComparer.Ordinal);
-            for (int i = 0; i < run.Candidates.Count; i++)
-            {
-                ConflictCandidate candidate = run.Candidates[i];
-                string pair = PairKey(keys[candidate.MovementA], keys[candidate.MovementB]);
-                if (string.IsNullOrEmpty(candidate.GeometryFingerprint) || fresh.ContainsKey(pair))
-                {
-                    error = "Differentiel 5.50 : candidat sans empreinte ou paire dupliquee.";
-                    return null;
-                }
-
-                fresh.Add(pair, candidate);
-            }
-
-            var old = new Dictionary<string, HistoricalPairFingerprintRecord>(StringComparer.Ordinal);
-            for (int i = 0; i < historical.Pairs.Length; i++)
-            {
-                HistoricalPairFingerprintRecord record = historical.Pairs[i];
-                old.Add(PairKey(record.MovementKeyA, record.MovementKeyB), record);
-            }
-
-            var unchanged = new List<string>();
-            var modified = new List<string>();
-            var added = new List<string>();
-            var removed = new List<string>();
-            foreach (var entry in fresh)
-            {
-                HistoricalPairFingerprintRecord prior;
-                if (!old.TryGetValue(entry.Key, out prior))
-                {
-                    added.Add(RenderDiffPair(entry.Key, null, entry.Value));
-                }
-                else if (string.Equals(prior.Fingerprint, entry.Value.GeometryFingerprint, StringComparison.Ordinal))
-                {
-                    unchanged.Add(RenderDiffPair(entry.Key, prior, entry.Value));
-                }
-                else
-                {
-                    modified.Add(RenderDiffPair(entry.Key, prior, entry.Value));
-                }
-            }
-
-            foreach (var entry in old)
-            {
-                if (!fresh.ContainsKey(entry.Key))
-                {
-                    removed.Add(RenderDiffPair(entry.Key, entry.Value, null));
-                }
-            }
-
-            unchanged.Sort(StringComparer.Ordinal);
-            modified.Sort(StringComparer.Ordinal);
-            added.Sort(StringComparer.Ordinal);
-            removed.Sort(StringComparer.Ordinal);
-            var text = new StringBuilder();
-            text.AppendLine("# Story 5.50 -- differentiel des paires de conflit");
-            text.AppendLine();
-            text.AppendLine("Generation en lecture seule : aucun modele, overlay, rapport 5.28 ou fichier de decisions n'a ete ecrit.");
-            text.AppendLine();
-            text.AppendLine("- source V1 : `" + set.SourceHash + "`");
-            text.AppendLine("- table historique : `" + historical.SourceModelVersion + "` / schema " + historical.FingerprintSchemaVersion);
-            text.AppendLine("- paires historiques : " + historical.Pairs.Length);
-            text.AppendLine("- paires fraiches : " + run.Candidates.Count);
-            text.AppendLine("- inchangees : " + unchanged.Count);
-            text.AppendLine("- modifiees : " + modified.Count);
-            text.AppendLine("- nouvelles : " + added.Count);
-            text.AppendLine("- retirees : " + removed.Count);
-            AppendDiffSection(text, "Paires modifiees", modified);
-            AppendDiffSection(text, "Paires nouvelles", added);
-            AppendDiffSection(text, "Paires retirees", removed);
-            AppendDiffSection(text, "Paires inchangees", unchanged);
-            return text.ToString().Replace("\r\n", "\n");
-        }
-
-        private static void AppendDiffSection(StringBuilder text, string title, List<string> rows)
-        {
-            text.AppendLine();
-            text.AppendLine("## " + title + " (" + rows.Count + ")");
-            text.AppendLine();
-            if (rows.Count == 0)
-            {
-                text.AppendLine("Aucune.");
-                return;
-            }
-
-            for (int i = 0; i < rows.Count; i++)
-            {
-                text.AppendLine(rows[i]);
-            }
-        }
-
-        private static string RenderDiffPair(
-            string pair,
-            HistoricalPairFingerprintRecord prior,
-            ConflictCandidate? current)
-        {
-            string[] keys = pair.Split('\n');
-            var text = new StringBuilder();
-            text.Append("- `").Append(keys[0]).Append("` x `").Append(keys[1]).Append("`");
-            if (prior != null)
-            {
-                text.Append(" ; ancien `").Append(prior.Fingerprint).Append("`, volume ")
-                    .Append(FormatVolume(prior.Volume()));
-            }
-
-            if (current.HasValue)
-            {
-                text.Append(" ; nouveau `").Append(current.Value.GeometryFingerprint).Append("`, volume ")
-                    .Append(FormatVolume(current.Value.Volume));
-            }
-
-            return text.ToString();
-        }
-
-        private static string FormatVolume(RoadBoundsBox volume)
-        {
-            return "centre (" + volume.Center.x.ToString("F3", CultureInfo.InvariantCulture) + ", "
-                + volume.Center.y.ToString("F3", CultureInfo.InvariantCulture) + ", "
-                + volume.Center.z.ToString("F3", CultureInfo.InvariantCulture) + "), etendues ("
-                + volume.Extents.x.ToString("F3", CultureInfo.InvariantCulture) + ", "
-                + volume.Extents.y.ToString("F3", CultureInfo.InvariantCulture) + ", "
-                + volume.Extents.z.ToString("F3", CultureInfo.InvariantCulture) + ")";
         }
 
         [MenuItem("RoadRage/Traffic V2/Generer le differentiel 5.50")]

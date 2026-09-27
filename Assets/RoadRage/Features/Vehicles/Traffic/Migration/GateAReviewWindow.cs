@@ -465,7 +465,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return color;
         }
 
-        private static string Git(string arguments)
+        internal static string Git(string arguments)
         {
             try
             {
