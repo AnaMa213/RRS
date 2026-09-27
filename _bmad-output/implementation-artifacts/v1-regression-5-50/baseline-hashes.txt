@@ -8,3 +8,4 @@ overlay-5-28-sha256 (_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.
 report-5-28-sha256 (_bmad-output/implementation-artifacts/migration-report-5-28-mvp-run.md): 9f832c16b081a6d9fe7cfd14a0b53b8e8ea7dc83d35367fdb20fde5fa613c55c
 authoring-5-28-sha256 (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json): 7ab9948c349ee068f71fef07ca915276bf69de59e8a2a6e7ddda36fcbaab222b
 editmode: 837/838 (seul echec GateAIsOpenedOnlyByTheOwnersBoundSignoff)
+historical-pair-fingerprints-sha256 (_bmad-output/implementation-artifacts/v1-regression-5-50/historical-pair-fingerprints.json): a7bc096bc4e057541bf2b7e44508afbc80c3b317ce99d230092bf03f8ac2dbe3
