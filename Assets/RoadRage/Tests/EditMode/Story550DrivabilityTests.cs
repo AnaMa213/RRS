@@ -17,17 +17,24 @@ namespace RoadRage.Tests.EditMode
             AuthoringDecisions decisions = AuthoringDecisions.Parse(File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath)));
 
             Assert.That(table.Pairs, Has.Length.EqualTo(76));
-            Assert.That(table.Pairs, Has.Length.EqualTo(decisions.Conflicts.Count));
-            var expected = new HashSet<string>(decisions.Conflicts.Select(delegate(ConflictDecision decision)
+            var active = new HashSet<string>(decisions.Conflicts.Select(delegate(ConflictDecision decision)
             {
                 return AuthoredRoadModel.PairKey(decision.MovementKeyA, decision.MovementKeyB);
             }), StringComparer.Ordinal);
+            var superseding = new HashSet<string>(decisions.Conflicts
+                .Where(delegate(ConflictDecision decision) { return !string.IsNullOrEmpty(decision.SupersedesDecisionRevisionId); })
+                .Select(delegate(ConflictDecision decision)
+                {
+                    return AuthoredRoadModel.PairKey(decision.MovementKeyA, decision.MovementKeyB);
+                }), StringComparer.Ordinal);
             var actual = new HashSet<string>(table.Pairs.Select(delegate(HistoricalPairFingerprintRecord record)
             {
                 return AuthoredRoadModel.PairKey(record.MovementKeyA, record.MovementKeyB);
             }), StringComparer.Ordinal);
-            Assert.That(actual.SetEquals(expected), Is.True);
             Assert.That(actual.Count, Is.EqualTo(table.Pairs.Length), "Aucune paire historique en double.");
+            Assert.That(actual.IsSubsetOf(active), Is.True, "Chaque paire historique garde une decision active qui la remplace.");
+            Assert.That(superseding.SetEquals(actual), Is.True,
+                "Les seules revisions actives qui remplacent l'historique sont les 76 paires de la table.");
         }
 
         [Test]

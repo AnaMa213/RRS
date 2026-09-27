@@ -1832,14 +1832,22 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 // Premier passage : controles seuls, pour compiler et generer les candidats. Ses
                 // echecs « candidat non dispose » sont attendus ; toute autre etape doit passer.
                 var seed = AuthoringDecisions.Propose(migration.Import, new ConflictCandidate[0]);
-                var partial = Run(set, lineageText, seed.Serialize());
+                var partial = Run(set, lineageText, seed.SerializeHistoricalForReadOnlyMigration());
                 if (partial.Candidates == null)
                 {
                     error = string.Join("\n", partial.Failures.ToArray());
                     return null;
                 }
 
-                return AuthoringDecisions.Propose(migration.Import, partial.Candidates).Serialize();
+                var proposal = AuthoringDecisions.Propose(migration.Import, partial.Candidates);
+                var proposedRun = Run(set, lineageText, proposal.SerializeHistoricalForReadOnlyMigration());
+                if (proposedRun.CandidateModel == null || proposedRun.PairSweeps == null)
+                {
+                    error = string.Join("\n", proposedRun.Failures.ToArray());
+                    return null;
+                }
+
+                return AutomatedPairDecisionPolicy.CreatePlan(proposedRun).DecisionsText;
             }
             catch (InvalidOperationException exception)
             {

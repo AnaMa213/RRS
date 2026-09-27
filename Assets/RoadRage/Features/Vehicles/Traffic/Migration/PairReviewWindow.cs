@@ -34,7 +34,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         private StatusFilter _status;
         private string _junction = string.Empty;
         private string _search = string.Empty;
-        private string _reason = string.Empty;
         private Vector2 _listScroll;
         private Vector2 _detailScroll;
         private bool _showOld = true;
@@ -159,7 +158,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return movementKey.Substring(prefix.Length).Split('>');
         }
 
-        /// <summary>Actions offertes au proprietaire pour cette paire, dans l'ordre d'affichage.</summary>
+        /// <summary>
+        /// Actions offertes au proprietaire pour cette paire, dans l'ordre d'affichage. Accepter,
+        /// rejeter ou ajouter une decision n'y figure plus : le format 4 exige une revision et une
+        /// preuve emises par le plan deterministe approuve.
+        /// </summary>
         public static List<string> AvailableActions(PairReviewEntry entry)
         {
             var actions = new List<string>();
@@ -178,8 +181,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 actions.Add("Reconfirmer cette paire");
             }
 
-            actions.Add("Accepter");
-            actions.Add("Rejeter");
             return actions;
         }
 
@@ -238,7 +239,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 if (GUILayout.Toggle(isSelected, Title(entry), "Button") && !isSelected)
                 {
                     _selected = entry.PairKey;
-                    _reason = string.Empty;
                     Frame(entry);
                 }
             }
@@ -324,23 +324,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             var actions = AvailableActions(entry);
             if (actions.Count == 0)
             {
-                EditorGUILayout.HelpBox("Aucune action : paire retiree sans decision.", MessageType.None);
+                EditorGUILayout.HelpBox("Aucune action : aucune decision a reconfirmer pour cette paire.", MessageType.None);
                 return;
-            }
-
-            if (actions.Contains("Accepter"))
-            {
-                _reason = EditorGUILayout.TextField("Motif (obligatoire)", _reason);
             }
 
             foreach (var action in actions)
             {
-                using (new EditorGUI.DisabledScope((action == "Accepter" || action == "Rejeter") && _reason.Trim().Length == 0))
+                if (GUILayout.Button(action))
                 {
-                    if (GUILayout.Button(action))
-                    {
-                        Apply(entry, action);
-                    }
+                    Apply(entry, action);
                 }
             }
         }
@@ -379,8 +371,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         {
             string identity = GateAReviewWindow.Git("config user.name") ?? "proprietaire";
             string message = identity + ", " + action.ToLowerInvariant() + " pour " + entry.JunctionLabel + " :\n"
-                + entry.LabelA + "\n x " + entry.LabelB + "\n\n" + entry.Reason
-                + (action == "Accepter" || action == "Rejeter" ? "\n\nMotif : " + _reason.Trim() : string.Empty);
+                + entry.LabelA + "\n x " + entry.LabelB + "\n\n" + entry.Reason;
             if (!EditorUtility.DisplayDialog(action, message, "Confirmer", "Annuler"))
             {
                 return;
@@ -392,10 +383,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 {
                     case "Reconfirmer cette paire":
                         return PairReviewActions.ReconfirmPair(text, entry);
-                    case "Accepter":
-                        return PairReviewActions.Decide(text, entry, ConflictDecisionKind.Accepted, _reason);
-                    case "Rejeter":
-                        return PairReviewActions.Decide(text, entry, ConflictDecisionKind.Rejected, _reason);
                     case "Disposer la decision orpheline":
                         return PairReviewActions.DisposeRemoved(text, entry);
                     default:
@@ -430,7 +417,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             string keep = _selected;
             Load();
             _selected = keep;
-            _reason = string.Empty;
         }
 
         private void Load()

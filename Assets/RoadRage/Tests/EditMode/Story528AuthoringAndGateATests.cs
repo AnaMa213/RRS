@@ -82,18 +82,13 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(run.Candidates.Any(c => c.MovementA == members[0] && c.MovementB == members[1] && c.JunctionId == zone.JunctionId), Is.True);
             }
 
-            // Un rejet motive retire sa zone et rien d'autre ; un rejet sans motif est refuse au parse.
+            // Un rejet fabrique sans certificat ProvenDisjoint est refuse au parse : l'absence de
+            // temoin de contact ne vaut jamais preuve de separation.
             var decisions = CommittedDecisions();
             var first = decisions.Conflicts[0];
             first.Decision = ConflictDecisionKind.Rejected;
+            first.Id = RoadId.None;
             first.Reason = "Test : rejet motive.";
-            decisions.Conflicts[0] = first;
-            var rejected = RunWith(decisions.Serialize());
-            Assert.That(rejected.Succeeded, Is.True, string.Join("\n", rejected.Failures.ToArray()));
-            Assert.That(rejected.Compiled.ConflictZones.Count, Is.EqualTo(accepted - 1));
-            Assert.That(rejected.Compiled.Version, Is.Not.EqualTo(run.Compiled.Version), "Une zone en moins change la version.");
-
-            first.Reason = " ";
             decisions.Conflicts[0] = first;
             Assert.Throws<FormatException>(() => AuthoringDecisions.Parse(decisions.Serialize()));
         }
@@ -210,14 +205,12 @@ namespace RoadRage.Tests.EditMode
             var import = Fresh().Import;
             var sameApproach = import.Movements.GroupBy(m => m.From.Key).First(g => g.Count() >= 2).Select(m => m.Key).OrderBy(k => k, StringComparer.Ordinal).Take(2).ToArray();
             decisions = CommittedDecisions();
-            decisions.Conflicts.Add(new ConflictDecision
-            {
-                Id = RoadId.New(),
-                MovementKeyA = sameApproach[0],
-                MovementKeyB = sameApproach[1],
-                Decision = ConflictDecisionKind.Accepted,
-                Reason = "Test"
-            });
+            ConflictDecision orphan = decisions.Conflicts[0];
+            orphan.Id = RoadId.New();
+            orphan.MovementKeyA = sameApproach[0];
+            orphan.MovementKeyB = sameApproach[1];
+            orphan.Reason = "Test";
+            decisions.Conflicts.Add(orphan);
             AssertRefused(RunWith(decisions.Serialize()), "Decision de conflit sans candidat");
         }
 
@@ -236,7 +229,7 @@ namespace RoadRage.Tests.EditMode
             // AD-45 asymetrique : ecrite exactement telle qu'authoree sur chaque echantillon possede.
             var decisions = CommittedDecisions();
             SetWidth(decisions, ring, 3.5f, 4f, WidthApplication.Uniform);
-            var asymmetric = RunWith(decisions.Serialize());
+            var asymmetric = RunWithAutomated(decisions);
             Assert.That(asymmetric.Succeeded, Is.True, string.Join("\n", asymmetric.Failures.ToArray()));
             foreach (var corridor in run.Import.Sections.Single(s => s.Key == ring).Corridors)
             {
@@ -704,6 +697,15 @@ namespace RoadRage.Tests.EditMode
             AuthoredRun run = null;
             WithMvpRun(scene => run = AuthoredRoadModel.Run(scene, Committed(MigrationReport.LineagePath), decisions));
             return run;
+        }
+
+        /// <summary>Une largeur valide change les empreintes : regenerer les revisions avant la compilation 2.</summary>
+        private static AuthoredRun RunWithAutomated(AuthoringDecisions decisions)
+        {
+            AuthoredRun preliminary = RunWith(decisions.Serialize());
+            Assert.That(preliminary.CandidateModel, Is.Not.Null, string.Join("\n", preliminary.Failures.ToArray()));
+            AutomatedPairDecisionPlan plan = AutomatedPairDecisionPolicy.CreatePlan(preliminary);
+            return RunWith(plan.DecisionsText);
         }
 
         /// <summary>Harnais 5.27 : garde dirty, ouverture additive, fermeture sans sauvegarde.</summary>

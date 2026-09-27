@@ -1,10 +1,10 @@
 <!-- rrs-migration-binding
 source-hash: b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc
-importer-version: 1
+importer-version: 2
 compiler-schema-version: 4
 model-id: 419bd12ec9b5fe710e8a3719692c7982
 lineage-hash: f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4
-body-hash: f813250621a5541c003088e51c7dba3dc73ed23291dc933533427dce1ee2f298
+body-hash: 1da0b93c02f717cf20a27be77ba8f58b7325e1a585347babf6e1db751258c5d5
 -->
 # Rapport de migration V1 -> V2 : MVP_Run (Story 5.27)
 
@@ -15,7 +15,7 @@ Genere par le menu `RoadRage/Traffic V2/Migrer MVP_Run`. Ne pas editer : un rapp
 | Champ | Valeur |
 |---|---|
 | Hash de la source V1 extraite | `b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc` |
-| Version de l'importeur | 1 |
+| Version de l'importeur | 2 |
 | CompilerSchemaVersion | 4 |
 | RoadModelId | `419bd12ec9b5fe710e8a3719692c7982` |
 | Hash de la lignee | `f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json`) |
@@ -196,19 +196,19 @@ Aucune.
 
 ## Mesures geometriques
 
-Valeurs mesurees sur la source et le modele candidat. Aucun seuil n'est relache ici : un depassement est une deviation a corriger, sauf categorie d'exception approuvee par le spec.
+Valeurs mesurees sur la source et le modele candidat. Aucun seuil n'est relache ici : un depassement est une deviation a corriger, sauf categorie d'exception approuvee par le spec ou deplacement publie par une operation d'authoring tracee.
 
-| Mesure | Unite | n | min | p50 | p95 | max | Seuil | Dans le seuil | Deviations | Exceptions |
-|---|---|---:|---:|---:|---:|---:|---|---:|---:|---:|
-| Ecart de connecteur (source V1) | m | 56 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.7500 | 56 | 0 | 0 |
-| Angle de connecteur (source V1) | deg | 56 | 0.000 | 0.000 | 0.000 | 0.000 | < 90.000 | 56 | 0 | 0 |
-| Couture : ecart de position | m | 144 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.0500 | 144 | 0 | 0 |
-| Couture : ecart de tangente | deg | 144 | 0.000 | 0.000 | 0.020 | 0.020 | <= 5.000 | 144 | 0 | 0 |
-| Couture de mouvement : ecart de demi-largeur | m | 144 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.0500 | 144 | 0 | 0 |
-| Corde compilee (critere de subdivision 5.26) | m | 116 | 0.0000 | 0.0001 | 0.0205 | 0.0244 | <= 0.0500 | 116 | 0 | 0 |
-| Degagement lateral (demi-largeur - demi-gabarit - marge) | m | 116 | 0.7200 | 0.7200 | 0.7200 | 0.7200 | >= 0 | 116 | 0 | 0 |
-| Derive de noeud source vers la courbe | m | 200 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.1000 | 200 | 0 | 24 |
-| Derive de portail | m | 8 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.0500 | 8 | 0 | 0 |
+| Mesure | Unite | n | min | p50 | p95 | max | Seuil | Dans le seuil | Deviations | Exceptions | Deplacements publies |
+|---|---|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|
+| Ecart de connecteur (source V1) | m | 56 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.7500 | 56 | 0 | 0 | 0 |
+| Angle de connecteur (source V1) | deg | 56 | 0.000 | 0.000 | 0.000 | 0.000 | < 90.000 | 56 | 0 | 0 | 0 |
+| Couture : ecart de position | m | 144 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.0500 | 144 | 0 | 0 | 0 |
+| Couture : ecart de tangente | deg | 144 | 0.000 | 0.000 | 0.000 | 0.000 | <= 5.000 | 144 | 0 | 0 | 0 |
+| Couture de mouvement : ecart de demi-largeur | m | 144 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.0500 | 144 | 0 | 0 | 0 |
+| Corde compilee (critere de subdivision 5.26) | m | 116 | 0.0000 | 0.0000 | 0.0002 | 0.0002 | <= 0.0500 | 116 | 0 | 0 | 0 |
+| Degagement lateral (demi-largeur - demi-gabarit - marge) | m | 116 | 0.7200 | 0.7200 | 0.7200 | 0.7200 | >= 0 | 116 | 0 | 0 | 0 |
+| Derive de noeud source vers la courbe | m | 128 | 0.0000 | 0.0000 | 0.0002 | 0.0002 | <= 0.1000 | 128 | 0 | 24 | 72 |
+| Derive de portail | m | 8 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | <= 0.0500 | 8 | 0 | 0 | 0 |
 
 Origine des seuils :
 
@@ -219,7 +219,7 @@ Origine des seuils :
 - Couture de mouvement : ecart de demi-largeur : cible V2 proposee (meme tolerance que la position).
 - Corde compilee (critere de subdivision 5.26) : cible V2 proposee ; mesure = ecart spline-corde, borne par construction a la moitie ; l'ecart spline-intention n'est pas mesure.
 - Degagement lateral (demi-largeur - demi-gabarit - marge) : cible V2 proposee : demi-gabarit 1.0300 + marge 0.2500.
-- Derive de noeud source vers la courbe : cible V2 proposee ; seule exception approuvee : noeud de decision lisse par un mouvement tournant, et seulement si la graine reste sur l'axe de son approche (ecart <= 0.1000 m) ; sinon deviation a corriger.
+- Derive de noeud source vers la courbe : cible V2 proposee ; seule exception approuvee : noeud de decision lisse par un mouvement tournant, et seulement si la graine reste sur l'axe de son approche (ecart <= 0.1000 m) ; sinon deviation a corriger. Un noeud nomme par une operation d'authoring tracee (glissement d'ancre d'anneau, borne de portail) est publie comme deplacement, jamais ignore..
 - Derive de portail : cible V2 proposee, jamais mesuree avant ce rapport.
 
 Les colonnes min, p50, p95 et max portent sur la population dans le seuil (`n`) ; les valeurs hors seuil sont listees ci-dessous avec leur classe, jamais fondues dans ces statistiques.
@@ -232,30 +232,107 @@ Aucune.
 
 | Mesure | Sujet | Valeur | Seuil |
 |---|---|---:|---|
-| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromEast (graine) -> Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite) | 4.2401 | <= 0.1000 |
-| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromEast (graine) -> Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromNorth (graine) -> Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromNorth (graine) -> Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) | 4.2399 | <= 0.1000 |
-| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromSouth (graine) -> Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite) | 4.2399 | <= 0.1000 |
-| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromSouth (graine) -> Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromWest (graine) -> Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromWest (graine) -> Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite) | 4.2401 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_East / Junction_FromEast (graine) -> TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_East / Junction_FromSouth (graine) -> TJunction_East: Junction_FromSouth -> Connector_East_Out (droite) | 4.2399 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_East / Junction_FromSouth (graine) -> TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_East / Junction_FromWest (graine) -> TJunction_East: Junction_FromWest -> Connector_South_Out (droite) | 4.2399 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_North / Junction_FromEast (graine) -> TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_North / Junction_FromSouth (graine) -> TJunction_North: Junction_FromSouth -> Connector_East_Out (droite) | 4.2399 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_North / Junction_FromSouth (graine) -> TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_North / Junction_FromWest (graine) -> TJunction_North: Junction_FromWest -> Connector_South_Out (droite) | 4.2399 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_South / Junction_FromEast (graine) -> TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_South / Junction_FromSouth (graine) -> TJunction_South: Junction_FromSouth -> Connector_East_Out (droite) | 4.2399 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_South / Junction_FromSouth (graine) -> TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_South / Junction_FromWest (graine) -> TJunction_South: Junction_FromWest -> Connector_South_Out (droite) | 4.2399 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_West / Junction_FromEast (graine) -> TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_West / Junction_FromSouth (graine) -> TJunction_West: Junction_FromSouth -> Connector_East_Out (droite) | 4.2399 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_West / Junction_FromSouth (graine) -> TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | 3.2185 | <= 0.1000 |
-| Derive de noeud source vers la courbe | TJunction_West / Junction_FromWest (graine) -> TJunction_West: Junction_FromWest -> Connector_South_Out (droite) | 4.2399 | <= 0.1000 |
+| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromEast (graine) -> Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromEast (graine) -> Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromNorth (graine) -> Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromNorth (graine) -> Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromSouth (graine) -> Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromSouth (graine) -> Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromWest (graine) -> Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | Intersection_Center_Crossroads / Junction_FromWest (graine) -> Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_East / Junction_FromEast (graine) -> TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_East / Junction_FromSouth (graine) -> TJunction_East: Junction_FromSouth -> Connector_East_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_East / Junction_FromSouth (graine) -> TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_East / Junction_FromWest (graine) -> TJunction_East: Junction_FromWest -> Connector_South_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_North / Junction_FromEast (graine) -> TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_North / Junction_FromSouth (graine) -> TJunction_North: Junction_FromSouth -> Connector_East_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_North / Junction_FromSouth (graine) -> TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_North / Junction_FromWest (graine) -> TJunction_North: Junction_FromWest -> Connector_South_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_South / Junction_FromEast (graine) -> TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_South / Junction_FromSouth (graine) -> TJunction_South: Junction_FromSouth -> Connector_East_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_South / Junction_FromSouth (graine) -> TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_South / Junction_FromWest (graine) -> TJunction_South: Junction_FromWest -> Connector_South_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_West / Junction_FromEast (graine) -> TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_West / Junction_FromSouth (graine) -> TJunction_West: Junction_FromSouth -> Connector_East_Out (droite) | 3.5136 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_West / Junction_FromSouth (graine) -> TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | 1.9792 | <= 0.1000 |
+| Derive de noeud source vers la courbe | TJunction_West / Junction_FromWest (graine) -> TJunction_West: Junction_FromWest -> Connector_South_Out (droite) | 3.5136 | <= 0.1000 |
+
+### Deplacements publies (ancres d'anneau et bornes de portail)
+
+| Mesure | Sujet | Operation | Borne | Attendu | Mesure |
+|---|---|---|---:|---:|
+| Derive de noeud source vers la courbe | Ring_East_North / Lane_Back_Connector_In -> Ring_East_North: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_East_North / Lane_Fwd_Connector_Out -> Ring_East_North: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_East_South / Lane_Back_Connector_Out -> Ring_East_South: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_East_South / Lane_Fwd_Connector_In -> Ring_East_South: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_North_East / Lane_Back_Connector_In -> Ring_North_East: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_North_East / Lane_Fwd_Connector_Out -> Ring_North_East: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_North_West / Lane_Back_Connector_Out -> Ring_North_West: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_North_West / Lane_Fwd_Connector_In -> Ring_North_West: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_South_East / Lane_Back_Connector_In -> Ring_South_East: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_South_East / Lane_Fwd_Connector_Out -> Ring_South_East: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_South_West / Lane_Back_Connector_Out -> Ring_South_West: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_South_West / Lane_Fwd_Connector_In -> Ring_South_West: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_West_North / Lane_Back_Connector_In -> Ring_West_North: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_West_North / Lane_Fwd_Connector_Out -> Ring_West_North: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_West_South / Lane_Back_Connector_Out -> Ring_West_South: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Ring_West_South / Lane_Fwd_Connector_In -> Ring_West_South: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Connector_Diagonal_In (fusionne) -> TunnelPortal_NorthEast: PortalEntry -> Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Connector_Diagonal_Out (fusionne) -> TunnelPortal_NorthEast: Connector_In -> PortalExit | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Connector_South_In (fusionne) -> Ring_East_North: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Connector_South_Out (fusionne) -> Ring_East_North: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Connector_West_In (fusionne) -> Ring_North_East: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Connector_West_Out (fusionne) -> Ring_North_East: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Ring_Merge_Diagonal -> Roundabout_NorthEast: Ring_Merge_Diagonal -> Ring_Split_West | glissement d'ancre d'anneau | debut | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Ring_Merge_South -> Roundabout_NorthEast: Ring_Merge_South -> Ring_Split_Diagonal | glissement d'ancre d'anneau | debut | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Ring_Merge_West -> Roundabout_NorthEast: Ring_Merge_West -> Ring_Split_South | glissement d'ancre d'anneau | debut | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Ring_Split_Diagonal -> Roundabout_NorthEast: Ring_Merge_South -> Ring_Split_Diagonal | glissement d'ancre d'anneau | fin | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Ring_Split_South -> Roundabout_NorthEast: Ring_Merge_West -> Ring_Split_South | glissement d'ancre d'anneau | fin | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_NorthEast / Ring_Split_West -> Roundabout_NorthEast: Ring_Merge_Diagonal -> Ring_Split_West | glissement d'ancre d'anneau | fin | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Connector_Diagonal_In (fusionne) -> TunnelPortal_NorthWest: PortalEntry -> Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Connector_Diagonal_Out (fusionne) -> TunnelPortal_NorthWest: Connector_In -> PortalExit | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Connector_South_In (fusionne) -> Ring_North_West: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Connector_South_Out (fusionne) -> Ring_North_West: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Connector_West_In (fusionne) -> Ring_West_North: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Connector_West_Out (fusionne) -> Ring_West_North: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Ring_Merge_Diagonal -> Roundabout_NorthWest: Ring_Merge_Diagonal -> Ring_Split_West | glissement d'ancre d'anneau | debut | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Ring_Merge_South -> Roundabout_NorthWest: Ring_Merge_South -> Ring_Split_Diagonal | glissement d'ancre d'anneau | debut | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Ring_Merge_West -> Roundabout_NorthWest: Ring_Merge_West -> Ring_Split_South | glissement d'ancre d'anneau | debut | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Ring_Split_Diagonal -> Roundabout_NorthWest: Ring_Merge_South -> Ring_Split_Diagonal | glissement d'ancre d'anneau | fin | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Ring_Split_South -> Roundabout_NorthWest: Ring_Merge_West -> Ring_Split_South | glissement d'ancre d'anneau | fin | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_NorthWest / Ring_Split_West -> Roundabout_NorthWest: Ring_Merge_Diagonal -> Ring_Split_West | glissement d'ancre d'anneau | fin | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Connector_Diagonal_In (fusionne) -> TunnelPortal_SouthEast: PortalEntry -> Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Connector_Diagonal_Out (fusionne) -> TunnelPortal_SouthEast: Connector_In -> PortalExit | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Connector_South_In (fusionne) -> Ring_South_East: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Connector_South_Out (fusionne) -> Ring_South_East: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Connector_West_In (fusionne) -> Ring_East_South: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Connector_West_Out (fusionne) -> Ring_East_South: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Ring_Merge_Diagonal -> Roundabout_SouthEast: Ring_Merge_Diagonal -> Ring_Split_West | glissement d'ancre d'anneau | debut | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Ring_Merge_South -> Roundabout_SouthEast: Ring_Merge_South -> Ring_Split_Diagonal | glissement d'ancre d'anneau | debut | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Ring_Merge_West -> Roundabout_SouthEast: Ring_Merge_West -> Ring_Split_South | glissement d'ancre d'anneau | debut | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Ring_Split_Diagonal -> Roundabout_SouthEast: Ring_Merge_South -> Ring_Split_Diagonal | glissement d'ancre d'anneau | fin | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Ring_Split_South -> Roundabout_SouthEast: Ring_Merge_West -> Ring_Split_South | glissement d'ancre d'anneau | fin | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_SouthEast / Ring_Split_West -> Roundabout_SouthEast: Ring_Merge_Diagonal -> Ring_Split_West | glissement d'ancre d'anneau | fin | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Connector_Diagonal_In (fusionne) -> TunnelPortal_SouthWest: PortalEntry -> Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Connector_Diagonal_Out (fusionne) -> TunnelPortal_SouthWest: Connector_In -> PortalExit | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Connector_South_In (fusionne) -> Ring_West_South: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Connector_South_Out (fusionne) -> Ring_West_South: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Connector_West_In (fusionne) -> Ring_South_West: Lane_Back_Connector_In -> Lane_Back_Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Connector_West_Out (fusionne) -> Ring_South_West: Lane_Fwd_Connector_In -> Lane_Fwd_Connector_Out | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Ring_Merge_Diagonal -> Roundabout_SouthWest: Ring_Merge_Diagonal -> Ring_Split_West | glissement d'ancre d'anneau | debut | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Ring_Merge_South -> Roundabout_SouthWest: Ring_Merge_South -> Ring_Split_Diagonal | glissement d'ancre d'anneau | debut | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Ring_Merge_West -> Roundabout_SouthWest: Ring_Merge_West -> Ring_Split_South | glissement d'ancre d'anneau | debut | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Ring_Split_Diagonal -> Roundabout_SouthWest: Ring_Merge_South -> Ring_Split_Diagonal | glissement d'ancre d'anneau | fin | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Ring_Split_South -> Roundabout_SouthWest: Ring_Merge_West -> Ring_Split_South | glissement d'ancre d'anneau | fin | 2.9894 | 2.9894 |
+| Derive de noeud source vers la courbe | Roundabout_SouthWest / Ring_Split_West -> Roundabout_SouthWest: Ring_Merge_Diagonal -> Ring_Split_West | glissement d'ancre d'anneau | fin | 2.9893 | 2.9893 |
+| Derive de noeud source vers la courbe | TunnelPortal_NorthEast / Connector_In -> TunnelPortal_NorthEast: Connector_In -> PortalExit | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | TunnelPortal_NorthEast / Connector_Out -> TunnelPortal_NorthEast: PortalEntry -> Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | TunnelPortal_NorthWest / Connector_In -> TunnelPortal_NorthWest: Connector_In -> PortalExit | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | TunnelPortal_NorthWest / Connector_Out -> TunnelPortal_NorthWest: PortalEntry -> Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | TunnelPortal_SouthEast / Connector_In -> TunnelPortal_SouthEast: Connector_In -> PortalExit | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | TunnelPortal_SouthEast / Connector_Out -> TunnelPortal_SouthEast: PortalEntry -> Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | TunnelPortal_SouthWest / Connector_In -> TunnelPortal_SouthWest: Connector_In -> PortalExit | raccourcissement de borne de portail | debut | 2.5000 | 2.5000 |
+| Derive de noeud source vers la courbe | TunnelPortal_SouthWest / Connector_Out -> TunnelPortal_SouthWest: PortalEntry -> Connector_Out | raccourcissement de borne de portail | fin | 2.5000 | 2.5000 |
 
 ## Portee entrees -> sorties
 
@@ -347,15 +424,15 @@ Representation par primitives ordinaires, sans inference de cycle : 3 entrees, 3
 
 | Mouvement | Identite | Poids (plus grand = prefere) | Cap (deg) |
 |---|---|---:|---:|
-| Roundabout_SouthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) | `43605e569eb08d6ffe62fa7470d59fa0` | 1.0000 | 61.500 |
-| Roundabout_SouthWest: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | `42e993cf17d9aad93755cb544a0d02a9` | 40.0000 | -59.000 |
-| Roundabout_SouthWest: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | `419d893b269e14c02e84e3509d9bf193` | 60.0000 | 61.500 |
-| Roundabout_SouthWest: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | `4030253e182e3ed1b7d2aeea7a73feb6` | 60.0000 | 59.500 |
-| Roundabout_SouthWest: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | `4e0c96d3fe6dbf797b6b539c16fe42ac` | 40.0000 | -59.000 |
-| Roundabout_SouthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | `42480748339bbb6fe6fcbc99604c1aa8` | 1.0000 | 59.500 |
-| Roundabout_SouthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau) | `4cec0461fb9fd74541d5772b2264b88f` | 1.0000 | 59.500 |
-| Roundabout_SouthWest: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | `45607ec286d32b63e09ca677f22031ba` | 60.0000 | 59.500 |
-| Roundabout_SouthWest: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | `4a61888b6162623b5f3b239c6967a1b7` | 40.0000 | -61.000 |
+| Roundabout_SouthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) | `43605e569eb08d6ffe62fa7470d59fa0` | 1.0000 | 49.150 |
+| Roundabout_SouthWest: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | `42e993cf17d9aad93755cb544a0d02a9` | 40.0000 | -81.700 |
+| Roundabout_SouthWest: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | `419d893b269e14c02e84e3509d9bf193` | 60.0000 | 49.150 |
+| Roundabout_SouthWest: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | `4030253e182e3ed1b7d2aeea7a73feb6` | 60.0000 | 49.150 |
+| Roundabout_SouthWest: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | `4e0c96d3fe6dbf797b6b539c16fe42ac` | 40.0000 | -81.700 |
+| Roundabout_SouthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | `42480748339bbb6fe6fcbc99604c1aa8` | 1.0000 | 49.150 |
+| Roundabout_SouthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau) | `4cec0461fb9fd74541d5772b2264b88f` | 1.0000 | 49.150 |
+| Roundabout_SouthWest: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | `45607ec286d32b63e09ca677f22031ba` | 60.0000 | 49.150 |
+| Roundabout_SouthWest: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | `4a61888b6162623b5f3b239c6967a1b7` | 40.0000 | -81.700 |
 
 ### Roundabout_NorthWest (Roundabout, `41a63c5603c904390698494de09c299d`)
 
@@ -363,15 +440,15 @@ Representation par primitives ordinaires, sans inference de cycle : 3 entrees, 3
 
 | Mouvement | Identite | Poids (plus grand = prefere) | Cap (deg) |
 |---|---|---:|---:|
-| Roundabout_NorthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) | `4d6ca77eae0d45e72a542a1478a2aa84` | 1.0000 | 61.500 |
-| Roundabout_NorthWest: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | `431a11dff650b4115fa5bf99118b9b8a` | 40.0000 | -59.000 |
-| Roundabout_NorthWest: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | `45d560a7a864362a2f19600802713fac` | 60.0000 | 61.500 |
-| Roundabout_NorthWest: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | `4ac98ed2e41d83c91f0714135aa67ba7` | 60.0000 | 59.500 |
-| Roundabout_NorthWest: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | `469fe81415e729b4258c4b7eda9e65a2` | 40.0000 | -59.000 |
-| Roundabout_NorthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | `452ee31e83feea5ebc05406c271424a9` | 1.0000 | 59.500 |
-| Roundabout_NorthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau) | `464127b42987ee35c9def93cb72dae8c` | 1.0000 | 59.500 |
-| Roundabout_NorthWest: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | `46077471fe6db9c5bfc3327df0b647af` | 60.0000 | 59.500 |
-| Roundabout_NorthWest: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | `4aa676c5e3857524d5a9b386be4bdb90` | 40.0000 | -61.000 |
+| Roundabout_NorthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) | `4d6ca77eae0d45e72a542a1478a2aa84` | 1.0000 | 49.150 |
+| Roundabout_NorthWest: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | `431a11dff650b4115fa5bf99118b9b8a` | 40.0000 | -81.700 |
+| Roundabout_NorthWest: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | `45d560a7a864362a2f19600802713fac` | 60.0000 | 49.150 |
+| Roundabout_NorthWest: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | `4ac98ed2e41d83c91f0714135aa67ba7` | 60.0000 | 49.150 |
+| Roundabout_NorthWest: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | `469fe81415e729b4258c4b7eda9e65a2` | 40.0000 | -81.700 |
+| Roundabout_NorthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | `452ee31e83feea5ebc05406c271424a9` | 1.0000 | 49.150 |
+| Roundabout_NorthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau) | `464127b42987ee35c9def93cb72dae8c` | 1.0000 | 49.150 |
+| Roundabout_NorthWest: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | `46077471fe6db9c5bfc3327df0b647af` | 60.0000 | 49.150 |
+| Roundabout_NorthWest: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | `4aa676c5e3857524d5a9b386be4bdb90` | 40.0000 | -81.700 |
 
 ### Roundabout_NorthEast (Roundabout, `4309f6e91e6d597ef92349b8ede4fc89`)
 
@@ -379,15 +456,15 @@ Representation par primitives ordinaires, sans inference de cycle : 3 entrees, 3
 
 | Mouvement | Identite | Poids (plus grand = prefere) | Cap (deg) |
 |---|---|---:|---:|
-| Roundabout_NorthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) | `4357c472225591a18683e67ea2dd5f92` | 1.0000 | 61.500 |
-| Roundabout_NorthEast: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | `47503370c9eef190188a0ab64232d285` | 40.0000 | -59.000 |
-| Roundabout_NorthEast: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | `4b517add680eba2b77f4e15e9033e180` | 60.0000 | 61.500 |
-| Roundabout_NorthEast: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | `401b55e11b401435eb1bdd8dde7caa94` | 60.0000 | 59.500 |
-| Roundabout_NorthEast: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | `41275077956795084d45b347a670eba1` | 40.0000 | -59.000 |
-| Roundabout_NorthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | `4439e11d9c47c1d09aad97b8f5dd1cbe` | 1.0000 | 59.500 |
-| Roundabout_NorthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau) | `4f47e1a8140c798681fef66fa633b3b5` | 1.0000 | 59.500 |
-| Roundabout_NorthEast: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | `4a772fed8c8aaeab952d011659612ea7` | 60.0000 | 59.500 |
-| Roundabout_NorthEast: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | `47c7c84e9d1de0910268c837613d11b7` | 40.0000 | -61.000 |
+| Roundabout_NorthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) | `4357c472225591a18683e67ea2dd5f92` | 1.0000 | 49.150 |
+| Roundabout_NorthEast: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | `47503370c9eef190188a0ab64232d285` | 40.0000 | -81.700 |
+| Roundabout_NorthEast: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | `4b517add680eba2b77f4e15e9033e180` | 60.0000 | 49.150 |
+| Roundabout_NorthEast: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | `401b55e11b401435eb1bdd8dde7caa94` | 60.0000 | 49.150 |
+| Roundabout_NorthEast: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | `41275077956795084d45b347a670eba1` | 40.0000 | -81.700 |
+| Roundabout_NorthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | `4439e11d9c47c1d09aad97b8f5dd1cbe` | 1.0000 | 49.150 |
+| Roundabout_NorthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau) | `4f47e1a8140c798681fef66fa633b3b5` | 1.0000 | 49.150 |
+| Roundabout_NorthEast: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | `4a772fed8c8aaeab952d011659612ea7` | 60.0000 | 49.150 |
+| Roundabout_NorthEast: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | `47c7c84e9d1de0910268c837613d11b7` | 40.0000 | -81.700 |
 
 ### Roundabout_SouthEast (Roundabout, `4933ae7e9cbb42b7278015dfd5e3c3b0`)
 
@@ -395,15 +472,15 @@ Representation par primitives ordinaires, sans inference de cycle : 3 entrees, 3
 
 | Mouvement | Identite | Poids (plus grand = prefere) | Cap (deg) |
 |---|---|---:|---:|
-| Roundabout_SouthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) | `4469169721b83714f20e63d9fcfff484` | 1.0000 | 61.500 |
-| Roundabout_SouthEast: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | `491e02f31f623c7a5d46026ad368f388` | 40.0000 | -59.000 |
-| Roundabout_SouthEast: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | `4a6aa7e11135c1ecb2cb26715ca8cab4` | 60.0000 | 61.500 |
-| Roundabout_SouthEast: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | `453f130c460dc35e052c30714bec6c8e` | 60.0000 | 59.500 |
-| Roundabout_SouthEast: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | `440c8e05722bb01491a4d57e00cd03a4` | 40.0000 | -59.000 |
-| Roundabout_SouthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | `470e78565e75b89add119d1f7bf3d8b3` | 1.0000 | 59.500 |
-| Roundabout_SouthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau) | `4a5a12c19e62b4f853f928a3d4fb4c96` | 1.0000 | 59.500 |
-| Roundabout_SouthEast: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | `4edce9aa0d470704d0479247d72ff2be` | 60.0000 | 59.500 |
-| Roundabout_SouthEast: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | `4dfcc1af030746a1a7e376f814e03a81` | 40.0000 | -61.000 |
+| Roundabout_SouthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) | `4469169721b83714f20e63d9fcfff484` | 1.0000 | 49.150 |
+| Roundabout_SouthEast: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | `491e02f31f623c7a5d46026ad368f388` | 40.0000 | -81.700 |
+| Roundabout_SouthEast: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | `4a6aa7e11135c1ecb2cb26715ca8cab4` | 60.0000 | 49.150 |
+| Roundabout_SouthEast: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | `453f130c460dc35e052c30714bec6c8e` | 60.0000 | 49.150 |
+| Roundabout_SouthEast: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | `440c8e05722bb01491a4d57e00cd03a4` | 40.0000 | -81.700 |
+| Roundabout_SouthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | `470e78565e75b89add119d1f7bf3d8b3` | 1.0000 | 49.150 |
+| Roundabout_SouthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau) | `4a5a12c19e62b4f853f928a3d4fb4c96` | 1.0000 | 49.150 |
+| Roundabout_SouthEast: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | `4edce9aa0d470704d0479247d72ff2be` | 60.0000 | 49.150 |
+| Roundabout_SouthEast: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | `4dfcc1af030746a1a7e376f814e03a81` | 40.0000 | -81.700 |
 
 ## Taches d'authoring (Story 5.28)
 
@@ -1228,10 +1305,10 @@ Chaque element source recoit une disposition typee ; toute forme non disposable 
 
 | Source | Cle source | Disposition | Cible | Detail |
 |---|---|---|---|---|
-| PortalExit (Exit, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-1045154302:Exit` | PortalRecord | `49d29d3fd771ae4966aca755b3442cbc` | s = 12.0000 m sur TunnelPortal_SouthWest: Connector_In -> PortalExit |
-| PortalExit (Exit, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-1574439523:Exit` | PortalRecord | `436d9a1a58c93bd19cdf0014de309f98` | s = 12.0000 m sur TunnelPortal_NorthEast: Connector_In -> PortalExit |
-| PortalExit (Exit, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-234956567:Exit` | PortalRecord | `48090a5d359625c04fb6050a2407f292` | s = 12.0000 m sur TunnelPortal_NorthWest: Connector_In -> PortalExit |
-| PortalExit (Exit, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-75338410:Exit` | PortalRecord | `4dcf9641f7a714b8bc785696d1709798` | s = 12.0000 m sur TunnelPortal_SouthEast: Connector_In -> PortalExit |
+| PortalExit (Exit, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-1045154302:Exit` | PortalRecord | `49d29d3fd771ae4966aca755b3442cbc` | s = 9.5000 m sur TunnelPortal_SouthWest: Connector_In -> PortalExit |
+| PortalExit (Exit, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-1574439523:Exit` | PortalRecord | `436d9a1a58c93bd19cdf0014de309f98` | s = 9.5000 m sur TunnelPortal_NorthEast: Connector_In -> PortalExit |
+| PortalExit (Exit, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-234956567:Exit` | PortalRecord | `48090a5d359625c04fb6050a2407f292` | s = 9.5000 m sur TunnelPortal_NorthWest: Connector_In -> PortalExit |
+| PortalExit (Exit, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-75338410:Exit` | PortalRecord | `4dcf9641f7a714b8bc785696d1709798` | s = 9.5000 m sur TunnelPortal_SouthEast: Connector_In -> PortalExit |
 | PortalEntry (Entry, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-1045154302:Entry` | PortalRecord | `4889b9d5d0f80bc3ce3c3514a5d6f7aa` | s = 0.0000 m sur TunnelPortal_SouthWest: PortalEntry -> Connector_Out |
 | PortalEntry (Entry, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-1574439523:Entry` | PortalRecord | `4ce14124d3729e5b3ad1174c8653a99d` | s = 0.0000 m sur TunnelPortal_NorthEast: PortalEntry -> Connector_Out |
 | PortalEntry (Entry, exitReusesEntry=faux) | `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-234956567:Entry` | PortalRecord | `4882b42dcf37410f4f629825c30f5f99` | s = 0.0000 m sur TunnelPortal_NorthWest: PortalEntry -> Connector_Out |

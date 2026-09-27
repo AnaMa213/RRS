@@ -202,8 +202,11 @@ namespace RoadRage.Tests.EditMode
 
             Assert.That(count, Is.EqualTo(1));
             Assert.That(Find(after, committed[0]).GeometryFingerprint, Is.EqualTo(FingerprintA));
-            Assert.That(Find(after, committed[1]).GeometryFingerprint, Is.Empty, "Une paire modifiee n'est jamais reconfirmee en lot.");
-            Assert.That(Find(after, committed[2]).GeometryFingerprint, Is.Empty, "Une paire absente de la table n'est jamais reconfirmee.");
+            Assert.That(committed[1].GeometryFingerprint, Is.Not.Empty, "Premisse : l'application a emis une empreinte par decision active.");
+            Assert.That(Find(after, committed[1]).GeometryFingerprint, Is.EqualTo(committed[1].GeometryFingerprint),
+                "Une paire modifiee n'est jamais reconfirmee en lot : son empreinte appliquee reste inchangee.");
+            Assert.That(Find(after, committed[2]).GeometryFingerprint, Is.EqualTo(committed[2].GeometryFingerprint),
+                "Une paire absente de la table n'est jamais reconfirmee : son empreinte appliquee reste inchangee.");
             Assert.That(after, Has.Count.EqualTo(committed.Count));
             Assert.That(updated, Does.Contain("\"Format\": " + AuthoringDecisions.FormatVersion));
         }
@@ -221,36 +224,27 @@ namespace RoadRage.Tests.EditMode
             Assert.That(decision.Decision, Is.EqualTo(committed[3].Decision));
             Assert.That(decision.Id, Is.EqualTo(committed[3].Id));
             Assert.That(decision.Reason, Is.EqualTo(committed[3].Reason));
-            Assert.That(Find(after, committed[4]).GeometryFingerprint, Is.Empty, "Seule la paire designee est reconfirmee.");
+            Assert.That(Find(after, committed[4]).GeometryFingerprint, Is.EqualTo(committed[4].GeometryFingerprint),
+                "Seule la paire designee est reconfirmee : l'empreinte appliquee des autres reste inchangee.");
         }
 
         [Test]
-        public void DecidingRequiresAReasonAndManagesTheZoneIdentifier()
+        public void DecidingIsRefusedOutsideTheDeterministicPolicy()
         {
             string text = Committed(AuthoredRoadModel.DecisionsPath);
             var committed = AuthoringDecisions.Parse(text).Conflicts;
             var entry = Entry(committed[5], PairReviewStatus.Modified, FingerprintB, FingerprintC);
 
-            Assert.Throws<InvalidOperationException>(() => PairReviewActions.Decide(text, entry, ConflictDecisionKind.Rejected, "  "));
-
-            string rejected = PairReviewActions.Decide(text, entry, ConflictDecisionKind.Rejected, "Trajectoires separees par le terre-plein.");
-            ConflictDecision afterReject = Find(AuthoringDecisions.Parse(rejected).Conflicts, committed[5]);
-            Assert.That(afterReject.Decision, Is.EqualTo(ConflictDecisionKind.Rejected));
-            Assert.That(afterReject.Id, Is.EqualTo(RoadId.None), "Un rejet ne materialise aucune zone.");
-            Assert.That(afterReject.GeometryFingerprint, Is.EqualTo(FingerprintC));
-
-            string accepted = PairReviewActions.Decide(rejected, entry, ConflictDecisionKind.Accepted, "Croisement reel.");
-            ConflictDecision afterAccept = Find(AuthoringDecisions.Parse(accepted).Conflicts, committed[5]);
-            Assert.That(afterAccept.Decision, Is.EqualTo(ConflictDecisionKind.Accepted));
-            Assert.That(afterAccept.Id, Is.Not.EqualTo(RoadId.None), "Une acceptation materialise une zone identifiee.");
-
-            string kept = PairReviewActions.Decide(text, entry, ConflictDecisionKind.Accepted, "Croisement confirme.");
-            Assert.That(Find(AuthoringDecisions.Parse(kept).Conflicts, committed[5]).Id, Is.EqualTo(committed[5].Id),
-                "Une acceptation maintenue garde son identifiant de zone.");
+            Assert.Throws<InvalidOperationException>(() => PairReviewActions.Decide(text, entry, ConflictDecisionKind.Rejected, "Trajectoires separees par le terre-plein."));
+            Assert.Throws<InvalidOperationException>(() => PairReviewActions.Decide(text, entry, ConflictDecisionKind.Accepted, "Croisement confirme."));
+            Assert.That(PairReviewWindow.AvailableActions(entry), Does.Not.Contain("Rejeter"),
+                "Un rejet manuel n'aurait aucun certificat de separation.");
+            Assert.That(PairReviewWindow.AvailableActions(entry), Does.Not.Contain("Accepter"),
+                "Une acceptation manuelle n'aurait aucune revision liee.");
         }
 
         [Test]
-        public void DecidingANewPairAddsExactlyOneDecision()
+        public void AcceptingANewPairOutsideThePolicyIsRefused()
         {
             string text = Committed(AuthoredRoadModel.DecisionsPath);
             var decisions = AuthoringDecisions.Parse(text);
@@ -259,9 +253,8 @@ namespace RoadRage.Tests.EditMode
             string without = decisions.Serialize();
             var entry = Entry(removed, PairReviewStatus.New, null, FingerprintA);
 
-            var after = AuthoringDecisions.Parse(PairReviewActions.Decide(without, entry, ConflictDecisionKind.Accepted, "Nouvelle convergence.")).Conflicts;
-            Assert.That(after, Has.Count.EqualTo(decisions.Conflicts.Count + 1));
-            Assert.That(Find(after, removed).GeometryFingerprint, Is.EqualTo(FingerprintA));
+            Assert.Throws<InvalidOperationException>(() => PairReviewActions.Decide(without, entry, ConflictDecisionKind.Accepted, "Nouvelle convergence."),
+                "Une paire nouvelle recoit sa disposition du plan deterministe, jamais d'une action manuelle.");
         }
 
         [Test]
@@ -290,16 +283,21 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void FormatThreeAcceptsAnUnconfirmedDecisionAndRefusesAMalformedFingerprint()
+        public void ReconfirmingEmitsFormatFourAndFormatThreeReadsAsHistorical()
         {
             string text = Committed(AuthoredRoadModel.DecisionsPath);
             var committed = AuthoringDecisions.Parse(text).Conflicts;
-            string formatThree = PairReviewActions.ReconfirmPair(text, Entry(committed[0], PairReviewStatus.Modified, FingerprintB, FingerprintA));
+            string updated = PairReviewActions.ReconfirmPair(text, Entry(committed[0], PairReviewStatus.Modified, FingerprintB, FingerprintA));
 
-            var reread = AuthoringDecisions.Parse(formatThree).Conflicts;
+            Assert.That(updated, Does.Contain("\"Format\": " + AuthoringDecisions.FormatVersion));
+            var reread = AuthoringDecisions.Parse(updated).Conflicts;
             Assert.That(Find(reread, committed[0]).GeometryFingerprint, Is.EqualTo(FingerprintA));
-            Assert.That(Find(reread, committed[1]).GeometryFingerprint, Is.Empty, "Non reconfirmee : lue comme proposition historique.");
-            Assert.Throws<FormatException>(() => AuthoringDecisions.Parse(formatThree.Replace(FingerprintA, "pas-une-empreinte")));
+            Assert.That(Find(reread, committed[1]).GeometryFingerprint, Is.EqualTo(committed[1].GeometryFingerprint));
+
+            string formatThree = updated.Replace("\"Format\": " + AuthoringDecisions.FormatVersion, "\"Format\": " + AuthoringDecisions.HistoricalFormatVersion);
+            var historical = AuthoringDecisions.Parse(formatThree).Conflicts;
+            Assert.That(Find(historical, committed[0]).DecisionRevisionId, Is.Null.Or.Empty, "Un format historique se lit comme non confirme.");
+            Assert.Throws<FormatException>(() => AuthoringDecisions.Parse(updated.Replace(FingerprintA, "pas-une-empreinte")));
         }
 
         // ============================================================ isolation
@@ -351,15 +349,16 @@ namespace RoadRage.Tests.EditMode
             var stale = Labelled("J", "a", "b", PairReviewStatus.Modified);
             stale.HasDecision = true;
             stale.DecisionState = PairDecisionState.Unconfirmed;
-            Assert.That(PairReviewWindow.AvailableActions(stale), Is.EqualTo(new[] { "Reconfirmer cette paire", "Accepter", "Rejeter" }));
+            Assert.That(PairReviewWindow.AvailableActions(stale), Is.EqualTo(new[] { "Reconfirmer cette paire" }));
 
             var confirmed = Labelled("J", "a", "b", PairReviewStatus.Modified);
             confirmed.HasDecision = true;
             confirmed.DecisionState = PairDecisionState.Confirmed;
-            Assert.That(PairReviewWindow.AvailableActions(confirmed), Does.Not.Contain("Reconfirmer cette paire"));
+            Assert.That(PairReviewWindow.AvailableActions(confirmed), Is.Empty);
 
             var fresh = Labelled("J", "a", "b", PairReviewStatus.New);
-            Assert.That(PairReviewWindow.AvailableActions(fresh), Is.EqualTo(new[] { "Accepter", "Rejeter" }));
+            Assert.That(PairReviewWindow.AvailableActions(fresh), Is.Empty,
+                "Une paire nouvelle recoit sa disposition du plan deterministe, jamais d'un bouton manuel.");
         }
 
         [Test]

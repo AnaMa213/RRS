@@ -327,9 +327,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Serialisation deterministe : chaque liste triee, LF, terminee par un saut de ligne.</summary>
         public string Serialize()
         {
+            return Serialize(FormatVersion);
+        }
+
+        /// <summary>Compatibilite de calcul en memoire seulement ; un format historique n'est jamais persiste.</summary>
+        internal string SerializeHistoricalForReadOnlyMigration()
+        {
+            return Serialize(HistoricalFormatVersion);
+        }
+
+        private string Serialize(int format)
+        {
             Sort();
             var layout = new FileLayout();
-            layout.Format = FormatVersion;
+            layout.Format = format;
             layout.Controls = Controls.ConvertAll(delegate(ControlDecision c)
             {
                 return new ControlRecord { Id = c.Id.ToString(), ApproachKey = c.ApproachKey, Kind = c.Kind.ToString() };

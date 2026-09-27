@@ -716,10 +716,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     }
 
     /// <summary>
-    /// Actions de decision reservees au proprietaire. Chacune transforme le texte des decisions et
-    /// n'est appelee que par un geste explicite dans la fenetre de revue ; le pipeline ne les appelle
-    /// jamais. Aucune ne reconfirme une paire dont la geometrie ou le volume a change sans que le
-    /// proprietaire l'ait designee.
+    /// Actions du proprietaire sur les decisions appliquees : reconfirmer une empreinte et disposer
+    /// une decision orpheline, jamais decider d'une paire. Chacune transforme le texte des decisions
+    /// et n'est appelee que par un geste explicite dans la fenetre de revue ; le pipeline ne les
+    /// appelle jamais. Une decision ne s'ecrit que par le plan deterministe `5.50-AUTO-DECISIONS-v1`.
     /// </summary>
     public static class PairReviewActions
     {
@@ -768,48 +768,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return decisions.Serialize();
         }
 
-        /// <summary>Decide (ou change) la decision d'une paire candidate, avec son empreinte fraiche.</summary>
+        /// <summary>
+        /// Refuse toute decision manuelle (accepter, rejeter, ajouter). Le format 4 exige une
+        /// revision, une preuve et les versions exactes, que seul le plan deterministe approuve
+        /// `5.50-AUTO-DECISIONS-v1` emet ; un rejet manuel n'aurait aucun certificat de separation.
+        /// </summary>
         public static string Decide(string decisionsText, PairReviewEntry entry, ConflictDecisionKind kind, string reason)
         {
-            RequireFresh(entry, "decider");
-            if (reason == null || reason.Trim().Length == 0)
-            {
-                throw new InvalidOperationException("Un motif est obligatoire pour decider " + entry.LabelA + " x " + entry.LabelB + ".");
-            }
-
-            var decisions = AuthoringDecisions.Parse(decisionsText);
-            int index = IndexOf(decisions, entry);
-            var decision = index >= 0 ? decisions.Conflicts[index] : new ConflictDecision
-            {
-                MovementKeyA = entry.KeyA,
-                MovementKeyB = entry.KeyB
-            };
-
-            if (kind == ConflictDecisionKind.Accepted)
-            {
-                if (index < 0 || decision.Decision != ConflictDecisionKind.Accepted || decision.Id == RoadId.None)
-                {
-                    decision.Id = RoadId.New();
-                }
-            }
-            else
-            {
-                decision.Id = RoadId.None;
-            }
-
-            decision.Decision = kind;
-            decision.Reason = reason.Trim();
-            decision.GeometryFingerprint = entry.NewFingerprint;
-            if (index >= 0)
-            {
-                decisions.Conflicts[index] = decision;
-            }
-            else
-            {
-                decisions.Conflicts.Add(decision);
-            }
-
-            return decisions.Serialize();
+            throw new InvalidOperationException(
+                "Aucune decision ne s'ecrit hors du plan deterministe approuve 5.50-AUTO-DECISIONS-v1 : "
+                + "la revision et la preuve d'une paire sont emises par la fonction deleguee, jamais par une action manuelle.");
         }
 
         /// <summary>Retire explicitement la decision orpheline d'une paire qui n'est plus candidate.</summary>

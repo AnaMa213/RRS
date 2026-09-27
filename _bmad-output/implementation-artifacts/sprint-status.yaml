@@ -177,7 +177,11 @@ development_status:
   # Inserted 2026-09-25 (sprint-change-proposal-2026-09-25.md): the 2026-09-24
   # overlay review found undrivable V2 movement geometry (5.50) and right-turn
   # corner conflicts (5.51). Both run BEFORE the 5.28 sign-off, in this order.
-  5-50-v2-movement-geometry-correction-and-model-level-drivability-validation: in-progress
+  # 2026-09-27: delegated plan 5.50-AUTO-DECISIONS-v1 applied and re-verified
+  # (second pass byte-identical, zero proposed change; EditMode 876/877 with
+  # only the unsigned-Gate-A tripwire red). Review now waits on the owner's
+  # distinct Gate A visual review and signature, after 5.51.
+  5-50-v2-movement-geometry-correction-and-model-level-drivability-validation: review
   5-51-junction-corner-clearance-for-right-turns: backlog
   5-29-deterministic-strategic-route-plan: backlog
   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog

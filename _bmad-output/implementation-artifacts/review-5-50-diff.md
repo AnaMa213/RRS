@@ -21,457 +21,457 @@ Generation en lecture seule : aucun modele, overlay, rapport 5.28 ou fichier de 
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) x Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `49d2e59d90ea1cd3348b5277f5dc1590232854f0ab5c7c55df7f25993d17f510`, volume centre (2.843, 0.000, 0.005), etendues (3.336, 1.280, 2.976)
   - nouveau : `d757bbb9ddc055b001092de0844d8518437bbcef67fa80125e1af76d258e7236`, volume centre (5.195, 0.000, 0.000), etendues (8.730, 2.455, 6.728)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) x Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `9b2ca4a25b5094d1765d5c65cb6669e392b3de54f4576ef7067adf3fd93dfb9a`, volume centre (0.800, 0.000, 1.881), etendues (4.640, 1.280, 3.718)
   - nouveau : `801ba8ca800db1c38ea6f200c593eabdfda76442b7f988605504a9ce393e4d73`, volume centre (2.797, 0.000, 2.127), etendues (11.128, 2.455, 6.582)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `cb469ad0629a920856166575a345d1609039acb3f57af08a0d34080a4e37ae7d`, volume centre (-0.005, 0.000, 2.843), etendues (2.976, 1.280, 3.336)
   - nouveau : `84ecb9f13d54d384589f9ec74c55945986d5910cf382680972860ae46ad0f01e`, volume centre (0.000, 0.000, 5.195), etendues (6.728, 2.455, 8.730)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `365ab061128478a7f7155dd10d14b281e38503d2e14347e0dd60383e1ad06ae6`, volume centre (4.640, 0.000, -0.812), etendues (4.640, 1.280, 2.468)
   - nouveau : `5d0192f7e10119de8d2063ed25dab84a8971d2fcd15aa69a6a4f97cba0208d55`, volume centre (3.922, 0.000, 0.281), etendues (10.003, 2.455, 4.736)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `cc7e4f1a1bf007711829df9a3fd6f8d10a2efea90afcd822ed3fdad41da00062`, volume centre (1.959, 0.000, 0.800), etendues (3.630, 1.280, 4.640)
   - nouveau : `118e73197a9654be4c0177a893e38c0665f8e7b190b64762b64816df6f7616fa`, volume centre (2.127, 0.000, 2.797), etendues (6.582, 2.455, 11.128)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `03eb5a2ca8f8ab99803fd9664b04ebfbac7231e30133ad410718be143c4b3244`, volume centre (6.013, 0.000, -2.236), etendues (3.267, 1.280, 2.636)
   - nouveau : `eb3af5ba547d244e570aff1dc9acf07861a7f243aa5033a63e5c56bb490014e1`, volume centre (5.889, 0.000, -2.824), etendues (8.036, 2.455, 5.543)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `5fe9fed1a1f9d0e62383d50bef791c51c8d6046687da6fa39a72e5685da7ea74`, volume centre (-0.812, 0.000, -4.640), etendues (2.468, 1.280, 4.640)
   - nouveau : `81d6fff6de942671ba1d9cb6098a48dc37663df66df00954353c6a6114a9021d`, volume centre (0.281, 0.000, -3.922), etendues (4.736, 2.455, 10.003)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.663 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `06cec9660f9f0cc6b86d7a4be757053e64e9c58f1eef95022a95c24bf8427d3a`, volume centre (-2.080, 0.000, 2.080), etendues (3.680, 1.280, 3.680)
   - nouveau : `8f1d37a923119b149e58e63bc373f2ae70fdddee689ac33da6a846a0804b6a52`, volume centre (-2.000, 0.000, 2.000), etendues (6.581, 1.361, 6.581)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `b7f1b46cdee36806e910b8d875fdcb1391ae5c7f19034d4badecb3943e9076f9`, volume centre (-1.881, 0.000, 0.800), etendues (3.718, 1.280, 4.640)
   - nouveau : `96b89bd48f10e819ba19f69a9ba57349000fee3339a5b771e63400d6578bf8bf`, volume centre (-2.127, 0.000, 2.797), etendues (6.582, 2.455, 11.128)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.663 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `fed8c45009134e48fb17ab8782c6db64e1a1ed27a8d19ad20ea0202bbc36f16b`, volume centre (-2.080, 0.000, -2.080), etendues (3.680, 1.280, 3.680)
   - nouveau : `f1b6facc1e9d2ef0af70f2c455028bb2e869859d63e50194f34a788bfaac9602`, volume centre (-2.000, 0.000, -2.000), etendues (6.581, 1.361, 6.581)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `443fec214fe210d2d6c78b9c3dfbd5881b573fb9bbbc41c9aef8852d6abbf004`, volume centre (-3.255, 0.000, -5.280), etendues (2.535, 1.280, 4.000)
   - nouveau : `41da285daa836c7dbb2e315f96d79224895a6218e6f46f63ec157e3bb81c1a3e`, volume centre (-4.179, 0.000, -5.016), etendues (4.634, 2.455, 8.909)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `35d31e6a4d026a90f6b40aacfca0ef9440e85bf7415feb8fec8ead4e53a6d88d`, volume centre (-1.959, 0.000, -0.800), etendues (3.630, 1.280, 4.640)
   - nouveau : `a6dfe9df6ef762848a335376c27aa6d9181b42176a05aef23c8470bf278bd67d`, volume centre (-2.127, 0.000, -2.797), etendues (6.582, 2.455, 11.128)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) x Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `81ecf33a1f5e7c1bb71aea2d083af84029fa3ebf48d4361fda7e2e8a00220d7a`, volume centre (-5.280, 0.000, 3.255), etendues (4.000, 1.280, 2.535)
   - nouveau : `0bd54a22dd2f921fb2db9851db0978457bbbfb650211d9d6b3787d8814208fca`, volume centre (-5.016, 0.000, 4.179), etendues (8.909, 2.455, 4.634)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `6f251572f343313b162284cadf2a3d157405973b00ded926ea56e1da8607aa4a`, volume centre (-6.013, 0.000, 2.236), etendues (3.267, 1.280, 2.636)
   - nouveau : `9935c1edfef2077020bc12261819ad8fb17a7b2be235a9dcd991aaa92542aef3`, volume centre (-5.889, 0.000, 2.824), etendues (8.036, 2.455, 5.543)
 - **TJunction_East** : TJunction_East: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1056351953`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `c415aa00ee313e9c200e38a7b32dc94574f3ba2624f2d5184fc99cb451842a03`, volume centre (32.812, 0.000, 4.640), etendues (2.468, 1.280, 4.640)
   - nouveau : `d2704bfbb66b529f9577609f35b43263cbc3b7ba01dad453673058fff1ed1aaa`, volume centre (31.719, 0.000, 3.922), etendues (4.736, 2.455, 10.003)
 - **TJunction_East** : TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1056351953`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `54ca43a7dbf60ad066de191382a06c30c6654b2aa8d117c29965c15824113d13`, volume centre (30.041, 0.000, -0.800), etendues (3.630, 1.280, 4.640)
   - nouveau : `ab0dfef0453f9bb072bd77ab40e68d5125edb4cfcaf35b3af396ffcf466fd779`, volume centre (29.873, 0.000, -2.797), etendues (6.582, 2.455, 11.128)
 - **TJunction_East** : TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_East: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1056351953`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `1c5d1c83464eb6a679fb6009e3f529b2c69d3bd55302e570a91359bee5736e4e`, volume centre (25.987, 0.000, 2.236), etendues (3.267, 1.280, 2.636)
   - nouveau : `5d433b9bdcfb3635b8a2d7415efae78c759403f165d1ae9494d6b320c0a08491`, volume centre (26.111, 0.000, 2.824), etendues (8.036, 2.455, 5.543)
 - **TJunction_East** : TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1056351953`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `3136e8d98f603706163691a83e7ad864436987b8ad088539b644e8e412492fd0`, volume centre (29.157, 0.000, -0.005), etendues (3.336, 1.280, 2.976)
   - nouveau : `75acf1f14d6cdfec0cb2d19cd1b41c82645db3b07d5434d4cd068ce6074b672b`, volume centre (26.805, 0.000, 0.000), etendues (8.730, 2.455, 6.728)
 - **TJunction_West** : TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1186247037`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `0d1bd9749387301025023e4387df889b30d79b67284173953007e1345bd710d0`, volume centre (-32.812, 0.000, -4.640), etendues (2.468, 1.280, 4.640)
   - nouveau : `af6ecdbbff90d4d4db04962572df77501e30858a24bc223fad99cbd106337441`, volume centre (-31.719, 0.000, -3.922), etendues (4.736, 2.455, 10.003)
 - **TJunction_West** : TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1186247037`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `9b1d2ecbb5bdb910598a9a73b5f1c53d2a7b009c455b024cd86f21292935eb09`, volume centre (-30.041, 0.000, 0.800), etendues (3.630, 1.280, 4.640)
   - nouveau : `4ffa5b7131d19a6a9fc078066bf0acf057e73db5891a9f734155e8ac19a6ccfb`, volume centre (-29.873, 0.000, 2.797), etendues (6.582, 2.455, 11.128)
 - **TJunction_West** : TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_West: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1186247037`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `c4f31a5fd0b4ba5a9dad594e7b08fd8701ac2c9756b416d7a35383823508a396`, volume centre (-25.987, 0.000, -2.236), etendues (3.267, 1.280, 2.636)
   - nouveau : `93bf9ed73e2cb5ce0d8922d74a4ee6971933906fe56c52a67e2938a0168749d7`, volume centre (-26.111, 0.000, -2.824), etendues (8.036, 2.455, 5.543)
 - **TJunction_West** : TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1186247037`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `cc051fe20ad087a23c8b734633354a640d05aa2587479787e5a0308a98b9ee89`, volume centre (-29.157, 0.000, 0.005), etendues (3.336, 1.280, 2.976)
   - nouveau : `fda9a4198188b8c8aade046177a0e5e30fbf87f6741d91a341e0ed77eb5456df`, volume centre (-26.805, 0.000, 0.000), etendues (8.730, 2.455, 6.728)
 - **TJunction_South** : TJunction_South: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-215267690`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `0d20e944dd70f902f4e367413318de1d1aae83580f7779202b6048cb0e86a13f`, volume centre (4.640, 0.000, -32.812), etendues (4.640, 1.280, 2.468)
   - nouveau : `92f0068c95ccb0963a2e5b6190414542b5b50f2dba3cfeb5fe48f1705d7c1fe3`, volume centre (3.922, 0.000, -31.719), etendues (10.003, 2.455, 4.736)
 - **TJunction_South** : TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-215267690`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `5d5e825c6efeedad4cae851fb794780c69783f328812ce45cfda6c890b978bfb`, volume centre (-0.800, 0.000, -30.041), etendues (4.640, 1.280, 3.630)
   - nouveau : `d439e3f9b99b559d9125a3ed1cb8786108a52628153f9a8a8564b40f328e257a`, volume centre (-2.797, 0.000, -29.873), etendues (11.128, 2.455, 6.582)
 - **TJunction_South** : TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_South: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-215267690`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `0c4acf23a58dec1d44db479f56594d0ee8027ba7cf29454b1c14676aaed91578`, volume centre (2.236, 0.000, -25.987), etendues (2.636, 1.280, 3.267)
   - nouveau : `2b19e81b714e85820fb63237540f101c7bdce85c5b362c6f3b4826afe7891d63`, volume centre (2.824, 0.000, -26.111), etendues (5.543, 2.455, 8.036)
 - **TJunction_South** : TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-215267690`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `2d2ec4a735e4ed20b3628c0b3de05cb4381677ebc2cc364d78e733b6f5ceb767`, volume centre (-0.004, 0.000, -29.157), etendues (2.976, 1.280, 3.336)
   - nouveau : `b4ebbb47974620d9eb87fdd1bc4ba47eaa05f63ca0c52eff4e5177e7bc3f2231`, volume centre (0.000, 0.000, -26.805), etendues (6.728, 2.455, 8.730)
 - **TJunction_North** : TJunction_North: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-525617468`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `71dc2cfde10b09ea64da03bba8e934fe37317438326fed72412e53aa5e27c495`, volume centre (-4.640, 0.000, 32.812), etendues (4.640, 1.280, 2.468)
   - nouveau : `170b115f010f008cd6c44f515845b4da0f8f1d4abef2670e7296fe0debcc1168`, volume centre (-3.922, 0.000, 31.719), etendues (10.003, 2.455, 4.736)
 - **TJunction_North** : TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-525617468`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `62dc1a5cfb3ba78d3f7d67b8fd97dcdb5f7abdfc651d0e30104ab85dc69515cf`, volume centre (0.800, 0.000, 30.041), etendues (4.640, 1.280, 3.630)
   - nouveau : `a86b9a88cc8b065b007df94e8464d30fd8cc78bfe0df580e983d5d3c943d2280`, volume centre (2.797, 0.000, 29.873), etendues (11.128, 2.455, 6.582)
 - **TJunction_North** : TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_North: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-525617468`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `73b598a430923234568e712a1f6e5e8edd5d79fe32d4b737b9547b65218686b7`, volume centre (-2.236, 0.000, 25.987), etendues (2.636, 1.280, 3.267)
   - nouveau : `cafcfc52cec977e86178d4d4040ecb7f919f4b947bc146ae655a47bda1650170`, volume centre (-2.824, 0.000, 26.111), etendues (5.543, 2.455, 8.036)
 - **TJunction_North** : TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-525617468`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `ebfa67230aa1c4769e11c4a720f6eecc90659b166eb44e5525537be1fda9a4b2`, volume centre (0.004, 0.000, 29.157), etendues (2.976, 1.280, 3.336)
   - nouveau : `7cdcf4148f62131ac3f5ae61ad07cd09b1bcedd50c5b055fade980931a30eb47`, volume centre (0.000, 0.000, 26.805), etendues (6.728, 2.455, 8.730)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `82c925ab7dc5acdf59020012a7106d36921a74c2af0e48acc8b0b5dc8bf5d8de`, volume centre (2.236, 0.000, 6.013), etendues (2.636, 1.280, 3.267)
   - nouveau : `fad44d93943a47db9b4450be13f103d7ef09cc5ff45ea05f9b16ee33609e7809`, volume centre (2.824, 0.000, 5.889), etendues (5.543, 2.455, 8.036)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `9941d35eddc71defac9e8514d987073fd66d1c0c4152936b2c51ebe1a5120d7b`, volume centre (3.255, 0.000, 5.280), etendues (2.535, 1.280, 4.000)
   - nouveau : `7e66ac53356f830ba3cca4d558a7ea2c81d71a2516dc6215929e0ce374d97492`, volume centre (4.179, 0.000, 5.016), etendues (4.634, 2.455, 8.909)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `106248c3c065024fea7f6568ca916ec3e542351be88b7ceaf09db004c5141c71`, volume centre (0.800, 0.000, -1.959), etendues (4.640, 1.280, 3.630)
   - nouveau : `f0eca8c0ab994c3afe4661345fde22c6e4c5647190918247fbc729827a3389e2`, volume centre (2.797, 0.000, -2.127), etendues (11.128, 2.455, 6.582)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `e5df6962bbd2fdcab8c2deb2c70d9799df1dc0a16ed77bd723d276a34358cf52`, volume centre (-2.236, 0.000, -6.013), etendues (2.636, 1.280, 3.267)
   - nouveau : `81718d47dcee443912227fefee2d69ecffc0aca4c717b2a3399c4c49a1c5efc1`, volume centre (-2.824, 0.000, -5.889), etendues (5.543, 2.455, 8.036)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `e67118efa37c9694ac5f8f07671825a229819be4c0cf12ca304c7ac73f0f0414`, volume centre (1.881, 0.000, -0.800), etendues (3.718, 1.280, 4.640)
   - nouveau : `245d05cde989a7807799ec724324d7eb332d522b40f40f61fd3a0a249be582e4`, volume centre (2.127, 0.000, -2.797), etendues (6.582, 2.455, 11.128)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `bc4a79b1d541aa2d681b43ae3f66ef37de95eb0c9ad04f64533cc34390422ca9`, volume centre (0.005, 0.000, -2.843), etendues (2.976, 1.280, 3.336)
   - nouveau : `6b320512c946a0a8447d58fec1ed4671a8b71f9abef86855b932602be0816ad3`, volume centre (0.000, 0.000, -5.195), etendues (6.728, 2.455, 8.730)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `af26c6cbe2e9488de0f673c260013beca8b0f722ad59aab18123113a15a3c05f`, volume centre (-0.800, 0.000, 1.959), etendues (4.640, 1.280, 3.630)
   - nouveau : `9de91ce6c145fe30e97967ada58f2e8dcf06865a221974796e439b72e245ae82`, volume centre (-2.797, 0.000, 2.127), etendues (11.128, 2.455, 6.582)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.663 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `c957f4edb9b62d979b762330443cc0b39d2320518af5b79ec57385b69309fc69`, volume centre (2.080, 0.000, 2.080), etendues (3.680, 1.280, 3.680)
   - nouveau : `72ac0a7bdd8cb1beddba7fa9d672094e2c69b7b2407a5ecba4c11e64d7b64697`, volume centre (2.000, 0.000, 2.000), etendues (6.581, 1.361, 6.581)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `014049c73da99c8bd739e59f654fb81d58971ac17956939740792264974d2eb5`, volume centre (-4.640, 0.000, 0.812), etendues (4.640, 1.280, 2.468)
   - nouveau : `6d995502df8ebb930e231f6a9f5b05a86012b1dab533120376fd048ec3898025`, volume centre (-3.922, 0.000, -0.281), etendues (10.003, 2.455, 4.736)
 - **Roundabout_SouthWest** : Roundabout_SouthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) x Roundabout_SouthWest: Ring_Split_West -> Connector_West_Out (sortie d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3451218781182448720-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2693820040812580704-1515478495`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 2 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `165c0071e140256ca40fceb07569d939293cb16592032d97d684668970fff2fe`, volume centre (-25.713, 0.000, -32.031), etendues (1.698, 1.280, 2.567)
   - nouveau : `e7ac9f560ebdb3a63cedc47b6f2a7a0e50e689936bf904d61c0cc4457b531ad4`, volume centre (-22.171, 0.000, -32.000), etendues (6.596, 2.455, 4.935)
 - **Roundabout_SouthWest** : Roundabout_SouthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) x Roundabout_SouthWest: Ring_Split_West -> Ring_Merge_West (continuation d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3451218781182448720-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 2 x 2 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `1b675144e1ba1f3cc0056fd4804b653f20ae926e3fa8e228999c9e4cd9d95a19`, volume centre (-25.066, 0.000, -31.624), etendues (2.346, 1.280, 2.904)
   - nouveau : `c1828f082cfc5886fe47734023d452f816c25cdd9f550b7539c466e8a298606c`, volume centre (-23.806, 0.000, -30.478), etendues (8.231, 2.455, 6.706)
 - **Roundabout_NorthWest** : Roundabout_NorthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) x Roundabout_NorthWest: Ring_Split_West -> Connector_West_Out (sortie d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3451218781182448720-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2693820040812580704-1873927255`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 2 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `354aca314dbebf7dd091c9f6b02f87c6c65580be5ec9e37c7be2980074df3b41`, volume centre (-32.031, 0.000, 25.713), etendues (2.567, 1.280, 1.698)
   - nouveau : `8a96f973458ec03b9376c759789601e2c6280b5d3b94dbb7ca67972c40e70f32`, volume centre (-32.000, 0.000, 22.171), etendues (4.935, 2.455, 6.596)
 - **Roundabout_NorthWest** : Roundabout_NorthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) x Roundabout_NorthWest: Ring_Split_West -> Ring_Merge_West (continuation d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3451218781182448720-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 2 x 2 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `54fc6f01d8b14863046b64603f299832024d369eb5b6411aeeeb37d4676a16dd`, volume centre (-31.624, 0.000, 25.066), etendues (2.904, 1.280, 2.346)
   - nouveau : `1f4b63bd0109e0a54a9885f1b025e7c8ec7466435dde458651118f1a80fc2987`, volume centre (-30.478, 0.000, 23.806), etendues (6.706, 2.455, 8.231)
 - **Roundabout_NorthEast** : Roundabout_NorthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) x Roundabout_NorthEast: Ring_Split_West -> Connector_West_Out (sortie d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3451218781182448720-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2693820040812580704-663126718`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 2 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `a2442ec08d9c2ee848c8175f8b93471e22a8ca28832ba8626a0fd87f019f7f20`, volume centre (25.713, 0.000, 32.031), etendues (1.698, 1.280, 2.567)
   - nouveau : `2bce1bd415ea8016b9447ecd3cf1bf2b1923ce1194cc335d8a895c5cf3badc66`, volume centre (22.171, 0.000, 32.000), etendues (6.596, 2.455, 4.935)
 - **Roundabout_NorthEast** : Roundabout_NorthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) x Roundabout_NorthEast: Ring_Split_West -> Ring_Merge_West (continuation d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3451218781182448720-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 2 x 2 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `6c95a55df66626d641b955cec3af885ed15696b2527b09457768cd231f6905c2`, volume centre (25.066, 0.000, 31.624), etendues (2.346, 1.280, 2.904)
   - nouveau : `f979737b478a1c67c8640bed23726520cae11fa355e4edda5598759a1e5bcf30`, volume centre (23.806, 0.000, 30.478), etendues (8.231, 2.455, 6.706)
 - **Roundabout_SouthEast** : Roundabout_SouthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) x Roundabout_SouthEast: Ring_Split_West -> Connector_West_Out (sortie d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3451218781182448720-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2693820040812580704-764670077`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 2 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `0fb24f54e91b49683a84818fd46757345114c3d3bfa9feccd9e56705d072cc1a`, volume centre (32.031, 0.000, -25.713), etendues (2.567, 1.280, 1.698)
   - nouveau : `97214f6ab2df2b51c1c474523984a3d9e4a2670f07c9ab8e5bbc18012ad7e1a4`, volume centre (32.000, 0.000, -22.171), etendues (4.935, 2.455, 6.596)
 - **Roundabout_SouthEast** : Roundabout_SouthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) x Roundabout_SouthEast: Ring_Split_West -> Ring_Merge_West (continuation d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3451218781182448720-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 2 x 2 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `511adb5b09b22136a7c478786df0ad9839a27574a5ab90ee589b3758dd79ed20`, volume centre (31.624, 0.000, -25.066), etendues (2.904, 1.280, 2.346)
   - nouveau : `5a02787d50829882184cd57f798fce1628d3b9f7177faba4df00445af79b41d9`, volume centre (30.478, 0.000, -23.806), etendues (6.706, 2.455, 8.231)
 - **Roundabout_SouthWest** : Roundabout_SouthWest: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) x Roundabout_SouthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5868298536624384299-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 2 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `93227850fa069f632ac6a4f13a8ca0f216ccea168301b7c283fd01b5273ba54b`, volume centre (-32.376, 0.000, -25.066), etendues (2.904, 1.280, 2.346)
   - nouveau : `70940059e8905b7571ca67752a41633ef74ec88649bbf1d094b41ba848f82034`, volume centre (-33.222, 0.000, -23.808), etendues (6.405, 2.455, 8.233)
 - **Roundabout_SouthWest** : Roundabout_SouthWest: Ring_Split_South -> Connector_South_Out (sortie d'anneau) x Roundabout_SouthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-28748035223661577-1515478495` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5868298536624384299-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 2 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `fcd60246a3fa565d6ffaa8fa881e3b6832d7884d0c08225f993e816b17f7d047`, volume centre (-31.970, 0.000, -25.716), etendues (2.566, 1.280, 1.695)
   - nouveau : `daa8874620c06c11a5c4756f8b0e7a86a8bd2bcf319e58c270c0561f6900f1aa`, volume centre (-32.000, 0.000, -22.171), etendues (4.935, 2.455, 6.596)
 - **Roundabout_NorthWest** : Roundabout_NorthWest: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) x Roundabout_NorthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5868298536624384299-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 2 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `e4404bc0fbe172e5b2e67428219dd278adc16516ddac48404f2f5fcc7608850c`, volume centre (-25.066, 0.000, 32.376), etendues (2.346, 1.280, 2.904)
   - nouveau : `973f9a6b4fea695ec15a0a98cf41e09dd3c6c639c2b452a1c89bbf86de4fbbc2`, volume centre (-23.808, 0.000, 33.222), etendues (8.233, 2.455, 6.405)
 - **Roundabout_NorthWest** : Roundabout_NorthWest: Ring_Split_South -> Connector_South_Out (sortie d'anneau) x Roundabout_NorthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-28748035223661577-1873927255` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5868298536624384299-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 2 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `0a26f1bef5aef873af7e1d4e55e88a04606ce0b17d9efed142232a9aefe745c7`, volume centre (-25.716, 0.000, 31.970), etendues (1.695, 1.280, 2.566)
   - nouveau : `96d0d7e837fb89e9ceed6139d4ed3e164b833ab6e48f8af4636f085873d0c8f6`, volume centre (-22.171, 0.000, 32.000), etendues (6.596, 2.455, 4.935)
 - **Roundabout_NorthEast** : Roundabout_NorthEast: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) x Roundabout_NorthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5868298536624384299-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 2 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `959f044ad4eabe028a16d57963eda0554b2e661aaf9e5c8f6c170bfaa5966231`, volume centre (32.376, 0.000, 25.066), etendues (2.904, 1.280, 2.346)
   - nouveau : `062a4ebcf1540c7fd3f3c1028e031611b9770ce1c4b17e09eeb497037fddc8cf`, volume centre (33.222, 0.000, 23.808), etendues (6.405, 2.455, 8.233)
 - **Roundabout_NorthEast** : Roundabout_NorthEast: Ring_Split_South -> Connector_South_Out (sortie d'anneau) x Roundabout_NorthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-28748035223661577-663126718` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5868298536624384299-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 2 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `5662c73d44290a15b2af17487935690152a9ec01b7fd2b0f9c1378cef5a52490`, volume centre (31.970, 0.000, 25.716), etendues (2.566, 1.280, 1.695)
   - nouveau : `66d79e8d0c0a87fe475e9207268804cd1c74567605b2d443c40c616bfeb296c0`, volume centre (32.000, 0.000, 22.171), etendues (4.935, 2.455, 6.596)
 - **Roundabout_SouthEast** : Roundabout_SouthEast: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) x Roundabout_SouthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5868298536624384299-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 2 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `5770a506be51d2420f3180d4c0e84fb8ca5480d44d71f08a95fca441c6661e6e`, volume centre (25.066, 0.000, -32.376), etendues (2.346, 1.280, 2.904)
   - nouveau : `eca39cd57b7bb1f40f066801fe0fe95f43ca2a75316f4a6cffad32871b90fe13`, volume centre (23.808, 0.000, -33.222), etendues (8.233, 2.455, 6.405)
 - **Roundabout_SouthEast** : Roundabout_SouthEast: Ring_Split_South -> Connector_South_Out (sortie d'anneau) x Roundabout_SouthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-28748035223661577-764670077` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5868298536624384299-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 2 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `49569235cfbf4745226d9c656e3ed1efd55eeb19d11f9adf2d9e1ab83cb299fc`, volume centre (25.716, 0.000, -31.970), etendues (1.695, 1.280, 2.566)
   - nouveau : `21cf4b151c6789a61a32564c6d2e8c66cacbdeff9a3b140bce05dcda77a70151`, volume centre (22.171, 0.000, -32.000), etendues (6.596, 2.455, 4.935)
 - **TJunction_East** : TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit) x TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1056351953`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `3346a49b00a47161842f067c8257d61a3e08f9dc53661c8626c9653f66999bab`, volume centre (30.119, 0.000, 0.800), etendues (3.718, 1.280, 4.640)
   - nouveau : `1e2e026362584e8a4539ed770d6b7b444abf782255a26cb225210b027e023430`, volume centre (29.873, 0.000, 2.797), etendues (6.582, 2.455, 11.128)
 - **TJunction_East** : TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit) x TJunction_East: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1056351953`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `9c62c0cbdb7ef27bcf39187137605942a889f2f23919ea8bda1dfafa8ac4d8de`, volume centre (28.745, 0.000, -5.280), etendues (2.535, 1.280, 4.000)
   - nouveau : `80ad7645e198b39b436be5f1bb0701c2a1023f1fb09d27b03a9b60f423706f63`, volume centre (27.821, 0.000, -5.016), etendues (4.634, 2.455, 8.909)
 - **TJunction_West** : TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit) x TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1186247037`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `2fba521fcac3c65bd512a021ec75f4135611e075fb1ea66cfe056494c28c8ba0`, volume centre (-30.119, 0.000, -0.800), etendues (3.718, 1.280, 4.640)
   - nouveau : `447413ebb35c70b85ddc5f722c8128ad535108970eb8893894a5a05eea10bad7`, volume centre (-29.873, 0.000, -2.797), etendues (6.582, 2.455, 11.128)
 - **TJunction_West** : TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit) x TJunction_West: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1186247037`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `a7a5d98e3c413c2e9a99f0be2f2a7d0f9a10674967b83b7ab4d4f972b9a96463`, volume centre (-28.745, 0.000, 5.280), etendues (2.535, 1.280, 4.000)
   - nouveau : `f5cad91b0a7a497bad3fce39cb945da1529e9235dbdc7f26c5b77273145b0cb7`, volume centre (-27.821, 0.000, 5.016), etendues (4.634, 2.455, 8.909)
 - **TJunction_South** : TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit) x TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-215267690`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `ffdef08c09fb7080307be8fba5cf334002020d0462fe3ff044f64579271755f9`, volume centre (0.800, 0.000, -30.119), etendues (4.640, 1.280, 3.718)
   - nouveau : `168616a1e1f736934914ea95f02a0584dce2d03e7bb8128617d1a0739a84a249`, volume centre (2.797, 0.000, -29.873), etendues (11.128, 2.455, 6.582)
 - **TJunction_South** : TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit) x TJunction_South: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-215267690`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `44a9c5eef016bcfc544a48e97ec9b7bd6a65952354b9b04094fc1aabab9301b8`, volume centre (-5.280, 0.000, -28.745), etendues (4.000, 1.280, 2.535)
   - nouveau : `f6251dfedbde40eabbbab6c739d11200933c0214079bca1077900ea5679edd25`, volume centre (-5.016, 0.000, -27.821), etendues (8.909, 2.455, 4.634)
 - **TJunction_North** : TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit) x TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-525617468`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `39aa368cf3fa5e33b43539c9783627c42869084bf551b02250b69baaf5e7ec97`, volume centre (-0.800, 0.000, 30.119), etendues (4.640, 1.280, 3.718)
   - nouveau : `7f8aed7017d8a41867636539aa9cc319b18830adc72e79cc28f60ddb534f11fe`, volume centre (-2.797, 0.000, 29.873), etendues (11.128, 2.455, 6.582)
 - **TJunction_North** : TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit) x TJunction_North: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-525617468`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `1d1d00a57128d4dfbe7e93810364286355bf39434ab0b9f8cb1c60f2af719c49`, volume centre (5.280, 0.000, 28.745), etendues (4.000, 1.280, 2.535)
   - nouveau : `bbb19ed802f255db28430d99a4dc0d6a29805b6a70a05aaa51fdef37321b89a4`, volume centre (5.016, 0.000, 27.821), etendues (8.909, 2.455, 4.634)
 - **Roundabout_SouthWest** : Roundabout_SouthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) x Roundabout_SouthWest: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5744305491035205991-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6710625434732410423-1515478495`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `d1407acf9b8c181277b013c819f869e91d87423bf67134ef202d7ebabe0e2e0d`, volume centre (-36.471, 0.000, -36.414), etendues (2.483, 1.280, 2.426)
   - nouveau : `f3cf180f01c585b0065e08ee60935167fbc537b05f57e4fdf5a7fa095dc93931`, volume centre (-38.912, 0.000, -38.912), etendues (7.262, 2.455, 7.262)
 - **Roundabout_SouthWest** : Roundabout_SouthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) x Roundabout_SouthWest: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5744305491035205991-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `600ea662d45935300e783286fdaab5b33c74673d464c8948fde41645141eb1c7`, volume centre (-36.150, 0.000, -37.169), etendues (2.162, 1.280, 3.182)
   - nouveau : `3ab4a4d2b503d964a5df99c912582494f86ce76403f4bd2e1765cf8bdcd05872`, volume centre (-35.374, 0.000, -38.792), etendues (7.972, 2.455, 7.382)
 - **Roundabout_NorthWest** : Roundabout_NorthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) x Roundabout_NorthWest: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5744305491035205991-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6710625434732410423-1873927255`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `b76bff0541992e79f5675aaed454f3a63aca360344e044544fef0d15cd0573b8`, volume centre (-36.414, 0.000, 36.471), etendues (2.426, 1.280, 2.483)
   - nouveau : `28ddea7c59820a6c757545efd06f9f5e0b320bdd935e3d65abf3f06aa7210869`, volume centre (-38.912, 0.000, 38.912), etendues (7.262, 2.455, 7.262)
 - **Roundabout_NorthWest** : Roundabout_NorthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) x Roundabout_NorthWest: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5744305491035205991-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `cdbcf023d726735975477712403687a40a23d40554b31199d9db3d5a6ca325be`, volume centre (-37.169, 0.000, 36.150), etendues (3.182, 1.280, 2.162)
   - nouveau : `429a3cd539f6d80c1c960742b945fc7a8411c841ab636c49d77be7345f7b849c`, volume centre (-38.792, 0.000, 35.374), etendues (7.382, 2.455, 7.972)
 - **Roundabout_NorthEast** : Roundabout_NorthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) x Roundabout_NorthEast: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5744305491035205991-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6710625434732410423-663126718`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `ddd75806950545f14e4cf5341a865acd59999a19cf0f6751d900b1db619cad36`, volume centre (36.471, 0.000, 36.414), etendues (2.483, 1.280, 2.426)
   - nouveau : `91634304f2f2788a2c06570c39a527bf524364e64ef67a7a8abc44b4e66628ff`, volume centre (38.912, 0.000, 38.912), etendues (7.262, 2.455, 7.262)
 - **Roundabout_NorthEast** : Roundabout_NorthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) x Roundabout_NorthEast: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5744305491035205991-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `2e5b072b4f323c977823ab18a1cd257e84c1a28323d59aee4b3d3da65e3e7728`, volume centre (36.150, 0.000, 37.169), etendues (2.162, 1.280, 3.182)
   - nouveau : `09c8116f2563a063aa5c55303969b37f08fbd6cda474a5916f3e8c6ac30269f6`, volume centre (35.374, 0.000, 38.792), etendues (7.972, 2.455, 7.382)
 - **Roundabout_SouthEast** : Roundabout_SouthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) x Roundabout_SouthEast: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5744305491035205991-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6710625434732410423-764670077`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `291b430eed2b3a454cf7d0cf3dba2ff2baff379dbcece9f4051ab39e9fb34104`, volume centre (36.414, 0.000, -36.471), etendues (2.426, 1.280, 2.483)
   - nouveau : `9644219d7edfbb0f7ed5d16b8cbf52e959c450ddd473458f93f1ca7daef33f43`, volume centre (38.912, 0.000, -38.912), etendues (7.262, 2.455, 7.262)
 - **Roundabout_SouthEast** : Roundabout_SouthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) x Roundabout_SouthEast: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5744305491035205991-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.873 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `6e2746d156df88b8c5ecbeb4cd877c595198142214cecafe75748fe78d362ac7`, volume centre (37.169, 0.000, -36.150), etendues (3.182, 1.280, 2.162)
   - nouveau : `25fc36961c2235a85e0bbc54a1bf10779205f85002b2fc7d81d43e6897baa3ea`, volume centre (38.792, 0.000, -35.374), etendues (7.382, 2.455, 7.972)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `31b833a9addbd4a2d25d6a27031a647b9696dad015320a05b31b8f49e82c9b7a`, volume centre (0.812, 0.000, 4.640), etendues (2.468, 1.280, 4.640)
   - nouveau : `3bf8c29e2d8a2dcfab6248fe2f6678185db5ce2e9f491ebf363279ce22a1b237`, volume centre (-0.281, 0.000, 3.922), etendues (4.736, 2.455, 10.003)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `4558b5b67e0deca845afac281516a9cf70125b1dcffc5706176fb65a09aaeb9f`, volume centre (-2.843, 0.000, -0.005), etendues (3.336, 1.280, 2.976)
   - nouveau : `e48640f29dd0cbe5543fd8ada9e745cad74eb8359867806b8965a2b7970d8ab7`, volume centre (-5.195, 0.000, 0.000), etendues (8.730, 2.455, 6.728)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.663 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `136ab84e52e1f413f679af9aa6c9a53abf57e02e1b46372de5897764e468b3ba`, volume centre (2.080, 0.000, -2.080), etendues (3.680, 1.280, 3.680)
   - nouveau : `734488da33bc60328a7192d7995e5e0cda5e2faf865a49487c722ef534207f28`, volume centre (2.000, 0.000, -2.000), etendues (6.581, 1.361, 6.581)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -2.850 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `61a02a3f3059c23c8a5ef9f9a37af37207d2dea9c07a42ac6e362bf8f60986ca`, volume centre (5.280, 0.000, -3.255), etendues (4.000, 1.280, 2.535)
   - nouveau : `c2c677724203dc808c2187f7b08ac4469a2c20a05ec871534b6083005f6d88a3`, volume centre (5.016, 0.000, -4.179), etendues (8.909, 2.455, 4.634)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Empreinte differente de la table historique : trajectoire A modifiee, trajectoire B modifiee, volume de conflit modifie. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : Accepted (Unconfirmed)
+  - decision : Accepted (Confirmed)
   - ancien : `3df806a79414f9c9b06e2b508107575573f1cc25d0e40d85d4ecee30ddefaac1`, volume centre (-0.800, 0.000, -1.881), etendues (4.640, 1.280, 3.718)
   - nouveau : `86c36b72cad2c1c989090ee2aad43c4f039e16b8fe32af6788d88676b66974c7`, volume centre (-2.797, 0.000, -2.127), etendues (11.128, 2.455, 6.582)
 
@@ -480,222 +480,222 @@ Generation en lecture seule : aucun modele, overlay, rapport 5.28 ou fichier de 
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) x Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `65d8dc106243790dd04d221b2f7e16ea5789e27a3b7ed74bc8690e2733accf8f`, volume centre (4.735, 0.000, 4.735), etendues (9.190, 2.455, 9.190)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.687 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `a3341ae3d117849e92638cb38dcc430c2516793a9e2d45956c5400ec81e05b1b`, volume centre (0.000, 0.000, 0.000), etendues (8.405, 1.374, 8.405)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `83007e07f3a9551cc2b861f1d44f63a10f45d6d5f7d77f9a48676614ea26dc1e`, volume centre (0.415, 0.000, 7.601), etendues (4.870, 2.455, 6.324)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `8e06e981e9676853612807402d2da346365116bd5ab33e3b7ba9461d027b320c`, volume centre (0.000, 0.000, 0.000), etendues (4.455, 2.455, 13.925)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `1d196915c648cb117950863ff2dbf9187341176b3b7962b8363da4c30566f2ae`, volume centre (0.415, 0.000, -7.601), etendues (4.870, 2.455, 6.324)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) x Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `9711d0fba468bca6460d01eeb487e19af5fda6ceb280357222222beb28657a34`, volume centre (0.000, 0.000, 7.601), etendues (5.286, 2.455, 6.324)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `620441641b998ec0a27558a27931fdb544456acc091d106506132022fa608737`, volume centre (-4.735, 0.000, 4.735), etendues (9.190, 2.455, 9.190)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `69427c52913bfd6be15d6ad115dae1b8db56a8bbd63d25d7a0d925d5e1ab8e22`, volume centre (-7.601, 0.000, 0.415), etendues (6.324, 2.455, 4.870)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `ef5ce92f7453aa4ec68cdcedaa2485d432374eb619f8e5e597c226fb59d764f7`, volume centre (-7.601, 0.000, 0.000), etendues (6.324, 2.455, 5.286)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `ad41ebb61b2b774ac5f11f71d8ca11548e15d2a9485616c9834af7e08e4d5493`, volume centre (-0.415, 0.000, 7.601), etendues (4.870, 2.455, 6.324)
 - **TJunction_East** : TJunction_East: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1056351953`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `244fd2930206a32a649b4c58f16d4004923856dfe07710c7f2b145c4359796fb`, volume centre (32.000, 0.000, 0.000), etendues (4.455, 2.455, 13.925)
 - **TJunction_East** : TJunction_East: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_East: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1056351953`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `495b38519cca988b4a82ec226eb2befd94f045b74f4c04b6da2993fab0240c18`, volume centre (31.585, 0.000, 7.601), etendues (4.870, 2.455, 6.324)
 - **TJunction_East** : TJunction_East: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_East: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1056351953`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `9a61fa5aa18cc5c28d816b9d94ec3e3cd28f602f6a5123a90e9513dfbe11b24b`, volume centre (31.585, 0.000, -7.601), etendues (4.870, 2.455, 6.324)
 - **TJunction_East** : TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_East: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1056351953`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `6abea9cf6d43c3661166eb0233bad6b37e1d7872fe6dfe11d703933c773668e3`, volume centre (27.265, 0.000, -4.735), etendues (9.190, 2.455, 9.190)
 - **TJunction_West** : TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1186247037`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `a81ed5240b2619e41b66eec770940b1e06c74087f2329dbd03474db32ab85eba`, volume centre (-32.000, 0.000, 0.000), etendues (4.455, 2.455, 13.925)
 - **TJunction_West** : TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_West: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1186247037`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `db308d1edf7e73e971139c8bca347fbb53dfa864594e0421c2e49972ab30992a`, volume centre (-31.585, 0.000, -7.601), etendues (4.870, 2.455, 6.324)
 - **TJunction_West** : TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_West: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1186247037`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `1bfb787ab3186b3099edd9db8ac1818418e0cb56cf3e791f85ee67d115d8cd27`, volume centre (-31.585, 0.000, 7.601), etendues (4.870, 2.455, 6.324)
 - **TJunction_West** : TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_West: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1186247037`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `0b4df30fcff3b19b7564e50fe1a943c258f9bad6d31e364ec5074556399e4259`, volume centre (-27.265, 0.000, 4.735), etendues (9.190, 2.455, 9.190)
 - **TJunction_South** : TJunction_South: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-215267690`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `e0708b4194da6bd64fc0a301f8db2d8fcffdc35aa95792df7e3b126bef6bc4b2`, volume centre (0.000, 0.000, -32.000), etendues (13.925, 2.455, 4.455)
 - **TJunction_South** : TJunction_South: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_South: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-215267690`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `32b49539ddccfaa5a9c4657342a2432f23b53ce149959b2222a47e28dc492e46`, volume centre (7.601, 0.000, -31.585), etendues (6.324, 2.455, 4.870)
 - **TJunction_South** : TJunction_South: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_South: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-215267690`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `00cd7ab1ddf2cc87895ea13acfd35fc79f2e149bccb144f4c94c6cabaceefbe1`, volume centre (-7.601, 0.000, -31.585), etendues (6.324, 2.455, 4.870)
 - **TJunction_South** : TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_South: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-215267690`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `0358b1ddbc0e04c03150f5ed4f1a7821ed8112244c6c67aad4474481acfc8e2b`, volume centre (-4.735, 0.000, -27.265), etendues (9.190, 2.455, 9.190)
 - **TJunction_North** : TJunction_North: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-525617468`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `1281b1b55645852fe3f856ca49dd50addf184103283c808be8aca5611df45a75`, volume centre (0.000, 0.000, 32.000), etendues (13.925, 2.455, 4.455)
 - **TJunction_North** : TJunction_North: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_North: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-525617468`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `463817806264dea8d7c95a0ebf51b7460e2dfe06821fa2df25d7a59a3582098d`, volume centre (-7.601, 0.000, 31.585), etendues (6.324, 2.455, 4.870)
 - **TJunction_North** : TJunction_North: Junction_FromEast -> Connector_West_Out (tout droit) x TJunction_North: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-525617468`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `19106ab9a20e0f4861f4652813860c5c1bab6eea03990e80e6c3410d9e693e13`, volume centre (7.601, 0.000, 31.585), etendues (6.324, 2.455, 4.870)
 - **TJunction_North** : TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) x TJunction_North: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2972102024722209633-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-525617468`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `8a72150774926298039cdfda3b5693db13eef10ae2ab172054f45b4856f2a943`, volume centre (4.735, 0.000, 27.265), etendues (9.190, 2.455, 9.190)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `00d30a460f4c98c387304c551d95956c0bab77a12566c6308a9ce79cc2e71b1e`, volume centre (7.601, 0.000, 0.415), etendues (6.324, 2.455, 4.870)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `31fb2ff55e4dda27a077897bda4ee663a11bb30e6de4b11f9cd5eb8489faab34`, volume centre (7.601, 0.000, 0.000), etendues (6.324, 2.455, 5.286)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.687 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `4fd81293c4c74026af0a390ce5802db16b88e4c3b193d9124b49a7bfdfaec280`, volume centre (0.000, 0.000, 0.000), etendues (8.405, 1.374, 8.405)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `de648c78ca89e109286c28c3da0daf9850bb651fb1d9fe659d90a704bdf9dee8`, volume centre (4.735, 0.000, -4.735), etendues (9.190, 2.455, 9.190)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `96439d5cda17116ba1315328bc25fb9e97a2f188e6b36e472a00b000905316bc`, volume centre (0.000, 0.000, 0.000), etendues (13.925, 2.455, 4.455)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `28423a8cf4b6b8d57d4d5315908f73fc5195ba666f50807e815af267a411e937`, volume centre (-7.601, 0.000, -0.415), etendues (6.324, 2.455, 4.870)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `900e02b17c70b768a7238f8e3f720ea0d423679602731d3e81d404a07b6cf61e`, volume centre (7.601, 0.000, -0.415), etendues (6.324, 2.455, 4.870)
 - **TJunction_East** : TJunction_East: Junction_FromWest -> Connector_South_Out (droite) x TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1056351953`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `869a0e5f7a75534edd8fa401721fc1f9e9abdf41fdbeebb0640603589522b5c9`, volume centre (27.265, 0.000, 4.735), etendues (9.190, 2.455, 9.190)
 - **TJunction_East** : TJunction_East: Junction_FromWest -> Connector_South_Out (droite) x TJunction_East: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1056351953` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1056351953>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1056351953`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `ebff40f6f6bc0b8e29324232be733177248f9ad8ba218eaa490528d9fc9eab1b`, volume centre (24.399, 0.000, 0.000), etendues (6.324, 2.455, 5.286)
 - **TJunction_West** : TJunction_West: Junction_FromWest -> Connector_South_Out (droite) x TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-1186247037`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `a11f598752bf683a82cbe029f6e54b2d8fd2e75350c5007c66e02938144d47c9`, volume centre (-27.265, 0.000, -4.735), etendues (9.190, 2.455, 9.190)
 - **TJunction_West** : TJunction_West: Junction_FromWest -> Connector_South_Out (droite) x TJunction_West: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-1186247037` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-1186247037>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-1186247037`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `dd44db78628e61cd42b167563907662f14e44cc4d26af5805b31e289974e905e`, volume centre (-24.399, 0.000, 0.000), etendues (6.324, 2.455, 5.286)
 - **TJunction_South** : TJunction_South: Junction_FromWest -> Connector_South_Out (droite) x TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-215267690`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `4406e428b6fbe74600fdb62f4d98168b269a005cb10a61cc3fc8e2e2de7841c7`, volume centre (4.735, 0.000, -27.265), etendues (9.190, 2.455, 9.190)
 - **TJunction_South** : TJunction_South: Junction_FromWest -> Connector_South_Out (droite) x TJunction_South: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-215267690` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-215267690>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-215267690`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `e47a029e28e48308e0d717b45ac9abd2a0a8600d9dcb68b281dc47eddd22468e`, volume centre (0.000, 0.000, -24.399), etendues (5.286, 2.455, 6.324)
 - **TJunction_North** : TJunction_North: Junction_FromWest -> Connector_South_Out (droite) x TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1466064128068514242-525617468`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `610f480442b4cf065e4ad6e1d6f651055fc7376352c4cbacb5eec9fa01900cc9`, volume centre (-4.735, 0.000, 27.265), etendues (9.190, 2.455, 9.190)
 - **TJunction_North** : TJunction_North: Junction_FromWest -> Connector_South_Out (droite) x TJunction_North: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5201910984334149514-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8709768538103689560-525617468` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-712677911776565156-525617468>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3385921890867347721-525617468`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `71aa4392b7c86493531f081cdb2efd87487f4d936065debfec74108e5a15e4a7`, volume centre (0.000, 0.000, 24.399), etendues (5.286, 2.455, 6.324)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `336077880dee5589c151bac294e4ced611e938a0b267887afc589817d15056ea`, volume centre (-0.415, 0.000, -7.601), etendues (4.870, 2.455, 6.324)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `8004afec1d39334144f18afaa94d04a12695093f93d457e0c4f9ae9dfff3084d`, volume centre (0.000, 0.000, -7.601), etendues (5.286, 2.455, 6.324)
 - **Intersection_Center_Crossroads** : Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite) x Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche)
   - cles : `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6962324381884707408-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5218173693310486768-2089303282` x `movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7278469497967748422-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6554306733567139477-2089303282`
   - raison : Absente de la table historique : l'ancien balayage 5.28 (lateral seul, sans longueur de gabarit ni borne d'intervalle) ne la retenait pas. Trajectoire A modifiee, trajectoire B modifiee. Preuve : marge exacte minimale -0.910 m (<= 0 : contact possible), 1 x 1 trajectoire(s) prolongee(s).
-  - decision : aucune (Missing)
+  - decision : Accepted (Confirmed)
   - nouveau : `911927c68a7e4423b4107085e71583cf79f5ee2e921cc69fa803e97d39eb9e56`, volume centre (-4.735, 0.000, -4.735), etendues (9.190, 2.455, 9.190)
 
 ## Paires retirees (0)
