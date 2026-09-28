@@ -9,7 +9,10 @@ decisions-hash: 3e9c893f48b10a248fa72aa51f7f365c683e7e0a825d657861a65c4356e553fe
 model-hash: 6525a2366641aeb6c28595259a2762abb4e881ff1c32b2e2f8de16e5e88c1ebb
 road-model-version: v4:e8dff9e54bff1712308899158ad16a9b
 overlay-hash: 20cd1d1f262f812d6fd035119a465a20dcbd4b39c18a58410f481f71d00a0abe
-body-hash: cf1bcbe76b64158bc96db8bc1a41c82bde1f3f34cb82f193e61d634898c0aa45
+physical-input-hash: 5fdefa17a73c7183e701dcd94c5d20ff1b46785e1aa05911c6e3a8416a0c3595
+semantic-input-hash: 9fae1d4e8423b1f7d8485ab8ff2b12dd6b334a1d49a9d40abf2f6fb6caeb6a57
+clearance-hash: f397d2ca83e229e3c680d902db8344754656df4ec304d72aafcc94aa7a922d6e
+body-hash: ac9116c85504699df0768ea7f132503677bffeae815f6971d124fc434b8e6200
 -->
 # Rapport Gate A : modele authore MVP_Run (Story 5.28)
 
@@ -35,6 +38,7 @@ Genere par le menu `RoadRage/Traffic V2/Compiler le modele authore`. Ne pas edit
 - Lignee inchangee : 0 identite frappee, 0 retiree (import 5.27 relance en lecture seule).
 - Taches 5.27 non disposees : **0** sur 118.
 - Fixtures de localisation : 6 vertes sur 6.
+- Preuve physique Gate A (9 carrefours) : **verte**.
 
 ## Modele authore
 
@@ -290,6 +294,588 @@ V2 : centre = racine du module ; corridors d'anneau et continuations appliques ;
 | Roundabout_NorthEast `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718` | 2.0000 | 10.0000 | 1.9945 | 1.5000 | 10.3700 | TunnelPortal_NorthEast/Col_Wall_Left a 11.3137 m | 10.3700 | 2.7818 |
 | Roundabout_SouthEast `GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077` | 2.0000 | 10.0000 | 1.9945 | 1.5000 | 10.3700 | TunnelPortal_SouthEast/Col_Wall_Left a 11.3137 m | 10.3700 | 2.7818 |
 
+## Gate A : preuve physique des 9 carrefours
+
+Correct-course du 2026-09-25, precise le 2026-09-28. Balayage conservateur de la Story 5.51 (algorithme 5 ; giratoires : balayage v1) sur les references compilees 5.50 : empreinte = gabarit max du profil versionne + marge, gonfle de delta_c = 0.0500 m ; poses canoniques a pas h et coutures explicites ; residu = min(d_a, d_b) - delta/2, strictement positif. Carrefours classiques : chaque mouvement prolonge de L/2 + marge + delta_c, gate physique (obstacles dans la tranche du vehicule IA, relief routier franchissable excepte) et gate Sidewalk en plan (declarations, actives ou non). Giratoires : chaque mouvement prolonge de meme et chaque corridor d'anneau entier, gate physique, plus les residus d'anneau a deux gabarits ci-dessus. Allocation de suivi laterale a_e = 0.0000 m. Hors `RoadModelVersion`, hash source et lignee.
+
+Verdict : **vert**.
+
+| Empreinte | Valeur |
+|---|---|
+| physical-input-hash (9 carrefours) | `5fdefa17a73c7183e701dcd94c5d20ff1b46785e1aa05911c6e3a8416a0c3595` |
+| Entrees physiques des carrefours classiques (5.51) | `2e1677f8cf104ccba47016a51651a93d7974d500e0b3e3cbaf0c46b4eff530a7` |
+| Entrees physiques des giratoires | `12e1082c901dac20deaa8209a9f1b0028030d3d19a3bc3f417b059084775d834` |
+| semantic-input-hash (Sidewalk, 5.51) | `9fae1d4e8423b1f7d8485ab8ff2b12dd6b334a1d49a9d40abf2f6fb6caeb6a57` |
+| clearance-hash (bloc des residus ci-dessous) | `f397d2ca83e229e3c680d902db8344754656df4ec304d72aafcc94aa7a922d6e` |
+
+### Residus
+
+a_e = 0 m ; h = 0.05 m
+
+| Genre | Carrefour | Trajectoire | Surface Sidewalk | Residu physique (m) | Obstacle temoin | Physique | Residu Sidewalk (m) | Sidewalk |
+|---|---|---|---|---:|---|---|---:|---|
+| anneau | Roundabout_NorthEast | deux gabarits, anneau physique | - | 2.78177547 | TunnelPortal_NorthEast/Col_Wall_Left | - | - | - |
+| anneau | Roundabout_NorthEast | deux gabarits, enveloppe V2 | - | 1.99448538 | - | - | - | - |
+| anneau | Roundabout_NorthWest | deux gabarits, anneau physique | - | 2.78177452 | TunnelPortal_NorthWest/Col_Wall_Left | - | - | - |
+| anneau | Roundabout_NorthWest | deux gabarits, enveloppe V2 | - | 1.99448538 | - | - | - | - |
+| anneau | Roundabout_SouthEast | deux gabarits, anneau physique | - | 2.78177452 | TunnelPortal_SouthEast/Col_Wall_Left | - | - | - |
+| anneau | Roundabout_SouthEast | deux gabarits, enveloppe V2 | - | 1.99448538 | - | - | - | - |
+| anneau | Roundabout_SouthWest | deux gabarits, anneau physique | - | 2.78177452 | TunnelPortal_SouthWest/Col_Wall_Left | - | - | - |
+| anneau | Roundabout_SouthWest | deux gabarits, enveloppe V2 | - | 1.99448538 | - | - | - | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Left | 0.112667568 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.645480752 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Right | 0.112667568 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_North_Out (droite) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE | 0.112667568 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.112667568 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Left | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.497870833 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Right | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 4.64548063 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Left | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.4978702 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Right | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 4.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.42158252 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 5.09333038 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 4.38012 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.421583533 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Left | 0.6450009 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.645480752 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Left | 0.6450009 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.644999862 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE | 0.6450009 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.645479441 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW | 0.6450009 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.6450009 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Left | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 4.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Right | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.497870564 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Left | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.497870237 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Right | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 4.64548063 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 4.38011837 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.4215835 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.421584219 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 5.093331 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Left | 1.65437508 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.645480633 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Left | 1.65437508 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW | 1.65437508 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.645480633 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW | 1.65437508 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Left | 0.112669289 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.645480633 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Left | 0.112669289 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.644999862 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromNorth -> Connector_West_Out (droite) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW | 0.112669289 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.112669289 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Right | 0.112669289 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.644999862 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Right | 0.112669289 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.645480633 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE | 0.112669289 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.112669289 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Right | 1.65437508 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Right | 1.65437508 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.645480633 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE | 1.65437508 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE | 1.65437508 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East | - | 0.645480633 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Left | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 4.64548063 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Right | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.497870237 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Left | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.497870564 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Right | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 4.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 5.093331 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.421584219 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 0.4215835 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW | 0.421584219 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West | - | 4.38011837 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Right | 0.6450009 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.644999862 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Right | 0.6450009 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.645480752 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE | 0.6450009 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.6450009 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW | 0.6450009 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East | - | 0.645479441 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Left | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 4.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Right | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 0.4978702 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Left | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 4.64548063 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Right | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 0.497870833 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 0.421583533 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 4.38012 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 5.09333038 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW | 0.42158252 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 0.42158252 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Left | 0.112667568 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 0.645 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Right | 0.112667568 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 0.645480752 | - |
+| degagement | Intersection_Center_Crossroads | Intersection_Center_Crossroads: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW | 0.112667568 | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West | - | 0.112667568 | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | - | 3.527526 | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthEast/Collision/Col_Wall_Left | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Ring_Merge_Diagonal -> Ring_Split_West | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Ring_Merge_South -> Ring_Split_Diagonal | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Ring_Merge_West -> Ring_Split_South | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | - | 3.52752686 | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthEast/Collision/Col_Wall_Right | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthEast | Roundabout_NorthEast: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | - | 3.52753043 | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthWest/Collision/Col_Wall_Left | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Ring_Merge_Diagonal -> Ring_Split_West | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Ring_Merge_South -> Ring_Split_Diagonal | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Ring_Merge_West -> Ring_Split_South | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | - | 3.52752972 | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthWest/Collision/Col_Wall_Right | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_NorthWest | Roundabout_NorthWest: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | - | 3.527526 | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthEast/Collision/Col_Wall_Left | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Connector_South_In -> Ring_Merge_South (entree d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Connector_West_In -> Ring_Merge_West (entree d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Ring_Merge_Diagonal -> Ring_Split_West | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Ring_Merge_South -> Ring_Split_Diagonal | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Ring_Merge_West -> Ring_Split_South | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | - | 3.527526 | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthEast/Collision/Col_Wall_Right | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthEast | Roundabout_SouthEast: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Connector_Diagonal_In -> Ring_Merge_Diagonal (entree d'anneau) | - | 3.527522 | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthWest/Collision/Col_Wall_Left | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Connector_South_In -> Ring_Merge_South (entree d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Connector_West_In -> Ring_Merge_West (entree d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Ring_Merge_Diagonal -> Ring_Split_West | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Ring_Merge_South -> Ring_Split_Diagonal | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Ring_Merge_West -> Ring_Split_South | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Ring_Split_Diagonal -> Connector_Diagonal_Out (sortie d'anneau) | - | 3.52753043 | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthWest/Collision/Col_Wall_Right | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Ring_Split_Diagonal -> Ring_Merge_Diagonal (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Ring_Split_South -> Connector_South_Out (sortie d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Ring_Split_South -> Ring_Merge_South (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Ring_Split_West -> Connector_West_Out (sortie d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | Roundabout_SouthWest | Roundabout_SouthWest: Ring_Split_West -> Ring_Merge_West (continuation d'anneau) | - | Infinity | aucun | - | - | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Left | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.4978705 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Right | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 4.6449995 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Ring_East_South/Collision/Col_Sidewalk_Left | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 4.64547873 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Ring_East_South/Collision/Col_Sidewalk_Right | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.4978698 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 4.380113 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.4215849 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_North | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.4215858 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Ring_East_North/Collision/Col_Sidewalk_Right | Infinity | aucun | - | 0.6449981 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Ring_East_South/Collision/Col_Sidewalk_Right | Infinity | aucun | - | 0.6454787 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_North | Infinity | aucun | - | 0.6449981 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Right | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.6454803 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Ring_East_South/Collision/Col_Sidewalk_Left | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.645 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.112664416 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Left | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 4.64548 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Right | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.497870833 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Ring_East_North/Collision/Col_Sidewalk_Left | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 4.644998 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Ring_East_North/Collision/Col_Sidewalk_Right | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.4978698 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.421581119 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 4.380118 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_North | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.421585947 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Ring_East_North/Collision/Col_Sidewalk_Left | Infinity | aucun | - | 0.645480633 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Ring_East_South/Collision/Col_Sidewalk_Left | Infinity | aucun | - | 0.645 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE | Infinity | aucun | - | 0.6450003 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW | Infinity | aucun | - | 0.645480633 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Left | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.6449994 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Ring_East_North/Collision/Col_Sidewalk_Left | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.645480633 | - |
+| degagement | TJunction_East | TJunction_East: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.112665921 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Left | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.497870266 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Right | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 4.6449995 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Ring_North_East/Collision/Col_Sidewalk_Left | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.4978699 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Ring_North_East/Collision/Col_Sidewalk_Right | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 4.64547873 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 4.3801136 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.4215829 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_North | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.4215858 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Ring_North_East/Collision/Col_Sidewalk_Left | Infinity | aucun | - | 0.6454787 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Ring_North_West/Collision/Col_Sidewalk_Left | Infinity | aucun | - | 0.6449981 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_North | Infinity | aucun | - | 0.6449981 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Right | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.645480156 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Ring_North_East/Collision/Col_Sidewalk_Right | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.645 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East | - | 0.112665057 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Left | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 4.64548 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Right | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.497870356 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Ring_North_West/Collision/Col_Sidewalk_Left | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.49786976 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Ring_North_West/Collision/Col_Sidewalk_Right | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 4.644999 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.421582937 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 4.380113 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_North | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.421585768 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Ring_North_East/Collision/Col_Sidewalk_Right | Infinity | aucun | - | 0.645 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Ring_North_West/Collision/Col_Sidewalk_Right | Infinity | aucun | - | 0.6454817 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE | Infinity | aucun | - | 0.645 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW | Infinity | aucun | - | 0.645480633 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Left | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.6449995 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Ring_North_West/Collision/Col_Sidewalk_Right | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.6454817 | - |
+| degagement | TJunction_North | TJunction_North: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.1126647 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Left | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 4.6449995 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Right | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.497870266 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Ring_South_West/Collision/Col_Sidewalk_Left | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 4.64547873 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Ring_South_West/Collision/Col_Sidewalk_Right | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.4978699 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 4.3801136 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.421583384 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_North | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.4215858 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Ring_South_East/Collision/Col_Sidewalk_Right | Infinity | aucun | - | 0.6449981 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Ring_South_West/Collision/Col_Sidewalk_Right | Infinity | aucun | - | 0.6454787 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_North | Infinity | aucun | - | 0.6449981 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Left | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.645480156 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Ring_South_West/Collision/Col_Sidewalk_Left | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.645 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.112664744 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Left | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.497870356 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Right | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 4.64548 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Ring_South_East/Collision/Col_Sidewalk_Left | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 4.644999 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Ring_South_East/Collision/Col_Sidewalk_Right | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.49786976 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.421582371 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 4.3801136 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_North | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.421585768 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Ring_South_East/Collision/Col_Sidewalk_Left | Infinity | aucun | - | 0.6454817 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Ring_South_West/Collision/Col_Sidewalk_Left | Infinity | aucun | - | 0.645 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE | Infinity | aucun | - | 0.645 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW | Infinity | aucun | - | 0.645480633 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Right | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.6449995 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Ring_South_East/Collision/Col_Sidewalk_Left | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.6454817 | - |
+| degagement | TJunction_South | TJunction_South: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast | - | 0.112664908 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Left | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 4.6449995 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Right | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.4978705 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Ring_West_North/Collision/Col_Sidewalk_Left | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.4978698 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/Ring_West_North/Collision/Col_Sidewalk_Right | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 4.64547873 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 4.3801136 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.421583116 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_North | 10.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.4215858 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Ring_West_North/Collision/Col_Sidewalk_Left | Infinity | aucun | - | 0.6454787 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/Ring_West_South/Collision/Col_Sidewalk_Left | Infinity | aucun | - | 0.6449981 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_North | Infinity | aucun | - | 0.6449981 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Left | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.6454803 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/Ring_West_North/Collision/Col_Sidewalk_Right | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.645 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_East_Out (droite) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE | 6.645 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West | - | 0.112665191 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Left | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.497870833 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Right | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 4.64548 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Ring_West_South/Collision/Col_Sidewalk_Left | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.4978698 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/Ring_West_South/Collision/Col_Sidewalk_Right | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 4.644998 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.4215829 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 4.380117 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_North | 10.6449986 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.421585947 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Ring_West_North/Collision/Col_Sidewalk_Right | Infinity | aucun | - | 0.645 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/Ring_West_South/Collision/Col_Sidewalk_Right | Infinity | aucun | - | 0.645480633 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE | Infinity | aucun | - | 0.645 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW | Infinity | aucun | - | 0.645480931 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Right | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.6449994 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/Ring_West_South/Collision/Col_Sidewalk_Right | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.645480633 | - |
+| degagement | TJunction_West | TJunction_West: Junction_FromWest -> Connector_South_Out (droite) | RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW | 6.6449995 | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest | - | 0.112665176 | - |
+
+### Entrees mesurees
+
+Une ligne par entree de chaque empreinte (chemin, genre, empreinte de sa ligne canonique) : nomme ce qui a change quand une empreinte differe.
+
+| Genre | Entree | Empreinte |
+|---|---|---|
+| physique | /Greybox_AIVehicle:BoxCollider | `3f771c5e5f63f729` |
+| physique | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_East:BoxCollider | `cf3538d8adcb98a2` |
+| physique | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthEast:BoxCollider | `457a76adada661ec` |
+| physique | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_SouthWest:BoxCollider | `8db33cc29700591d` |
+| physique | MVP_Run/RunRoot/GreyboxMap/Greybox_CityBlock_A_West:BoxCollider | `b768651b4c987fb7` |
+| physique | MVP_Run/RunRoot/GreyboxMap/Greybox_GroundPlane:BoxCollider | `6f686546f9ec624f` |
+| physique | MVP_Run/RunRoot/GreyboxMap/Relief_DosDane_AvenueCenterToEast/Rampe_Est:BoxCollider | `ff4f41ebf5f7dcc5` |
+| physique | MVP_Run/RunRoot/GreyboxMap/Relief_DosDane_AvenueCenterToEast/Rampe_Ouest:BoxCollider | `9a92008879a5a3d7` |
+| physique | MVP_Run/RunRoot/GreyboxMap/Relief_MarcheBasse_AvenueCenterToEast:BoxCollider | `37114cb7c112d002` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Roadway:BoxCollider | `8c2b12fed85e88da` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Left:BoxCollider | `3230f46b058e3160` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Right:BoxCollider | `ec9881b289311ba9` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Roadway:BoxCollider | `1846088fd417d14f` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Left:BoxCollider | `b78ec2beb09edf8e` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Right:BoxCollider | `607ce444e9dd0ec2` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Roadway:BoxCollider | `f8e790d36bd9d115` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Left:BoxCollider | `c094be411d1e99a4` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Right:BoxCollider | `6ec6cb4d8933ea01` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Roadway:BoxCollider | `4a8a724ee30c93f9` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Left:BoxCollider | `738a4c33707f1551` |
+| physique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Right:BoxCollider | `87b40e71f6cdc6a8` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_East:BoxCollider | `353107b5a59c1f1e` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_North_West:BoxCollider | `04573ccc5f79a9bd` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_East:BoxCollider | `2b3b1eed75326657` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Curb_South_West:BoxCollider | `fc1cb514c52aba1f` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Roadway:BoxCollider | `25c6b1f0dde7ebe3` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE/Chamfer_Box_B:BoxCollider | `a45dfc34f1225006` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE/Chamfer_Box_Diagonal:BoxCollider | `4a68c54e54e2d6f5` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE:BoxCollider | `5fef44153eb53bc9` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW/Chamfer_Box_B:BoxCollider | `72c7b7a6d2375558` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW/Chamfer_Box_Diagonal:BoxCollider | `eb0f23161703f0bc` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW:BoxCollider | `83c3ea25ad813caa` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `346661f3cc35978b` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `d7ee8e7bdffeef21` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `88013fe23f6a9542` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `cf9db23a92004d19` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `070ccada9e847b3a` |
+| physique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `16332e1c801a4673` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Collision/Col_Roadway:BoxCollider | `6049e581316f1330` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Collision/Col_Sidewalk_Left:BoxCollider | `a6819073c84a8681` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Collision/Col_Sidewalk_Right:BoxCollider | `49ea32d8c412fe5f` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Collision/Col_Roadway:BoxCollider | `12aa4fb4469e5dc7` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Collision/Col_Sidewalk_Left:BoxCollider | `1e323d845d9afc34` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Collision/Col_Sidewalk_Right:BoxCollider | `c3697ce6bcc03910` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Collision/Col_Roadway:BoxCollider | `8e14fbc359e54a09` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Collision/Col_Sidewalk_Left:BoxCollider | `4a1dcd097c55da36` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Collision/Col_Sidewalk_Right:BoxCollider | `e0312c926f68b45c` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Collision/Col_Roadway:BoxCollider | `5230c3a90707c10e` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Collision/Col_Sidewalk_Left:BoxCollider | `f95235610db46fe4` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Collision/Col_Sidewalk_Right:BoxCollider | `ca02e827a46a43e4` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Collision/Col_Roadway:BoxCollider | `d0d8a7ff7498a26f` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Collision/Col_Sidewalk_Left:BoxCollider | `bfce1b18e054b76f` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Collision/Col_Sidewalk_Right:BoxCollider | `a22795de9b2927e9` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Collision/Col_Roadway:BoxCollider | `922f2afbd666f5d0` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Collision/Col_Sidewalk_Left:BoxCollider | `d6b39f6a4ad5bced` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Collision/Col_Sidewalk_Right:BoxCollider | `930a56f0ec1a79df` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Collision/Col_Roadway:BoxCollider | `1d1ceb7b4928dc4c` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Collision/Col_Sidewalk_Left:BoxCollider | `93134bde8ee68ca9` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Collision/Col_Sidewalk_Right:BoxCollider | `41e8175852f913c4` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Collision/Col_Roadway:BoxCollider | `a4f216eefa1d7461` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Collision/Col_Sidewalk_Left:BoxCollider | `517b7f0ddac71e31` |
+| physique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Collision/Col_Sidewalk_Right:BoxCollider | `4ece12511a68946f` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_NorthEast/Collision/Col_Island:MeshCollider | `7e0704deadbaf1c9` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_NorthEast/Collision/Col_Roadway_Disc:BoxCollider | `cb7c51388ac09952` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_NorthEast/Collision/Col_Roadway_Ring:MeshCollider | `73085376364c6ea0` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_NorthWest/Collision/Col_Island:MeshCollider | `0d82a6809648cf18` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_NorthWest/Collision/Col_Roadway_Disc:BoxCollider | `7bbf4b7fa5b869b5` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_NorthWest/Collision/Col_Roadway_Ring:MeshCollider | `5948fc9325c32efc` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_SouthEast/Collision/Col_Island:MeshCollider | `e88402828c7bb421` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_SouthEast/Collision/Col_Roadway_Disc:BoxCollider | `bf27f03c7a742ea7` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_SouthEast/Collision/Col_Roadway_Ring:MeshCollider | `742322bb3ff37909` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_SouthWest/Collision/Col_Island:MeshCollider | `e57bba589c97b778` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_SouthWest/Collision/Col_Roadway_Disc:BoxCollider | `7962f3835bd9ad66` |
+| physique | MVP_Run/RunRoot/LaneGraph/Roundabout_SouthWest/Collision/Col_Roadway_Ring:MeshCollider | `697ea1f8b544a959` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Roadway:BoxCollider | `3cae6d9eb8e7f269` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `779bca713b5568b4` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `4c664968f511abe7` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `54fde63684efc16e` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `576467eb4042b04f` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `fb2cb9d3063c714f` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `b78da4fbac2d081a` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_North:BoxCollider | `e96df02edfe6b537` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Roadway:BoxCollider | `fe8f6c8f404e956f` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `bedced664315ed2e` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `905080b4b1d8bfe9` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `80598a2a5ec0861a` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `7e5b9bdbff8da704` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `c743b777fd4b45e2` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `25c877ee6cc1c0b4` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_North:BoxCollider | `25e3b05146556b77` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Roadway:BoxCollider | `23290d1b7004652b` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `64131410a9f66318` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `0c71b331d682bfc7` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `3dadd22280536dc4` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `ec7fbea11e0f7319` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `c27e44aaf4c3c419` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `0dffd08a33ddac30` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_North:BoxCollider | `c0a01f207cb0c014` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Roadway:BoxCollider | `6d34ca7180864e3e` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `0afe015d45daa617` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `a7e87b5378d8f1ec` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `5481a6ff92443eb8` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `5f05df2d4a0ffd7b` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `46b674d463cf4633` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `91a192a1a8c0302d` |
+| physique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_North:BoxCollider | `b79aa6dbe207201a` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthEast/Collision/Col_Backstop:BoxCollider | `b00711fc2b5d9aca` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthEast/Collision/Col_Roadway:BoxCollider | `bbd778cecb233206` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthEast/Collision/Col_Roof:BoxCollider | `da14877c33ffa271` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthEast/Collision/Col_Sidewalk_Left:BoxCollider | `72bae1e8a3e72da9` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthEast/Collision/Col_Sidewalk_Right:BoxCollider | `0900c2a2dcf23aad` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthEast/Collision/Col_Wall_Left:BoxCollider | `dac78de8f52e75a8` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthEast/Collision/Col_Wall_Right:BoxCollider | `46f913bec6c653b9` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthWest/Collision/Col_Backstop:BoxCollider | `5ab377727e67f6b1` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthWest/Collision/Col_Roadway:BoxCollider | `f1808efe55073d87` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthWest/Collision/Col_Roof:BoxCollider | `25130561d3bd891a` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthWest/Collision/Col_Sidewalk_Left:BoxCollider | `7e44eaab56ec6a71` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthWest/Collision/Col_Sidewalk_Right:BoxCollider | `c0582f7feb8c206a` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthWest/Collision/Col_Wall_Left:BoxCollider | `4af71006d38071cc` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_NorthWest/Collision/Col_Wall_Right:BoxCollider | `9c3675d4aff37a7b` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthEast/Collision/Col_Backstop:BoxCollider | `d21a42b4c3491164` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthEast/Collision/Col_Roadway:BoxCollider | `9deb2cdb9668880c` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthEast/Collision/Col_Roof:BoxCollider | `20509aefcddd23ef` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthEast/Collision/Col_Sidewalk_Left:BoxCollider | `a487141dab4c2be2` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthEast/Collision/Col_Sidewalk_Right:BoxCollider | `4c555b775e1a665f` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthEast/Collision/Col_Wall_Left:BoxCollider | `bacbbce3405a500a` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthEast/Collision/Col_Wall_Right:BoxCollider | `d4e6fb6f3482d5db` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthWest/Collision/Col_Backstop:BoxCollider | `a1cbc9ac0c87259b` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthWest/Collision/Col_Roadway:BoxCollider | `57af42a08bf661d7` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthWest/Collision/Col_Roof:BoxCollider | `b5fa819c3b7dd1d6` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthWest/Collision/Col_Sidewalk_Left:BoxCollider | `47686bd4057fe3ec` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthWest/Collision/Col_Sidewalk_Right:BoxCollider | `7e409cf39575ba35` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthWest/Collision/Col_Wall_Left:BoxCollider | `0510ec6df82b90e3` |
+| physique | MVP_Run/RunRoot/LaneGraph/TunnelPortal_SouthWest/Collision/Col_Wall_Right:BoxCollider | `fbdb39092e9c3af7` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Left:BoxCollider | `3230f46b058e3160` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Collision/Col_Sidewalk_Right:BoxCollider | `ec9881b289311ba9` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `eaa8837b85bead34` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n6:MeshRenderer | `4e7261f25b40c4b6` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `c32f5114379a84d3` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s6:MeshRenderer | `921b12bde787f0b6` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `190eab46863c35e6` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n6:MeshRenderer | `b7204d65281da3af` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `fa6384d51363831f` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToEast/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s6:MeshRenderer | `fcd45bc6481ca644` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Left:BoxCollider | `b78ec2beb09edf8e` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Collision/Col_Sidewalk_Right:BoxCollider | `607ce444e9dd0ec2` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `7d44fa8e9170d409` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n6:MeshRenderer | `a65f3b40cca416ac` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `8d07183040b1dc6b` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s6:MeshRenderer | `6f201c57a87d1753` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `51cedf20b1742782` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n6:MeshRenderer | `fd9453105fdb1af8` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `482a6683d5b9624c` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToNorth/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s6:MeshRenderer | `3056560540b58a51` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Left:BoxCollider | `c094be411d1e99a4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Collision/Col_Sidewalk_Right:BoxCollider | `6ec6cb4d8933ea01` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `f2d839850f66e00f` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n6:MeshRenderer | `a3089846f77dd94e` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `8aa1747eb74d9419` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s6:MeshRenderer | `c1c414e107047e5c` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `1b14ff279c1145e7` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n6:MeshRenderer | `bedce1a3b1724fff` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `a6fd7641b10b2b2a` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToSouth/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s6:MeshRenderer | `c2cf59b9f2ab8b6d` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Left:BoxCollider | `738a4c33707f1551` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Collision/Col_Sidewalk_Right:BoxCollider | `87b40e71f6cdc6a8` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `844b6402d14b6e91` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n6:MeshRenderer | `b8826ebd86228d4e` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `8f88ef5e49c9d408` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s6:MeshRenderer | `1a86cd83ec72d964` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `04e6be561f45bf94` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n6:MeshRenderer | `65c9fe6f3e931132` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `9ac89d15498a77eb` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Avenue_CenterToWest/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s6:MeshRenderer | `73e71faca92aeddf` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE/Chamfer_Box_B:BoxCollider | `a45dfc34f1225006` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE/Chamfer_Box_Diagonal:BoxCollider | `4a68c54e54e2d6f5` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE/Chamfer_Visual_0:MeshRenderer | `7fcfb0c3c2079f29` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE/Chamfer_Visual_1:MeshRenderer | `409d9c0975a77ea6` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE/Chamfer_Visual_2:MeshRenderer | `f9b27c9f6f8f95b6` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NE:BoxCollider | `5fef44153eb53bc9` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW/Chamfer_Box_B:BoxCollider | `72c7b7a6d2375558` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW/Chamfer_Box_Diagonal:BoxCollider | `eb0f23161703f0bc` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW/Chamfer_Visual_0:MeshRenderer | `b5174a1d3bb7d86e` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW/Chamfer_Visual_1:MeshRenderer | `e73ee917c9a1fb31` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW/Chamfer_Visual_2:MeshRenderer | `f154d8a8fe0e7e01` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_NW:BoxCollider | `83c3ea25ad813caa` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `346661f3cc35978b` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `d7ee8e7bdffeef21` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_0:MeshRenderer | `373b28e4add4cf62` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_1:MeshRenderer | `8c449decacb89f2a` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_2:MeshRenderer | `8dd45aa3e7182915` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `88013fe23f6a9542` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `cf9db23a92004d19` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `070ccada9e847b3a` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_0:MeshRenderer | `b9b9554b98898292` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_1:MeshRenderer | `19424e4bc3f04948` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_2:MeshRenderer | `b71350cb8a91c468` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `16332e1c801a4673` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Collision/Col_Sidewalk_Left:BoxCollider | `a6819073c84a8681` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Collision/Col_Sidewalk_Right:BoxCollider | `49ea32d8c412fe5f` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `a19e02c79334cd02` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `95326d85978cd15e` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s6:MeshRenderer | `d51baf84c10419e8` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `b0abcaf854ec1613` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `78c5b08facde92bd` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_North/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s6:MeshRenderer | `7b3a3dbf883e7c26` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Collision/Col_Sidewalk_Left:BoxCollider | `1e323d845d9afc34` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Collision/Col_Sidewalk_Right:BoxCollider | `c3697ce6bcc03910` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `d9a96388eca06e39` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n6:MeshRenderer | `21d1f70930e7b013` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `b0a54e975677b739` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `beed4e57e85b59c3` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n6:MeshRenderer | `5d6f80dfbd5b9cef` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_East_South/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `45b6c539ef53acaf` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Collision/Col_Sidewalk_Left:BoxCollider | `4a1dcd097c55da36` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Collision/Col_Sidewalk_Right:BoxCollider | `e0312c926f68b45c` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `635958c8d1411956` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `763d66f635e849a0` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s6:MeshRenderer | `d13c5004a2c7f2f0` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `b42780f23d3bbc0a` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `2017ab5b8b72ba21` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_East/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s6:MeshRenderer | `be4b67ead0a3131b` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Collision/Col_Sidewalk_Left:BoxCollider | `f95235610db46fe4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Collision/Col_Sidewalk_Right:BoxCollider | `ca02e827a46a43e4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `b69ff775f86e551d` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n6:MeshRenderer | `78b05404ad674594` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `58993a1ba346a936` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `139c3a8375a4f6d6` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n6:MeshRenderer | `8f4ff9d40653a59e` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_North_West/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `6b0520f51dac86fc` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Collision/Col_Sidewalk_Left:BoxCollider | `bfce1b18e054b76f` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Collision/Col_Sidewalk_Right:BoxCollider | `a22795de9b2927e9` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `0b349470b272ad91` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `664e5b3059e5008a` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s6:MeshRenderer | `46fe153705ace85d` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `5d44b3336f122732` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `45fa6f5576281707` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_East/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s6:MeshRenderer | `f4efa7cd527a50d7` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Collision/Col_Sidewalk_Left:BoxCollider | `d6b39f6a4ad5bced` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Collision/Col_Sidewalk_Right:BoxCollider | `930a56f0ec1a79df` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `e16b00f62163c020` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n6:MeshRenderer | `2f809d1008b52b83` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `f7ba7d59ba6139f4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `9a7dcb1351948cf7` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n6:MeshRenderer | `6102d93823abbe32` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_South_West/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `4663708631da476a` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Collision/Col_Sidewalk_Left:BoxCollider | `93134bde8ee68ca9` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Collision/Col_Sidewalk_Right:BoxCollider | `41e8175852f913c4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `66408f2e685a06f9` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `3cf0787abe80276d` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s6:MeshRenderer | `563d0864de212a2d` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `cee84237ecfd48ab` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `c09016fce052ab50` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_North/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s6:MeshRenderer | `b311d2eead6f8e22` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Collision/Col_Sidewalk_Left:BoxCollider | `517b7f0ddac71e31` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Collision/Col_Sidewalk_Right:BoxCollider | `4ece12511a68946f` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n2:MeshRenderer | `fc7df5a7ed35f4a4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Visual_Greybox_RoadSegment_TwoWay/Walk_L_n6:MeshRenderer | `748e255bb4c82852` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Visual_Greybox_RoadSegment_TwoWay/Walk_L_s2:MeshRenderer | `1454db1b76802be3` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n2:MeshRenderer | `f11d3fa66b81a5a4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Visual_Greybox_RoadSegment_TwoWay/Walk_R_n6:MeshRenderer | `4fa211c249936e16` |
+| semantique | MVP_Run/RunRoot/LaneGraph/Ring_West_South/Visual_Greybox_RoadSegment_TwoWay/Walk_R_s2:MeshRenderer | `1133c56ee3407883` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `779bca713b5568b4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `4c664968f511abe7` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_0:MeshRenderer | `6d8665ac436694c2` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_1:MeshRenderer | `fbd3d60f6115cc43` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_2:MeshRenderer | `d0fcf9c38ae8ee8d` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `54fde63684efc16e` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `576467eb4042b04f` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `fb2cb9d3063c714f` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_0:MeshRenderer | `10e163559e1c359f` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_1:MeshRenderer | `7d625b4026ecb582` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_2:MeshRenderer | `305e61b2b31c0430` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `b78da4fbac2d081a` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Collision/Col_Sidewalk_North:BoxCollider | `e96df02edfe6b537` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Visual_Greybox_TJunction/Sidewalk_North_n2:MeshRenderer | `4d821f2d463f3e07` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Visual_Greybox_TJunction/Sidewalk_North_n6:MeshRenderer | `e38a15cd1e2d19c8` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Visual_Greybox_TJunction/Sidewalk_North_s2:MeshRenderer | `1d85331ac7a57e07` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_East/Visual_Greybox_TJunction/Sidewalk_North_s6:MeshRenderer | `399e400acaf884e8` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `bedced664315ed2e` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `905080b4b1d8bfe9` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_0:MeshRenderer | `492801dc13d1783e` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_1:MeshRenderer | `d1c82c8f60a86df9` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_2:MeshRenderer | `83418f00123b8fdf` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `80598a2a5ec0861a` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `7e5b9bdbff8da704` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `c743b777fd4b45e2` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_0:MeshRenderer | `97d7e1950b1a39b7` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_1:MeshRenderer | `102b936a2ecf6e66` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_2:MeshRenderer | `50119408f0b27844` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `25c877ee6cc1c0b4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Collision/Col_Sidewalk_North:BoxCollider | `25e3b05146556b77` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Visual_Greybox_TJunction/Sidewalk_North_n2:MeshRenderer | `6e4eb33f85a7c5cc` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Visual_Greybox_TJunction/Sidewalk_North_n6:MeshRenderer | `f592ee37be78db67` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Visual_Greybox_TJunction/Sidewalk_North_s2:MeshRenderer | `e76ac0841b259aad` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_North/Visual_Greybox_TJunction/Sidewalk_North_s6:MeshRenderer | `081bdea85dc28c56` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `64131410a9f66318` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `0c71b331d682bfc7` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_0:MeshRenderer | `38ddc180475091be` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_1:MeshRenderer | `6d8168ceb0f48dd6` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_2:MeshRenderer | `76372846bda3dcbe` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `3dadd22280536dc4` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `ec7fbea11e0f7319` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `c27e44aaf4c3c419` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_0:MeshRenderer | `aa30adf7c0441561` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_1:MeshRenderer | `838afabe1362f9c8` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_2:MeshRenderer | `e3bb0e7f9aac3fb0` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `0dffd08a33ddac30` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Collision/Col_Sidewalk_North:BoxCollider | `c0a01f207cb0c014` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Visual_Greybox_TJunction/Sidewalk_North_n2:MeshRenderer | `d740e06d45feb774` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Visual_Greybox_TJunction/Sidewalk_North_n6:MeshRenderer | `fc1c59f43d4032f7` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Visual_Greybox_TJunction/Sidewalk_North_s2:MeshRenderer | `f52665eb3c3895fb` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_South/Visual_Greybox_TJunction/Sidewalk_North_s6:MeshRenderer | `a3e357cae6ed6360` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_B:BoxCollider | `0afe015d45daa617` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE/Chamfer_Box_Diagonal:BoxCollider | `a7e87b5378d8f1ec` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_0:MeshRenderer | `2d5bcf1ddec24794` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_1:MeshRenderer | `307b07012c3ce173` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE/Chamfer_Visual_2:MeshRenderer | `0934032ff2c05b29` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SE:BoxCollider | `5481a6ff92443eb8` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_B:BoxCollider | `5f05df2d4a0ffd7b` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW/Chamfer_Box_Diagonal:BoxCollider | `46b674d463cf4633` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_0:MeshRenderer | `72f99c8e83ea0296` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_1:MeshRenderer | `d2379a603ec67ba1` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW/Chamfer_Visual_2:MeshRenderer | `36c623ba5e7303ef` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_Corner_SW:BoxCollider | `91a192a1a8c0302d` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Collision/Col_Sidewalk_North:BoxCollider | `b79aa6dbe207201a` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Visual_Greybox_TJunction/Sidewalk_North_n2:MeshRenderer | `83feec3ab2f480b2` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Visual_Greybox_TJunction/Sidewalk_North_n6:MeshRenderer | `b44598fd85318448` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Visual_Greybox_TJunction/Sidewalk_North_s2:MeshRenderer | `6dff32b567d9eb5d` |
+| semantique | MVP_Run/RunRoot/LaneGraph/TJunction_West/Visual_Greybox_TJunction/Sidewalk_North_s6:MeshRenderer | `166856ee31ec1e18` |
+
 ## Disposition des taches 5.27
 
 Chaque tache est disposee exactement une fois. Controle, Conflit et Largeur par leurs donnees typees ; les autres par une disposition explicite.
@@ -442,7 +1028,7 @@ Derivees structurellement, jamais par nom : corridor du portail d'entree de plus
 
 Overlay canonique : `_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt` (25 instances de module, hash `20cd1d1f262f812d6fd035119a465a20dcbd4b39c18a58410f481f71d00a0abe`), produit par la meme fonction que le dessin de la fenetre `RoadRage/Traffic V2/Revue Gate A`.
 
-La Gate A n'est ouverte que par `Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json`, ecrit par le proprietaire depuis cette fenetre apres revue des 25 instances, et lie aux hashes source, lignee, decisions, compilateur, modele, version et overlay d'un pipeline frais. Un sign-off absent ou perime garde la Gate A fermee, jamais repare.
+La Gate A n'est ouverte que par `Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json`, ecrit par le proprietaire depuis cette fenetre apres revue des 25 instances, et lie aux hashes source, lignee, decisions, compilateur, modele, version et overlay d'un pipeline frais, ainsi qu'aux empreintes physique et Sidewalk et aux residus de la preuve physique (comparaison exacte). Un sign-off absent ou perime, une empreinte ou un residu different, un residu non positif ou une decision non reconfirmee garde la Gate A fermee, jamais repare.
 
 | Instance | Genre |
 |---|---|

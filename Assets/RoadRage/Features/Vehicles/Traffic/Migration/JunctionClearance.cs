@@ -40,6 +40,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     {
         public string Junction;
         public string Movement;
+
+        /// <summary>Surface Sidewalk du gate semantique ; nul pour un giratoire (gate physique seul, Story 5.28).</summary>
         public string Surface;
         public JunctionClearanceWitness Physical;
         public JunctionClearanceWitness Semantic;
@@ -67,16 +69,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public readonly List<JunctionClearanceRelief> DrivableReliefs = new List<JunctionClearanceRelief>();
         public string PhysicalFingerprint;
         public string SemanticFingerprint;
+
+        /// <summary>Une ligne « chemin:Type empreinte16 » par entree de chaque empreinte, triee : nomme ce qui a change (Gate A, Story 5.28).</summary>
+        public readonly List<string> PhysicalInputs = new List<string>();
+        public readonly List<string> SemanticInputs = new List<string>();
         public readonly List<JunctionClearanceRow> Rows = new List<JunctionClearanceRow>();
         public readonly List<string> Failures = new List<string>();
 
-        public bool Passed { get { return Failures.Count == 0 && Rows.Count > 0 && Rows.All(r => r.Physical.Residual > 0f && r.Semantic.Residual > 0f); } }
+        public bool Passed { get { return Failures.Count == 0 && Rows.Count > 0 && Rows.All(r => r.Physical.Residual > 0f && (r.Semantic == null || r.Semantic.Residual > 0f)); } }
     }
 
     /// <summary>Preuve EditMode 5.51 : deux gates independants sur les courbes compilees 5.50.</summary>
     public static class JunctionClearance
     {
         public const int AlgorithmVersion = 5; // 2 : relief routier ; 3 : appui exact ; 4 : empreinte UV et concordance visuelle renforcee ; 5 : roles de trottoir symetriques, UV hors empreinte physique
+
+        /// <summary>Version du balayage des giratoires (Story 5.28), portee par leur empreinte physique en plus de <see cref="AlgorithmVersion"/>.</summary>
+        public const int RoundaboutSweepVersion = 1;
         public const float ReliefSupportToleranceMeters = 0.001f;
         public const float ReliefOverlapToleranceMeters = 0.01f;
         public const float DefaultStepMeters = 0.05f;
@@ -247,6 +256,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public static JunctionClearanceResult Measure(Scene scene, V1ImportResult import, CompiledRoadModel model,
             IReadOnlyList<JunctionClearanceSurface> sidewalks, float h = DefaultStepMeters)
         {
+            return Measure(scene, import, model, sidewalks, h, false);
+        }
+
+        /// <summary>
+        /// Coeur commun. <paramref name="roundabouts"/> faux : les 5 carrefours classiques, deux gates
+        /// (Story 5.51). Vrai : les 4 giratoires (Story 5.28), gate physique seul, meme balayage, meme
+        /// filtre d'obstacles et meme regle du relief, sur chaque mouvement prolonge et chaque corridor
+        /// d'anneau entier ; empreinte physique propre, versionnee par <see cref="RoundaboutSweepVersion"/>.
+        /// </summary>
+        internal static JunctionClearanceResult Measure(Scene scene, V1ImportResult import, CompiledRoadModel model,
+            IReadOnlyList<JunctionClearanceSurface> sidewalks, float h, bool roundabouts)
+        {
             var result = new JunctionClearanceResult { StepMeters = h };
             if (!scene.IsValid() || !scene.isLoaded || import == null || model == null || !(h > 0f))
             {
@@ -303,16 +324,33 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             foreach (V1Module module in import.SourceSet.Modules)
             {
-                if (module.Kind != V1ModuleKind.Crossroads && module.Kind != V1ModuleKind.TJunction)
+                bool conventional = module.Kind == V1ModuleKind.Crossroads || module.Kind == V1ModuleKind.TJunction;
+                if (roundabouts ? module.Kind != V1ModuleKind.Roundabout : !conventional)
                 {
                     continue;
                 }
 
-                var movements = import.Movements.Where(movement => movement.Module == module).ToArray();
+                // Giratoire : aussi chaque corridor d'anneau entier ; ses coutures avec les mouvements
+                // sont balayees par les trajectoires prolongees de ces mouvements.
+                var movements = import.Movements.Where(movement => movement.Module == module)
+                    .Concat(roundabouts ? import.Corridors.Where(corridor => corridor.IsRing && corridor.Module == module) : Enumerable.Empty<ImportedCurve>())
+                    .ToArray();
                 foreach (ImportedCurve movement in movements)
                 {
-                    string pathFailure;
-                    var paths = ConflictSweep.Paths(graph, import.IdOf(movement.Key), HalfLength(model.ValidationProfile), out pathFailure);
+                    string pathFailure = null;
+                    List<List<SweepPose>> paths;
+                    if (movement.IsRing)
+                    {
+                        paths = graph.Elements.TryGetValue(import.IdOf(movement.Key), out SweepElement ring)
+                            ? new List<List<SweepPose>> { ConflictSweep.Head(ring, float.PositiveInfinity) }
+                            : null;
+                        if (paths == null) pathFailure = "corridor d'anneau absent du modele compile";
+                    }
+                    else
+                    {
+                        paths = ConflictSweep.Paths(graph, import.IdOf(movement.Key), HalfLength(model.ValidationProfile), out pathFailure);
+                    }
+
                     if (pathFailure != null)
                     {
                         result.Failures.Add(module.Label + "/" + movement.Label + " : " + pathFailure);
@@ -321,11 +359,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                     var physical = new JunctionClearanceWitness();
                     var semantic = new Dictionary<Surface, JunctionClearanceWitness>();
+                    int swept = 0;
                     foreach (var coarse in paths)
                     {
                         List<SweepPose> poses;
                         try { poses = Subdivide(coarse, graph, h); }
                         catch (ArgumentException error) { result.Failures.Add(module.Label + "/" + movement.Label + " : " + error.Message); continue; }
+
+                        swept += poses.Count;
 
                         var nearby = Nearby(allColliders, poses, model.ValidationProfile);
                         foreach (Collider collider in nearby)
@@ -356,7 +397,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         }
 
                         float reach = Mathf.Sqrt(Mathf.Pow(HalfLength(model.ValidationProfile), 2f) + Mathf.Pow(HalfWidth(model.ValidationProfile), 2f));
-                        foreach (Surface surface in surfaces)
+                        foreach (Surface surface in roundabouts ? Enumerable.Empty<Surface>() : surfaces)
                         {
                             if (!surface.Polygons.Any(polygon => Near(polygon, poses, reach))) continue;
                             if (!semantic.TryGetValue(surface, out JunctionClearanceWitness witness))
@@ -368,6 +409,24 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                             Merge(witness, MeasurePath(poses, surface.Polygons, model.ValidationProfile, surface.Name));
                         }
+                    }
+
+                    if (roundabouts)
+                    {
+                        // Residu +infini legitime sans obstacle proche, jamais sans pose balayee (fail-closed).
+                        if (swept == 0)
+                        {
+                            result.Failures.Add(module.Label + "/" + movement.Label + " : aucune trajectoire mesuree.");
+                        }
+
+                        result.Rows.Add(new JunctionClearanceRow { Junction = module.Label, Movement = movement.Label, Physical = physical });
+                        if (!(physical.Residual > 0f))
+                        {
+                            result.Failures.Add(module.Label + "/" + movement.Label + " : residu physique non positif ("
+                                + physical.Residual.ToString("R", CultureInfo.InvariantCulture) + ", " + physical.Obstacle + ").");
+                        }
+
+                        continue;
                     }
 
                     if (semantic.Count == 0)
@@ -396,13 +455,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 }
             }
 
+            // Le gabarit IA (couche, include/exclude, boite) fait partie des entrees physiques.
+            physicalInputs.Add(aiBox);
+            if (roundabouts)
+            {
+                result.PhysicalFingerprint = FingerprintWithInputs(physicalInputs.Cast<Component>(),
+                    "roundabout-sweep-v" + RoundaboutSweepVersion + "|" + reliefInputs, ai.layer, result.PhysicalInputs);
+                return result;
+            }
+
             // Concordance visuelle sur les modules dont une surface entre dans la preuve (jonctions et
             // raccords a portee) ; giratoires et portails hors portee ne sont pas juges ici.
             CheckVisuals(import, surfaces.Where(surface => inProof.Contains(surface) || inProof.Any(m => SameModule(import, m, surface))).ToList(), result.Failures, semanticVisuals);
 
-            // Le gabarit IA (couche, include/exclude, boite) fait partie des entrees physiques.
-            physicalInputs.Add(aiBox);
-            result.PhysicalFingerprint = Fingerprint(physicalInputs.Cast<Component>(), reliefInputs, ai.layer);
+            result.PhysicalFingerprint = FingerprintWithInputs(physicalInputs.Cast<Component>(), reliefInputs, ai.layer, result.PhysicalInputs);
 
             // Toutes les declarations entrent dans l'empreinte semantique, meme hors portee : en ajouter
             // ou en retirer une change la couverture visuelle verifiee.
@@ -413,7 +479,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     .Append(surface.Input.DeclarationSignature).Append('|').Append(surface.Colliders.Count).Append('\n');
             }
 
-            result.SemanticFingerprint = Fingerprint(semanticInputs.Cast<Component>().Concat(semanticVisuals.Cast<Component>()), declarations.ToString(), ai.layer);
+            result.SemanticFingerprint = FingerprintWithInputs(semanticInputs.Cast<Component>().Concat(semanticVisuals.Cast<Component>()), declarations.ToString(), ai.layer, result.SemanticInputs);
             return result;
         }
 
@@ -971,16 +1037,32 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         private static string Describe(Collider collider)
         {
-            string path = collider.name;
-            for (Transform t = collider.transform.parent; t != null; t = t.parent) path = t.name + "/" + path;
-            return collider.gameObject.scene.name + "/" + path;
+            return Path(collider.transform);
+        }
+
+        private static string Path(Transform transform)
+        {
+            string path = transform.name;
+            for (Transform t = transform.parent; t != null; t = t.parent) path = t.name + "/" + path;
+            return transform.gameObject.scene.name + "/" + path;
         }
 
         private static string Fingerprint(IEnumerable<Component> components, string declarations, int aiLayer)
         {
+            return FingerprintWithInputs(components, declarations, aiLayer, null);
+        }
+
+        /// <summary>
+        /// Empreinte canonique ; si <paramref name="inputs"/> est fourni, y ajoute par entree
+        /// « chemin:Type empreinte16 » de sa ligne canonique (triees), pour nommer une entree changee.
+        /// Le texte hache est inchange par cette liste.
+        /// </summary>
+        private static string FingerprintWithInputs(IEnumerable<Component> components, string declarations, int aiLayer, List<string> inputs)
+        {
             var text = new StringBuilder("junction-clearance-v").Append(AlgorithmVersion).Append('|').Append(declarations).Append('|');
             foreach (Component component in components.OrderBy(c => GlobalObjectId.GetGlobalObjectIdSlow(c).ToString(), StringComparer.Ordinal))
             {
+                int start = text.Length;
                 text.Append(GlobalObjectId.GetGlobalObjectIdSlow(component)).Append('|').Append(component.GetType().FullName).Append('|');
                 for (Transform t = component.transform; t != null; t = t.parent)
                     text.Append(GlobalObjectId.GetGlobalObjectIdSlow(t.gameObject)).Append(JsonUtility.ToJson(t.localPosition))
@@ -1005,8 +1087,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 }
 
                 text.Append('\n');
+                if (inputs != null)
+                    inputs.Add(Path(component.transform) + ":" + component.GetType().Name + " " + V1SourceSet.Sha256Hex(text.ToString(start, text.Length - start)).Substring(0, 16));
             }
 
+            if (inputs != null) inputs.Sort(StringComparer.Ordinal);
             return V1SourceSet.Sha256Hex(text.ToString());
         }
 

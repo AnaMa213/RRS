@@ -77,6 +77,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             EditorGUILayout.LabelField("RoadModelVersion", _run.Binding == null ? "-" : _run.Binding.RoadModelVersion);
             EditorGUILayout.LabelField("Overlay", _run.Binding == null ? "-" : _run.Binding.OverlayHash);
+            EditorGUILayout.LabelField("Entrees physiques", _run.Binding == null ? "-" : _run.Binding.PhysicalInputHash);
+            EditorGUILayout.LabelField("Entrees Sidewalk", _run.Binding == null ? "-" : _run.Binding.SemanticInputHash);
+            EditorGUILayout.LabelField("Residus", _run.Binding == null ? "-" : _run.Binding.ClearanceHash);
             EditorGUILayout.LabelField("Instances revues", _reviewed.Count + " / " + _run.Overlay.Count);
 
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
@@ -154,13 +157,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(AuthoredRoadModel.ModelPath)),
                 AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(AuthoredRoadModel.OverlayPath))));
             _blocking.AddRange(AuthoredRoadModel.VerifyReport(AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(AuthoredRoadModel.ReportPath)), _run));
+
+            // Liaison physique : un residu non positif ou une mesure impossible interdit la signature (HALT proprietaire).
+            _blocking.AddRange(AuthoredRoadModel.VerifyEvidence(_run));
             SceneView.RepaintAll();
         }
 
         private void Sign()
         {
             string message = "Je, " + _approver + " <" + _approverEmail + ">, ai revu les " + _run.Overlay.Count + " instances de l'overlay MVP_Run "
-                + "et approuve le modele " + _run.Binding.RoadModelVersion + " (overlay " + _run.Binding.OverlayHash + ").";
+                + "et approuve le modele " + _run.Binding.RoadModelVersion + " (overlay " + _run.Binding.OverlayHash + "), "
+                + "avec la preuve physique des 9 carrefours (entrees " + _run.Binding.PhysicalInputHash + ", Sidewalk " + _run.Binding.SemanticInputHash
+                + ", residus " + _run.Binding.ClearanceHash + ").";
             if (!EditorUtility.DisplayDialog("Signer la Gate A", message, "Signer", "Annuler"))
             {
                 return;

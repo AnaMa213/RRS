@@ -85,6 +85,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public string ModelHash;
         public string RoadModelVersion;
         public string OverlayHash;
+
+        /// <summary>Preuve physique Gate A (5.28) : entrees physiques des 9 carrefours, entrees Sidewalk (5.51), residus. Hors RoadModelVersion, hash source et lignee.</summary>
+        public string PhysicalInputHash;
+        public string SemanticInputHash;
+        public string ClearanceHash;
         public string BodyHash;
 
         /// <summary>Champs lies dans l'ordre d'ecriture (body-hash exclu, il se verifie a part).</summary>
@@ -101,7 +106,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 new KeyValuePair<string, string>("decisions-hash", DecisionsHash),
                 new KeyValuePair<string, string>("model-hash", ModelHash),
                 new KeyValuePair<string, string>("road-model-version", RoadModelVersion),
-                new KeyValuePair<string, string>("overlay-hash", OverlayHash)
+                new KeyValuePair<string, string>("overlay-hash", OverlayHash),
+                new KeyValuePair<string, string>("physical-input-hash", PhysicalInputHash),
+                new KeyValuePair<string, string>("semantic-input-hash", SemanticInputHash),
+                new KeyValuePair<string, string>("clearance-hash", ClearanceHash)
             };
         }
     }
@@ -133,6 +141,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         /// <summary>Mesure de chaque giratoire (5.49) : enveloppe V2 appliquee et anneau physique.</summary>
         public readonly List<RoundaboutMeasurement> Roundabouts = new List<RoundaboutMeasurement>();
+
+        /// <summary>Preuve physique Gate A : angles des 5 carrefours classiques (5.51, deux gates) et balayage des 4 giratoires.</summary>
+        public JunctionClearanceResult JunctionEvidence;
+        public JunctionClearanceResult RoundaboutEvidence;
+
+        /// <summary>
+        /// Motifs qui ferment la Gate A sans invalider le modele (mesure impossible, residu non positif) :
+        /// publies dans le rapport, ils bloquent la signature. Un residu de giratoire non positif est un
+        /// HALT pour decision du proprietaire, sans changement physique.
+        /// </summary>
+        public readonly List<string> EvidenceFailures = new List<string>();
+
+        /// <summary>Bloc canonique des residus (flottants aller-retour) haches dans <c>clearance-hash</c>.</summary>
+        public string ClearanceText;
 
         public readonly List<OverlayInstance> Overlay = new List<OverlayInstance>();
         public string ModelText;
@@ -262,6 +284,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return run;
             }
 
+            MeasureEvidence(run, set);
+
             var provenance = new RoadModelProvenance();
             provenance.SourceHash = set.SourceHash;
             provenance.LineageHash = V1SourceSet.Sha256Hex(lineageText);
@@ -284,6 +308,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             binding.ModelHash = V1SourceSet.Sha256Hex(run.ModelText);
             binding.RoadModelVersion = run.Compiled.Version.ToString();
             binding.OverlayHash = V1SourceSet.Sha256Hex(run.OverlayText);
+            binding.PhysicalInputHash = V1SourceSet.Sha256Hex("gate-a-physical-inputs-v1\ncarrefours " + (run.JunctionEvidence == null ? "absente" : run.JunctionEvidence.PhysicalFingerprint)
+                + "\ngiratoires " + (run.RoundaboutEvidence == null ? "absente" : run.RoundaboutEvidence.PhysicalFingerprint) + "\n");
+            binding.SemanticInputHash = run.JunctionEvidence == null || run.JunctionEvidence.SemanticFingerprint == null ? "absente" : run.JunctionEvidence.SemanticFingerprint;
+            run.ClearanceText = RenderClearance(run);
+            binding.ClearanceHash = V1SourceSet.Sha256Hex(run.ClearanceText);
             string body = RenderBody(run, binding);
             binding.BodyHash = V1SourceSet.Sha256Hex(body);
             run.Binding = binding;
@@ -1278,6 +1307,123 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return text.ToString();
         }
 
+        // ============================================================ preuve physique Gate A
+
+        /// <summary>Allocation de suivi laterale a_e de la preuve signee a la Gate A : 0 (marge reservee, delta_c depense en representation).</summary>
+        public const float TrackingAllowanceMeters = 0f;
+
+        /// <summary>
+        /// Preuve physique Gate A sur la scene des modules (correct-course 2026-09-25, precise le
+        /// 2026-09-28) : angles des 5 carrefours classiques par la mesure 5.51 (gates physique et
+        /// Sidewalk), 4 giratoires par <see cref="RoundaboutClearance.Sweep"/> et residus d'anneau.
+        /// Tout echec ou residu non positif ferme la Gate A ; le modele reste valide.
+        /// </summary>
+        private static void MeasureEvidence(AuthoredRun run, V1SourceSet set)
+        {
+            var owner = set.Modules.Find(delegate(V1Module m) { return m.Root != null; });
+            if (owner == null)
+            {
+                run.EvidenceFailures.Add("Aucune racine de module dans la scene : preuve physique impossible.");
+                return;
+            }
+
+            var scene = owner.Root.gameObject.scene;
+            var sidewalks = SidewalkDeclarations.Read(scene, run.EvidenceFailures);
+            run.JunctionEvidence = JunctionClearance.Measure(scene, run.Import, run.Compiled, sidewalks);
+            run.RoundaboutEvidence = RoundaboutClearance.Sweep(scene, run.Import, run.Compiled, sidewalks);
+            run.EvidenceFailures.AddRange(run.JunctionEvidence.Failures);
+            run.EvidenceFailures.AddRange(run.RoundaboutEvidence.Failures);
+            if (run.JunctionEvidence.Rows.Count == 0 || run.RoundaboutEvidence.Rows.Count == 0)
+            {
+                run.EvidenceFailures.Add("Preuve physique vide (carrefours classiques " + run.JunctionEvidence.Rows.Count + " ligne(s), giratoires "
+                    + run.RoundaboutEvidence.Rows.Count + ").");
+            }
+
+            // Couverture par carrefour : aucun des 9 ne peut rester non mesure sous un verdict global vert.
+            foreach (var module in set.Modules)
+            {
+                var evidence = module.Kind == V1ModuleKind.Roundabout ? run.RoundaboutEvidence
+                    : module.Kind == V1ModuleKind.Crossroads || module.Kind == V1ModuleKind.TJunction ? run.JunctionEvidence : null;
+                if (evidence != null && !evidence.Rows.Exists(delegate(JunctionClearanceRow row) { return row.Junction == module.Label; }))
+                {
+                    run.EvidenceFailures.Add("Carrefour '" + module.Label + "' (" + module.Kind + ") sans aucune ligne de preuve physique : non mesure.");
+                }
+            }
+
+            foreach (var ring in run.Roundabouts)
+            {
+                if (!(ring.EnvelopeResidual > 0f) || !(ring.PhysicalResidual > 0f))
+                {
+                    run.EvidenceFailures.Add("Giratoire '" + ring.Module.Label + "' : residu d'anneau a deux gabarits non positif (V2 "
+                        + R(ring.EnvelopeResidual) + ", physique " + R(ring.PhysicalResidual) + ") : HALT, decision du proprietaire.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Bloc canonique des residus : une ligne par trajectoire (et surface Sidewalk) et par anneau,
+        /// flottants en aller-retour exact, triee. Hache dans <c>clearance-hash</c> : la regle de
+        /// reproductibilite compare exactement.
+        /// </summary>
+        private static string RenderClearance(AuthoredRun run)
+        {
+            var lines = new List<string>();
+            foreach (var evidence in new[] { run.JunctionEvidence, run.RoundaboutEvidence })
+            {
+                if (evidence == null)
+                {
+                    continue;
+                }
+
+                foreach (var row in evidence.Rows)
+                {
+                    lines.Add("| degagement | " + Cell(row.Junction) + " | " + Cell(row.Movement) + " | " + Cell(row.Surface ?? "-") + " | "
+                        + R(row.Physical.Residual) + " | " + Cell(string.IsNullOrEmpty(row.Physical.Obstacle) ? "aucun" : row.Physical.Obstacle) + " | "
+                        + (row.Physical.Seam ? "couture" : "-") + " | " + (row.Semantic == null ? "-" : R(row.Semantic.Residual)) + " | "
+                        + (row.Semantic == null ? "-" : row.Semantic.Seam ? "couture" : "-") + " |");
+                }
+            }
+
+            foreach (var ring in run.Roundabouts)
+            {
+                // Residus d'anneau a deux gabarits (5.49), recalcules sur l'anneau final 5.50 : colonne residu physique.
+                lines.Add("| anneau | " + Cell(ring.Module.Label) + " | deux gabarits, enveloppe V2 | - | " + R(ring.EnvelopeResidual) + " | - | - | - | - |");
+                lines.Add("| anneau | " + Cell(ring.Module.Label) + " | deux gabarits, anneau physique | - | " + R(ring.PhysicalResidual) + " | "
+                    + Cell(ring.NearestObstacle ?? "aucun") + " | - | - | - |");
+            }
+
+            lines.Sort(StringComparer.Ordinal);
+            var text = new StringBuilder();
+            text.Append("a_e = ").Append(R(TrackingAllowanceMeters)).Append(" m ; h = ")
+                .Append(R(run.JunctionEvidence == null ? JunctionClearance.DefaultStepMeters : run.JunctionEvidence.StepMeters)).Append(" m\n\n");
+            text.Append("| Genre | Carrefour | Trajectoire | Surface Sidewalk | Residu physique (m) | Obstacle temoin | Physique | Residu Sidewalk (m) | Sidewalk |\n|---|---|---|---|---:|---|---|---:|---|\n");
+            foreach (var line in lines)
+            {
+                text.Append(line).Append('\n');
+            }
+
+            return text.ToString();
+        }
+
+        private static string R(float value)
+        {
+            return value.ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        private static List<string> PublishedInputs(AuthoredRun run, bool physical)
+        {
+            var inputs = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var evidence in new[] { run.JunctionEvidence, run.RoundaboutEvidence })
+            {
+                if (evidence != null)
+                {
+                    inputs.UnionWith(physical ? evidence.PhysicalInputs : evidence.SemanticInputs);
+                }
+            }
+
+            return new List<string>(inputs);
+        }
+
         // ============================================================ rapport
 
         private static string RenderHeader(GateABinding binding)
@@ -1320,7 +1466,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             text.Append("- Erreurs dures : **0** (le modele passe `Compile` ; une seule erreur aurait bloque toute ecriture).\n");
             text.Append("- Lignee inchangee : 0 identite frappee, 0 retiree (import 5.27 relance en lecture seule).\n");
             text.Append("- Taches 5.27 non disposees : **0** sur ").Append(import.Tasks.Count).Append(".\n");
-            text.Append("- Fixtures de localisation : ").Append(run.Fixtures.Count).Append(" vertes sur ").Append(run.Fixtures.Count).Append(".\n\n");
+            text.Append("- Fixtures de localisation : ").Append(run.Fixtures.Count).Append(" vertes sur ").Append(run.Fixtures.Count).Append(".\n");
+            text.Append("- Preuve physique Gate A (9 carrefours) : ").Append(run.EvidenceFailures.Count == 0 ? "**verte**" : "**ROUGE** (" + run.EvidenceFailures.Count + " motif(s), Gate A fermee)").Append(".\n\n");
 
             text.Append("## Modele authore\n\n| Enregistrement | Nombre |\n|---|---:|\n");
             Row(text, "JunctionMovement", model.Movements.Count.ToString());
@@ -1439,6 +1586,48 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             text.Append('\n');
 
+            // ------------------------------------------------ preuve physique Gate A
+            text.Append("## Gate A : preuve physique des 9 carrefours\n\n");
+            text.Append("Correct-course du 2026-09-25, precise le 2026-09-28. Balayage conservateur de la Story 5.51 (algorithme ").Append(JunctionClearance.AlgorithmVersion)
+                .Append(" ; giratoires : balayage v").Append(JunctionClearance.RoundaboutSweepVersion).Append(") sur les references compilees 5.50 : empreinte = gabarit max du profil versionne + marge, gonfle de delta_c = ")
+                .Append(MigrationFormat.Meters(V1RoadModelImporter.ChordToleranceMeters)).Append(" m ; poses canoniques a pas h et coutures explicites ; residu = min(d_a, d_b) - delta/2, strictement positif. ")
+                .Append("Carrefours classiques : chaque mouvement prolonge de L/2 + marge + delta_c, gate physique (obstacles dans la tranche du vehicule IA, relief routier franchissable excepte) et gate Sidewalk en plan (declarations, actives ou non). ")
+                .Append("Giratoires : chaque mouvement prolonge de meme et chaque corridor d'anneau entier, gate physique, plus les residus d'anneau a deux gabarits ci-dessus. ")
+                .Append("Allocation de suivi laterale a_e = ").Append(MigrationFormat.Meters(TrackingAllowanceMeters)).Append(" m. Hors `RoadModelVersion`, hash source et lignee.\n\n");
+            text.Append("Verdict : ").Append(run.EvidenceFailures.Count == 0 ? "**vert**" : "**ROUGE**, Gate A fermee").Append(".\n\n");
+            foreach (var failure in run.EvidenceFailures)
+            {
+                text.Append("- ").Append(Cell(failure)).Append('\n');
+            }
+
+            if (run.EvidenceFailures.Count > 0)
+            {
+                text.Append('\n');
+            }
+
+            text.Append("| Empreinte | Valeur |\n|---|---|\n");
+            Row(text, "physical-input-hash (9 carrefours)", "`" + binding.PhysicalInputHash + "`");
+            Row(text, "Entrees physiques des carrefours classiques (5.51)", "`" + (run.JunctionEvidence == null ? "absente" : run.JunctionEvidence.PhysicalFingerprint) + "`");
+            Row(text, "Entrees physiques des giratoires", "`" + (run.RoundaboutEvidence == null ? "absente" : run.RoundaboutEvidence.PhysicalFingerprint) + "`");
+            Row(text, "semantic-input-hash (Sidewalk, 5.51)", "`" + binding.SemanticInputHash + "`");
+            Row(text, "clearance-hash (bloc des residus ci-dessous)", "`" + binding.ClearanceHash + "`");
+            text.Append('\n');
+            text.Append("### Residus\n\n").Append(run.ClearanceText).Append('\n');
+
+            text.Append("### Entrees mesurees\n\nUne ligne par entree de chaque empreinte (chemin, genre, empreinte de sa ligne canonique) : nomme ce qui a change quand une empreinte differe.\n\n");
+            text.Append("| Genre | Entree | Empreinte |\n|---|---|---|\n");
+            foreach (var physical in new[] { true, false })
+            {
+                foreach (var input in PublishedInputs(run, physical))
+                {
+                    int space = input.LastIndexOf(' ');
+                    text.Append("| ").Append(physical ? "physique" : "semantique").Append(" | ").Append(Cell(input.Substring(0, space))).Append(" | `")
+                        .Append(input.Substring(space + 1)).Append("` |\n");
+                }
+            }
+
+            text.Append('\n');
+
             // ------------------------------------------------ taches
             text.Append("## Disposition des taches 5.27\n\n");
             text.Append("Chaque tache est disposee exactement une fois. Controle, Conflit et Largeur par leurs donnees typees ; les autres par une disposition explicite.\n\n");
@@ -1489,8 +1678,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             text.Append("Overlay canonique : `").Append(OverlayPath).Append("` (").Append(run.Overlay.Count).Append(" instances de module, hash `").Append(binding.OverlayHash)
                 .Append("`), produit par la meme fonction que le dessin de la fenetre `RoadRage/Traffic V2/Revue Gate A`.\n\n");
             text.Append("La Gate A n'est ouverte que par `").Append(SignoffPath).Append("`, ecrit par le proprietaire depuis cette fenetre apres revue des ")
-                .Append(run.Overlay.Count).Append(" instances, et lie aux hashes source, lignee, decisions, compilateur, modele, version et overlay d'un pipeline frais. ")
-                .Append("Un sign-off absent ou perime garde la Gate A fermee, jamais repare.\n\n");
+                .Append(run.Overlay.Count).Append(" instances, et lie aux hashes source, lignee, decisions, compilateur, modele, version et overlay d'un pipeline frais, ")
+                .Append("ainsi qu'aux empreintes physique et Sidewalk et aux residus de la preuve physique (comparaison exacte). ")
+                .Append("Un sign-off absent ou perime, une empreinte ou un residu different, un residu non positif ou une decision non reconfirmee garde la Gate A fermee, jamais repare.\n\n");
             text.Append("| Instance | Genre |\n|---|---|\n");
             foreach (var instance in run.Overlay)
             {
@@ -1640,13 +1830,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return reasons;
             }
 
+            string freshBody;
+            ParseBinding(fresh.ReportText, out freshBody);
             foreach (var field in fresh.Binding.Fields())
             {
                 string actual;
                 fields.TryGetValue(field.Key, out actual);
                 if (actual != field.Value)
                 {
-                    reasons.Add("Rapport Gate A perime : " + field.Key + " = " + (actual ?? "<absent>") + ", attendu " + field.Value + ".");
+                    reasons.Add("Rapport Gate A perime : " + field.Key + " = " + (actual ?? "<absent>") + ", attendu " + field.Value + "."
+                        + ChangedEvidence(field.Key, body, freshBody));
                 }
             }
 
@@ -1658,6 +1851,93 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             return reasons;
+        }
+
+        /// <summary>
+        /// Nomme ce qui a change sous une empreinte de preuve : entrees (chemin du collider, du renderer
+        /// ou de la declaration) ou lignes de residus presentes d'un seul cote. Vide pour les autres champs.
+        /// </summary>
+        private static string ChangedEvidence(string field, string committedBody, string freshBody)
+        {
+            string[] kinds;
+            int cells;
+            switch (field)
+            {
+                case "physical-input-hash":
+                    kinds = new[] { "| physique | " };
+                    cells = 1;
+                    break;
+                case "semantic-input-hash":
+                    kinds = new[] { "| semantique | " };
+                    cells = 1;
+                    break;
+                case "clearance-hash":
+                    kinds = new[] { "| degagement | ", "| anneau | " };
+                    cells = 3;
+                    break;
+                default:
+                    return string.Empty;
+            }
+
+            var before = EvidenceLines(committedBody, kinds);
+            var after = EvidenceLines(freshBody, kinds);
+            var changed = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var line in before)
+            {
+                if (!after.Contains(line))
+                {
+                    changed.Add(Subject(line, cells));
+                }
+            }
+
+            foreach (var line in after)
+            {
+                if (!before.Contains(line))
+                {
+                    changed.Add(Subject(line, cells));
+                }
+            }
+
+            if (changed.Count == 0)
+            {
+                // Empreinte differente sans ligne differente : seul le prefixe global a pu changer.
+                return field == "clearance-hash"
+                    ? " Change : en-tete du bloc des residus (a_e, pas h) ; aucune ligne de residu ne differe."
+                    : " Change : entrees globales (profil vehicule et borne du relief, versions d'algorithme et de balayage, declarations Sidewalk, gabarit IA) ; aucune ligne d'entree ne differe.";
+            }
+
+            var named = new List<string>(changed);
+            return " Change : " + string.Join(" ; ", named.GetRange(0, Math.Min(5, named.Count)).ToArray()) + (named.Count > 5 ? " ; ... (" + named.Count + ")" : string.Empty) + ".";
+        }
+
+        private static HashSet<string> EvidenceLines(string body, string[] kinds)
+        {
+            var lines = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var line in (body ?? string.Empty).Split('\n'))
+            {
+                foreach (var kind in kinds)
+                {
+                    if (line.StartsWith(kind, StringComparison.Ordinal))
+                    {
+                        lines.Add(line);
+                    }
+                }
+            }
+
+            return lines;
+        }
+
+        /// <summary>Les <paramref name="cells"/> cellules qui suivent le genre : le sujet de la ligne.</summary>
+        private static string Subject(string line, int cells)
+        {
+            var parts = line.Split('|');
+            var subject = new List<string>();
+            for (int i = 2; i < 2 + cells && i < parts.Length; i++)
+            {
+                subject.Add(parts[i].Trim());
+            }
+
+            return string.Join(" / ", subject.ToArray());
         }
 
         [Serializable]
@@ -1677,7 +1957,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public int PipelineVersion;
             public string ModelHash;
             public string RoadModelVersion;
+
+            /// <summary>Format 2 (5.28, correct-course 2026-09-25/28) : preuve physique liee, hors modele.</summary>
+            public string PhysicalInputHash;
+            public string SemanticInputHash;
+            public string ClearanceHash;
         }
+
+        /// <summary>Format du sign-off : 2 depuis la liaison physique de la Gate A.</summary>
+        public const int SignoffFormat = 2;
 
         /// <summary>
         /// Texte d'un sign-off lie au pipeline frais. Seul <see cref="GateAReviewWindow"/> l'ecrit sur
@@ -1687,7 +1975,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public static string RenderSignoff(AuthoredRun fresh, string approver, string approverEmail, IList<string> reviewedInstances, DateTime signedAtUtc)
         {
             var layout = new SignoffLayout();
-            layout.Format = 1;
+            layout.Format = SignoffFormat;
             layout.Approver = approver;
             layout.ApproverEmail = approverEmail;
             layout.SignedAtUtc = signedAtUtc.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);
@@ -1703,6 +1991,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             layout.PipelineVersion = fresh.Binding.PipelineVersion;
             layout.ModelHash = fresh.Binding.ModelHash;
             layout.RoadModelVersion = fresh.Binding.RoadModelVersion;
+            layout.PhysicalInputHash = fresh.Binding.PhysicalInputHash;
+            layout.SemanticInputHash = fresh.Binding.SemanticInputHash;
+            layout.ClearanceHash = fresh.Binding.ClearanceHash;
             return JsonUtility.ToJson(layout, true).Replace("\r\n", "\n") + "\n";
         }
 
@@ -1727,7 +2018,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return reasons;
             }
 
-            if (layout == null || layout.Format != 1)
+            if (layout == null || layout.Format != SignoffFormat)
             {
                 reasons.Add("Sign-off : format absent ou inconnu.");
                 return reasons;
@@ -1767,6 +2058,29 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             Stale(reasons, "pipeline-version", layout.PipelineVersion.ToString(), binding.PipelineVersion.ToString());
             Stale(reasons, "model-hash", layout.ModelHash, binding.ModelHash);
             Stale(reasons, "road-model-version", layout.RoadModelVersion, binding.RoadModelVersion);
+
+            // Regle de reproductibilite : comparaison exacte (empreintes et residus aller-retour), sans borne.
+            Stale(reasons, "physical-input-hash", layout.PhysicalInputHash, binding.PhysicalInputHash);
+            Stale(reasons, "semantic-input-hash", layout.SemanticInputHash, binding.SemanticInputHash);
+            Stale(reasons, "clearance-hash", layout.ClearanceHash, binding.ClearanceHash);
+            return reasons;
+        }
+
+        /// <summary>Preuve physique fraiche : vide = tous les residus strictement positifs, aucune mesure impossible.</summary>
+        public static List<string> VerifyEvidence(AuthoredRun fresh)
+        {
+            var reasons = new List<string>();
+            if (fresh == null || !fresh.Succeeded)
+            {
+                reasons.Add("Pipeline frais en echec : preuve physique non verifiable.");
+                return reasons;
+            }
+
+            foreach (var failure in fresh.EvidenceFailures)
+            {
+                reasons.Add("Preuve physique Gate A : " + failure);
+            }
+
             return reasons;
         }
 
@@ -1793,11 +2107,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return reasons;
         }
 
-        /// <summary>Gate A : pipeline frais vert, modele, overlay et rapport committes a jour, sign-off lie. Vide = ouverte.</summary>
+        /// <summary>
+        /// Gate A : pipeline frais vert (toute decision reconfirmee), modele, overlay et rapport
+        /// committes a jour, preuve physique fraiche positive, sign-off lie aux memes empreintes et
+        /// residus. Vide = ouverte.
+        /// </summary>
         public static List<string> EvaluateGateA(AuthoredRun fresh, string reportText, string modelText, string overlayText, string signoffText)
         {
             var reasons = VerifyReport(reportText, fresh);
             reasons.AddRange(VerifyArtifacts(fresh, modelText, overlayText));
+            if (fresh != null && fresh.Succeeded)
+            {
+                reasons.AddRange(VerifyEvidence(fresh));
+            }
+
             reasons.AddRange(VerifySignoff(signoffText, fresh));
             return reasons;
         }

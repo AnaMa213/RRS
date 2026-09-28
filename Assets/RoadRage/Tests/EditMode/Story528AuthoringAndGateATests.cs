@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
+using RoadRage.Features.Vehicles;
 using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Migration;
 using UnityEditor.SceneManagement;
@@ -342,7 +343,14 @@ namespace RoadRage.Tests.EditMode
             stale.GeometryFingerprint = new string('a', 64);
             decisions.Conflicts[index] = stale;
 
-            AssertRefused(RunWith(decisions.Serialize()), "Proposition historique non reconfirmee");
+            var unconfirmed = RunWith(decisions.Serialize());
+            AssertRefused(unconfirmed, "Proposition historique non reconfirmee");
+
+            // Une decision non reconfirmee compte comme ouverte : Gate A fermee, cause nommee.
+            var fresh = Fresh();
+            string signoff = AuthoredRoadModel.RenderSignoff(fresh, "Testeur", "test@example.invalid", fresh.Overlay.Select(i => i.Key).ToList(), new DateTime(2026, 9, 28, 0, 0, 0, DateTimeKind.Utc));
+            var reasons = AuthoredRoadModel.EvaluateGateA(unconfirmed, fresh.ReportText, fresh.ModelText, fresh.OverlayText, signoff);
+            Assert.That(reasons.Any(r => r.Contains("Proposition historique non reconfirmee")), Is.True, string.Join("\n", reasons.ToArray()));
         }
 
         [Test]
@@ -500,7 +508,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(instances.Count, Is.EqualTo(25));
             Assert.That(run.ModelText, Does.Not.Contain("Testeur"), "L'identite d'approbation n'entre dans aucun hash de modele.");
 
-            foreach (var field in new[] { "OverlayHash", "SourceHash", "LineageHash", "DecisionsHash", "ModelHash" })
+            foreach (var field in new[] { "OverlayHash", "SourceHash", "LineageHash", "DecisionsHash", "ModelHash", "PhysicalInputHash", "SemanticInputHash", "ClearanceHash" })
             {
                 string stale = Regex.Replace(signoff, "\"" + field + "\": \"[0-9a-f]{64}\"", "\"" + field + "\": \"" + new string('0', 64) + "\"");
                 Assert.That(stale, Is.Not.EqualTo(signoff), field);
@@ -595,6 +603,314 @@ namespace RoadRage.Tests.EditMode
             }
         }
 
+        // ================================================================== liaison physique (correct-course 2026-09-25 / 2026-09-28)
+
+        [Test]
+        public void ThePhysicalEvidenceCoversTheNineJunctionsWithStrictlyPositiveResidualsOutsideTheModel()
+        {
+            var run = Fresh();
+            Assert.That(run.Succeeded, Is.True, string.Join("\n", run.Failures.ToArray()));
+            Assert.That(run.EvidenceFailures, Is.Empty);
+            Assert.That(AuthoredRoadModel.VerifyEvidence(run), Is.Empty);
+
+            // 5 carrefours classiques : chaque mouvement, deux gates (5.51).
+            var conventional = run.Import.Movements.Where(m => m.Module.Kind == V1ModuleKind.Crossroads || m.Module.Kind == V1ModuleKind.TJunction)
+                .Select(m => m.Module.Label + "|" + m.Label).Distinct().OrderBy(s => s, StringComparer.Ordinal).ToArray();
+            Assert.That(run.JunctionEvidence.Rows.Select(r => r.Junction + "|" + r.Movement).Distinct().OrderBy(s => s, StringComparer.Ordinal), Is.EqualTo(conventional));
+            Assert.That(run.JunctionEvidence.Rows.All(r => r.Physical.Residual > 0f && r.Semantic.Residual > 0f), Is.True);
+
+            // 4 giratoires : chaque mouvement prolonge et chaque corridor d'anneau, gate physique.
+            var roundabout = run.Import.Movements.Where(m => m.Module.Kind == V1ModuleKind.Roundabout)
+                .Concat(run.Import.Corridors.Where(c => c.IsRing))
+                .Select(m => m.Module.Label + "|" + m.Label).OrderBy(s => s, StringComparer.Ordinal).ToArray();
+            Assert.That(run.RoundaboutEvidence.Rows.Select(r => r.Junction + "|" + r.Movement).OrderBy(s => s, StringComparer.Ordinal), Is.EqualTo(roundabout));
+            Assert.That(run.RoundaboutEvidence.Rows.Select(r => r.Junction).Distinct().Count(), Is.EqualTo(4));
+            Assert.That(run.RoundaboutEvidence.Rows.All(r => r.Physical.Residual > 0f && r.Semantic == null), Is.True);
+            Assert.That(run.Roundabouts.All(r => r.EnvelopeResidual > 0f && r.PhysicalResidual > 0f), Is.True, "Residus d'anneau a deux gabarits recalcules sur l'anneau final.");
+
+            // Liee au rapport, jamais au modele : RoadModelVersion, hash source et lignee n'en dependent pas.
+            foreach (var hash in new[] { run.Binding.PhysicalInputHash, run.Binding.SemanticInputHash, run.Binding.ClearanceHash })
+            {
+                Assert.That(hash, Does.Match("^[0-9a-f]{64}$"));
+                Assert.That(run.ReportText, Does.Contain(hash));
+                Assert.That(run.ModelText, Does.Not.Contain(hash));
+            }
+
+            Assert.That(run.ReportText, Does.Contain("a_e = 0 m"));
+            Assert.That(run.ReportText, Does.Contain("| physique | "), "Colliders mesures publies.");
+        }
+
+        [Test]
+        public void EachRelevantPhysicalChangeInvalidatesTheFingerprintAndNamesTheInput()
+        {
+            var run = Fresh();
+            Assert.That(run.Succeeded, Is.True, string.Join("\n", run.Failures.ToArray()));
+            var baseline = run.RoundaboutEvidence;
+            WithMvpRun(scene =>
+            {
+                var sidewalks = SidewalkDeclarations.Read(scene, new List<string>());
+                Func<JunctionClearanceResult> sweep = () => RoundaboutClearance.Sweep(scene, run.Import, run.Compiled, sidewalks);
+                var wall = ColliderAt(scene, WitnessPath(run));
+                var island = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<MeshCollider>(true))
+                    .First(c => c.name == RoundaboutClearance.IslandName);
+
+                bool enabled = wall.enabled;
+                try
+                {
+                    wall.enabled = !enabled;
+                    AssertInvalidated(baseline, sweep(), wall);
+                }
+                finally
+                {
+                    wall.enabled = enabled;
+                }
+
+                bool trigger = wall.isTrigger;
+                try
+                {
+                    wall.isTrigger = !trigger;
+                    AssertInvalidated(baseline, sweep(), wall);
+                }
+                finally
+                {
+                    wall.isTrigger = trigger;
+                }
+
+                var original = island.sharedMesh;
+                var edited = UnityEngine.Object.Instantiate(original);
+                try
+                {
+                    var vertices = edited.vertices;
+                    vertices[0] += Vector3.up * 0.01f;
+                    edited.vertices = vertices;
+                    island.sharedMesh = edited;
+                    AssertInvalidated(baseline, sweep(), island);
+                }
+                finally
+                {
+                    island.sharedMesh = original;
+                    UnityEngine.Object.DestroyImmediate(edited);
+                }
+
+                int aiLayer = AssetDatabaseLayerOfAiVehicle();
+                bool ignored = Physics.GetIgnoreLayerCollision(aiLayer, wall.gameObject.layer);
+                try
+                {
+                    Physics.IgnoreLayerCollision(aiLayer, wall.gameObject.layer, !ignored);
+                    AssertInvalidated(baseline, sweep(), wall);
+                }
+                finally
+                {
+                    Physics.IgnoreLayerCollision(aiLayer, wall.gameObject.layer, ignored);
+                }
+
+                Physics.SyncTransforms();
+                var restored = sweep();
+                Assert.That(restored.PhysicalFingerprint, Is.EqualTo(baseline.PhysicalFingerprint), "Etat restaure : meme empreinte.");
+                Assert.That(scene.isDirty, Is.False, "Le test a laisse MVP_Run modifiee en memoire.");
+            });
+        }
+
+        [Test]
+        public void AMovedColliderClosesGateANamingItAndItsNonPositiveResidualWhileTheModelStaysUnchanged()
+        {
+            var signed = Fresh();
+            Assert.That(signed.Succeeded, Is.True, string.Join("\n", signed.Failures.ToArray()));
+            string signoff = SignInMemory(signed);
+            Assert.That(AuthoredRoadModel.EvaluateGateA(signed, signed.ReportText, signed.ModelText, signed.OverlayText, signoff), Is.Empty,
+                "Temoin : le sign-off en memoire ouvre la Gate A sur l'etat signe.");
+
+            var witness = signed.RoundaboutEvidence.Rows.OrderBy(r => r.Physical.Residual).First();
+            AuthoredRun moved = null;
+            WithMvpRun(scene =>
+            {
+                var wall = ColliderAt(scene, WitnessPath(signed));
+                var position = wall.transform.position;
+                try
+                {
+                    // Le mur temoin pose sur la trajectoire : residu negatif.
+                    wall.transform.position = new Vector3(witness.Physical.Position.x, position.y, witness.Physical.Position.z);
+                    Physics.SyncTransforms();
+                    moved = AuthoredRoadModel.Run(scene, Committed(MigrationReport.LineagePath), Committed(AuthoredRoadModel.DecisionsPath));
+                }
+                finally
+                {
+                    wall.transform.position = position;
+                    Physics.SyncTransforms();
+                }
+
+                Assert.That(scene.isDirty, Is.False, "Le test a laisse MVP_Run modifiee en memoire.");
+            });
+
+            Assert.That(moved.Succeeded, Is.True, "La preuve physique ferme la Gate A sans invalider le modele.");
+            Assert.That(moved.Binding.RoadModelVersion, Is.EqualTo(signed.Binding.RoadModelVersion));
+            Assert.That(moved.ModelText, Is.EqualTo(signed.ModelText));
+
+            var reasons = AuthoredRoadModel.EvaluateGateA(moved, signed.ReportText, signed.ModelText, signed.OverlayText, signoff);
+            string all = string.Join("\n", reasons.ToArray());
+            Assert.That(reasons.Any(r => r.StartsWith("Preuve physique Gate A", StringComparison.Ordinal) && r.Contains("residu physique non positif") && r.Contains("Col_Wall")), Is.True, all);
+            Assert.That(reasons.Any(r => r.Contains("Rapport Gate A perime : physical-input-hash") && r.Contains(witness.Physical.Obstacle.Substring(witness.Physical.Obstacle.IndexOf('/') + 1))), Is.True, all);
+            Assert.That(reasons.Any(r => r.Contains("Rapport Gate A perime : clearance-hash") && r.Contains(witness.Junction)), Is.True, all);
+            Assert.That(reasons.Any(r => r.Contains("Sign-off perime : physical-input-hash")), Is.True, all);
+            Assert.That(reasons.Any(r => r.Contains("Sign-off perime : clearance-hash")), Is.True, all);
+        }
+
+        [Test]
+        public void AMovedCornerObstacleClosesGateANamingTheJunctionAndTheObstacle()
+        {
+            var signed = Fresh();
+            Assert.That(signed.Succeeded, Is.True, string.Join("\n",signed.Failures.ToArray()));
+            string signoff = SignInMemory(signed);
+            var witness = signed.JunctionEvidence.Rows.Where(r => !string.IsNullOrEmpty(r.Physical.Obstacle)).OrderBy(r => r.Physical.Residual).First();
+            string obstacle = witness.Physical.Obstacle.Substring(witness.Physical.Obstacle.IndexOf('/') + 1);
+            AuthoredRun moved = null;
+            WithMvpRun(scene =>
+            {
+                var curb = ColliderAt(scene, obstacle);
+                var position = curb.transform.position;
+                try
+                {
+                    // Pose sur la trajectoire temoin et releve au-dessus de la borne du relief franchissable
+                    // (0,158 m) : sans cela, hors trottoir et sur la chaussee, la bordure de 0,12 m deviendrait
+                    // un relief roulable et cesserait d'etre un obstacle.
+                    float lift = signed.JunctionEvidence.ReliefClearanceMeters;
+                    curb.transform.position = new Vector3(witness.Physical.Position.x, position.y + lift, witness.Physical.Position.z);
+                    Physics.SyncTransforms();
+                    moved = AuthoredRoadModel.Run(scene, Committed(MigrationReport.LineagePath), Committed(AuthoredRoadModel.DecisionsPath));
+                }
+                finally
+                {
+                    curb.transform.position = position;
+                    Physics.SyncTransforms();
+                }
+
+                Assert.That(scene.isDirty, Is.False, "Le test a laisse MVP_Run modifiee en memoire.");
+            });
+
+            Assert.That(moved.Succeeded, Is.True, "La preuve physique ferme la Gate A sans invalider le modele.");
+            Assert.That(moved.Binding.RoadModelVersion, Is.EqualTo(signed.Binding.RoadModelVersion));
+            Assert.That(moved.ModelText, Is.EqualTo(signed.ModelText));
+            var reasons = AuthoredRoadModel.EvaluateGateA(moved, signed.ReportText, signed.ModelText, signed.OverlayText, signoff);
+            string all = string.Join("\n",reasons.ToArray());
+            Assert.That(reasons.Any(r => r.StartsWith("Preuve physique Gate A", StringComparison.Ordinal) && r.Contains(witness.Junction) && r.Contains("residu non positif")), Is.True, all);
+            Assert.That(moved.JunctionEvidence.Rows.Any(r => r.Junction == witness.Junction && !(r.Physical.Residual > 0f) && r.Physical.Obstacle.EndsWith(obstacle, StringComparison.Ordinal)), Is.True,
+                "L'obstacle temoin deplace porte le residu non positif.");
+        }
+
+        [Test]
+        public void ANonPositiveTwoFootprintRingResidualHaltsGateAWithoutInvalidatingTheModel()
+        {
+            var signed = Fresh();
+            Assert.That(signed.Succeeded, Is.True, string.Join("\n",signed.Failures.ToArray()));
+            string signoff = SignInMemory(signed);
+            var ring = signed.Roundabouts.First(r => r.NearestObstacle != null);
+            AuthoredRun moved = null;
+            WithMvpRun(scene =>
+            {
+                // Levier reel lu par RoundaboutClearance.Measure : l'obstacle le plus proche de l'anneau
+                // (mur du portail tunnel) rapproche du centre sous le rayon pave, donc r_out diminue.
+                var centre = V1SourceSet.Extract(scene).Modules.Single(m => m.Key == ring.Module.Key).Root.position;
+                string[] parts = ring.NearestObstacle.Split('/');
+                var wall = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<Collider>(true))
+                    .Single(c => c.name == parts[1] && c.transform.parent != null && c.transform.parent.parent != null && c.transform.parent.parent.name == parts[0]);
+                var position = wall.transform.position;
+                try
+                {
+                    var toward = new Vector3(centre.x - wall.bounds.center.x, 0f, centre.z - wall.bounds.center.z).normalized;
+                    wall.transform.position = position + toward * (ring.NearestObstacleRadius - ring.IslandRadius - 4f);
+                    Physics.SyncTransforms();
+                    moved = AuthoredRoadModel.Run(scene, Committed(MigrationReport.LineagePath), Committed(AuthoredRoadModel.DecisionsPath));
+                }
+                finally
+                {
+                    wall.transform.position = position;
+                    Physics.SyncTransforms();
+                }
+
+                Assert.That(scene.isDirty, Is.False, "Le test a laisse MVP_Run modifiee en memoire.");
+            });
+
+            Assert.That(moved.Succeeded, Is.True, string.Join("\n",moved.Failures.ToArray()));
+            Assert.That(moved.Binding.RoadModelVersion, Is.EqualTo(signed.Binding.RoadModelVersion));
+            Assert.That(moved.Roundabouts.Single(r => r.Module.Key == ring.Module.Key).PhysicalResidual, Is.LessThanOrEqualTo(0f));
+            var reasons = AuthoredRoadModel.EvaluateGateA(moved, signed.ReportText, signed.ModelText, signed.OverlayText, signoff);
+            string all = string.Join("\n",reasons.ToArray());
+            Assert.That(reasons.Any(r => r.StartsWith("Preuve physique Gate A", StringComparison.Ordinal) && r.Contains(ring.Module.Label)
+                && r.Contains("residu d'anneau a deux gabarits non positif") && r.Contains("HALT")), Is.True, all);
+        }
+
+        [Test]
+        public void AColliderChangeOutOfReachOfTheNineJunctionsKeepsTheSignoffValid()
+        {
+            var signed = Fresh();
+            Assert.That(signed.Succeeded, Is.True, string.Join("\n", signed.Failures.ToArray()));
+            string signoff = SignInMemory(signed);
+            var measured = new HashSet<string>(signed.JunctionEvidence.PhysicalInputs.Concat(signed.JunctionEvidence.SemanticInputs)
+                .Concat(signed.RoundaboutEvidence.PhysicalInputs).Select(i => i.Substring(0, i.LastIndexOf(':'))), StringComparer.Ordinal);
+
+            AuthoredRun far = null;
+            WithMvpRun(scene =>
+            {
+                // Racines relues sur la scene ouverte : celles du pipeline partage peuvent appartenir a une instance fermee.
+                var roots = V1SourceSet.Extract(scene).Modules.Where(m => m.Kind == V1ModuleKind.Crossroads || m.Kind == V1ModuleKind.TJunction || m.Kind == V1ModuleKind.Roundabout)
+                    .Select(m => m.Root.position).ToArray();
+                var collider = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<BoxCollider>(true))
+                    .Where(c => !measured.Contains(scene.name + "/" + PathOf(c.transform)) && c.enabled && c.gameObject.activeInHierarchy && !c.isTrigger)
+                    .OrderByDescending(c => roots.Min(r => Vector2.Distance(new Vector2(r.x, r.z), new Vector2(c.bounds.center.x, c.bounds.center.z))))
+                    .First();
+                var position = collider.transform.position;
+                try
+                {
+                    collider.transform.position = position + new Vector3(0.5f, 0f, 0f);
+                    Physics.SyncTransforms();
+                    far = AuthoredRoadModel.Run(scene, Committed(MigrationReport.LineagePath), Committed(AuthoredRoadModel.DecisionsPath));
+                }
+                finally
+                {
+                    collider.transform.position = position;
+                    Physics.SyncTransforms();
+                }
+
+                Assert.That(scene.isDirty, Is.False, "Le test a laisse MVP_Run modifiee en memoire.");
+            });
+
+            Assert.That(far.Succeeded, Is.True, string.Join("\n", far.Failures.ToArray()));
+            Assert.That(far.Binding.PhysicalInputHash, Is.EqualTo(signed.Binding.PhysicalInputHash));
+            Assert.That(far.Binding.ClearanceHash, Is.EqualTo(signed.Binding.ClearanceHash));
+            var reasons = AuthoredRoadModel.EvaluateGateA(far, signed.ReportText, signed.ModelText, signed.OverlayText, signoff);
+            Assert.That(reasons, Is.Empty, string.Join("\n", reasons.ToArray()));
+        }
+
+        [Test]
+        public void ThePhysicalEvidenceIsBitIdenticalAfterASceneReload()
+        {
+            // Regle de reproductibilite, volet rechargement de scene : empreintes et residus aller-retour
+            // identiques au bit pres, mesure directe ET pipeline complet (bloc canonique des residus :
+            // anneaux, obstacles, coutures ; empreintes liees). Le volet nouvelle session d'Editeur reste
+            // a prouver au HALT (TheCommittedArtifactsEqualAFreshPipeline dans une nouvelle session).
+            string before = null;
+            AuthoredRun beforeRun = null;
+            WithMvpRun(scene =>
+            {
+                before = EvidenceText(scene);
+                beforeRun = AuthoredRoadModel.Run(scene, Committed(MigrationReport.LineagePath), Committed(AuthoredRoadModel.DecisionsPath));
+            });
+            ReloadMvpRun();
+            string after = null;
+            AuthoredRun afterRun = null;
+            WithMvpRun(scene =>
+            {
+                after = EvidenceText(scene);
+                afterRun = AuthoredRoadModel.Run(scene, Committed(MigrationReport.LineagePath), Committed(AuthoredRoadModel.DecisionsPath));
+            });
+            Assert.That(after, Is.EqualTo(before));
+            Assert.That(beforeRun.Succeeded && afterRun.Succeeded, Is.True);
+            Assert.That(afterRun.ClearanceText, Is.EqualTo(beforeRun.ClearanceText));
+            Assert.That(afterRun.Binding.ClearanceHash, Is.EqualTo(beforeRun.Binding.ClearanceHash));
+            Assert.That(afterRun.Binding.PhysicalInputHash, Is.EqualTo(beforeRun.Binding.PhysicalInputHash));
+            Assert.That(afterRun.Binding.SemanticInputHash, Is.EqualTo(beforeRun.Binding.SemanticInputHash));
+        }
+
         [Test]
         public void GateAIsOpenedOnlyByTheOwnersBoundSignoff()
         {
@@ -608,6 +924,124 @@ namespace RoadRage.Tests.EditMode
         }
 
         // ================================================================== outils
+
+        private static string SignInMemory(AuthoredRun run)
+        {
+            return AuthoredRoadModel.RenderSignoff(run, "Testeur", "test@example.invalid", run.Overlay.Select(i => i.Key).ToList(), new DateTime(2026, 9, 28, 0, 0, 0, DateTimeKind.Utc));
+        }
+
+        /// <summary>Obstacle temoin du plus petit residu de giratoire (chemin de scene, sans le nom de scene).</summary>
+        private static string WitnessPath(AuthoredRun run)
+        {
+            string obstacle = run.RoundaboutEvidence.Rows.Where(r => !string.IsNullOrEmpty(r.Physical.Obstacle)).OrderBy(r => r.Physical.Residual).First().Physical.Obstacle;
+            return obstacle.Substring(obstacle.IndexOf('/') + 1);
+        }
+
+        private static Collider ColliderAt(Scene scene, string path)
+        {
+            var collider = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<Collider>(true)).Single(c => PathOf(c.transform) == path);
+            return collider;
+        }
+
+        private static string PathOf(Transform transform)
+        {
+            string path = transform.name;
+            for (var t = transform.parent; t != null; t = t.parent)
+            {
+                path = t.name + "/" + path;
+            }
+
+            return path;
+        }
+
+        /// <summary>L'empreinte change et la ligne d'entree du collider modifie differe : il est nomme.</summary>
+        private static void AssertInvalidated(JunctionClearanceResult baseline, JunctionClearanceResult changed, Collider collider)
+        {
+            Assert.That(changed.PhysicalFingerprint, Is.Not.EqualTo(baseline.PhysicalFingerprint), collider.name);
+            string prefix = "/" + PathOf(collider.transform) + ":";
+            var before = baseline.PhysicalInputs.Where(i => i.Contains(prefix)).ToArray();
+            var after = changed.PhysicalInputs.Where(i => i.Contains(prefix)).ToArray();
+            Assert.That(before, Is.Not.Empty, collider.name + " : entree mesuree.");
+            Assert.That(after, Is.Not.EqualTo(before), collider.name + " : ligne d'entree nommee et changee.");
+        }
+
+        private static int AssetDatabaseLayerOfAiVehicle()
+        {
+            var ai = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/RoadRage/Prefabs/Greybox_AIVehicle.prefab");
+            Assert.That(ai, Is.Not.Null);
+            return ai.layer;
+        }
+
+        /// <summary>Preuve des 9 carrefours en texte (empreintes et residus aller-retour), mesuree sur la scene donnee.</summary>
+        private static string EvidenceText(Scene scene)
+        {
+            var migration = MigrationReport.Run(scene, Committed(MigrationReport.LineagePath));
+            Assert.That(migration.Succeeded, Is.True, string.Join("\n", migration.Failures.ToArray()));
+            var model = RoadModelCompiler.Compile(RoadModelDocument.Load(Committed(AuthoredRoadModel.ModelPath)));
+            var failures = new List<string>();
+            var sidewalks = SidewalkDeclarations.Read(scene, failures);
+            Assert.That(failures, Is.Empty);
+            var text = new System.Text.StringBuilder();
+            foreach (var evidence in new[] { JunctionClearance.Measure(scene, migration.Import, model, sidewalks), RoundaboutClearance.Sweep(scene, migration.Import, model, sidewalks) })
+            {
+                Assert.That(evidence.Failures, Is.Empty);
+                text.Append(evidence.PhysicalFingerprint).Append('|').Append(evidence.SemanticFingerprint).Append('\n');
+                foreach (var row in evidence.Rows)
+                {
+                    text.Append(row.Junction).Append('|').Append(row.Movement).Append('|').Append(row.Surface).Append('|')
+                        .Append(row.Physical.Residual.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append('|')
+                        .Append(row.Semantic == null ? "-" : row.Semantic.Residual.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append('\n');
+                }
+            }
+
+            return text.ToString();
+        }
+
+        /// <summary>
+        /// Recharge MVP_Run depuis le disque (jamais une scene modifiee). Ouverte dans l'Editeur : une
+        /// scene vide additive la remplace le temps du rechargement, puis MVP_Run redevient active.
+        /// Le pipeline partage tient des racines de module de l'ancienne instance : il est oublie.
+        /// </summary>
+        private static void ReloadMvpRun()
+        {
+            _committedRun = null;
+            var open = SceneManager.GetSceneByPath(MigrationReport.ScenePath);
+            if (!open.IsValid() || !open.isLoaded)
+            {
+                return; // chaque WithMvpRun l'ouvre et la ferme deja : deux lectures du disque.
+            }
+
+            Assert.That(open.isDirty, Is.False, "MVP_Run modifiee : rechargement refuse.");
+            bool active = SceneManager.GetActiveScene() == open;
+            var placeholder = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            try
+            {
+                SceneManager.SetActiveScene(placeholder);
+                Assert.That(EditorSceneManager.CloseScene(open, true), Is.True);
+                var reloaded = EditorSceneManager.OpenScene(MigrationReport.ScenePath, OpenSceneMode.Additive);
+                Assert.That(reloaded.isLoaded, Is.True);
+                if (active)
+                {
+                    SceneManager.SetActiveScene(reloaded);
+                }
+            }
+            finally
+            {
+                // Jamais laisser l'Editeur du proprietaire sans MVP_Run, meme si OpenScene a leve.
+                var current = SceneManager.GetSceneByPath(MigrationReport.ScenePath);
+                if (!current.IsValid() || !current.isLoaded)
+                {
+                    current = EditorSceneManager.OpenScene(MigrationReport.ScenePath, OpenSceneMode.Additive);
+                }
+
+                if (active && current.isLoaded)
+                {
+                    SceneManager.SetActiveScene(current);
+                }
+
+                EditorSceneManager.CloseScene(placeholder, true);
+            }
+        }
 
         private static void AssertRefused(AuthoredRun run, string fragment)
         {

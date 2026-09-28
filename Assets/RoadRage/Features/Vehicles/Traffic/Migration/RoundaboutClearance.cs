@@ -53,6 +53,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Tolerance d'affleurement : un collider dont le sommet egale celui de la route est dans la tranche, le sol a -0,05 m n'y est pas.</summary>
         private const float FlushToleranceMeters = 0.01f;
 
+        /// <summary>
+        /// Story 5.28 (reprise, correct-course 2026-09-25) : balayage conservateur de l'empreinte des 4
+        /// giratoires sur les trajectoires finales 5.50 -- chaque mouvement du module prolonge de
+        /// L/2 + marge + delta_c sur ses corridors adjacents, chaque corridor d'anneau entier -- par la
+        /// fonction de la 5.51 (gabarit et marge du profil versionne gonfles de delta_c, tranche
+        /// verticale, filtre d'obstacles, regle du relief). Publie les residus et l'empreinte des
+        /// colliders mesures. Un residu non positif est un echec : HALT pour decision du proprietaire.
+        /// </summary>
+        public static JunctionClearanceResult Sweep(UnityEngine.SceneManagement.Scene scene, V1ImportResult import, CompiledRoadModel model,
+            IReadOnlyList<JunctionClearanceSurface> sidewalks)
+        {
+            return JunctionClearance.Measure(scene, import, model, sidewalks, JunctionClearance.DefaultStepMeters, true);
+        }
+
         /// <summary>Residu a deux gabarits (formule en tete de fichier), entrees du seul profil versionne.</summary>
         public static float Residual(float innerRadius, float outerRadius, RoadModelValidationProfile profile)
         {
