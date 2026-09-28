@@ -24,11 +24,29 @@
 # illisible ou absent = echec explicite. Un test en echec est un echec.
 
 Usage :
-  scripts\validate.ps1                                    # EditMode complet
+  scripts\validate.ps1                                    # EditMode complet (profil Full)
   scripts\validate.ps1 -TestMode PlayMode                  # PlayMode complet
   scripts\validate.ps1 -TestMode Both
   scripts\validate.ps1 -TestFilter "RoadRage.Tests.EditMode.RoadRageScaffoldTests"
+  scripts\validate.ps1 -Profile Fast                       # EditMode hors geometrie (developpement)
+  scripts\validate.ps1 -Profile Geometry                   # preuves geometriques seules
+  scripts\validate.ps1 -Profile Auto                       # selection selon les fichiers modifies
   scripts\validate.ps1 -Audit                              # + Project Auditor (ADDON-018), informatif, hors gate
+
+Profils EditMode (partition par categories NUnit Core / Geometry, voir
+docs/setup/build-workflow-rules.md) :
+  Full            suite complete, aucune exclusion. Seule execution citable comme
+                  "validation complete". Defaut inchange sans nouveau parametre.
+  Fast            categorie Core uniquement (aucune preuve geometrique). Developpement courant ;
+                  jamais une acceptation. Complete par -Profile Geometry quand c'est necessaire.
+  FullSansGeometry meme selection que Fast, libelle de compte rendu "complet hors geometrie" :
+                  utilisable comme validation officielle d'une story non geometrique, avec la
+                  classification Auto jointe, et jamais pour un gate, un contrat, une correction
+                  de revue ou une livraison importante (voir build-workflow-rules.md section 3).
+  Geometry        categorie Geometry uniquement (preuves 5.49-5.51 + porte A 5.28).
+  Auto            classifie les fichiers modifies (travail en cours + dernier commit, ou plage
+                  -Since) : entree geometrique ou inconnue -> Full ; sinon -> Core (libelle
+                  "complet hors geometrie"). Conservateur par construction.
 #>
 [CmdletBinding()]
 param(
@@ -40,8 +58,17 @@ param(
     [ValidateSet('testName', 'assembly', 'category')]
     [string]$TestFilterType = 'testName',
 
+    [ValidateSet('Full', 'Fast', 'Geometry', 'FullSansGeometry', 'Auto')]
+    [string]$Profile = 'Full',
+
+    [string]$Since = '',
+
     [int]$RecompileTimeoutSec = 120,
-    [int]$TestTimeoutSec = 300,
+
+    # La suite EditMode complete dure ~430 s de tests (mesure du 2026-09-28, 925 tests) : l'ancien
+    # defaut de 300 s declarait le profil Full en echec par timeout avant la fin. 3600 s laisse
+    # tourner la suite complete et ne borne que les blocages anormaux.
+    [int]$TestTimeoutSec = 3600,
 
     [switch]$Audit,
     [int]$AuditTimeoutSec = 300
@@ -52,6 +79,15 @@ $ErrorActionPreference = 'Stop'
 # Reference figee dans AGENTS.md : version beta validee avec RRS, aucune montee automatique.
 $ExpectedCliVersion = '1.0.0-beta.8'
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+
+# Classification des changements pour le profil Auto (source unique du mapping : le script
+# lui-meme, jamais duplique ici). Voir scripts/validation-profiles.ps1 -SelfTest.
+. (Join-Path $PSScriptRoot 'validation-profiles.ps1')
+
+$script:ProfileLabel = 'Full (suite complete, aucune exclusion)'
+$script:ProfileCategoryFilter = $null
+$script:ExpectedEditModeTests = $null
+$script:NonExecutedBySelection = $null
 
 # Recapitulatif collecte au fil des etapes et affiche en fin de course (resume lisible exige par
 # docs/setup/build-workflow-rules.md). Aucune valeur de ce recapitulatif ne participe a une decision
@@ -219,6 +255,18 @@ function Assert-NoConsoleErrorInWindow {
     Write-Host "  0 erreur depuis le curseur $($script:ConsoleBaseline)" -ForegroundColor DarkGray
 }
 
+# --- Gardes de profil (avant tout appel Unity : un usage incoherent echoue tout de suite) ---
+# Les profils partiels ne portent que sur EditMode : le filtrage par categorie n'est pas utilise pour
+# PlayMode (la suite runtime se lance complete, ses six echecs connus restent comparables aux
+# references), et -TestMode Both combine UN filtre unique aux deux modes. Refus ferme plutot
+# qu'execution partielle silencieuse d'un autre perimetre que celui demande (AD-8).
+if ($Profile -ne 'Full' -and $TestMode -ne 'EditMode') {
+    Fail "-Profile $Profile ne s'applique qu'a -TestMode EditMode. PlayMode/Both se lancent avec -Profile Full (aucune exclusion)."
+}
+if ($Profile -ne 'Full' -and $TestFilter) {
+    Fail "-Profile $Profile et -TestFilter sont exclusifs : le filtrage par categorie et le filtrage par nom sont deux selections differentes (une seule passe par le CLI). Utiliser l'un ou l'autre."
+}
+
 # --- Etape 0 : version CLI figee (AGENTS.md, non revalidee automatiquement) ---
 Write-Step "Version Unity CLI"
 $cliVersion = (& unity --version 2>&1 | Out-String).Trim()
@@ -246,6 +294,96 @@ if ($instance.state -ne 'ready') {
 }
 $script:Summary['Editeur'] = "port $($instance.port), Unity $($instance.version), ready"
 Write-Host "  port $($instance.port), Unity $($instance.version), etat ready" -ForegroundColor DarkGray
+
+# --- Etape 1bis : selection du profil EditMode (Etape 1bis car elle interroge l'Editeur) ---
+# Par defaut (aucun nouveau parametre) : profil Full, aucune exclusion, comportement inchange.
+# Auto : la classification des fichiers modifies (voir scripts/validation-profiles.ps1) decide.
+# Une entree geometrique OU inconnue -> Full (conservateur) ; tout le reste classe Core -> Fast.
+# Un profil partiel explicite (Fast/FullSansGeometry/Geometry) reste un choix de developpement :
+# si des entrees geometriques sont modifiees dans l'arbre de travail, il le dit a voix haute.
+if ($Profile -ne 'Full') {
+    Write-Step "profil de validation ($Profile)"
+
+    if ($Profile -eq 'Auto') {
+        $changed = Get-ChangedPathsForValidation -RepoRoot $RepoRoot -Since $Since
+        foreach ($note in $changed.Notes) { Write-Host "  note : $note" -ForegroundColor DarkYellow }
+
+        if ($changed.GitFailed) {
+            $script:ProfileLabel = 'Full (Auto : etat git non classable, conservateur)'
+            Write-Host "  decision : Full -- etat git non classable, aucune preuve ne peut etre exclue (conservateur)." -ForegroundColor Yellow
+        }
+        else {
+            $selection = Resolve-EditModeValidationSelection -Paths $changed.Paths -RepoRoot $RepoRoot
+            Write-Host "  fichiers pris en compte : $($changed.Paths.Count) (classee(s) : $($selection.Geometry.Count) geometrie, $($selection.Core.Count) core, $($selection.Unknown.Count) inconnue(s), $($selection.Ignored.Count) ignoree(s))" -ForegroundColor DarkGray
+            if ($selection.Decision -eq 'Full') {
+                $script:ProfileLabel = 'Full (Auto : entree geometrique ou inconnue touchee)'
+                foreach ($path in $selection.Geometry) { Write-Host "    [GEOMETRIE] $path" -ForegroundColor Yellow }
+                foreach ($path in $selection.Unknown) { Write-Host "    [INCONNU -> conservateur] $path" -ForegroundColor Yellow }
+                Write-Host "  decision : Full -- entree(s) geometrique(s) ou inconnue(s) touchee(s) : les preuves 5.49/5.50/5.51/5.28 sont incluses." -ForegroundColor Yellow
+            }
+            else {
+                $script:ProfileCategoryFilter = $script:CoreCategory
+                $script:ProfileLabel = 'Auto -> Core (complet hors geometrie : aucune entree geometrique touchee)'
+                Write-Host "  decision : Core -- aucune entree geometrique ni inconnue parmi les fichiers classes." -ForegroundColor DarkGray
+                Write-Host "  rappel : ce profil n'est pas la suite complete ; -Profile Full reste exige par les regles du projet pour les gates, contrats, corrections de revue et livraisons." -ForegroundColor DarkGray
+            }
+        }
+    }
+    else {
+        switch ($Profile) {
+            'Fast' { $script:ProfileCategoryFilter = $script:CoreCategory; $script:ProfileLabel = 'Fast (categorie Core : hors geometrie)' }
+            'FullSansGeometry' { $script:ProfileCategoryFilter = $script:CoreCategory; $script:ProfileLabel = 'FullSansGeometry (complet hors geometrie)' }
+            'Geometry' { $script:ProfileCategoryFilter = $script:GeometryCategory; $script:ProfileLabel = 'Geometry (preuves geometriques seules)' }
+        }
+
+        # Avertissement quand des entrees geometriques sont modifiees dans l'arbre de travail alors que
+        # le profil demande ne les couvre pas : jamais un contournement silencieux.
+        if ($script:ProfileCategoryFilter -eq $script:CoreCategory) {
+            $worktree = Get-ChangedPathsForValidation -RepoRoot $RepoRoot -WorktreeOnly
+            if (-not $worktree.GitFailed) {
+                $worktreeSelection = Resolve-EditModeValidationSelection -Paths $worktree.Paths -RepoRoot $RepoRoot
+                $sensitive = @($worktreeSelection.Geometry) + @($worktreeSelection.Unknown)
+                if ($sensitive.Count -gt 0) {
+                    foreach ($path in $sensitive) { Write-Host "    [hors perimetre du profil] $path" -ForegroundColor Yellow }
+                    Write-Host "  AVERTISSEMENT : $($sensitive.Count) entree(s) geometrique(s) ou inconnue(s) modifiee(s) dans l'arbre de travail ; ce profil ne les couvre pas." -ForegroundColor Yellow
+                }
+            }
+        }
+    }
+
+    # Comptes de selection : list_tests donne le contenu reellement porteur des categories, donc la
+    # couverture que ce profil peut revendiquer. La partition doit etre complete : un test sans
+    # categorie serait exclu des deux profils partiels sans que personne ne le voie -> echec ferme.
+    Write-Step "unity cmd list_tests --mode editor (comptes et partition)"
+    $listResult = Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'list_tests', '--mode', 'editor'))
+    $allTests = @($listResult.tests)
+    if ($allTests.Count -eq 0 -and $listResult.result) {
+        $allTests = @(($listResult.result | ConvertFrom-Json).tests)
+    }
+    if ($allTests.Count -eq 0) {
+        Fail "list_tests n'a rendu aucun test EditMode : comptes de selection impossibles (AD-8)."
+    }
+
+    $runnable = @($allTests | Where-Object { -not $_.explicit })
+    $explicitTests = @($allTests | Where-Object { $_.explicit })
+    $coreTests = @($runnable | Where-Object { $_.categories -contains $script:CoreCategory })
+    $geometryTests = @($runnable | Where-Object { $_.categories -contains $script:GeometryCategory })
+    $partitioned = @($runnable | Where-Object { $_.categories -contains $script:CoreCategory -or $_.categories -contains $script:GeometryCategory })
+    $uncategorized = @($runnable | Where-Object { $_.categories -notcontains $script:CoreCategory -and $_.categories -notcontains $script:GeometryCategory })
+
+    if ($uncategorized.Count -gt 0) {
+        foreach ($test in ($uncategorized | Select-Object -First 10)) { Write-Host "  [SANS CATEGORIE] $($test.fullName)" -ForegroundColor Red }
+        Fail "$($uncategorized.Count) test(s) EditMode sans categorie Core/Geometry : la partition de selection est incomplete, ce profil ne peut pas certifier ce qu'il couvre (garde TestSuiteCategoryPartitionTests). Tagger la ou les fixtures concernees."
+    }
+
+    $expected = if ($script:ProfileCategoryFilter -eq $script:CoreCategory) { $coreTests.Count } else { $geometryTests.Count }
+    $script:ExpectedEditModeTests = $expected
+    $script:NonExecutedBySelection = $runnable.Count - $expected
+    $explicitNote = if ($explicitTests.Count -gt 0) { " ; $($explicitTests.Count) test(s) [Explicit] hors suite par defaut" } else { '' }
+    $script:Summary['Selection'] = "$expected test(s) attendus (categorie $($script:ProfileCategoryFilter)) ; $($script:NonExecutedBySelection) non executes par selection$explicitNote"
+    Write-Host "  $expected test(s) attendus (categorie $($script:ProfileCategoryFilter)) ; $($script:NonExecutedBySelection) non executes par selection$explicitNote" -ForegroundColor DarkGray
+}
+$script:Summary['Profil'] = $script:ProfileLabel
 
 # --- Etape 2 : stabilisation de l'editeur (compilation / rechargement de domaine) ---
 # La fenetre ne s'ouvre qu'une fois l'editeur stabilise : une compilation encore en cours appartient a
@@ -350,6 +488,10 @@ foreach ($mode in $modes) {
     if ($TestFilter) {
         $runArgs += @('--filter', $TestFilter, '--filter_type', $TestFilterType)
     }
+    elseif ($script:ProfileCategoryFilter -and $mode -eq 'EditMode') {
+        # Profil partiel EditMode : selection par categorie NUnit (jamais pour PlayMode, voir gardes).
+        $runArgs += @('--filter', $script:ProfileCategoryFilter, '--filter_type', 'category')
+    }
     Invoke-UnityJson -CliArgs $runArgs | Out-Null
 
     Write-Step "unity cmd test_status ($mode)"
@@ -375,8 +517,35 @@ foreach ($mode in $modes) {
         }
         Fail "$($testStatus.summary.failed)/$($testStatus.summary.total) test(s) $mode en echec."
     }
+
+    # Garde de selection : ce qui a ete execute doit correspondre exactement a ce que le profil a
+    # annonce (compte list_tests). Un ecart = selection et execution divergent, donc la couverture
+    # revendiquee n'est pas prouvee -> echec ferme plutot qu'un compte rendu trompeur.
+    if ($script:ProfileCategoryFilter -and $mode -eq 'EditMode') {
+        if ($testStatus.summary.total -ne $script:ExpectedEditModeTests) {
+            Fail "Selection et execution divergent : $($testStatus.summary.total) test(s) executes, $($script:ExpectedEditModeTests) attendus (categorie $($script:ProfileCategoryFilter)). Verifier list_tests et la partition des categories."
+        }
+    }
+
+    $skipped = 0
+    $inconclusive = 0
+    if ($testStatus.summary.PSObject.Properties.Name -contains 'skipped') { $skipped = [int]$testStatus.summary.skipped }
+    if ($testStatus.summary.PSObject.Properties.Name -contains 'inconclusive') { $inconclusive = [int]$testStatus.summary.inconclusive }
     Write-Host "  $($testStatus.summary.passed)/$($testStatus.summary.total) test(s) $mode passes" -ForegroundColor DarkGray
+    if ($skipped -gt 0 -or $inconclusive -gt 0) {
+        Write-Host "  ignores (reels) : $skipped skipped, $inconclusive inconclusive" -ForegroundColor DarkGray
+    }
     $script:Summary["Tests $mode"] = "$($testStatus.summary.passed)/$($testStatus.summary.total) passes"
+    $script:Summary["Ignores $mode"] = "$skipped skipped, $inconclusive inconclusive (reels, dans l'execution)"
+    if ($script:ProfileCategoryFilter -and $mode -eq 'EditMode') {
+        $script:Summary['Non executes (selection)'] = "$($script:NonExecutedBySelection) test(s) de la suite EditMode, hors profil $Profile"
+    }
+    elseif ($TestFilter) {
+        $script:Summary['Couverture'] = "ciblage -TestFilter '$TestFilter' : la suite complete n'a pas ete executee"
+    }
+    elseif ($mode -eq 'EditMode' -and $Profile -eq 'Full') {
+        $script:Summary['Non executes (selection)'] = 'aucun (profil Full : suite complete)'
+    }
 }
 
 # --- Etape 9 : gate AD-7 apres tests (la fenetre court jusqu'ici) ---
@@ -443,4 +612,22 @@ if ($Audit) {
 
 Write-Summary
 Write-Host "OK" -ForegroundColor Green
+
+# Verdict lisible : le profil Full est le seul a valoir "validation complete". Un profil partiel
+# s'affiche comme tel, avec le compte de ce qui n'a PAS ete execute -- un test exclu par selection
+# ne doit jamais pouvoir se lire comme "reussi". Auto peut resoudre vers Full : la decision et sa
+# justification sont alors rappelees, sans etiqueter "partiel" une suite qui a bien tout execute.
+# Un ciblage -TestFilter est lui aussi partiel par construction (une seule passe du CLI).
+if ($TestFilter) {
+    Write-Host "CIBLAGE (-TestFilter '$TestFilter') : la suite complete n'a pas ete executee ; cette sortie ne vaut pas validation complete." -ForegroundColor Yellow
+}
+elseif ($script:ProfileCategoryFilter) {
+    Write-Host "VALIDATION PARTIELLE ($($script:ProfileLabel)) : $($script:NonExecutedBySelection) test(s) EditMode non executes par selection. Une validation complete exige -Profile Full." -ForegroundColor Yellow
+}
+elseif ($Profile -ne 'Full') {
+    Write-Host "Validation complete ($($script:ProfileLabel)) : suite EditMode entiere, aucune exclusion." -ForegroundColor DarkGray
+}
+else {
+    Write-Host "Validation complete : profil Full, aucune exclusion." -ForegroundColor DarkGray
+}
 exit 0
