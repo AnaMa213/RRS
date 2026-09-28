@@ -36,7 +36,7 @@ et attendre `recompile_status: completed`.
 
 - HEAD au moment de la sauvegarde : `9d7c4cd` (branche `systeme-traffic-ia-v2`, non poussee).
 - Baseline de la story : `58c230a311ef61f81611ca640dd28b4c5bac28a9`.
-- Gate A reste fermee ; 5.28 et 5.51 restent `in-progress` tant que le proprietaire n'a pas tranche.
+- Gate A reste fermee ; 5.28 reste `in-progress` ; la 5.51 est `done` depuis le 2026-09-28 (acceptation proprietaire, commit `2a9f4e2`).
 
 ## Reprise du 2026-09-28 (soir)
 

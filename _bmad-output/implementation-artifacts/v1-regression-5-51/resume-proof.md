@@ -9,13 +9,13 @@
 - Physique : `3434683c294d514aec4e1a6f9b4fa61be674af818b0ac6ecf14850443dbfa18f`
 - Semantique : `af2f5e292cc639c875b443aea7d735568341406b654a23ba80b3db89a34c09a8`
 
-| Jonction | Lignes | Min physique (m) | Min Sidewalk (m) |
-| --- | ---: | ---: | ---: |
-| Intersection_Center_Crossroads | 60 | 0,112667568 | 0,112667568 |
-| TJunction_East | 27 | 6,6449995 | 0,112664416 |
-| TJunction_North | 27 | 6,6449995 | 0,1126647 |
-| TJunction_South | 27 | 6,6449995 | 0,112664744 |
-| TJunction_West | 27 | 6,6449995 | 0,112665176 |
+| Jonction                       | Lignes | Min physique (m) | Min Sidewalk (m) |
+| ------------------------------ | -----: | ---------------: | ---------------: |
+| Intersection_Center_Crossroads |     60 |      0,112667568 |      0,112667568 |
+| TJunction_East                 |     27 |        6,6449995 |      0,112664416 |
+| TJunction_North                |     27 |        6,6449995 |        0,1126647 |
+| TJunction_South                |     27 |        6,6449995 |      0,112664744 |
+| TJunction_West                 |     27 |        6,6449995 |      0,112665176 |
 
 Les reliefs publies sont `Rampe_Ouest`, `Rampe_Est` et `Relief_MarcheBasse_AvenueCenterToEast`, hauteur `0,12 m` contre garde statique IA `0,158031285 m`. Apres `open_scene` depuis le disque, [la seconde mesure](after-clearance-measure-reloaded.txt) est identique octet par octet, empreintes incluses.
 
