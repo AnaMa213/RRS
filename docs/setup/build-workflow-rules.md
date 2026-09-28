@@ -70,6 +70,10 @@ classement, PlayMode.**
 - Le filtrage **ne fonctionne pas en PlayMode** avec la chaine actuelle (mesure en section 3). En
   pratique : `-TestMode EditMode -TestFilter …` pour cibler, `-TestMode PlayMode` **sans filtre**
   pour le runtime.
+- Les **profils de validation** (section 3, `-Profile`) ne s'appliquent qu'à EditMode. Les combiner
+  avec `-TestMode PlayMode`/`Both` est **refuse ferme** par `validate.ps1` : la suite runtime se
+  lance complète, sinon ses références de comparaison (section 3, échecs PlayMode connus) ne
+  seraient plus valides.
 
 ## 3. Checkpoint de verification
 
@@ -80,14 +84,79 @@ reformule pas de memoire.
 Commande a executer, avec le mode issu du point 2 :
 
 ```powershell
-.\scripts\validate.ps1 -TestMode EditMode
-.\scripts\validate.ps1 -TestMode PlayMode
-.\scripts\validate.ps1 -TestMode EditMode -TestFilter "<Namespace>.<Fixture>"
+.\scripts\validate.ps1 -TestMode EditMode                 # profil Full : suite complète (défaut)
+.\scripts\validate.ps1 -TestMode PlayMode                 # suite runtime complète
+.\scripts\validate.ps1 -TestMode EditMode -TestFilter "<Namespace>.<Fixture>"   # ciblage manuel
+.\scripts\validate.ps1 -Profile Auto                      # selection selon les fichiers modifiés (dev)
+.\scripts\validate.ps1 -Profile Geometry                  # preuves 5.49-5.51 + porte A 5.28
+.\scripts\validate.ps1 -Profile FullSansGeometry          # officiel d'une story non géométrique
+.\scripts\validate.ps1 -Profile Auto -Since <git-ref>     # livraison multi-commit : classe la plage
 ```
 
-**Cout mesure : 72,7 s pour `-TestMode Both`** (523 tests EditMode + 33 tests PlayMode) sur l'Editeur
-connecte avec `recompile_status: up_to_date`, le 2026-09-18. Le cout de la suite complete n'est donc
-pas un argument pour la fractionner.
+Sans nouveau parametre, la commande se comporte comme avant : profil `Full`, suite EditMode
+entiere, aucune exclusion.
+
+### 3.1 Profils de validation EditMode
+
+La suite EditMode est partitionnee en **deux categories NUnit** portees par les fixtures
+(`[Category("Core")]` / `[Category("Geometry")]`), pas par des listes tenues a la main :
+
+| Categorie  | Contenu | Cout mesure (2026-09-28) |
+| ---------- | ------------------------------------------------------------------------------------ | ------------------------ |
+| `Core`     | contrats, invariants rapides, logique pure, validite des artefacts, oracle de trafic | ~10 s (784 tests)        |
+| `Geometry` | preuves coûteuses 5.49/5.50/5.51, porte A 5.28, balayages, dégagements, migration   | ~430 s (145 tests)       |
+
+| Profil             | Selection                                                                 | Usage                                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `Full`             | aucun filtre                                                              | **Seule execution citable comme « validation complète ».** Par defaut, inchange.                                                       |
+| `Fast`             | categorie `Core`                                                          | developpement courant. Jamais une acceptation.                                                                                          |
+| `FullSansGeometry` | categorie `Core` (meme selection que Fast)                                | validation officielle d'une story **non géométrique**, avec la classification Auto jointe.                                              |
+| `Geometry`         | categorie `Geometry`                                                      | itération sur les preuves.                                                                                                             |
+| `Auto`             | classifie les fichiers modifiés ; géométrie ou inconnu -> `Full`, sinon `Core` | checkpoint de story. La décision et sa justification sont imprimées dans la sortie.                                                    |
+
+**Regles d'usage — a respecter sans exception :**
+
+- `-Profile Full` reste le seul profil qui vaut « validation complète ». Un profil partiel ne peut
+  jamais etre presente comme tel : `validate.ps1` imprime `VALIDATION PARTIELLE` et le nombre exact
+  de tests **non executes par selection** (jamais « reussis »). Le recapitulatif distingue
+  explicitement : reussis, echoues, non executes par selection (par categorie), et ignores reels
+  (`skipped`/`inconclusive` de l'execution).
+- **Checkpoints de gate, modifications de contrat, corrections issues d'une code review, livraisons
+  importantes : `-Profile Full`.** Ces changements ne prennent pas le raccourci des profils partiels.
+- Pour les autres stories : `-Profile Auto` (le checkpoint par defaut du cycle), ou
+  `-Profile FullSansGeometry` quand la classification non géométrique est établie et jointe au
+  compte rendu. Au moindre doute : `Full`.
+- `Fast` est un outil de boucle de developpement ; il n'est jamais cité comme preuve d'acceptation.
+- La selection est **conservatrice** : une entree géométrique ou **inconnue** parmi les fichiers
+  classés bascule `Auto` sur `Full`. Le mapping des chemins vit dans
+  `scripts/validation-profiles.ps1` (source unique, `-SelfTest` pour les simulations de selection) :
+  scene `MVP_Run` et ses artefacts, prefabs, pipeline du modèle de route
+  (`Features/Vehicles/Traffic/**` **hors `Traffic/Routing/`**, le routage runtime stratégique qui ne
+  produit ni courbe ni collider), empreintes véhicule (`VehicleProfileDef*`, `VehicleWheel`),
+  `SidewalkDeclarations`, `ProjectSettings/`, manifeste de packages ; une fixture EditMode est
+  classée par sa catégorie ; un chemin RoadRage non reconnu ou un fichier de test sans catégorie
+  est traité comme géométrique.
+- **Portée d'`Auto`** : travail en cours (`git status`, y compris non suivis) et dernier commit
+  quand l'arbre est propre. Pour une livraison etalee sur plusieurs commits, passer
+  `-Since <git-ref>`. Sans cela, la sortie le dit explicitement.
+- **Partition verifiee** : `validate.ps1` compare la selection annoncée au contenu réel
+  (`list_tests`) et echoue ferme si un test EditMode n'a ni `Core` ni `Geometry`, ou si l'exécution
+  ne correspond pas au compte attendu. La garde `TestSuiteCategoryPartitionTests` le verifie aussi
+  dans la suite elle-meme. Une nouvelle fixture lourde doit etre classee `Geometry` explicitement.
+- **Gate A** : signée par le propriétaire, jamais regeneree ni signée automatiquement. Le profil
+  partiel exécute le controle leger du sign-off (présence + liaison aux artefacts committés, fixture
+  5.28, catégorie `Core`) : une signature absente ou détachée des artefacts committés est vue meme
+  en `Fast`. La liaison complète (empreintes physiques/sémantiques/clearance, source V1) reste dans
+  `Geometry`/`Full`, que `Auto` declenche des qu'une entree géométrique est touchee.
+- **PlayMode** : pas de profils, suite complete, et la comparaison aux references applicables reste
+  due lors des régressions (les échecs PlayMode connus ne sont jamais masqués).
+
+**Cout mesure (2026-09-28, Editeur 6000.6.0f1, 929 tests EditMode)** : profil `Full` ~430 s de
+  temps de test (porte complète ~7-8 min) ; profil `Fast` 784/784 en ~10 s de tests cumulés ;
+  profil `Geometry` ~145 tests pour ~430 s. La référence de 72,7 s du 2026-09-18 (523+33 tests)
+  est historique : entre-temps la suite a intégré les preuves Traffic V2, qui portent 99 % du coût.
+  C'est ce qui justifie la partition — le choix n'est pas un confort, c'est la seule optimisation
+  qui ne retire aucune garantie : ce qui n'est pas exécuté est nommé et compte.
 
 **Limite mesuree du filtrage** (CLI `1.0.0-beta.8` + UTF `1.8.0`, 2026-09-18) : `-TestFilter`
 **ne matche pas en PlayMode**, avec `-TestFilterType testName` comme avec `assembly` — nom de classe,
