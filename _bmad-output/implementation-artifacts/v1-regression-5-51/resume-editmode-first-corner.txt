@@ -1,0 +1,332 @@
+﻿==> Version Unity CLI
+  1.0.0-beta.8 (reference validee)
+==> unity status
+  port 7801, Unity 6000.6.0f1, etat ready
+==> editeur stabilise (compiling / domainReloadInProgress)
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+==> unity cmd console (curseur de fenetre)
+  curseur 500 ; 5 erreur(s) anterieure(s) hors fenetre
+==> unity cmd recompile
+==> unity cmd recompile_status
+  recompile_status: up_to_date
+==> stabilisation apres recompile + unity cmd console --level error --since 500
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+  0 erreur depuis le curseur 500
+==> etat de compilation courant (EditorUtility.scriptCompilationFailed)
+  scriptCompilationFailed=false
+  100 avertissement(s) hors Assets/Synty/ (informatif, ne bloque pas)
+  [WARN] x9 [Run] Entree monde refusee : aucun profil joueur confirme.
+  [WARN] [projet] x5 Assembly for Assembly Definition File 
+'Assets/RoadRage/Features/SandboxStops/RoadRage.Features.SandboxStops.asmdef' will not be compiled, because it has no 
+scripts associated with it.
+  [WARN] x5 Assets\RoadRage\Features\Vehicles\AiRageTargetResolution.cs(35,23): warning CS0618: 
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with 
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or 
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and 
+previous sort order cannot be maintained.'
+  [WARN] x5 Assets\RoadRage\Features\Vehicles\AiRageTargetResolution.cs(35,102): warning CS0618: 'FindObjectsSortMode' 
+is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a 
+FindObjectsSortMode parameter.'
+  [WARN] x3 Assets\RoadRage\DevTools\RoadRageNetcodeSmokeTestAutoStart.cs(162,99): warning CS0618: 
+'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that 
+do not take a FindObjectsSortMode parameter.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1244,26): warning CS0618: 
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with 
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or 
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and 
+previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1244,96): warning CS0618: 'FindObjectsSortMode' is obsolete: 
+'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode 
+parameter.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(764,28): warning CS0618: 
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with 
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or 
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and 
+previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(764,109): warning CS0618: 'FindObjectsSortMode' is obsolete: 
+'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode 
+parameter.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1206,28): warning CS0618: 
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with 
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or 
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and 
+previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1206,109): warning CS0618: 'FindObjectsSortMode' is obsolete: 
+'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode 
+parameter.'
+  [WARN] x3 Assets\RoadRage\DevTools\RageSandboxAutoStart.cs(293,99): warning CS0618: 'FindObjectsSortMode' is 
+obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a 
+FindObjectsSortMode parameter.'
+  ... 22 autre(s) message(s) distinct(s) non affiche(s) ; total : 100
+==> unity cmd run_tests --mode EditMode
+==> unity cmd test_status (EditMode)
+  [FAIL] RoadRage.Tests.EditMode.Story528AuthoringAndGateATests.GateAIsOpenedOnlyByTheOwnersBoundSignoff :   Sign-off 
+absent (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json) : Gate A fermee, revue de l'overlay et signature 
+du proprietaire requises.
+  Expected: <empty>
+  But was:  < "Sign-off absent (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json) : Gate A fermee, revue 
+de l'overlay et signature du proprietaire requises." >
+
+  [FAIL] RoadRage.Tests.EditMode.Story549RoundaboutWideningTests.TrafficV2SourcesNeverReferenceTheNavMesh :   
+D:/Projets/RRS/Assets\RoadRage\Features\Vehicles\Traffic\Migration\JunctionClearance.cs : le NavMesh est une donnee V1 
+authoree (AD-33), jamais une source V2.
+  Expected: not String containing "UnityEngine.AI" and not containing "NavMesh"
+  But was:  "#if UNITY_EDITOR
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.SceneManagement;
+
+namespace RoadRage.Features.Vehicles.Traffic.Migration
+{
+    public sealed class JunctionClearanceWitness
+    {
+        public float Residual = float.PositiveInfinity;
+        public Vector3 Position;
+        public string Obstacle;
+        public bool Seam;
+        public float IntervalDelta;
+        public float LargestDelta;
+    }
+
+    public sealed class JunctionClearanceRow
+    {
+        public string Junction;
+        public string Movement;
+        public string Surface;
+        public JunctionClearanceWitness Physical;
+        public JunctionClearanceWitness Semantic;
+    }
+
+    public sealed class JunctionClearanceResult
+    {
+        public float StepMeters;
+        public float VehicleTopMeters;
+        public string PhysicalFingerprint;
+        public string SemanticFingerprint;
+        public readonly List<JunctionClearanceRow> Rows = new List<JunctionClearanceRow>();
+        public readonly List<string> Failures = new List<string>();
+
+        public bool Passed { get { return Failures.Count == 0 && Rows.Count > 0 && Rows.All(r => r.Physical.Residual > 
+0f && r.Semantic.Residual > 0f); } }
+    }
+
+    /// <summary>Preuve EditMode 5.51 : deux gates independants sur les courbes compilees 5.50.</summary>
+    public static class JunctionClearance
+    {
+        public const int AlgorithmVersion = 1;
+        public const float DefaultStepMeters = 0.05f;
+        private const float GeometryTolerance = 0.01f;
+        private const float UnitTolerance = 0.001f; // meme tolerance que RoadGeometryValidator
+
+        private sealed class Surface
+        {
+            public string Name;
+            public Component Declaration;
+            public readonly List<Collider> Colliders = new List<Collider>();
+            public readonly List<Renderer> Visuals = new List<Renderer>();
+            public readonly List<Vector2[]> Polygons = new List<Vector2[]>();
+        }
+
+        /// <summary>Le profil versionne fournit le gabarit et la marge ; la porte de courbe compilee vaut 0,05 
+m.</summary>
+        public static float HalfLength(RoadModelValidationProfile profile)
+        {
+            return profile.MaxVehicleLengthMeters * 0.5f + profile.LateralClearanceMarginMeters + 
+V1RoadModelImporter.ChordToleranceMeters;
+        }
+
+        public static float HalfWidth(RoadModelValidationProfile profile)
+        {
+            return profile.MaxVehicleHalfWidthMeters + profile.LateralClearanceMarginMeters + 
+V1RoadModelImporter.ChordToleranceMeters;
+        }
+
+        /// <summary>Genere toutes les poses, y compris les echantillons compiles et les deux cotes de chaque 
+couture.</summary>
+        public static List<SweepPose> Subdivide(IReadOnlyList<SweepPose> coarse, SweepGraph graph, float h)
+        {
+            if (coarse == null || coarse.Count == 0 || !(h > 0f))
+            {
+                throw new ArgumentException("Trajectoire vide ou pas h non positif.");
+            }
+
+            var dense = new List<SweepPose> { coarse[0] };
+            if (coarse[0].Degenerate)
+            {
+                throw new ArgumentException("Tangente horizontale nulle a la premiere pose.");
+            }
+
+            for (int i = 1; i < coarse.Count; i++)
+            {
+                SweepPose a = coarse[i - 1];
+                SweepPose b = coarse[i];
+                if (a.Degenerate || b.Degenerate)
+                {
+                    throw new ArgumentException("Tangente horizontale nulle a la pose " + i + ".");
+                }
+
+                if (a.ElementId != b.ElementId)
+                {
+                    dense.Add(b); // couture explicite, jamais interpolee comme un segment compile
+                    continue;
+                }
+
+                if ((a.Heading + b.Heading).magnitude <= UnitTolerance)
+                {
+                    throw new ArgumentException("Tangentes horizontales antiparalleles dans l'element " + a.ElementId 
++ ".");
+                }
+
+                if (!graph.Elements.TryGetValue(a.ElementId, out SweepElement element) || !(b.SMeters > a.SMeters))
+                {
+                    throw new ArgumentException("Segment compile ou abscisse invalide dans l'element " + a.ElementId + 
+".");
+                }
+
+                int steps = Mathf.Max(1, Mathf.CeilToInt((b.SMeters - a.SMeters) / h));
+                for (int step = 1; step <= steps; step++)
+                {
+                    if (step == steps)
+                    {
+                        dense.Add(b); // pose compilee exacte, jamais re-echantillonnee
+                        break;
+                    }
+
+                    float s = Mathf.Lerp(a.SMeters, b.SMeters, (float)step / steps);
+                    RoadCurvePoint point = element.Curve.Sample(s);
+                    SweepPose pose = SweepPose.From(point.Position, point.Tangent);
+                    if (pose.Degenerate)
+                    {
+                        throw new ArgumentException("Tangente horizontale nulle dans l'element " + a.ElementId + ".");
+                    }
+
+                    pose.ElementId = a.ElementId;
+                    pose.SMeters = s;
+                    dense.Add(pose);
+                }
+            }
+
+            return dense;
+        }
+
+        /// <summary>Distance exacte de deux polygones convexes du plan, zero en contact.</summary>
+        public static float Distance(IReadOnlyList<Vector2> a, IReadOnlyList<Vector2> b)
+        {
+            if (a == null || b == null || a.Count < 3 || b.Count < 3)
+            {
+                throw new ArgumentException("Deux polygones convexes non degeneres sont requis.");
+            }
+
+            if (!Separated(a, b) && !Separated(b, a))
+            {
+                return 0f;
+            }
+
+            float best = float.PositiveInfinity;
+            for (int i = 0; i < a.Count; i++)
+            {
+                for (int j = 0; j < b.Count; j++)
+                {
+                    best = Mathf.Min(best, PointEdge(a[i], b[j], b[(j + 1) % b.Count]));
+                    best = Mathf.Min(best, PointEdge(b[j], a[i], a[(i + 1) % a.Count]));
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>Residu continu min(d_a,d_b) - (|Delta p| + rho Delta theta)/2.</summary>
+        public static JunctionClearanceWitness MeasurePath(IReadOnlyList<SweepPose> poses, IReadOnlyList<Vector2[]> 
+obstacles,
+            RoadModelValidationProfile profile, string obstacleName = null)
+        {
+            var witness = new JunctionClearanceWitness { Obstacle = obstacleName };
+            if (poses == null || poses.Count == 0 || obstacles == null || obstacles.Count == 0)
+            {
+                return witness;
+            }
+
+            float halfLength = HalfLength(profile);
+            float halfWidth = HalfWidth(profile);
+            float rho = Mathf.Sqrt(halfLength * halfLength + halfWidth * halfWidth);
+            foreach (Vector2[] obstacle in obstacles)
+            {
+                var previous = ConflictSweep.Corners(poses[0], halfLength, halfWidth);
+                float d0 = Distance(previous, obstacle);
+                if (poses.Count == 1 && d0 < witness.Residual)
+                {
+                    witness.Residual = d0;
+                    witness.Position = poses[0].Position;
+                }
+
+                for (int i = 1; i < poses.Count; i++)
+                {
+                    var current = ConflictSweep.Corners(poses[i], halfLength, halfWidth);
+                    float d1 = Distance(current, obstacle);
+                    float delta = ConflictSweep.Delta(poses[i - 1], poses[i], rho);
+                    witness.LargestDelta = Mathf.Max(witness.LargestDelta, delta);
+                    float residual = Mathf.Min(d0, d1) - 0.5f * delta;
+                    if (residual < witness.Residual)
+                    {
+                        witness.Residual = residual;
+                        witness.Position = d0 <= d1 ? poses[i - 1].Position : poses[i].Position;
+                        witness.Seam = poses[i - 1].ElementId != poses[i].ElementId;
+                        witness.IntervalDelta = delta;
+                    }
+
+                    previous = current;
+                    d0 = d1;
+                }
+            }
+
+            return witness;
+        }
+
+        public static JunctionClearanceResult Measure(Scene scene, V1ImportResult import, CompiledRoadModel model,
+            float h = DefaultStepMeters)
+        {
+            var result = new JunctionClearanceResult { StepMeters = h };
+            if (!scene.IsValid() || !scene.isLoaded || import == null || model == null || !(h > 0f))
+            {
+                result.Failures.Add("Scene, import, modele ou pas h invalide.");
+                return result;
+            }
+
+            int sidewalkArea = NavMesh.GetAreaFromName("Sidewalk");
+            if (sidewalkArea < 0)
+            {
+                result.Failures.Add("Aire NavMesh 'Sidewalk' absente.");
+                return result;
+            }
+
+            GameObject ai = 
+AssetDatabase.LoadAssetAtPath<GameObject>("Assets/RoadRage/Prefabs/Greybox_AIVehicle.prefab");
+            BoxCollider aiBox = ai == null ? null : ai.GetComponent<BoxCollider>();
+            if (aiBox == null)
+            {
+                result.Failures.Add("Collider du vehicule IA absent.");
+                return result;
+            }
+
+            result.VehicleTopMeters = aiBox.center.y + aiBox.size.y * 0.5f;
+            Physics.SyncTransforms();
+            var graph = SweepGraph.FromMode
+... (truncated)
+ECHEC: 2/885 test(s) EditMode en echec.
+
+---- Recapitulatif de validation ----
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          500 (5 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            up_to_date
+  Erreurs Console          0 depuis le curseur 500
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 100 (informatif, hors gate)
+-------------------------------------
+VALIDATION FAILED / INCOMPLETE

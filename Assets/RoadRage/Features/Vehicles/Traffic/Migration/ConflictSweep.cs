@@ -15,6 +15,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public bool Degenerate;
 
+        // Provenance de la courbe compilee, ignoree par le balayage de conflits 5.50.
+        // La preuve de degagement 5.51 subdivise chaque segment sans franchir ses coutures.
+        public RoadId ElementId;
+        public float SMeters;
+
         public Vector2 Plan
         {
             get { return new Vector2(Position.x, Position.z); }
@@ -462,7 +467,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return null;
             }
 
-            var own = Poses(element.Samples);
+            var own = Poses(element);
             var paths = new List<List<SweepPose>>();
             foreach (var before in backward)
             {
@@ -540,18 +545,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         {
             if (length >= element.Length)
             {
-                return Poses(element.Samples);
+                return Poses(element);
             }
 
             float cut = element.EndS - length;
             var poses = new List<SweepPose>();
-            RoadCurvePoint point = element.Curve.Sample(cut);
-            poses.Add(SweepPose.From(point.Position, point.Tangent));
+            poses.Add(SamplePose(element, cut));
             foreach (var sample in element.Samples)
             {
                 if (sample.SMeters > cut)
                 {
-                    poses.Add(SweepPose.From(sample.Position, sample.Tangent));
+                    poses.Add(KnotPose(element, sample));
                 }
             }
 
@@ -563,7 +567,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         {
             if (length >= element.Length)
             {
-                return Poses(element.Samples);
+                return Poses(element);
             }
 
             float cut = element.StartS + length;
@@ -572,12 +576,40 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             {
                 if (sample.SMeters < cut)
                 {
-                    poses.Add(SweepPose.From(sample.Position, sample.Tangent));
+                    poses.Add(KnotPose(element, sample));
                 }
             }
 
-            RoadCurvePoint point = element.Curve.Sample(cut);
-            poses.Add(SweepPose.From(point.Position, point.Tangent));
+            poses.Add(SamplePose(element, cut));
+            return poses;
+        }
+
+        private static SweepPose SamplePose(SweepElement element, float s)
+        {
+            RoadCurvePoint point = element.Curve.Sample(s);
+            var pose = SweepPose.From(point.Position, point.Tangent);
+            pose.ElementId = element.Id;
+            pose.SMeters = s;
+            return pose;
+        }
+
+        // Valeurs compilees telles quelles : les poses 5.50 restent identiques au bit pres.
+        private static SweepPose KnotPose(SweepElement element, RoadCurveSample sample)
+        {
+            var pose = SweepPose.From(sample.Position, sample.Tangent);
+            pose.ElementId = element.Id;
+            pose.SMeters = sample.SMeters;
+            return pose;
+        }
+
+        private static List<SweepPose> Poses(SweepElement element)
+        {
+            var poses = new List<SweepPose>(element.Samples.Count);
+            foreach (var sample in element.Samples)
+            {
+                poses.Add(KnotPose(element, sample));
+            }
+
             return poses;
         }
 

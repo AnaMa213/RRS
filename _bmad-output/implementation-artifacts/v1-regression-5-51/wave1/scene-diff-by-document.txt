@@ -1,0 +1,4 @@
+HEAD docs 251 -> 439 ajoutes 188 retires 0 modifies 4
+ordre identique pour les communs: True
+Par instance Greybox_TJunction (4) : 6 proprietes modifiees exactement (2 x m_IsActive = 0 sur Sidewalk_Corner_SE/SW, 2 x m_Size.x = 3, 2 x m_Center.x = +/-0,5) et m_AddedGameObjects (12 objets par T : par angle Chamfer_Box_B, Chamfer_Box_Diagonal, Chamfer_Visual_0..2, Chamfer_RoadFill_*).
+Aucun document retire, aucun autre document modifie, ordre des documents communs inchange. Le diff texte de git realigne des blocs sans rapport (HUD, Netcode) : artefact d'alignement, verifie document par document.

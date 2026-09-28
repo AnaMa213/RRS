@@ -1,0 +1,80 @@
+﻿==> Version Unity CLI
+  1.0.0-beta.8 (reference validee)
+==> unity status
+  port 7801, Unity 6000.6.0f1, etat ready
+==> editeur stabilise (compiling / domainReloadInProgress)
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+==> unity cmd console (curseur de fenetre)
+  curseur 1130 ; 19 erreur(s) anterieure(s) hors fenetre
+==> unity cmd recompile
+==> unity cmd recompile_status
+  recompile_status: up_to_date
+==> stabilisation apres recompile + unity cmd console --level error --since 1130
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+  0 erreur depuis le curseur 1130
+==> etat de compilation courant (EditorUtility.scriptCompilationFailed)
+  scriptCompilationFailed=false
+  100 avertissement(s) hors Assets/Synty/ (informatif, ne bloque pas)
+  [WARN] x57 NetworkVariable is written to, but doesn't know its NetworkBehaviour yet. Are you modifying a 
+NetworkVariable before the NetworkObject is spawned?
+  [WARN] x3 Material 'Road_01' with Shader 'Synty/Generic_Basic' doesn't have a texture property '_MainTex'
+  [WARN] [projet] x2 Assembly for Assembly Definition File 
+'Assets/RoadRage/Features/SandboxStops/RoadRage.Features.SandboxStops.asmdef' will not be compiled, because it has no 
+scripts associated with it.
+  [WARN] x2 Assets\RoadRage\Tests\EditMode\TrafficOracle\TrafficOracleTests.cs(440,38): warning UAC0005: 
+AppDomain.GetAssemblies() in Unity may return already unloaded assemblies and result in errors or leaks. Use Unity 
+APIs instead, such as 'CurrentAssemblies.GetLoadedAssemblies()' or 'TypeCache.GetTypesDerivedFrom()'.
+  [WARN] Assets\RoadRage\App\Run\RunFlowController.cs(764,28): warning CS0618: 
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with 
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or 
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and 
+previous sort order cannot be maintained.'
+  [WARN] Assets\RoadRage\App\Run\RunFlowController.cs(1206,109): warning CS0618: 'FindObjectsSortMode' is obsolete: 
+'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode 
+parameter.'
+  [WARN] Assets\RoadRage\App\Run\RunFlowController.cs(764,109): warning CS0618: 'FindObjectsSortMode' is obsolete: 
+'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode 
+parameter.'
+  [WARN] Assets\RoadRage\App\Run\NetworkedPassengerActionIntent.cs(276,98): warning CS0618: 'FindObjectsSortMode' is 
+obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a 
+FindObjectsSortMode parameter.'
+  [WARN] Assets\RoadRage\App\Run\NetworkedVehicleSeatService.cs(350,30): warning CS0618: 
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with 
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or 
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and 
+previous sort order cannot be maintained.'
+  [WARN] Assets\RoadRage\App\Run\NetworkedPassengerActionIntent.cs(276,28): warning CS0618: 
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with 
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or 
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and 
+previous sort order cannot be maintained.'
+  [WARN] Assets\RoadRage\App\Run\NetworkedVehicleSeatService.cs(465,20): warning CS0618: 
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with 
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or 
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and 
+previous sort order cannot be maintained.'
+  [WARN] Assets\RoadRage\App\Run\NetworkedVehicleSeatService.cs(465,90): warning CS0618: 'FindObjectsSortMode' is 
+obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a 
+FindObjectsSortMode parameter.'
+  ... 28 autre(s) message(s) distinct(s) non affiche(s) ; total : 100
+==> unity cmd run_tests --mode EditMode
+==> unity cmd test_status (EditMode)
+  [FAIL] RoadRage.Tests.EditMode.Story528AuthoringAndGateATests.GateAIsOpenedOnlyByTheOwnersBoundSignoff :   Sign-off 
+absent (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json) : Gate A fermee, revue de l'overlay et signature 
+du proprietaire requises.
+  Expected: <empty>
+  But was:  < "Sign-off absent (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json) : Gate A fermee, revue 
+de l'overlay et signature du proprietaire requises." >
+
+ECHEC: 1/893 test(s) EditMode en echec.
+
+---- Recapitulatif de validation ----
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          1130 (19 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            up_to_date
+  Erreurs Console          0 depuis le curseur 1130
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 100 (informatif, hors gate)
+-------------------------------------
+VALIDATION FAILED / INCOMPLETE

@@ -415,6 +415,8 @@ AD-5, AD-6, AD-8, AD-15, AD-16, AD-17, AD-22, AD-24, and AD-26 remain historical
 
 ## Consistency Conventions
 
+*2026-09-28 owner-approved clarification (`planning-artifacts/sprint-change-proposal-2026-09-28.md`):* Story 5.51 must provide separate conservative clearance proofs and canonical input fingerprints for physical obstacle volumes and for authored `Sidewalk` surfaces in plan, independent of collider height or activation. The semantic gate includes the disabled north T-junction corner colliders and checks correspondence with visible sidewalks. The first corner must pass physical shape, semantic region, visual rendering, save/reload and scene-only diff together before the other eleven are cut. Story 5.28 later binds both proofs to Gate A; Story 5.51 does not sign it. V1 authoring, 5.50 curves and `RoadModelVersion` stay unchanged. Addendum (same date): drivable road relief that is part of the carriageway is drivable surface for the physical proof, under the explicit Story 5.51 criterion; curbs, sidewalks and taller volumes stay obstacles.
+
 | Concern | Convention |
 | --- | --- |
 | Vocabulary | Use `sandbox stop` for the compact town/stop zone and `Rage Road event` for the triggered crisis/confrontation lifecycle. Do not introduce alternate names unless a new AD defines a distinct concept. |

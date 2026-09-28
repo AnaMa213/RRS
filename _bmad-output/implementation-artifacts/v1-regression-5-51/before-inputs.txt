@@ -1,0 +1,13 @@
+﻿baseline_commit=58c230a311ef61f81611ca640dd28b4c5bac28a9
+captured_utc=2026-09-28T08:11:35.1179068Z
+d6f5fe713f6131a05e32c3848502de3875a1a57b Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json
+d796696d5cbfb7f40dc42dafcaaee6b93c75d1c2 Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json
+3b8735155668a18b0b831146fd92c6f5d4c66351 Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json
+cf96b73fa42f18435fbaac8572bf45e238b5bf48 Assets/RoadRage/App/Scenes/MVP_Run.unity
+f4c46b93142256dd57f8234ec2a5068a33c167f9 Assets/RoadRage/App/Scenes/MVP_Run/NavMesh-LaneGraph-Vehicle.asset
+ModelVersion=v4:e8dff9e54bff1712308899158ad16a9b
+SourceHash=b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc
+LineageHash=f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4
+DecisionsHash=3e9c893f48b10a248fa72aa51f7f365c683e7e0a825d657861a65c4356e553fe
+CompiledMovements=72
+ConflictZones=120
