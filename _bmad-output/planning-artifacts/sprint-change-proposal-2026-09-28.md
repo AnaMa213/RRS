@@ -63,7 +63,7 @@ Owner approval received on 2026-09-28. The normative edits above are applied; re
 - Supported shapes: a `BoxCollider` in any orientation, projected by the hull of its eight corners, which is its exact plan projection. The hull covers the whole volume at every height, and the vertical-range test uses the world bounding box, so an overhanging upper part cannot hide an interaction. Other shapes within reach remain a hard failure.
 - Obstacles: drivable road relief is the only exception. A volume in the vertical range is drivable road relief if and only if all three conditions hold:
   - (a) it overlaps no declared `Sidewalk` surface in plan; contact within 0.01 m is not an overlap;
-  - (b) its whole projection rests on the carriageway: its corners inset by 0.05 m and a 0.10 m interior grid each rest on a road-height surface that is not a declared `Sidewalk` collider; ground below road height does not count;
+  - (b) its whole projection rests on the carriageway, by exact geometric inclusion (never sampling): the projection minus the union of flat-topped, road-height, non-`Sidewalk` box supports (each dilated by 0.001 m so abutting slabs join) is empty, and it overlaps no declared `Sidewalk` collider; ground below road height, tilted tops and mesh colliders are not proven supports;
   - (c) its height above the drivable surface is at most the AI vehicle's static body clearance, derived from the versioned `Greybox_AIVehicle` profile (`ResolveStaticRideHeight` plus the underside of the body collider: 0.158 m), which exceeds the 0.12 m authored curb height driven by the 5.11/5.13 benches.
 - Exempted reliefs are published with their height and bound, and the bound's inputs enter the physical fingerprint.
 

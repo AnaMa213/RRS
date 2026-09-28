@@ -129,7 +129,28 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(Supported(Box("OverGap", new Vector3(500.25f, 0.05f, 0f), new Vector3(2f, 0.1f, 6f)), sidewalks), Is.False, "Le milieu surplombe le trou : les sommets seuls ne suffisent pas.");
                 Assert.That(Supported(Box("OverSidewalk", new Vector3(495f, 0.05f, 4.5f), new Vector3(2f, 0.1f, 2f)), sidewalks), Is.False, "Une partie repose sur le trottoir.");
                 Assert.That(Supported(Box("OnGround", new Vector3(500f, 0.05f, 20f), new Vector3(2f, 0.1f, 2f)), sidewalks), Is.False, "Le plan de sol n'est pas la chaussee.");
+
+                // Fente de 6 cm entre deux points de l'ancienne grille de 10 cm (500,05 et 500,15) : vue par l'inclusion exacte.
+                Box("RoadC", new Vector3(495.035f, -0.1f, -25f), new Vector3(10.07f, 0.2f, 8f));
+                Box("RoadD", new Vector3(505.065f, -0.1f, -25f), new Vector3(9.87f, 0.2f, 8f));
+                Assert.That(Supported(Box("OverSlit", new Vector3(500f, 0.05f, -25f), new Vector3(2f, 0.1f, 2f)), sidewalks), Is.False, "Fente entre deux points d'echantillonnage.");
+
+                // Dalles jointives : le joint n'est pas un trou.
+                Box("RoadE", new Vector3(495f, -0.1f, -45f), new Vector3(10f, 0.2f, 8f));
+                Box("RoadF", new Vector3(505f, -0.1f, -45f), new Vector3(10f, 0.2f, 8f));
+                Assert.That(Supported(Box("OverJoint", new Vector3(500f, 0.05f, -45f), new Vector3(2f, 0.1f, 8f)), sidewalks), Is.True, "Joint de dalles jointives.");
             });
+        }
+
+        [Test]
+        public void CoverageIsExactNotSampled()
+        {
+            float tolerance = JunctionClearance.ReliefSupportToleranceMeters;
+            Assert.That(JunctionClearance.Covered(Rect(0f, 2f, 0f, 2f), new[] { Rect(0f, 1f, 0f, 2f), Rect(1f, 2f, 0f, 2f) }, tolerance), Is.True, "Deux moities jointives.");
+            Assert.That(JunctionClearance.Covered(Rect(0f, 2f, 0f, 2f), new[] { Rect(0f, 1f, 0f, 2f), Rect(1.004f, 2f, 0f, 2f) }, tolerance), Is.False, "Fente de 4 mm.");
+            Assert.That(JunctionClearance.Covered(Rect(0f, 2f, 0f, 2f), new[] { Rect(0f, 2f, 0f, 1f), Rect(0f, 1f, 1f, 2f) }, tolerance), Is.False, "Coin manquant.");
+            Assert.That(JunctionClearance.Covered(Rect(0f, 2f, 0f, 2f), new[] { Rect(-1f, 3f, -1f, 3f) }, tolerance), Is.True, "Support englobant.");
+            Assert.That(JunctionClearance.Covered(Rect(0f, 2f, 0f, 2f), new Vector2[0][], tolerance), Is.False, "Aucun support.");
         }
 
         private static BoxCollider Box(string name, Vector3 position, Vector3 size)

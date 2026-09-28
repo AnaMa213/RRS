@@ -73,10 +73,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     /// <summary>Preuve EditMode 5.51 : deux gates independants sur les courbes compilees 5.50.</summary>
     public static class JunctionClearance
     {
-        public const int AlgorithmVersion = 2; // 2 : regle du relief routier franchissable (2026-09-28)
-        public const float ReliefSupportInsetMeters = 0.05f;
+        public const int AlgorithmVersion = 3; // 2 : regle du relief routier franchissable ; 3 : appui par inclusion exacte (2026-09-28)
+        public const float ReliefSupportToleranceMeters = 0.001f;
         public const float ReliefOverlapToleranceMeters = 0.01f;
-        public const float ReliefSupportStepMeters = 0.1f;
         public const float DefaultStepMeters = 0.05f;
         private const float GeometryTolerance = 0.01f;
         private const float UnitTolerance = 0.001f; // meme tolerance que RoadGeometryValidator
@@ -758,57 +757,94 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         }
 
         /// <summary>
-        /// (b) de la regle du relief : toute l'empreinte repose sur la chaussee. Sont testes les sommets
-        /// rentres de <see cref="ReliefSupportInsetMeters"/> vers le centre et une grille de pas
-        /// <see cref="ReliefSupportStepMeters"/> couvrant l'interieur a au moins cette distance des bords.
-        /// Chaque point doit reposer sur une surface a hauteur de route (entre <paramref name="minRoad"/> et
-        /// <paramref name="maxRoad"/>, a 1 cm pres) qui n'est pas un collider Sidewalk declare ; a hauteur
-        /// egale, le trottoir l'emporte. Le plan de sol, plus bas que la route, ne porte pas un relief
-        /// routier ; un trou de chaussee plus large que le pas de grille est vu.
+        /// (b) de la regle du relief : toute l'empreinte repose sur la chaussee, par inclusion geometrique
+        /// complete et non par echantillonnage. Supports : colliders actifs, non-trigger, sans Rigidbody
+        /// dynamique, BoxCollider a face superieure horizontale dont le dessus est a hauteur de route
+        /// (entre <paramref name="minRoad"/> et <paramref name="maxRoad"/>, a 1 cm pres) et qui ne sont pas
+        /// Sidewalk. L'empreinte privee de l'union des supports doit etre vide ; les supports sont dilates
+        /// de <see cref="ReliefSupportToleranceMeters"/> (joint de dalles jointives, dilatation en onglet : au plus
+        /// 1,5 mm aux angles droits), donc toute fente de plus de 3 mm, ou qu'elle soit, laisse un reste et refuse le relief.
+        /// Tout chevauchement d'un collider Sidewalk (actif ou non, a toute hauteur) refuse aussi : le
+        /// trottoir l'emporte. Plan de sol plus bas que la route, rampe inclinee ou mesh ne portent pas.
         /// </summary>
         public static bool RoadSupported(Collider relief, Vector2[] footprint, float minRoad, float maxRoad, HashSet<Collider> sidewalkColliders)
         {
             if (footprint == null || footprint.Length < 3) return false;
-            Vector2 center = Vector2.zero;
-            foreach (Vector2 vertex in footprint) center += vertex;
-            center /= footprint.Length;
-            var points = new List<Vector2>();
-            foreach (Vector2 vertex in footprint)
+            foreach (Collider sidewalk in sidewalkColliders)
             {
-                Vector2 inward = center - vertex;
-                points.Add(inward.magnitude > ReliefSupportInsetMeters ? vertex + inward.normalized * ReliefSupportInsetMeters : center);
+                Vector2[] polygon = Footprint(sidewalk);
+                if (polygon == null || Overlaps(footprint, polygon, ReliefOverlapToleranceMeters)) return false;
             }
 
             float xMin = footprint.Min(p => p.x), xMax = footprint.Max(p => p.x), zMin = footprint.Min(p => p.y), zMax = footprint.Max(p => p.y);
-            for (float x = xMin + ReliefSupportInsetMeters; x <= xMax - ReliefSupportInsetMeters; x += ReliefSupportStepMeters)
+            var center = new Vector3((xMin + xMax) * 0.5f, (minRoad + maxRoad) * 0.5f, (zMin + zMax) * 0.5f);
+            var extents = new Vector3((xMax - xMin) * 0.5f + GeometryTolerance, (maxRoad - minRoad) * 0.5f + GeometryTolerance, (zMax - zMin) * 0.5f + GeometryTolerance);
+            var supports = new List<Vector2[]>();
+            foreach (Collider candidate in Physics.OverlapBox(center, extents, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
             {
-                for (float z = zMin + ReliefSupportInsetMeters; z <= zMax - ReliefSupportInsetMeters; z += ReliefSupportStepMeters)
-                {
-                    var point = new Vector2(x, z);
-                    if (!Inside(footprint, point)) continue;
-                    float edge = float.PositiveInfinity;
-                    for (int i = 0; i < footprint.Length; i++) edge = Mathf.Min(edge, PointEdge(point, footprint[i], footprint[(i + 1) % footprint.Length]));
-                    if (edge >= ReliefSupportInsetMeters) points.Add(point);
-                }
+                if (candidate == relief || sidewalkColliders.Contains(candidate) || !(candidate is BoxCollider)) continue;
+                if (candidate.attachedRigidbody != null && !candidate.attachedRigidbody.isKinematic) continue;
+                if (Vector3.Dot(candidate.transform.up, Vector3.up) < 1f - 1e-5f) continue; // dessus incline : pas un support prouve
+                float top = candidate.bounds.max.y;
+                if (top < minRoad - GeometryTolerance || top > maxRoad + GeometryTolerance) continue;
+                supports.Add(Footprint(candidate));
             }
 
-            float from = relief.bounds.max.y + 10f;
-            foreach (Vector2 point in points)
+            return Covered(footprint, supports, ReliefSupportToleranceMeters);
+        }
+
+        /// <summary>
+        /// Couverture exacte d'un polygone convexe par une union de polygones convexes (sens trigonometrique),
+        /// chacun dilate de <paramref name="tolerance"/> : soustraction successive par demi-plans ; chaque
+        /// morceau restant est convexe. Un reste d'aire superieure a 1e-8 m2 est un trou.
+        /// </summary>
+        public static bool Covered(Vector2[] target, IReadOnlyList<Vector2[]> covers, float tolerance)
+        {
+            var pieces = new List<List<Vector2>> { new List<Vector2>(target) };
+            foreach (Vector2[] cover in covers)
             {
-                float top = float.NegativeInfinity;
-                bool sidewalk = false;
-                foreach (RaycastHit hit in Physics.RaycastAll(new Vector3(point.x, from, point.y), Vector3.down, from - minRoad + 1f, ~0, QueryTriggerInteraction.Ignore))
+                var next = new List<List<Vector2>>();
+                foreach (List<Vector2> piece in pieces)
                 {
-                    if (hit.collider == relief || hit.point.y > maxRoad + GeometryTolerance || hit.point.y < minRoad - GeometryTolerance) continue;
-                    bool isSidewalk = sidewalkColliders.Contains(hit.collider);
-                    if (hit.point.y > top + UnitTolerance) { top = hit.point.y; sidewalk = isSidewalk; }
-                    else if (hit.point.y >= top - UnitTolerance) sidewalk |= isSidewalk;
+                    List<Vector2> inside = piece;
+                    for (int i = 0; i < cover.Length && inside.Count >= 3; i++)
+                    {
+                        Vector2 a = cover[i], b = cover[(i + 1) % cover.Length];
+                        if ((b - a).sqrMagnitude < 1e-12f) continue;
+                        List<Vector2> outside = Clip(inside, a, b, tolerance, -1f);
+                        if (Area(outside) > 1e-8f) next.Add(outside);
+                        inside = Clip(inside, a, b, tolerance, 1f);
+                    }
                 }
 
-                if (float.IsNegativeInfinity(top) || sidewalk) return false;
+                pieces = next;
+                if (pieces.Count == 0) return true;
             }
 
-            return true;
+            return pieces.Count == 0;
+        }
+
+        /// <summary>Sutherland-Hodgman sur le demi-plan a gauche de ab recule de <paramref name="offset"/> (<paramref name="side"/> = 1) ou son complement (-1).</summary>
+        private static List<Vector2> Clip(List<Vector2> polygon, Vector2 a, Vector2 b, float offset, float side)
+        {
+            var result = new List<Vector2>();
+            float length = (b - a).magnitude;
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                Vector2 p = polygon[i], q = polygon[(i + 1) % polygon.Count];
+                float fp = side * (Cross(a, b, p) / length + offset), fq = side * (Cross(a, b, q) / length + offset);
+                if (fp >= 0f) result.Add(p);
+                if ((fp < 0f) != (fq < 0f)) result.Add(p + (q - p) * (fp / (fp - fq)));
+            }
+
+            return result;
+        }
+
+        private static float Area(List<Vector2> polygon)
+        {
+            float twice = 0f;
+            for (int i = 0; i < polygon.Count; i++) twice += polygon[i].x * polygon[(i + 1) % polygon.Count].y - polygon[(i + 1) % polygon.Count].x * polygon[i].y;
+            return polygon.Count < 3 ? 0f : Mathf.Abs(twice) * 0.5f;
         }
 
         private static float RoadTop(Vector3 position)
