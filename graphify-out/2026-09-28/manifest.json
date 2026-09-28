@@ -1260,9 +1260,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs": {
-    "mtime": 1790610343.5962763,
-    "seen": 1790611259.615281,
-    "ast_hash": "db2cf36ccbc0c9df2278c24a3d85ea2c",
+    "mtime": 1790611635.579323,
+    "seen": 1790612870.2760284,
+    "ast_hash": "e9aeb84974fa5a4f88d462245051f892",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoringDecisions.cs": {
@@ -1284,9 +1284,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story528AuthoringAndGateATests.cs": {
-    "mtime": 1790610283.188845,
-    "seen": 1790611259.6224627,
-    "ast_hash": "68d59d0394785fe7614273849810618c",
+    "mtime": 1790611801.6908863,
+    "seen": 1790612870.2835078,
+    "ast_hash": "bcde29fd031e819cd8bc67209754b847",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Migration/RoundaboutClearance.cs": {
@@ -1374,9 +1374,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Migration/JunctionClearance.cs": {
-    "mtime": 1790609409.2609415,
-    "seen": 1790611259.6155555,
-    "ast_hash": "2224b0fbb2e3b6ed12d33ccd2d2d369f",
+    "mtime": 1790611625.3364787,
+    "seen": 1790612870.2763858,
+    "ast_hash": "376e52665966afe682f020c4ec69a14e",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story551JunctionClearanceTests.cs": {
