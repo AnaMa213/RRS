@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using RoadRage.Features.Vehicles;
 using RoadRage.Features.Vehicles.Traffic;
@@ -153,6 +154,142 @@ namespace RoadRage.Tests.EditMode
             Assert.That(JunctionClearance.Covered(Rect(0f, 2f, 0f, 2f), new Vector2[0][], tolerance), Is.False, "Aucun support.");
         }
 
+        private static RoadModelValidationProfile SweepProfile()
+        {
+            return new RoadModelValidationProfile
+            {
+                MaxVehicleLengthMeters = 4.5f,
+                MaxVehicleHalfWidthMeters = 1.03f,
+                LateralClearanceMarginMeters = 0.25f
+            };
+        }
+
+        private static SweepPose Pose(float x, float y, float z, float headingDegrees, RoadId element)
+        {
+            float angle = headingDegrees * Mathf.Deg2Rad;
+            var pose = SweepPose.From(new Vector3(x, y, z), new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)));
+            pose.ElementId = element;
+            return pose;
+        }
+
+        [Test]
+        public void PlanarClearanceFindsContactBetweenPosesAndAcrossASeamAtAnyHeight()
+        {
+            var profile = SweepProfile();
+            var obstacle = Rect(-0.1f, 0.1f, -0.1f, 0.1f);
+            RoadId first = RoadId.New(), second = RoadId.New();
+            var a = Pose(-5f, 0f, 0f, 0f, first);
+            var b = Pose(5f, 0f, 0f, 0f, first);
+            Assert.That(JunctionClearance.Distance(ConflictSweep.Corners(a, JunctionClearance.HalfLength(profile), JunctionClearance.HalfWidth(profile)), obstacle), Is.GreaterThan(0f));
+            Assert.That(JunctionClearance.Distance(ConflictSweep.Corners(b, JunctionClearance.HalfLength(profile), JunctionClearance.HalfWidth(profile)), obstacle), Is.GreaterThan(0f));
+
+            var interval = JunctionClearance.MeasurePath(new[] { a, b }, new[] { obstacle }, profile);
+            Assert.That(interval.Residual, Is.LessThan(0f), "Le contact est entre les poses, absentes de l'obstacle aux extremites.");
+            Assert.That(interval.Seam, Is.False);
+
+            b.ElementId = second;
+            b.Position.y = 100f; // La porte Sidewalk reste planaire, sans condition de hauteur.
+            var seam = JunctionClearance.MeasurePath(new[] { a, b }, new[] { obstacle }, profile);
+            Assert.That(seam.Residual, Is.EqualTo(interval.Residual).Within(1e-4f));
+            Assert.That(seam.Seam, Is.True);
+            Assert.That(seam.IntervalDelta, Is.EqualTo(10f).Within(1e-4f));
+        }
+
+        [Test]
+        public void PlanarClearanceFindsAContactOnlyDuringRotation()
+        {
+            var profile = SweepProfile();
+            var obstacle = Rect(2.4f, 2.5f, -0.05f, 0.05f);
+            RoadId element = RoadId.New();
+            var a = Pose(0f, 0f, 0f, -45f, element);
+            var b = Pose(0f, 0f, 0f, 45f, element);
+            Assert.That(JunctionClearance.Distance(ConflictSweep.Corners(a, JunctionClearance.HalfLength(profile), JunctionClearance.HalfWidth(profile)), obstacle), Is.GreaterThan(0f));
+            Assert.That(JunctionClearance.Distance(ConflictSweep.Corners(b, JunctionClearance.HalfLength(profile), JunctionClearance.HalfWidth(profile)), obstacle), Is.GreaterThan(0f));
+            Assert.That(JunctionClearance.Distance(ConflictSweep.Corners(Pose(0f, 0f, 0f, 0f, element), JunctionClearance.HalfLength(profile), JunctionClearance.HalfWidth(profile)), obstacle), Is.Zero);
+            var witness = JunctionClearance.MeasurePath(new[] { a, b }, new[] { obstacle }, profile);
+            Assert.That(witness.Residual, Is.LessThan(0f));
+            Assert.That(witness.IntervalDelta, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void ARightTurnSquareCornerFailsBothGatesAndARealPlanChamferClearsThem()
+        {
+            var profile = SweepProfile();
+            var pose = Pose(0f, 0f, 0f, 0f, RoadId.New());
+            var square = Rect(2.5f, 5f, 1f, 5f);
+            var cut = new[]
+            {
+                new Vector2(3.5f, 1f), new Vector2(5f, 1f), new Vector2(5f, 5f),
+                new Vector2(2.5f, 5f), new Vector2(2.5f, 2f)
+            };
+            Assert.That(JunctionClearance.MeasurePath(new[] { pose }, new[] { square }, profile).Residual, Is.Zero, "Angle carre : empreinte dans trottoir et bordure.");
+            Assert.That(JunctionClearance.MeasurePath(new[] { pose }, new[] { cut }, profile).Residual, Is.GreaterThan(0f), "Le chanfrein en plan degage les deux portes.");
+        }
+
+        [Test]
+        public void SubdivisionUsesStoredCurveKnotsAndRejectsDegenerateTangents()
+        {
+            var graph = new SweepGraph();
+            RoadId id = RoadId.New();
+            var samples = new[]
+            {
+                new RoadCurveSample { SMeters = 0f, Position = Vector3.zero, Tangent = Vector3.right, Up = Vector3.up, CurvaturePerMeter = 25f, HalfWidthLeftMeters = 2f, HalfWidthRightMeters = 2f },
+                new RoadCurveSample { SMeters = 1f, Position = new Vector3(1f, 0f, 1f), Tangent = new Vector3(1f, 0f, 1f).normalized, Up = Vector3.up, CurvaturePerMeter = -25f, HalfWidthLeftMeters = 2f, HalfWidthRightMeters = 2f },
+                new RoadCurveSample { SMeters = 2f, Position = new Vector3(1f, 0f, 2f), Tangent = Vector3.forward, Up = Vector3.up, CurvaturePerMeter = 10f, HalfWidthLeftMeters = 2f, HalfWidthRightMeters = 2f }
+            };
+            var element = graph.Add(id, true, samples);
+            var knots = ConflictSweep.Poses(element.Samples);
+            for (int i = 0; i < knots.Count; i++)
+            {
+                var knot = knots[i];
+                knot.ElementId = id;
+                knot.SMeters = samples[i].SMeters;
+                knots[i] = knot;
+            }
+            var dense = JunctionClearance.Subdivide(knots, graph, 0.25f);
+            Assert.That(dense.Count, Is.EqualTo(9));
+            foreach (var knot in knots)
+                Assert.That(dense.Any(p => p.SMeters == knot.SMeters && p.Position == knot.Position && p.Heading == knot.Heading), Is.True, "Noeud compile perdu : " + knot.SMeters);
+            foreach (var pose in dense)
+            {
+                RoadCurvePoint canonical = element.Curve.Sample(pose.SMeters);
+                Assert.That(pose.Position, Is.EqualTo(canonical.Position));
+                Assert.That(pose.Heading, Is.EqualTo(new Vector2(canonical.Tangent.x, canonical.Tangent.z).normalized));
+            }
+
+            var degenerate = SweepPose.From(Vector3.zero, Vector3.up);
+            Assert.Throws<ArgumentException>(() => JunctionClearance.Subdivide(new[] { degenerate }, graph, 0.25f));
+            Assert.Throws<ArgumentException>(() => JunctionClearance.Subdivide(new[] { Pose(0f, 0f, 0f, 0f, id), Pose(1f, 0f, 0f, 180f, id) }, graph, 0.25f));
+        }
+
+        [Test]
+        public void PhysicalFilterRejectsTriggersInactiveCollidersAndDynamicBodies()
+        {
+            WithScratchScene(() =>
+            {
+                var ai = Box("Ai", new Vector3(510f, 0f, 0f), Vector3.one);
+                var box = Box("Candidate", new Vector3(500f, 0f, 0f), Vector3.one);
+                var method = typeof(JunctionClearance).GetMethod("Participates", BindingFlags.NonPublic | BindingFlags.Static);
+                Assert.That(method, Is.Not.Null);
+                Func<bool> participates = () => (bool)method.Invoke(null, new object[] { box, ai });
+                Assert.That(participates(), Is.True);
+                box.isTrigger = true;
+                Assert.That(participates(), Is.False);
+                box.isTrigger = false;
+                box.enabled = false;
+                Assert.That(participates(), Is.False);
+                box.enabled = true;
+                var body = box.gameObject.AddComponent<Rigidbody>();
+                Assert.That(participates(), Is.False);
+                body.isKinematic = true;
+                Assert.That(participates(), Is.True);
+                box.excludeLayers = 1 << ai.gameObject.layer;
+                ai.excludeLayers = 1 << box.gameObject.layer;
+                Assert.That(participates(), Is.False);
+                ai.excludeLayers = 0;
+            });
+        }
+
         private static BoxCollider Box(string name, Vector3 position, Vector3 size)
         {
             var go = new GameObject(name);
@@ -240,13 +377,12 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(obstacle.Contains("Rampe_") || obstacle.Contains("Relief_"), Is.False, row.Junction + " / " + row.Movement + " : " + obstacle);
             }
 
-            // Bordures du carrefour : toujours des obstacles, jamais des reliefs ; temoins negatifs des trois
-            // virages a droite non encore coupes (l'angle SE l'est depuis le mini-gate).
+            // Bordures du carrefour : toujours des obstacles, jamais des reliefs ; chaque virage a droite a pour
+            // temoin physique la bordure reculee de son angle.
             Assert.That(result.DrivableReliefs.Any(r => r.Collider.Contains("/Col_Curb_")), Is.False);
-            var rightTurns = result.Rows.Where(r => r.Junction == "Intersection_Center_Crossroads" && r.Movement.Contains("(droite)")
-                && !r.Movement.Contains("Junction_FromSouth -> Connector_East_Out")).ToArray();
+            var rightTurns = result.Rows.Where(r => r.Junction == "Intersection_Center_Crossroads" && r.Movement.Contains("(droite)")).ToArray();
             Assert.That(rightTurns, Is.Not.Empty);
-            Assert.That(rightTurns.All(r => r.Physical.Obstacle.Contains("/Col_Curb_") && r.Physical.Residual <= 0f), Is.True);
+            Assert.That(rightTurns.All(r => r.Physical.Obstacle.Contains("/Col_Curb_") && r.Physical.Residual > 0f), Is.True);
 
             // Le dos d'ane ne penalise plus les mouvements qui le franchissent.
             var straight = result.Rows.Where(r => r.Junction == "Intersection_Center_Crossroads" && r.Movement.Contains("Junction_FromEast -> Connector_West_Out")).ToArray();
@@ -288,12 +424,15 @@ namespace RoadRage.Tests.EditMode
             }
         }
 
-        [Test]
-        public void TheFirstCrossroadsCornerPassesBothGatesAndKeepsItsCurbAsAnObstacle()
+        [TestCase("SE", "Col_Curb_South_East", "Junction_FromSouth -> Connector_East_Out")]
+        [TestCase("NE", "Col_Curb_North_East", "Junction_FromEast -> Connector_North_Out")]
+        [TestCase("NW", "Col_Curb_North_West", "Junction_FromNorth -> Connector_West_Out")]
+        [TestCase("SW", "Col_Curb_South_West", "Junction_FromWest -> Connector_South_Out")]
+        public void EachCrossroadsCornerPassesBothGatesAndKeepsItsCurbAsAnObstacle(string corner, string curbName, string rightTurn)
         {
             var result = MeasureMvpRun();
-            const string Corner = "Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE";
-            var rows = result.Rows.Where(r => r.Junction == "Intersection_Center_Crossroads" && r.Surface.EndsWith(Corner, StringComparison.Ordinal)).ToArray();
+            string surface = "Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_" + corner;
+            var rows = result.Rows.Where(r => r.Junction == "Intersection_Center_Crossroads" && r.Surface.EndsWith(surface, StringComparison.Ordinal)).ToArray();
             Assert.That(rows, Is.Not.Empty);
             foreach (var row in rows)
             {
@@ -302,41 +441,169 @@ namespace RoadRage.Tests.EditMode
             }
 
             // Le virage a droite longe la bordure reculee : elle reste le temoin physique, a la meme marge que le trottoir.
-            var turn = rows.Single(r => r.Movement.Contains("Junction_FromSouth -> Connector_East_Out"));
-            Assert.That(turn.Physical.Obstacle, Does.EndWith("/Col_Curb_South_East"));
+            var turn = rows.Single(r => r.Movement.Contains(rightTurn));
+            Assert.That(turn.Physical.Obstacle, Does.EndWith("/" + curbName));
             Assert.That(turn.Physical.Residual, Is.EqualTo(0.1127f).Within(0.001f));
             Assert.That(turn.Semantic.Residual, Is.EqualTo(0.1127f).Within(0.001f));
-            Assert.That(result.Failures.Where(f => f.Contains(Corner) || f.StartsWith("Visuel Sidewalk discordant Intersection_Center_Crossroads", StringComparison.Ordinal)), Is.Empty);
+            Assert.That(result.Failures.Where(f => f.Contains(surface) || f.StartsWith("Visuel Sidewalk discordant Intersection_Center_Crossroads", StringComparison.Ordinal)), Is.Empty);
 
-            // Role physique de la bordure conserve : meme nom, active, pleine, 0,12 m, reculee de 1,00 m, hors du triangle coupe.
+            // Role physique de la bordure conserve : meme nom, active, pleine, 0,12 m, reculee de 1,00 m jusqu'au sommet du chanfrein.
             WithMvpRun(scene =>
             {
                 var curb = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<BoxCollider>(true))
-                    .Single(c => c.name == "Col_Curb_South_East" && c.transform.parent.parent.name == "Intersection_Center_Crossroads");
+                    .Single(c => c.name == curbName && c.transform.parent.parent.name == "Intersection_Center_Crossroads");
                 Assert.That(curb.enabled && curb.gameObject.activeInHierarchy && !curb.isTrigger, Is.True);
                 Bounds b = curb.bounds;
-                Assert.That(b.max.y - b.min.y, Is.EqualTo(0.12f).Within(1e-4f));
-                Assert.That(b.min.x, Is.EqualTo(5f).Within(1e-3f), "Extremite au sommet du chanfrein (4 + 1,00 m).");
-                Assert.That(b.max.x, Is.EqualTo(8f).Within(1e-3f));
+                Assert.That(b.size.y, Is.EqualTo(0.12f).Within(1e-4f));
+                Assert.That(b.size.z, Is.EqualTo(0.3f).Within(1e-4f));
+                Assert.That(b.size.x, Is.EqualTo(3f).Within(1e-3f));
+                Assert.That(Mathf.Min(Mathf.Abs(b.min.x), Mathf.Abs(b.max.x)), Is.EqualTo(5f).Within(1e-3f), "Extremite au sommet du chanfrein (4 + 1,00 m).");
+            });
+        }
+
+        [Test]
+        public void TheFiveJunctionsPassBothGatesEverywhere()
+        {
+            var result = MeasureMvpRun();
+            Assert.That(result.Failures, Is.Empty);
+            Assert.That(result.Passed, Is.True);
+            Assert.That(result.Rows.Select(r => r.Junction).Distinct().Count(), Is.EqualTo(5));
+        }
+
+        [Test]
+        public void DisabledNorthCornersRemainSemanticInputsAndOrdinaryRoadDoesNot()
+        {
+            WithMvpRun(scene =>
+            {
+                var failures = new List<string>();
+                var sidewalks = SidewalkDeclarations.Read(scene, failures);
+                Assert.That(failures, Is.Empty);
+                foreach (string corner in new[] { "SE", "SW" })
+                {
+                    var surface = sidewalks.Single(s => s.Name.EndsWith("TJunction_North/Collision/Col_Sidewalk_Corner_" + corner, StringComparison.Ordinal));
+                    Assert.That(surface.Colliders.Any(c => c.name == "Col_Sidewalk_Corner_" + corner && !c.enabled), Is.True, corner);
+                    Assert.That(MeasureMvpRun().Rows.Any(r => r.Surface == surface.Name && r.Semantic.Residual > 0f), Is.True, corner);
+                }
+
+                Assert.That(sidewalks.Any(s => s.Name.Contains("Road_n2_s2")), Is.False, "La chaussee n'est pas une declaration Sidewalk.");
+            });
+        }
+
+        [Test]
+        public void ADeclarationWithoutItsVisibleSidewalkAndAVisibleSidewalkWithoutItsDeclarationBothFail()
+        {
+            var baseline = MeasureMvpRun();
+            WithMvpRun(scene =>
+            {
+                var readFailures = new List<string>();
+                var sidewalks = SidewalkDeclarations.Read(scene, readFailures);
+                Assert.That(readFailures, Is.Empty);
+                var omitted = sidewalks.Where(s => !s.Name.EndsWith("TJunction_South/Collision/Col_Sidewalk_Corner_SE", StringComparison.Ordinal)).ToArray();
+                Assert.That(omitted.Length, Is.EqualTo(sidewalks.Count - 1));
+                var withoutDeclaration = MeasureFresh(scene, omitted);
+                Assert.That(withoutDeclaration.Failures.Any(f => f.StartsWith("Visuel Sidewalk discordant TJunction_South", StringComparison.Ordinal)), Is.True);
+                Assert.That(withoutDeclaration.PhysicalFingerprint, Is.EqualTo(baseline.PhysicalFingerprint));
+                Assert.That(withoutDeclaration.SemanticFingerprint, Is.Not.EqualTo(baseline.SemanticFingerprint));
+
+                var visuals = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<MeshRenderer>(true))
+                    .Where(r => HasAncestor(r.transform, "TJunction_South")).ToArray();
+                Assert.That(visuals, Is.Not.Empty);
+                bool[] enabled = visuals.Select(r => r.enabled).ToArray();
+                try
+                {
+                    foreach (var visual in visuals) visual.enabled = false;
+                    Physics.SyncTransforms();
+                    var withoutVisual = MeasureFresh(scene);
+                    Assert.That(withoutVisual.Failures.Any(f => f.StartsWith("Visuel Sidewalk discordant TJunction_South", StringComparison.Ordinal)), Is.True);
+                    Assert.That(withoutVisual.PhysicalFingerprint, Is.EqualTo(baseline.PhysicalFingerprint));
+                    Assert.That(withoutVisual.SemanticFingerprint, Is.Not.EqualTo(baseline.SemanticFingerprint));
+                }
+                finally
+                {
+                    for (int i = 0; i < visuals.Length; i++) visuals[i].enabled = enabled[i];
+                    Physics.SyncTransforms();
+                    Assert.That(visuals.Select(r => r.enabled), Is.EqualTo(enabled));
+                }
+            });
+        }
+
+        [Test]
+        public void PhysicalAndSemanticFingerprintsInvalidateIndependently()
+        {
+            var baseline = MeasureMvpRun();
+            WithMvpRun(scene =>
+            {
+                var curb = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<BoxCollider>(true))
+                    .Single(c => c.name == "Col_Curb_South_East" && HasAncestor(c.transform, "Intersection_Center_Crossroads"));
+                bool trigger = curb.isTrigger;
+                try
+                {
+                    curb.isTrigger = !trigger;
+                    Physics.SyncTransforms();
+                    var changed = MeasureFresh(scene);
+                    Assert.That(changed.PhysicalFingerprint, Is.Not.EqualTo(baseline.PhysicalFingerprint));
+                    Assert.That(changed.SemanticFingerprint, Is.EqualTo(baseline.SemanticFingerprint));
+                }
+                finally
+                {
+                    curb.isTrigger = trigger;
+                    Physics.SyncTransforms();
+                    Assert.That(curb.isTrigger, Is.EqualTo(trigger));
+                }
+
+                var readFailures = new List<string>();
+                var surface = SidewalkDeclarations.Read(scene, readFailures).Single(s => s.Name.EndsWith("TJunction_North/Collision/Col_Sidewalk_Corner_SE", StringComparison.Ordinal));
+                Assert.That(readFailures, Is.Empty);
+                var declaration = (Behaviour)surface.Declaration;
+                bool enabled = declaration.enabled;
+                try
+                {
+                    declaration.enabled = !enabled;
+                    Physics.SyncTransforms();
+                    var changed = MeasureFresh(scene);
+                    Assert.That(changed.PhysicalFingerprint, Is.EqualTo(baseline.PhysicalFingerprint));
+                    Assert.That(changed.SemanticFingerprint, Is.Not.EqualTo(baseline.SemanticFingerprint));
+                }
+                finally
+                {
+                    declaration.enabled = enabled;
+                    Physics.SyncTransforms();
+                    Assert.That(declaration.enabled, Is.EqualTo(enabled));
+                }
             });
         }
 
         private static JunctionClearanceResult _measured;
+
+        private static bool HasAncestor(Transform transform, string name)
+        {
+            for (Transform t = transform.parent; t != null; t = t.parent)
+                if (t.name == name) return true;
+            return false;
+        }
 
         private static JunctionClearanceResult MeasureMvpRun()
         {
             if (_measured != null) return _measured;
             WithMvpRun(scene =>
             {
-                var migration = MigrationReport.Run(scene, File.ReadAllText(MigrationReport.LineageFullPath));
-                Assert.That(migration.Import != null && migration.Import.Succeeded, Is.True, string.Join("\n", migration.Failures.ToArray()));
-                var model = RoadModelCompiler.Compile(RoadModelDocument.Load(File.ReadAllText(AuthoredRoadModel.FullPath("Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json"))));
-                var readFailures = new List<string>();
-                var sidewalks = SidewalkDeclarations.Read(scene, readFailures);
-                Assert.That(readFailures, Is.Empty);
-                _measured = JunctionClearance.Measure(scene, migration.Import, model, sidewalks);
+                _measured = MeasureFresh(scene);
             });
             return _measured;
+        }
+
+        private static JunctionClearanceResult MeasureFresh(Scene scene, IReadOnlyList<JunctionClearanceSurface> sidewalks = null)
+        {
+            var migration = MigrationReport.Run(scene, File.ReadAllText(MigrationReport.LineageFullPath));
+            Assert.That(migration.Import != null && migration.Import.Succeeded, Is.True, string.Join("\n", migration.Failures.ToArray()));
+            var model = RoadModelCompiler.Compile(RoadModelDocument.Load(File.ReadAllText(AuthoredRoadModel.FullPath("Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json"))));
+            if (sidewalks == null)
+            {
+                var readFailures = new List<string>();
+                sidewalks = SidewalkDeclarations.Read(scene, readFailures);
+                Assert.That(readFailures, Is.Empty);
+            }
+            return JunctionClearance.Measure(scene, migration.Import, model, sidewalks);
         }
 
         private static void WithMvpRun(Action<Scene> body)
@@ -360,6 +627,7 @@ namespace RoadRage.Tests.EditMode
                 {
                     EditorSceneManager.CloseScene(scene, !inHierarchy);
                 }
+                else Assert.That(scene.isDirty, Is.False, "Le test a laisse MVP_Run modifiee en memoire.");
             }
         }
     }

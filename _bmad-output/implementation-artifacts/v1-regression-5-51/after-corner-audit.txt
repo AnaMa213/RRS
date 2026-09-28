@@ -1,0 +1,13 @@
+﻿Intersection_Center_Crossroads|NE|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+Intersection_Center_Crossroads|NW|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+Intersection_Center_Crossroads|SE|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+Intersection_Center_Crossroads|SW|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+TJunction_North|SW|parentEnabled=False|boxes=3|activeBoxes=0|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+TJunction_North|SE|parentEnabled=False|boxes=3|activeBoxes=0|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+TJunction_South|SW|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+TJunction_South|SE|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+TJunction_East|SW|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+TJunction_East|SE|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+TJunction_West|SW|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+TJunction_West|SE|parentEnabled=True|boxes=3|activeBoxes=3|chamferVisuals=3|visible=3|roadFills=1|prefabInstance=True
+

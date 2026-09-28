@@ -182,6 +182,9 @@ development_status:
   # only the unsigned-Gate-A tripwire red). Review now waits on the owner's
   # distinct Gate A visual review and signature, after 5.51.
   5-50-v2-movement-geometry-correction-and-model-level-drivability-validation: done
+  # 2026-09-28: 5.51 automated clearance and V1/V2 regression evidence recorded;
+  # independent code review and owner visual acceptance remain open. Gate A unsigned;
+  # 5.28 stays in-progress.
   5-51-junction-corner-clearance-for-right-turns: in-progress
   5-29-deterministic-strategic-route-plan: backlog
   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog
