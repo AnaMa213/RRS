@@ -23,6 +23,7 @@ namespace RoadRage.Tests.EditMode
     /// ResolveNextInCycle) gardent requireSpawned=false par defaut ; le test de rejet hote l'active
     /// explicitement pour couvrir la contrainte "spawne" sans demarrer de session Netcode.
     /// </summary>
+    [Category("Core")]
     public sealed class Story55NetworkedAiRageTargetingTests
     {
         private const string DriverControllerSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedVehicleDriverController.cs";

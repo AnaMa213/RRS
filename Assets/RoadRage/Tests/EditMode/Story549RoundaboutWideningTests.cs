@@ -16,6 +16,7 @@ namespace RoadRage.Tests.EditMode
     /// MVP_Run (ouverte en additif, jamais sauvegardee) : geometrie cible contraignante, residu a
     /// deux gabarits, et donnees V1 inchangees octet pour octet (exception physique a AD-36).
     /// </summary>
+    [Category("Geometry")]
     public sealed class Story549RoundaboutWideningTests
     {
         /// <summary>Empreintes pre-changement (v1-regression-5-49/baseline-hashes.txt), jamais recalculees.</summary>

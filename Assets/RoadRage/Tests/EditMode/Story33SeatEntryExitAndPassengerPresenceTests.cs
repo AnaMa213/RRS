@@ -15,6 +15,7 @@ namespace RoadRage.Tests.EditMode
     /// Story 3.3 : verification ciblee du contrat de sieges, du prefab joueur porteur de l'intent
     /// reseau, et des gardes qui empechent le controle a pied/passager de contredire l'etat assis.
     /// </summary>
+    [Category("Core")]
     public sealed class Story33SeatEntryExitAndPassengerPresenceTests
     {
         private const string PlayerRootPrefabPath = "Assets/RoadRage/Resources/NetworkedPlayerRoot.prefab";

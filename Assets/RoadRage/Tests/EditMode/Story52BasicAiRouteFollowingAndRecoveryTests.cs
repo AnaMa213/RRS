@@ -27,6 +27,7 @@ namespace RoadRage.Tests.EditMode
     /// gardes de source de cette fixture restent vraies sans modification (Story 5.14 n'ajoute aucune
     /// methode statique et ne touche pas <c>RecoverAtWaypoint</c> au-dela de ce qu'il faisait deja).
     /// </summary>
+    [Category("Core")]
     public sealed class Story52BasicAiRouteFollowingAndRecoveryTests
     {
         private const string DriverControllerSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs";

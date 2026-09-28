@@ -11,6 +11,7 @@ namespace RoadRage.Tests.EditMode
     /// (aucun client Steam requis) et une fausse plateforme Steam pour piloter OnlineServicesBootstrapService
     /// vers l'etat Online ou non.
     /// </summary>
+    [Category("Core")]
     public sealed class Story23JoinByCodeTests
     {
         private const uint TestAppId = 480;

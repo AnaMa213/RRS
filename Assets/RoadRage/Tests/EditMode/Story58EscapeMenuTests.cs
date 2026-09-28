@@ -38,6 +38,7 @@ namespace RoadRage.Tests.EditMode
     /// ecritures de <see cref="Cursor"/> rend le test Inconclusif plutot que rouge, sans jamais
     /// escamoter les assertions de panneau et de portail qui le precedent.
     /// </summary>
+    [Category("Core")]
     public sealed class Story58EscapeMenuTests
     {
         private const string MvpRunScenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";

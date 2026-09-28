@@ -22,6 +22,7 @@ namespace RoadRage.Tests.EditMode
     /// identifiant inconnu, nom Steam inutilisable, Steam indisponible), la purete de la persistance
     /// et le cablage de scene qui remplace le flux manuel de la Story 1.3.
     /// </summary>
+    [Category("Core")]
     public sealed class Story45PersistentSteamProfileAndMainMenuCharacterSelectionTests
     {
         private const string MainMenuLobbyScenePath = "Assets/RoadRage/App/Scenes/MainMenuLobby.unity";

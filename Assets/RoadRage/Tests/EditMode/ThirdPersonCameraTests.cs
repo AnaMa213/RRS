@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 
 namespace RoadRage.Tests.EditMode
 {
+    [Category("Core")]
     public sealed class ThirdPersonCameraTests
     {
         [Test]

@@ -18,6 +18,7 @@ namespace RoadRage.Tests.EditMode
     /// memoire des decisions committees (aucun fichier ecrit), isolation de la lecture historique et
     /// fonctions pures de la fenetre.
     /// </summary>
+    [Category("Geometry")]
     public sealed class Story550PairReviewTests
     {
         private const string FingerprintA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";

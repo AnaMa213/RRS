@@ -14,6 +14,7 @@ namespace RoadRage.Tests.EditMode
     /// balayage doit le trouver. La reference est une evaluation dense de l'interpolation canonique
     /// (position lineaire, cap par interpolation lineaire normalisee).
     /// </summary>
+    [Category("Geometry")]
     public sealed class Story550ConflictSweepTests
     {
         private static RoadModelValidationProfile Profile()

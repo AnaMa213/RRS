@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 namespace RoadRage.Tests.EditMode
 {
     /// <summary>Story 5.50 -- fonction deleguee, manifeste et harnais de progression.</summary>
+    [Category("Geometry")]
     public sealed class Story550AutomatedPairDecisionTests
     {
         private static AuthoredRun _run;

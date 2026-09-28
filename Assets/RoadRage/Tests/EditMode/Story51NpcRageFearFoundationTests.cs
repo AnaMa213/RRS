@@ -17,6 +17,7 @@ namespace RoadRage.Tests.EditMode
     /// RageTuningCatalog.TryValidate. Deterministe et sans Netcode : les NetworkVariables sont
     /// ecrites directement, sans spawn, comme dans Story41RageStateModuleAndDefinitionsTests.
     /// </summary>
+    [Category("Core")]
     public sealed class Story51NpcRageFearFoundationTests
     {
         private const string RageTuningDefAssetPath = "Assets/RoadRage/ScriptableObjects/Rage/RageTuningDef_Default.asset";

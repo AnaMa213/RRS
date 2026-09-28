@@ -24,6 +24,7 @@ namespace RoadRage.Tests.EditMode
     /// 4. la geometrie de la bordure prototype sur le carrefour central -- aucun noeud de voie dans
     ///    son emprise, degagement de voie preserve, hauteur compatible avec le debattement.
     /// </summary>
+    [Category("Core")]
     public sealed class Story511VehicleChassisWheelsAndSuspensionTests
     {
         /// <summary>

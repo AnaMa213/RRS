@@ -13,6 +13,7 @@ using UnityEngine;
 
 namespace RoadRage.Tests.EditMode
 {
+    [Category("Core")]
     public sealed class Story42PassengerActionFrameworkTests
     {
         private const string CatalogPath = "Assets/RoadRage/ScriptableObjects/PassengerActions/PassengerActionCatalog.asset";

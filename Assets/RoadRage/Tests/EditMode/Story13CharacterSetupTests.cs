@@ -17,6 +17,7 @@ namespace RoadRage.Tests.EditMode
     /// Le cablage de scene du flux manuel de creation de profil n'est plus verrouille ici depuis la
     /// Story 4.5 : ce flux a ete retire au profit du menu principal persistant.
     /// </summary>
+    [Category("Core")]
     public sealed class Story13CharacterSetupTests
     {
         private const string CharacterCatalogAssetPath = "Assets/RoadRage/ScriptableObjects/Players/CharacterCatalog.asset";

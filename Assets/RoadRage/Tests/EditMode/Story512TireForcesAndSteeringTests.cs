@@ -24,6 +24,7 @@ namespace RoadRage.Tests.EditMode
     ///    rotation dans le chemin joueur, frein a main transporte par le chemin d'intent EXISTANT,
     ///    couche physique sans disposition ni autorite, et etat intermediaire de l'IA nomme 5.14.
     /// </summary>
+    [Category("Core")]
     public sealed class Story512TireForcesAndSteeringTests
     {
         private const string ProfilePath = "Assets/RoadRage/ScriptableObjects/Vehicles/VehicleProfileDef_Default.asset";

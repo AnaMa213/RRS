@@ -26,6 +26,7 @@ namespace RoadRage.Tests.EditMode
     /// Story 1.6 : checkpoint de l'Epic 1. Verifie le parcours jouable assemble,
     /// les placeholders visibles et les notes de passation sans ajouter de nouvelle mecanique.
     /// </summary>
+    [Category("Core")]
     public sealed class Story16Epic1PlayableCheckpointTests
     {
         private const string BootstrapScenePath = "Assets/RoadRage/App/Scenes/Bootstrap.unity";

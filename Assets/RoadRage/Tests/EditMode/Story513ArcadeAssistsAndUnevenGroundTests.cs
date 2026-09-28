@@ -34,6 +34,7 @@ namespace RoadRage.Tests.EditMode
     /// incomplet. L'absolu runtime (montee reelle de la bordure et du relief) est tenu par la recette
     /// humaine et par le banc PlayMode de la story : la porte de cet agent ne peut pas le produire.
     /// </summary>
+    [Category("Core")]
     public sealed class Story513ArcadeAssistsAndUnevenGroundTests
     {
         private const string ProfilePath = "Assets/RoadRage/ScriptableObjects/Vehicles/VehicleProfileDef_Default.asset";

@@ -18,6 +18,7 @@ namespace RoadRage.Tests.EditMode
     /// HP voiture 0, pont RunFlowController, prefab joueur, et reaffirmation de la frontiere asmdef
     /// du module Vehicules -- meme motif que Story 3.3/3.4.
     /// </summary>
+    [Category("Core")]
     public sealed class Story35VehicleDamageHookAndTeamWipeContractStubTests
     {
         private const string VehicleAsmdefPath = "Assets/RoadRage/Features/Vehicles/RoadRage.Features.Vehicles.asmdef";

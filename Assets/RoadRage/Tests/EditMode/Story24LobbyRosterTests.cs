@@ -13,6 +13,7 @@ namespace RoadRage.Tests.EditMode
     /// une fausse plateforme de lobby (aucun client Steam requis) pilotant LobbyRoomService/LobbyJoinService
     /// vers Open/Joined.
     /// </summary>
+    [Category("Core")]
     public sealed class Story24LobbyRosterTests
     {
         private const uint TestAppId = 480;

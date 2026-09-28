@@ -15,6 +15,7 @@ namespace RoadRage.Tests.EditMode
     /// garantissent qu'aucune valeur de conduite ne survit dans le controleur. Deterministe, sans
     /// scene ni Netcode.
     /// </summary>
+    [Category("Core")]
     public sealed class Story59ParameterizedDriverModelTests
     {
         private const string DriverControllerSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs";

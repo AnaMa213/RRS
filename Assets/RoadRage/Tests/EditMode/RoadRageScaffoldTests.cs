@@ -17,6 +17,7 @@ using UnityEngine;
 
 namespace RoadRage.Tests.EditMode
 {
+    [Category("Core")]
     public sealed class RoadRageScaffoldTests
     {
         private static readonly string[] AllScenePaths =

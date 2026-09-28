@@ -14,6 +14,7 @@ namespace RoadRage.Tests.EditMode
     /// NetworkedRageState.ApplyRageDelta, independance entre deux cibles, et branches de refus de
     /// RageTuningCatalog.TryValidate (id duplique/vide/non minuscule/paliers non ascendants).
     /// </summary>
+    [Category("Core")]
     public sealed class Story41RageStateModuleAndDefinitionsTests
     {
         private const string RageTuningDefAssetPath = "Assets/RoadRage/ScriptableObjects/Rage/RageTuningDef_Default.asset";

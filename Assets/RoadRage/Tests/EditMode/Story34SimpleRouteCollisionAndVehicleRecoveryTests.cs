@@ -14,6 +14,7 @@ namespace RoadRage.Tests.EditMode
     /// asmdef du module Vehicules, et des marqueurs de scene (boucle/limites/props/recuperation)
     /// -- seul MVP_Run recoit le contenu de carte de cette story, Dev_VehicleSandbox reste inchange.
     /// </summary>
+    [Category("Core")]
     public sealed class Story34SimpleRouteCollisionAndVehicleRecoveryTests
     {
         private const string VehicleAsmdefPath = "Assets/RoadRage/Features/Vehicles/RoadRage.Features.Vehicles.asmdef";

@@ -35,6 +35,7 @@ namespace RoadRage.Tests.EditMode
     /// L'Awake complet reste sonde par reflexion pour ne pas initialiser Steamworks. Le transfert
     /// lobby -> NetworkedRunState, lui, est exerce avec un bootstrap inactif et des services factices.
     /// </summary>
+    [Category("Core")]
     public sealed class Story516LobbyConfigurableTrafficSettingsTests
     {
         private RoadRageBootstrap testBootstrap;

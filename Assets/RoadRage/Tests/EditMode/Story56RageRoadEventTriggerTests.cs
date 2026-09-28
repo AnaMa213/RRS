@@ -29,6 +29,7 @@ namespace RoadRage.Tests.EditMode
     /// ici. Le cablage host-only du controleur (garde d'autorite, ecriture unique) est donc verifie par
     /// assertions sur le source, idiome deja utilise par ces deux stories.
     /// </summary>
+    [Category("Core")]
     public sealed class Story56RageRoadEventTriggerTests
     {
         private const string LifecycleSourcePath = "Assets/RoadRage/Features/Run/RageRoadEventLifecycle.cs";

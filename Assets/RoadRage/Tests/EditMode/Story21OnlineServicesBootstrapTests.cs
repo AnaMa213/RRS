@@ -11,6 +11,7 @@ namespace RoadRage.Tests.EditMode
     /// architecturaux verifies par lecture de source : isolation vis-a-vis de l'etat de gameplay et
     /// absence de secrets/cles/tokens en dur.
     /// </summary>
+    [Category("Core")]
     public sealed class Story21OnlineServicesBootstrapTests
     {
         private const uint TestAppId = 480;

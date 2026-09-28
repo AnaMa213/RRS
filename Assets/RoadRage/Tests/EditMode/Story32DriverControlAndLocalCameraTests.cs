@@ -16,6 +16,7 @@ namespace RoadRage.Tests.EditMode
     /// local), la camera vehicule inactive par defaut, et la frontiere du module Vehicules apres
     /// l'ajout des references Cinemachine/Input System.
     /// </summary>
+    [Category("Core")]
     public sealed class Story32DriverControlAndLocalCameraTests
     {
         private const string PrefabPath = "Assets/RoadRage/Prefabs/Greybox_PlayerCar.prefab";

@@ -32,6 +32,7 @@ namespace RoadRage.Tests.EditMode
     /// cablage host-only est donc verifie par assertions sur le source, idiome deja accepte dans ce
     /// depot (voir `CodeOnly` : les gardes portent sur du code, jamais sur de la prose).
     /// </summary>
+    [Category("Core")]
     public sealed class Story57AiTrafficClientPresentationTests
     {
         private const string AiVehicleStateSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleState.cs";

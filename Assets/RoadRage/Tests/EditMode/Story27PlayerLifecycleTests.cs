@@ -20,6 +20,7 @@ namespace RoadRage.Tests.EditMode
     /// de source pour l'invariant "Lifecycle mute uniquement par le service" et le wiring des
     /// nouveaux composants (prefab NetworkedPlayerRoot, TryGetState sur le spawner).
     /// </summary>
+    [Category("Core")]
     public sealed class Story27PlayerLifecycleTests
     {
         [Test]

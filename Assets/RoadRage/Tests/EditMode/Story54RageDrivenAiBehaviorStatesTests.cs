@@ -18,6 +18,7 @@ namespace RoadRage.Tests.EditMode
     /// du label debug. Deterministe et sans Netcode : les NetworkVariables sont lues/ecrites sans
     /// spawn, comme dans Story51NpcRageFearFoundationTests.
     /// </summary>
+    [Category("Core")]
     public sealed class Story54RageDrivenAiBehaviorStatesTests
     {
         private const string DriverControllerSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs";

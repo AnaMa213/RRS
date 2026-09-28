@@ -15,6 +15,7 @@ using UnityEngine.SceneManagement;
 
 namespace RoadRage.Tests.EditMode
 {
+    [Category("Core")]
     public sealed class Story15EmptyMapEntryTests
     {
         private const string MvpRunScenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";

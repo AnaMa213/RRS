@@ -14,6 +14,7 @@ namespace RoadRage.Tests.EditMode
     /// selection gelee en aval du menu, les gardes qui empechent une mutation refusee d'atteindre le
     /// disque, et la purete de l'etat de session (qui n'ecrit jamais le profil persistant).
     /// </summary>
+    [Category("Core")]
     public sealed class Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnTests
     {
         private const string MenuFlowPath = "Assets/RoadRage/App/MainMenu/MainMenuFlowController.cs";

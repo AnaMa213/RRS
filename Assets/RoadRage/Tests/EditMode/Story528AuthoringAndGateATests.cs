@@ -20,6 +20,7 @@ namespace RoadRage.Tests.EditMode
     /// committees ; chaque refus mute une copie en memoire, jamais un fichier committe. Aucun test
     /// n'ecrit de sign-off : les sign-offs en memoire ne servent qu'a eprouver la verification.
     /// </summary>
+    [Category("Geometry")]
     public sealed class Story528AuthoringAndGateATests
     {
         // ================================================================== nominal
@@ -921,6 +922,80 @@ namespace RoadRage.Tests.EditMode
                 Committed(AuthoredRoadModel.ModelPath), Committed(AuthoredRoadModel.OverlayPath),
                 AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffPath)));
             Assert.That(reasons, Is.Empty, string.Join("\n", reasons.ToArray()));
+        }
+
+        [Test]
+        [Category("Core")]
+        public void TheCommittedSignoffIsPresentAndBoundToTheCommittedArtifacts()
+        {
+            // Controle LEGER de la porte A, sans pipeline : presence du sign-off et liaison aux seuls
+            // artefacts committes (empreintes de fichiers + versions de code). Il porte Core en plus
+            // de la categorie de fixture, donc il tourne AUSSI dans le profil Fast : une signature
+            // absente, illisible ou detachee des artefacts committes est vue en quelques millisecondes.
+            // Ce qu'il ne couvre pas : les empreintes qui exigent la mesure de la scene (source V1,
+            // physical-input-hash, semantic-input-hash, clearance-hash) -- elles restent couvertes par
+            // GateAIsOpenedOnlyByTheOwnersBoundSignoff dans les profils Geometry et Full, que le profil
+            // Auto declenche des qu'une entree geometrique est touchee. Aucun test n'ecrit ni ne signe :
+            // la porte A ne s'ouvre que par la fenetre du proprietaire, jamais par le workflow.
+            string signoffText = AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffPath));
+            Assert.That(signoffText, Is.Not.Null.And.Not.Empty,
+                "Sign-off Gate A absent (" + AuthoredRoadModel.SignoffPath + ") : la porte A reste fermee, et le workflow ne doit jamais le regenerer automatiquement.");
+
+            var layout = JsonUtility.FromJson<CommittedSignoff>(signoffText);
+            Assert.That(layout, Is.Not.Null, "Sign-off illisible (JSON).");
+            Assert.That(layout.Format, Is.EqualTo(AuthoredRoadModel.SignoffFormat),
+                "Sign-off de format inconnu : a re-signer par le proprietaire depuis la fenetre de revue.");
+            Assert.That(string.IsNullOrWhiteSpace(layout.Approver), Is.False, "Sign-off sans approbateur.");
+            Assert.That(layout.ReviewedInstances, Is.Not.Null.And.Not.Empty, "Sign-off sans instances revues.");
+
+            string overlay = Committed(AuthoredRoadModel.OverlayPath);
+            int overlayInstances = overlay.Split('\n').Count(line => line.StartsWith("instance ", StringComparison.Ordinal));
+            Assert.That(layout.ReviewedInstances.Length, Is.EqualTo(overlayInstances),
+                "Sign-off perime : la liste des instances revues (" + layout.ReviewedInstances.Length + ") ne correspond pas a l'overlay committe (" + overlayInstances + ").");
+
+            string model = Committed(AuthoredRoadModel.ModelPath);
+            string decisions = Committed(AuthoredRoadModel.DecisionsPath);
+            string lineage = Committed(MigrationReport.LineagePath);
+
+            Assert.That(layout.OverlayHash, Is.EqualTo(V1SourceSet.Sha256Hex(overlay)), "Sign-off perime : overlay-hash (overlay committe modifie depuis la signature).");
+            Assert.That(layout.ModelHash, Is.EqualTo(V1SourceSet.Sha256Hex(model)), "Sign-off perime : model-hash (modele committe modifie depuis la signature).");
+            Assert.That(layout.DecisionsHash, Is.EqualTo(V1SourceSet.Sha256Hex(decisions)), "Sign-off perime : decisions-hash (decisions modifiees depuis la signature).");
+            Assert.That(layout.LineageHash, Is.EqualTo(V1SourceSet.Sha256Hex(lineage)), "Sign-off perime : lineage-hash (lignee modifiee depuis la signature).");
+
+            string modelVersion = Regex.Match(model, "\"ModelVersion\":\"([^\"]+)\"").Groups[1].Value;
+            Assert.That(modelVersion, Is.Not.Empty, "Modele committe sans ModelVersion lisible.");
+            Assert.That(layout.RoadModelVersion, Is.EqualTo(modelVersion), "Sign-off perime : road-model-version (modele recompile depuis la signature).");
+
+            Assert.That(layout.ImporterVersion, Is.EqualTo(V1RoadModelImporter.ImporterVersion), "Sign-off perime : importer-version (l'importeur a change de version).");
+            Assert.That(layout.CompilerSchemaVersion, Is.EqualTo(RoadModelCompiler.CompilerSchemaVersion), "Sign-off perime : compiler-schema-version (le compilateur a change de version).");
+            Assert.That(layout.PipelineVersion, Is.EqualTo(AuthoredRoadModel.PipelineVersion), "Sign-off perime : pipeline-version (le pipeline a change de version).");
+        }
+
+        /// <summary>
+        /// Miroir de lecture du format de sign-off (SignoffLayout est prive en production). Si le
+        /// format evolue et retire un champ, le parseur rend une valeur vide et le test rougit avec
+        /// le nom du champ -- jamais silencieusement.
+        /// </summary>
+        [Serializable]
+        private sealed class CommittedSignoff
+        {
+            public int Format;
+            public string Approver;
+            public string ApproverEmail;
+            public string SignedAtUtc;
+            public string[] ReviewedInstances;
+            public string OverlayHash;
+            public string SourceHash;
+            public string LineageHash;
+            public string DecisionsHash;
+            public int ImporterVersion;
+            public int CompilerSchemaVersion;
+            public int PipelineVersion;
+            public string ModelHash;
+            public string RoadModelVersion;
+            public string PhysicalInputHash;
+            public string SemanticInputHash;
+            public string ClearanceHash;
         }
 
         // ================================================================== outils

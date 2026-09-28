@@ -19,6 +19,7 @@ namespace RoadRage.Tests.EditMode
     /// MVP_Run district. This fixture asserts the bench is internally sound; it is not V1 behavioral
     /// evidence by itself (the catalog rows cite that evidence separately).
     /// </summary>
+    [Category("Core")]
     public sealed class TrafficOracleTests
     {
         private const string MvpRunScenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";

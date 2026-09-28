@@ -19,6 +19,7 @@ namespace RoadRage.Tests.EditMode
     /// Couvre la Story 2.5 : encodage/decodage du profil transporte par NetworkConfig.ConnectionData
     /// et le depot host-only ClientId -> profil, sans dependance Netcode ni Steam.
     /// </summary>
+    [Category("Core")]
     public sealed class Story25NetworkedPlayerSpawnTests
     {
         private const string RuntimeManagerName = "RoadRageNetworkManager";

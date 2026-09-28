@@ -9,6 +9,7 @@ using UnityEngine;
 
 namespace RoadRage.Tests.EditMode
 {
+    [Category("Core")]
     public sealed class Story550CompatibilityGolden
     {
         private const string GoldenFileName = "golden-undeclared.txt";

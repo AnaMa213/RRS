@@ -25,6 +25,7 @@ namespace RoadRage.Tests.EditMode
     ///    aucun retrait de vehicule ailleurs qu'a un portail, trottoirs hors du bake de l'agent
     ///    vehicule, et disparition de <c>RouteWaypoints</c>.
     /// </summary>
+    [Category("Core")]
     public sealed class Story510LaneGraphAndRoutedTrafficTests
     {
         private const string MvpRunScenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";

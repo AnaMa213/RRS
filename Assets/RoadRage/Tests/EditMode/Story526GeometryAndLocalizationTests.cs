@@ -13,6 +13,7 @@ namespace RoadRage.Tests.EditMode
     /// localisation de voie. Chaque ligne de la matrice d'E/S de la spec sur un modele synthetique
     /// ecrit a la main. Deterministe, sans scene, sans asset, sans Netcode.
     /// </summary>
+    [Category("Core")]
     public sealed class Story526GeometryAndLocalizationTests
     {
         private const string TrafficRootPath = "Assets/RoadRage/Features/Vehicles/Traffic";

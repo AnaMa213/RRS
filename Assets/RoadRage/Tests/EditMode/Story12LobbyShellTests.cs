@@ -14,6 +14,7 @@ using UnityEngine.SceneManagement;
 
 namespace RoadRage.Tests.EditMode
 {
+    [Category("Core")]
     public sealed class Story12LobbyShellTests
     {
         private const string MainMenuLobbyScenePath = "Assets/RoadRage/App/Scenes/MainMenuLobby.unity";

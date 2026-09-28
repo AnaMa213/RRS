@@ -12,6 +12,7 @@ namespace RoadRage.Tests.EditMode
     /// Story 3.1 : verrouille l'identite reseau et la frontiere du module Vehicules pour la
     /// voiture partagee, sans promouvoir de logique de conduite, de sieges ou de degats.
     /// </summary>
+    [Category("Core")]
     public sealed class Story31VehicleModuleBoundaryTests
     {
         private const string PrefabPath = "Assets/RoadRage/Prefabs/Greybox_PlayerCar.prefab";

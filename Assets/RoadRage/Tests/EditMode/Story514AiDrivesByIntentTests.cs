@@ -32,6 +32,7 @@ namespace RoadRage.Tests.EditMode
     /// plus decoller, les aides de la 5.13 l'affectent) ne sont PAS verifiables ici : ils appartiennent
     /// a la recette humaine. Aucun test PlayMode n'est ajoute, le harnais etant rouge et non filtrable.
     /// </summary>
+    [Category("Core")]
     public sealed class Story514AiDrivesByIntentTests
     {
         private const string AiControllerSourcePath = "Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs";

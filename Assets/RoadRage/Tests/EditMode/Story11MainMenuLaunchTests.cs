@@ -15,6 +15,7 @@ using UnityEngine.SceneManagement;
 
 namespace RoadRage.Tests.EditMode
 {
+    [Category("Core")]
     public sealed class Story11MainMenuLaunchTests
     {
         private const string BootstrapScenePath = "Assets/RoadRage/App/Scenes/Bootstrap.unity";

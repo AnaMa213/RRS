@@ -15,6 +15,7 @@ namespace RoadRage.Tests.EditMode
     /// Story 1.4 : verrouille les seeds greybox comme assets reconnaissables, tracables et
     /// remplacables, sans les promouvoir en gameplay reseau ni en scene.
     /// </summary>
+    [Category("Core")]
     public sealed class Story14GreyboxAssetSeedTests
     {
         private const string SourceBlendPath = "Assets/RoadRage/ArtSource/Blender/Epic1_GreyboxAssetSeeds.blend";

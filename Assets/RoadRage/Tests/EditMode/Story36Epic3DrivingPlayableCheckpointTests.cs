@@ -20,6 +20,7 @@ namespace RoadRage.Tests.EditMode
     /// sans reintroduire de logique gameplay -- meme role que Story28Epic2OnlinePlayableCheckpointTests
     /// pour l'Epic 2.
     /// </summary>
+    [Category("Core")]
     public sealed class Story36Epic3DrivingPlayableCheckpointTests
     {
         private const string MvpRunScenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";

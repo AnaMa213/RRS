@@ -19,6 +19,7 @@ namespace RoadRage.Tests.EditMode
     /// proprietaire du 2026-09-28) et premier angle TJunction_South/SE, mesures sur la VRAIE MVP_Run
     /// (ouverte en additif, jamais sauvegardee).
     /// </summary>
+    [Category("Geometry")]
     public sealed class Story551JunctionClearanceTests
     {
         /// <summary>Hauteur de bordure authoree (contrat du kit, Story 5.11) : un relief de recette n'y depasse jamais.</summary>

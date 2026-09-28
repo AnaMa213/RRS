@@ -4,6 +4,7 @@ using RoadRage.Features.Vehicles;
 
 namespace RoadRage.Tests.EditMode
 {
+    [Category("Core")]
     public sealed class Story515CredibleCollisionsAndDamageIntegrationTests
     {
         private const string PhysicsBodySourcePath = "Assets/RoadRage/Features/Vehicles/VehiclePhysicsBody.cs";

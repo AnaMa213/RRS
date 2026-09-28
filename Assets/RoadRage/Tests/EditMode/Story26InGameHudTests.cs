@@ -16,6 +16,7 @@ namespace RoadRage.Tests.EditMode
     /// cible (HP numeriques, stamina, joueurs, argent), stamina de sprint locale, et invariant
     /// lecture-seule stricte cote HUD.
     /// </summary>
+    [Category("Core")]
     public sealed class Story26InGameHudTests
     {
         [Test]

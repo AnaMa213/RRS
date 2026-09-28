@@ -13,6 +13,7 @@ namespace RoadRage.Tests.EditMode
     /// Couvre chaque ligne de la matrice d'E/S de la spec sur des modeles synthetiques ecrits a la
     /// main. Deterministe, sans scene, sans asset, sans Netcode.
     /// </summary>
+    [Category("Core")]
     public sealed class Story525RoadWorldModelTests
     {
         private const string FeaturesRootPath = "Assets/RoadRage";

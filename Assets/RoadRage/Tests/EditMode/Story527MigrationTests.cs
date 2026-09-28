@@ -21,6 +21,7 @@ namespace RoadRage.Tests.EditMode
     /// d'ensemble source utilisent des racines temporaires hors scene. Les effectifs asserts ici sont ceux de
     /// l'instantane MVP_Run lie au rapport committe : l'importeur n'en code aucun.
     /// </summary>
+    [Category("Geometry")]
     public sealed class Story527MigrationTests
     {
         private const string MvpRunScenePath = MigrationReport.ScenePath;

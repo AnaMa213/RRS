@@ -20,6 +20,7 @@ namespace RoadRage.Tests.EditMode
     /// propagation des changements de personnage dans le roster, et invariants scene/prefab/HUD/lifecycle
     /// deja necessaires au parcours online jouable de l'Epic 2.
     /// </summary>
+    [Category("Core")]
     public sealed class Story28Epic2OnlinePlayableCheckpointTests
     {
         private const uint TestAppId = 480;
