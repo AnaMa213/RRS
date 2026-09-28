@@ -240,8 +240,11 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(obstacle.Contains("Rampe_") || obstacle.Contains("Relief_"), Is.False, row.Junction + " / " + row.Movement + " : " + obstacle);
             }
 
-            // Bordures du carrefour : toujours des obstacles, temoins des virages a droite non encore coupes.
-            var rightTurns = result.Rows.Where(r => r.Junction == "Intersection_Center_Crossroads" && r.Movement.Contains("(droite)")).ToArray();
+            // Bordures du carrefour : toujours des obstacles, jamais des reliefs ; temoins negatifs des trois
+            // virages a droite non encore coupes (l'angle SE l'est depuis le mini-gate).
+            Assert.That(result.DrivableReliefs.Any(r => r.Collider.Contains("/Col_Curb_")), Is.False);
+            var rightTurns = result.Rows.Where(r => r.Junction == "Intersection_Center_Crossroads" && r.Movement.Contains("(droite)")
+                && !r.Movement.Contains("Junction_FromSouth -> Connector_East_Out")).ToArray();
             Assert.That(rightTurns, Is.Not.Empty);
             Assert.That(rightTurns.All(r => r.Physical.Obstacle.Contains("/Col_Curb_") && r.Physical.Residual <= 0f), Is.True);
 
@@ -283,6 +286,39 @@ namespace RoadRage.Tests.EditMode
 
                 Assert.That(result.Failures.Where(f => f.Contains(junction)), Is.Empty, junction);
             }
+        }
+
+        [Test]
+        public void TheFirstCrossroadsCornerPassesBothGatesAndKeepsItsCurbAsAnObstacle()
+        {
+            var result = MeasureMvpRun();
+            const string Corner = "Intersection_Center_Crossroads/Collision/Col_Sidewalk_Corner_SE";
+            var rows = result.Rows.Where(r => r.Junction == "Intersection_Center_Crossroads" && r.Surface.EndsWith(Corner, StringComparison.Ordinal)).ToArray();
+            Assert.That(rows, Is.Not.Empty);
+            foreach (var row in rows)
+            {
+                Assert.That(row.Physical.Residual, Is.GreaterThan(0f), row.Movement);
+                Assert.That(row.Semantic.Residual, Is.GreaterThan(0f), row.Movement);
+            }
+
+            // Le virage a droite longe la bordure reculee : elle reste le temoin physique, a la meme marge que le trottoir.
+            var turn = rows.Single(r => r.Movement.Contains("Junction_FromSouth -> Connector_East_Out"));
+            Assert.That(turn.Physical.Obstacle, Does.EndWith("/Col_Curb_South_East"));
+            Assert.That(turn.Physical.Residual, Is.EqualTo(0.1127f).Within(0.001f));
+            Assert.That(turn.Semantic.Residual, Is.EqualTo(0.1127f).Within(0.001f));
+            Assert.That(result.Failures.Where(f => f.Contains(Corner) || f.StartsWith("Visuel Sidewalk discordant Intersection_Center_Crossroads", StringComparison.Ordinal)), Is.Empty);
+
+            // Role physique de la bordure conserve : meme nom, active, pleine, 0,12 m, reculee de 1,00 m, hors du triangle coupe.
+            WithMvpRun(scene =>
+            {
+                var curb = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<BoxCollider>(true))
+                    .Single(c => c.name == "Col_Curb_South_East" && c.transform.parent.parent.name == "Intersection_Center_Crossroads");
+                Assert.That(curb.enabled && curb.gameObject.activeInHierarchy && !curb.isTrigger, Is.True);
+                Bounds b = curb.bounds;
+                Assert.That(b.max.y - b.min.y, Is.EqualTo(0.12f).Within(1e-4f));
+                Assert.That(b.min.x, Is.EqualTo(5f).Within(1e-3f), "Extremite au sommet du chanfrein (4 + 1,00 m).");
+                Assert.That(b.max.x, Is.EqualTo(8f).Within(1e-3f));
+            });
         }
 
         private static JunctionClearanceResult _measured;

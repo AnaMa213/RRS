@@ -1,0 +1,57 @@
+﻿==> Version Unity CLI
+  1.0.0-beta.8 (reference validee)
+==> unity status
+  port 7801, Unity 6000.6.0f1, etat ready
+==> editeur stabilise (compiling / domainReloadInProgress)
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+==> unity cmd console (curseur de fenetre)
+  curseur 1934 ; 19 erreur(s) anterieure(s) hors fenetre
+==> unity cmd recompile
+==> unity cmd recompile_status
+  recompile_status: up_to_date
+==> stabilisation apres recompile + unity cmd console --level error --since 1934
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+  0 erreur depuis le curseur 1934
+==> etat de compilation courant (EditorUtility.scriptCompilationFailed)
+  scriptCompilationFailed=false
+  100 avertissement(s) hors Assets/Synty/ (informatif, ne bloque pas)
+  [WARN] x61 NetworkVariable is written to, but doesn't know its NetworkBehaviour yet. Are you modifying a 
+NetworkVariable before the NetworkObject is spawned?
+  [WARN] x2 [Vehicles] VehicleProfileDef invalide : TractionControlStrength invalide : 'tractionControlStrength' doit 
+etre fini, superieur ou egal a 0 et strictement inferieur a 1 -- une attenuation totale annulerait le couple moteur, 
+ce qui est exactement le seuil binaire que la couche interdit.
+  [WARN] x2 [Vehicles] VehicleProfileDef invalide : YawStabilityRate invalide : 'yawStabilityRate' (abattement du 
+lacet) doit etre fini et superieur ou egal a 0 -- une valeur negative inverserait le sens de l'aide au lieu de 
+l'eteindre.
+  [WARN] [UI] LobbyRosterScreen sans reference vers difficultyButton.
+  [WARN] [UI] LobbyRosterScreen sans reference vers readyButton.
+  [WARN] [UI] LobbyRosterScreen sans reference vers soloTestExceptionButton.
+  [WARN] [Lobby] LobbyFlowController sans TrafficSettingsDef : les reglages de trafic restent non editables et aucun 
+trafic n'est compose.
+  [WARN] [Lobby] Reglage de trafic refuse : l'effectif passerait sous le nombre de jeteurs.
+  [WARN] [App] LobbyFlowController sans canal de notices disponible.
+  [WARN] [Vehicles] Story513AuthorityHost : aucun VehicleProfileDef assigne, la couche physique reste inerte.
+  [WARN] [UI] LobbyRosterScreen sans reference vers litterThrowersLabel.
+  [WARN] [UI] LobbyRosterScreen sans reference vers trafficVehiclesLabel.
+  ... 26 autre(s) message(s) distinct(s) non affiche(s) ; total : 100
+==> unity cmd run_tests --mode EditMode
+==> unity cmd test_status (EditMode)
+  [FAIL] RoadRage.Tests.EditMode.Story528AuthoringAndGateATests.GateAIsOpenedOnlyByTheOwnersBoundSignoff :   Sign-off 
+absent (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json) : Gate A fermee, revue de l'overlay et signature 
+du proprietaire requises.
+  Expected: <empty>
+  But was:  < "Sign-off absent (Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json) : Gate A fermee, revue 
+de l'overlay et signature du proprietaire requises." >
+
+ECHEC: 1/899 test(s) EditMode en echec.
+
+---- Recapitulatif de validation ----
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          1934 (19 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            up_to_date
+  Erreurs Console          0 depuis le curseur 1934
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 100 (informatif, hors gate)
+-------------------------------------
+VALIDATION FAILED / INCOMPLETE

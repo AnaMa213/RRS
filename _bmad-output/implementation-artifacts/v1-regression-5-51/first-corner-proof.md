@@ -231,3 +231,38 @@ L'extension est décidée, en deux vagues.
 **EditMode :** `ECHEC: 1/897`, uniquement le tripwire Gate A, puis `VALIDATION FAILED / INCOMPLETE` (`gate-editmode-wave1.txt`). `Story551JunctionClearanceTests` : 12/12, dont la non-régression des 4 T.
 
 **Baseline PlayMode :** conservée telle quelle (`before-playmode.txt`, 45 tests, 6 échecs 5.12/5.13/5.7). Pas encore de passe « après » : elle viendra en session fraîche, après les 12 angles.
+
+## Critère (b) du relief : inclusion géométrique exacte (mesureur v3, 2026-09-28)
+
+La grille de 10 cm ne pouvait pas exclure un trou ou un chevauchement situé entre deux points. `RoadSupported` soustrait désormais l'empreinte du relief de l'union des supports (BoxCollider actifs, non-trigger, non dynamiques, à dessus horizontal à hauteur de route, non `Sidewalk`), chaque support dilaté de 1 mm pour joindre les dalles jointives ; tout reste d'aire non nulle refuse le relief. Tout chevauchement d'un collider `Sidewalk`, actif ou non, refuse aussi. Seuil de hauteur (0,158 m) et conditions (a)/(c) inchangés.
+
+- Supports réels mesurés : `Col_Roadway` de l'avenue (boîte plate, dessus à 0) sous `Rampe_Est`, `Rampe_Ouest` et `Relief_MarcheBasse_AvenueCenterToEast` ; les trois restent franchissables.
+- Tests ajoutés : fente de 6 cm entre deux points de l'ancienne grille (refusée), dalles jointives (acceptées), couverture pure (moitiés jointives, fente de 4 mm, coin manquant, support englobant, aucun support).
+- Lignes des 4 T : identiques à la vague 1 sous v3.
+- Commit `7fe9301`.
+
+## Mini-gate du carrefour central : angle SE (2026-09-28)
+
+**Raccord aux bordures.** `Col_Curb_South_East` (4 × 0,12 × 0,30 m, x ∈ [4 ; 8], z ∈ [−4,3 ; −4]) longe l'arête de l'angle face à l'avenue Est et traverse le triangle coupé. Son extrémité est reculée de 1,00 m par le même type d'override que le collider d'angle (`m_Size.x` = 3, `m_Center.x` = 0,5) : x ∈ [5 ; 8], soit exactement le sommet du chanfrein. Nom, activation, solidité et hauteur de 0,12 m sont inchangés ; la bordure reste un obstacle physique (jamais un relief : elle chevauche le trottoir) et est entièrement contenue dans le trottoir chanfreiné (contrôle sur grille de 1 cm : 0 point dans le triangle coupé, 0 hors du trottoir). Aucune bordure n'est ajoutée le long de la diagonale.
+
+**Construction :** identique aux angles en T (boîte source réduite, `Chamfer_Box_B`, `Chamfer_Box_Diagonal`, trois visuels gris, Synty masqué, triangle A2 `ChamferRoadFill_Intersection_Center_Crossroads_SE.asset` calé sur `Road_n2_s2`).
+
+**Résultats (après sauvegarde et rechargement) :**
+- Forme exacte, visuel = collider, trois autres angles et trois autres bordures intacts.
+- Triangle : écart de pixel 0,000 avec la chaussée (0,024 avant, trottoir Synty) ; 0 trou, 0 z-fight (190 cellules du remplissage).
+- Virage à droite `Junction_FromSouth -> Connector_East_Out` : P = +0,1127 m (témoin `Col_Curb_South_East`, (4,25 ; −2,73)), S = +0,1127 m ; avant −0,0326 / −0,0326.
+- Toutes les lignes passant par l'angle SE ou sa bordure restent positives et inchangées (min P +0,4216 hors virage à droite).
+- Carrefour : 51 lignes positives hors des trois virages non coupés ; les 9 échecs restants sont exclusivement ceux des angles NE, NW et SW.
+- Aucun écart de concordance visuelle `Sidewalk` sur le carrefour.
+
+**Diff de scène (`crossroads-se/scene-diff-by-document.txt`) :** 24 documents ajoutés, 0 retiré, 1 instance modifiée (`Intersection_Center_Crossroads`), 5 propriétés : `Sidewalk_Corner_SE.m_IsActive` = 0, `Col_Sidewalk_Corner_SE` et `Col_Curb_South_East` `m_Size.x` = 3, `m_Center.x` = 0,5.
+
+**Invariants :** SourceHash `b3064424…92fc`, LineageHash `f838ab59…e6f4`, `ModelVersion` `v4:e8dff9e54bff1712308899158ad16a9b`, 72 mouvements ; NavMesh inchangé ; prefabs, Synty et `ProjectSettings` intacts. Les tests qui identifient les bordures par leur nom (5.10 rejeu autour du carrefour, 5.11 hauteur de bordure sur instance de prefab) passent.
+
+**Écarts visuels ouverts (non acceptés) :**
+- Dalle grise unie (sommet +0,058/+0,060 m), plus sombre que le trottoir Synty : point ouvert de livraison, comme aux T.
+- Préexistant, inchangé en nature : le collider de bordure (0,12 m) n'a pas de visuel propre ; il dépassait déjà de 6,4 cm la lèvre Synty (0,056 m) et dépasse de 6 cm la dalle grise sur ses 3 m restants. Aucune barrière nouvelle n'est créée.
+
+**EditMode (`crossroads-se/gate-editmode-crossroads-se.txt`, `-TestTimeoutSec 900`) :** `ECHEC: 1/899`, uniquement le tripwire Gate A, puis `VALIDATION FAILED / INCOMPLETE`. Un premier lancement au délai par défaut (300 s) a expiré sans résultat. `Story551JunctionClearanceTests` : 14/14.
+
+Captures : `crossroads-se/corner-SE-{top,oblique}-{before,after}.png`. Les angles NE, NW et SW attendent l'accord du propriétaire.
