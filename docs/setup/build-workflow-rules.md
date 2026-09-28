@@ -67,9 +67,10 @@ classement, PlayMode.**
 - `-TestMode Both` applique le **meme** `-TestFilter` aux deux modes. Un filtre nommant une fixture
   d'un seul mode fait donc echouer l'autre mode sur « aucun test execute » — et c'est voulu (AD-8 :
   une absence de resultat n'est jamais un succes).
-- Le filtrage **ne fonctionne pas en PlayMode** avec la chaine actuelle (mesure en section 3). En
-  pratique : `-TestMode EditMode -TestFilter …` pour cibler, `-TestMode PlayMode` **sans filtre**
-  pour le runtime.
+- Le filtrage par `testName`/`assembly` **ne fonctionne pas en PlayMode** (le filtrage par
+  **categorie**, si — mesures en section 3). En pratique, chemin officiel :
+  `-TestMode EditMode -TestFilter …` pour cibler, `-TestMode PlayMode` **sans filtre** pour le
+  runtime.
 - Les **profils de validation** (section 3, `-Profile`) ne s'appliquent qu'à EditMode. Les combiner
   avec `-TestMode PlayMode`/`Both` est **refuse ferme** par `validate.ps1` : la suite runtime se
   lance complète, sinon ses références de comparaison (section 3, échecs PlayMode connus) ne
@@ -158,13 +159,15 @@ La suite EditMode est partitionnee en **deux categories NUnit** portees par les 
   C'est ce qui justifie la partition — le choix n'est pas un confort, c'est la seule optimisation
   qui ne retire aucune garantie : ce qui n'est pas exécuté est nommé et compte.
 
-**Limite mesuree du filtrage** (CLI `1.0.0-beta.8` + UTF `1.8.0`, 2026-09-18) : `-TestFilter`
-**ne matche pas en PlayMode**, avec `-TestFilterType testName` comme avec `assembly` — nom de classe,
-nom de methode complet et nom d'assemblage renvoient tous « aucun test execute » (echec ferme,
-exit 1), alors que la meme forme matche correctement en EditMode. En PlayMode, le seul mode
-utilisable aujourd'hui est donc la suite complete **sans filtre**. Ne pas ajouter de mecanisme de
-filtrage separe tant que ce point n'est pas tranche : le contournement couterait plus cher que la
-limite.
+**Filtrage en PlayMode (CLI `1.0.0-beta.8` + UTF `1.8.0`)** : `-TestFilter` avec
+`-TestFilterType testName` ou `assembly` **ne matche pas en PlayMode** (mesure du 2026-09-18 : nom
+de classe, nom de methode complet et nom d'assemblage renvoient « aucun test execute », echec
+ferme — alors que la meme forme matche en EditMode). En revanche le filtre par **categorie**
+fonctionne en PlayMode (mesure du 2026-09-28 : `--filter Story59 --filter_type category` a execute
+le seul test PlayMode de la fixture, 10,4 s, filtre applique `category: Story59`). Le chemin
+officiel PlayMode reste neanmoins la suite complete **sans filtre** (comparaison aux references et
+aux echecs connus) : le filtrage par categorie sert au ciblage manuel depuis le Test Runner
+(bouton « Category ») ou pour une verification directe, jamais a la place de la suite complete.
 
 Le script verifie le CLI Unity, l'Editeur connecte, la recompilation, la Console niveau erreur, les
 tests cibles, puis l'etat final scenes/Git. **Il echoue ferme** : Editeur inaccessible, CLI muet,
