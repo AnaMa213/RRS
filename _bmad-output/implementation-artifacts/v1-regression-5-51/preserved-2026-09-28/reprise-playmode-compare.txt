@@ -1,0 +1,8 @@
+=== avant-modification -> reprise : baseline=45 apres=45
+MESSAGE RoadRage.Tests.PlayMode.Story512TireForcesAndSteeringPlayModeTests.TheHandbrakeLocksTheRearWheelsAndBreaksTheirGrip
+  baseline:   Le frein a main doit BLOQUER les roues arriere : glissement arriere mesure 0,004 contre 0,004 a l'avant. C'est ce blocage -- et lui seul -- qui effondre l'adherence laterale arriere et fait entrer le vehicule en derive. |   Expected: greater than 0.400000006f |   But was:  0.00443618931f | 
+  apres   :   Le frein a main doit BLOQUER les roues arriere : glissement arriere mesure 0,004 contre 0,004 a l'avant. C'est ce blocage -- et lui seul -- qui effondre l'adherence laterale arriere et fait entrer le vehicule en derive. |   Expected: greater than 0.400000006f |   But was:  0.00443613529f | 
+ecarts=1
+
+=== apres-edition(15:41) -> reprise : baseline=45 apres=45
+ecarts=0

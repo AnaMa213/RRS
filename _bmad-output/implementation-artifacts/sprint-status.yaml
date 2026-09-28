@@ -185,7 +185,7 @@ development_status:
   # 2026-09-28: 5.51 automated clearance and V1/V2 regression evidence recorded;
   # independent code review and owner visual acceptance remain open. Gate A unsigned;
   # 5.28 stays in-progress.
-  5-51-junction-corner-clearance-for-right-turns: in-progress
+  5-51-junction-corner-clearance-for-right-turns: review
   5-29-deterministic-strategic-route-plan: backlog
   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog
   5-31-first-driven-traffic-v2-vertical-slice-portal-to-portal: backlog

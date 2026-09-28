@@ -76,7 +76,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     /// <summary>Preuve EditMode 5.51 : deux gates independants sur les courbes compilees 5.50.</summary>
     public static class JunctionClearance
     {
-        public const int AlgorithmVersion = 5; // 2 : relief routier ; 3 : appui exact ; 4 : empreinte UV et concordance visuelle renforcee ; 5 : roles de trottoir symetriques, UV hors empreinte physique
+        public const int AlgorithmVersion = 4; // 2 : relief routier ; 3 : appui exact ; 4 : empreinte UV et concordance visuelle renforcee
         public const float ReliefSupportToleranceMeters = 0.001f;
         public const float ReliefOverlapToleranceMeters = 0.01f;
         public const float DefaultStepMeters = 0.05f;
@@ -523,7 +523,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                 for (int r = 0; r < list.Count; r++)
                 {
-                    bool look = SidewalkRole(list[r], sidewalkLook);
+                    bool look = IsAuthoredSidewalkVisual(list[r].Renderer) || sidewalkLook.Contains(list[r].Look);
                     List<Vector3> t = list[r].Triangles;
                     for (int i = 0; i < t.Count; i += 3)
                     {
@@ -547,7 +547,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                                 float y = w0 * a.y + w1 * b.y + w2 * c.y;
                                 int cell = ix * nz + iz;
                                 if (y > top[cell] + 1e-4f) { top[cell] = y; owner[cell] = r; tie[cell] = false; }
-                                else if (y >= top[cell] - 1e-4f && owner[cell] != r && SidewalkRole(list[owner[cell]], sidewalkLook) != look) tie[cell] = true;
+                                else if (y >= top[cell] - 1e-4f && owner[cell] != r && sidewalkLook.Contains(list[owner[cell]].Look) != look) tie[cell] = true;
                             }
                         }
                     }
@@ -562,7 +562,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         int cell = ix * nz + iz;
                         var p = new Vector2(minX + (ix + 0.5f) * VisualStepMeters, minZ + (iz + 0.5f) * VisualStepMeters);
                         bool isDeclared = declared.Any(polygon => Inside(polygon, p));
-                        bool isSidewalk = owner[cell] >= 0 && SidewalkRole(list[owner[cell]], sidewalkLook);
+                        bool isSidewalk = owner[cell] >= 0 && (IsAuthoredSidewalkVisual(list[owner[cell]].Renderer) || sidewalkLook.Contains(list[owner[cell]].Look));
                         if (isDeclared || isSidewalk)
                         {
                             if (owner[cell] >= 0) visuals.Add(list[owner[cell]].Renderer);
@@ -610,12 +610,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public MeshRenderer Renderer;
             public string Look;
             public readonly List<Vector3> Triangles = new List<Vector3>();
-        }
-
-        /// <summary>Role trottoir d'une face : nom authoring ou aspect classe ; la meme regle sert au candidat, au titulaire en sommet et a l'egalite de hauteur.</summary>
-        private static bool SidewalkRole(VisibleFaces face, HashSet<string> sidewalkLook)
-        {
-            return IsAuthoredSidewalkVisual(face.Renderer) || sidewalkLook.Contains(face.Look);
         }
 
         private static bool IsAuthoredSidewalkVisual(Renderer renderer)
@@ -993,13 +987,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         .Append(Physics.GetIgnoreLayerCollision(aiLayer, collider.gameObject.layer)).Append('|')
                         .Append(collider.attachedRigidbody == null ? "none" : collider.attachedRigidbody.isKinematic ? "kinematic" : "dynamic");
                     if (collider is BoxCollider box) text.Append(JsonUtility.ToJson(box.center)).Append(JsonUtility.ToJson(box.size));
-                    if (collider is MeshCollider mesh) { text.Append(mesh.cookingOptions).Append(mesh.convex); AppendMesh(text, mesh.sharedMesh, false); }
+                    if (collider is MeshCollider mesh) { text.Append(mesh.cookingOptions).Append(mesh.convex); AppendMesh(text, mesh.sharedMesh); }
                 }
                 else if (component is Renderer renderer)
                 {
                     text.Append(renderer.enabled).Append('|');
                     MeshFilter filter = renderer.GetComponent<MeshFilter>();
-                    AppendMesh(text, filter == null ? null : filter.sharedMesh, true);
+                    AppendMesh(text, filter == null ? null : filter.sharedMesh);
                     foreach (Material material in renderer.sharedMaterials)
                         text.Append('|').Append(material == null ? "null" : GlobalObjectId.GetGlobalObjectIdSlow(material).ToString());
                 }
@@ -1010,14 +1004,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return V1SourceSet.Sha256Hex(text.ToString());
         }
 
-        /// <summary>Empreinte d'un mesh : geometrie toujours ; canaux UV seulement pour une surface visuelle (aucun effet sur une collision).</summary>
-        private static void AppendMesh(StringBuilder text, Mesh mesh, bool includeUvs)
+        private static void AppendMesh(StringBuilder text, Mesh mesh)
         {
             if (mesh == null) { text.Append("mesh:null"); return; }
             text.Append(GlobalObjectId.GetGlobalObjectIdSlow(mesh));
             foreach (Vector3 vertex in mesh.vertices) text.Append(JsonUtility.ToJson(vertex));
             foreach (int triangle in mesh.triangles) text.Append(triangle).Append(',');
-            if (!includeUvs) return;
             var uvs = new List<Vector4>();
             for (int channel = 0; channel < 8; channel++)
             {

@@ -1,0 +1,492 @@
+diff --git a/Assets/RoadRage/Features/Vehicles/Traffic/Migration/JunctionClearance.cs b/Assets/RoadRage/Features/Vehicles/Traffic/Migration/JunctionClearance.cs
+index 658ac80..556fcdd 100644
+--- a/Assets/RoadRage/Features/Vehicles/Traffic/Migration/JunctionClearance.cs
++++ b/Assets/RoadRage/Features/Vehicles/Traffic/Migration/JunctionClearance.cs
+@@ -43,6 +43,9 @@ public sealed class JunctionClearanceRow
+         public string Surface;
+         public JunctionClearanceWitness Physical;
+         public JunctionClearanceWitness Semantic;
++
++        /// <summary>Aucun obstacle physique participant n'a ete trouve pour ce mouvement ; le residu +infini est alors intentionnel.</summary>
++        public bool PhysicalSetEmpty { get { return Physical != null && float.IsPositiveInfinity(Physical.Residual) && string.IsNullOrEmpty(Physical.Obstacle); } }
+     }
+ 
+     /// <summary>Relief routier franchissable retire du gate physique, publie pour la tracabilite.</summary>
+@@ -73,14 +76,14 @@ public sealed class JunctionClearanceResult
+     /// <summary>Preuve EditMode 5.51 : deux gates independants sur les courbes compilees 5.50.</summary>
+     public static class JunctionClearance
+     {
+-        public const int AlgorithmVersion = 3; // 2 : regle du relief routier franchissable ; 3 : appui par inclusion exacte (2026-09-28)
++        public const int AlgorithmVersion = 5; // 2 : relief routier ; 3 : appui exact ; 4 : empreinte UV et concordance visuelle renforcee ; 5 : roles de trottoir symetriques, UV hors empreinte physique
+         public const float ReliefSupportToleranceMeters = 0.001f;
+         public const float ReliefOverlapToleranceMeters = 0.01f;
+         public const float DefaultStepMeters = 0.05f;
+         private const float GeometryTolerance = 0.01f;
+         private const float UnitTolerance = 0.001f; // meme tolerance que RoadGeometryValidator
+ 
+-        // Concordance declaration / visible : pas de grille et tolerance (une cellule d'erosion).
++        // Concordance declaration / visible : pas de grille ; deux cellules adjacentes de discordance echouent.
+         public const float VisualStepMeters = 0.05f;
+         private const float SidewalkLookShare = 0.75f;
+ 
+@@ -445,10 +448,11 @@ private static List<Surface> Surfaces(IReadOnlyList<JunctionClearanceSurface> in
+         /// <see cref="VisualStepMeters"/> sur les polygones declares du module elargis de 1 m ; chaque
+         /// cellule prend la surface visible la plus haute parmi les faces non verticales des renderers
+         /// actifs du module. Un aspect (mesh + materiaux) est « trottoir » si, n'importe ou dans la scene,
+-        /// un renderer qui le porte a au moins 3/4 de son empreinte dans une region declaree. Echec :
++        /// un renderer qui le porte a au moins 3/4 de son empreinte dans une region declaree, ou si son
++        /// nom authoring indique un trottoir (y compris un nouveau couple mesh/materiau). Echec :
+         /// cellule declaree sans trottoir visible au sommet, trottoir visible non declare, ou egalite de
+-        /// hauteur entre un trottoir et autre chose. Un ecart plus mince qu'une cellule d'erosion (5 cm)
+-        /// est tolere : il reste sous le pas de la grille.
++        /// hauteur entre un trottoir et autre chose. Deux cellules adjacentes de 5 cm suffisent ; une
++        /// cellule isolee reste sous la precision de la grille.
+         /// ponytail: seuls les renderers du module sont vus ; un visuel de trottoir pose hors de la
+         /// hierarchie du module echappe au controle -- etendre a la scene (hors props) si ce cas apparait.
+         /// </summary>
+@@ -519,7 +523,7 @@ private static void CheckVisuals(V1ImportResult import, List<Surface> surfaces,
+ 
+                 for (int r = 0; r < list.Count; r++)
+                 {
+-                    bool look = sidewalkLook.Contains(list[r].Look);
++                    bool look = SidewalkRole(list[r], sidewalkLook);
+                     List<Vector3> t = list[r].Triangles;
+                     for (int i = 0; i < t.Count; i += 3)
+                     {
+@@ -543,7 +547,7 @@ private static void CheckVisuals(V1ImportResult import, List<Surface> surfaces,
+                                 float y = w0 * a.y + w1 * b.y + w2 * c.y;
+                                 int cell = ix * nz + iz;
+                                 if (y > top[cell] + 1e-4f) { top[cell] = y; owner[cell] = r; tie[cell] = false; }
+-                                else if (y >= top[cell] - 1e-4f && owner[cell] != r && sidewalkLook.Contains(list[owner[cell]].Look) != look) tie[cell] = true;
++                                else if (y >= top[cell] - 1e-4f && owner[cell] != r && SidewalkRole(list[owner[cell]], sidewalkLook) != look) tie[cell] = true;
+                             }
+                         }
+                     }
+@@ -558,7 +562,7 @@ private static void CheckVisuals(V1ImportResult import, List<Surface> surfaces,
+                         int cell = ix * nz + iz;
+                         var p = new Vector2(minX + (ix + 0.5f) * VisualStepMeters, minZ + (iz + 0.5f) * VisualStepMeters);
+                         bool isDeclared = declared.Any(polygon => Inside(polygon, p));
+-                        bool isSidewalk = owner[cell] >= 0 && sidewalkLook.Contains(list[owner[cell]].Look);
++                        bool isSidewalk = owner[cell] >= 0 && SidewalkRole(list[owner[cell]], sidewalkLook);
+                         if (isDeclared || isSidewalk)
+                         {
+                             if (owner[cell] >= 0) visuals.Add(list[owner[cell]].Renderer);
+@@ -569,17 +573,13 @@ private static void CheckVisuals(V1ImportResult import, List<Surface> surfaces,
+ 
+                 var counts = new int[4];
+                 var witnesses = new Vector2[4];
+-                for (int ix = 1; ix < nx - 1; ix++)
++                for (int ix = 0; ix < nx; ix++)
+                 {
+-                    for (int iz = 1; iz < nz - 1; iz++)
++                    for (int iz = 0; iz < nz; iz++)
+                     {
+                         byte s = state[ix * nz + iz];
+                         if (s == 0) continue;
+-                        bool core = true; // erosion : les 8 voisines portent le meme ecart
+-                        for (int dx = -1; dx <= 1 && core; dx++)
+-                            for (int dz = -1; dz <= 1 && core; dz++)
+-                                core = state[(ix + dx) * nz + iz + dz] == s;
+-                        if (!core) continue;
++                        if (!HasAdjacentMismatch(state, nx, nz, ix, iz, s)) continue;
+                         if (counts[s]++ == 0) witnesses[s] = new Vector2(minX + (ix + 0.5f) * VisualStepMeters, minZ + (iz + 0.5f) * VisualStepMeters);
+                     }
+                 }
+@@ -612,6 +612,26 @@ private sealed class VisibleFaces
+             public readonly List<Vector3> Triangles = new List<Vector3>();
+         }
+ 
++        /// <summary>Role trottoir d'une face : nom authoring ou aspect classe ; la meme regle sert au candidat, au titulaire en sommet et a l'egalite de hauteur.</summary>
++        private static bool SidewalkRole(VisibleFaces face, HashSet<string> sidewalkLook)
++        {
++            return IsAuthoredSidewalkVisual(face.Renderer) || sidewalkLook.Contains(face.Look);
++        }
++
++        private static bool IsAuthoredSidewalkVisual(Renderer renderer)
++        {
++            string name = renderer.name;
++            return name.StartsWith("Sidewalk_", StringComparison.Ordinal) || name.StartsWith("Chamfer_Visual_", StringComparison.Ordinal);
++        }
++
++        private static bool HasAdjacentMismatch(byte[] state, int nx, int nz, int ix, int iz, byte mismatch)
++        {
++            return (ix > 0 && state[(ix - 1) * nz + iz] == mismatch)
++                || (ix + 1 < nx && state[(ix + 1) * nz + iz] == mismatch)
++                || (iz > 0 && state[ix * nz + iz - 1] == mismatch)
++                || (iz + 1 < nz && state[ix * nz + iz + 1] == mismatch);
++        }
++
+         private static string Look(Renderer renderer, Mesh mesh)
+         {
+             var look = new StringBuilder(GlobalObjectId.GetGlobalObjectIdSlow(mesh).ToString());
+@@ -692,7 +712,7 @@ private static bool Participates(Collider collider, Collider ai)
+             maxRoad = float.NegativeInfinity;
+             foreach (SweepPose pose in poses)
+             {
+-                float road = RoadTop(pose.Position);
++                float road = RoadTop(pose.Position, collider.gameObject.scene);
+                 if (float.IsNegativeInfinity(road))
+                 {
+                     failures.Add("Surface roulable introuvable sous " + pose.Position + ".");
+@@ -782,7 +802,7 @@ public static bool RoadSupported(Collider relief, Vector2[] footprint, float min
+             var supports = new List<Vector2[]>();
+             foreach (Collider candidate in Physics.OverlapBox(center, extents, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
+             {
+-                if (candidate == relief || sidewalkColliders.Contains(candidate) || !(candidate is BoxCollider)) continue;
++                if (candidate.gameObject.scene != relief.gameObject.scene || candidate == relief || sidewalkColliders.Contains(candidate) || !(candidate is BoxCollider)) continue;
+                 if (candidate.attachedRigidbody != null && !candidate.attachedRigidbody.isKinematic) continue;
+                 if (Vector3.Dot(candidate.transform.up, Vector3.up) < 1f - 1e-5f) continue; // dessus incline : pas un support prouve
+                 float top = candidate.bounds.max.y;
+@@ -847,11 +867,13 @@ private static float Area(List<Vector2> polygon)
+             return polygon.Count < 3 ? 0f : Mathf.Abs(twice) * 0.5f;
+         }
+ 
+-        private static float RoadTop(Vector3 position)
++        /// <summary>Surface roulable sous une pose : seuls les colliders de <paramref name="scene"/> comptent, une scene chargee en parallele ne fournit jamais la route mesuree.</summary>
++        private static float RoadTop(Vector3 position, Scene scene)
+         {
+             float top = float.NegativeInfinity;
+             foreach (RaycastHit hit in Physics.RaycastAll(position + Vector3.up * 10f, Vector3.down, 20f, ~0, QueryTriggerInteraction.Ignore))
+             {
++                if (hit.collider.gameObject.scene != scene) continue;
+                 if (hit.point.y <= position.y + GeometryTolerance) top = Mathf.Max(top, hit.point.y);
+             }
+ 
+@@ -971,13 +993,13 @@ private static string Fingerprint(IEnumerable<Component> components, string decl
+                         .Append(Physics.GetIgnoreLayerCollision(aiLayer, collider.gameObject.layer)).Append('|')
+                         .Append(collider.attachedRigidbody == null ? "none" : collider.attachedRigidbody.isKinematic ? "kinematic" : "dynamic");
+                     if (collider is BoxCollider box) text.Append(JsonUtility.ToJson(box.center)).Append(JsonUtility.ToJson(box.size));
+-                    if (collider is MeshCollider mesh) { text.Append(mesh.cookingOptions).Append(mesh.convex); AppendMesh(text, mesh.sharedMesh); }
++                    if (collider is MeshCollider mesh) { text.Append(mesh.cookingOptions).Append(mesh.convex); AppendMesh(text, mesh.sharedMesh, false); }
+                 }
+                 else if (component is Renderer renderer)
+                 {
+                     text.Append(renderer.enabled).Append('|');
+                     MeshFilter filter = renderer.GetComponent<MeshFilter>();
+-                    AppendMesh(text, filter == null ? null : filter.sharedMesh);
++                    AppendMesh(text, filter == null ? null : filter.sharedMesh, true);
+                     foreach (Material material in renderer.sharedMaterials)
+                         text.Append('|').Append(material == null ? "null" : GlobalObjectId.GetGlobalObjectIdSlow(material).ToString());
+                 }
+@@ -988,12 +1010,21 @@ private static string Fingerprint(IEnumerable<Component> components, string decl
+             return V1SourceSet.Sha256Hex(text.ToString());
+         }
+ 
+-        private static void AppendMesh(StringBuilder text, Mesh mesh)
++        /// <summary>Empreinte d'un mesh : geometrie toujours ; canaux UV seulement pour une surface visuelle (aucun effet sur une collision).</summary>
++        private static void AppendMesh(StringBuilder text, Mesh mesh, bool includeUvs)
+         {
+             if (mesh == null) { text.Append("mesh:null"); return; }
+             text.Append(GlobalObjectId.GetGlobalObjectIdSlow(mesh));
+             foreach (Vector3 vertex in mesh.vertices) text.Append(JsonUtility.ToJson(vertex));
+             foreach (int triangle in mesh.triangles) text.Append(triangle).Append(',');
++            if (!includeUvs) return;
++            var uvs = new List<Vector4>();
++            for (int channel = 0; channel < 8; channel++)
++            {
++                mesh.GetUVs(channel, uvs);
++                text.Append("uv").Append(channel).Append(':').Append(uvs.Count).Append(':');
++                foreach (Vector4 uv in uvs) text.Append(JsonUtility.ToJson(uv));
++            }
+         }
+     }
+ }
+diff --git a/Assets/RoadRage/Tests/EditMode/Story551JunctionClearanceTests.cs b/Assets/RoadRage/Tests/EditMode/Story551JunctionClearanceTests.cs
+index 7757a26..8370aad 100644
+--- a/Assets/RoadRage/Tests/EditMode/Story551JunctionClearanceTests.cs
++++ b/Assets/RoadRage/Tests/EditMode/Story551JunctionClearanceTests.cs
+@@ -143,6 +143,52 @@ public void RoadSupportIsDemonstratedOverTheWholeFootprint()
+             });
+         }
+ 
++        [Test]
++        public void RoadSupportCannotComeFromAnotherLoadedScene()
++        {
++            WithScratchScene(() =>
++            {
++                Scene local = SceneManager.GetActiveScene();
++                var relief = Box("Relief", new Vector3(500f, 0.05f, 90f), new Vector3(2f, 0.1f, 2f));
++                WithBootstrapScene(foreign =>
++                {
++                    SceneManager.SetActiveScene(local);
++                    var road = Box("ForeignRoad", new Vector3(500f, -0.1f, 90f), new Vector3(4f, 0.2f, 4f));
++                    SceneManager.MoveGameObjectToScene(road.gameObject, foreign);
++                    Assert.That(Supported(relief, new HashSet<Collider>()), Is.False, "Un support superpose mais etranger ne porte pas le relief.");
++                    SceneManager.MoveGameObjectToScene(road.gameObject, local);
++                    Assert.That(Supported(relief, new HashSet<Collider>()), Is.True, "Le meme support dans la scene du relief le porte.");
++                });
++            });
++        }
++
++        [Test]
++        public void RoadTopCannotComeFromAnotherLoadedScene()
++        {
++            WithScratchScene(() =>
++            {
++                Scene local = SceneManager.GetActiveScene();
++                WithBootstrapScene(foreign =>
++                {
++                    SceneManager.SetActiveScene(local);
++                    var method = typeof(JunctionClearance).GetMethod("RoadTop", BindingFlags.NonPublic | BindingFlags.Static);
++                    Assert.That(method, Is.Not.Null);
++                    var position = new Vector3(500f, 0.05f, 140f);
++                    Func<float> top = () => (float)method.Invoke(null, new object[] { position, local });
++                    Assert.That(float.IsNegativeInfinity(top()), Is.True, "Aucune surface roulable locale sous la pose.");
++
++                    var foreignRoad = Box("ForeignRoadTop", new Vector3(500f, -0.1f, 140f), new Vector3(4f, 0.2f, 4f));
++                    SceneManager.MoveGameObjectToScene(foreignRoad.gameObject, foreign);
++                    Physics.SyncTransforms();
++                    Assert.That(float.IsNegativeInfinity(top()), Is.True, "Une chaussee etrangere ne fournit jamais la surface roulable.");
++
++                    SceneManager.MoveGameObjectToScene(foreignRoad.gameObject, local);
++                    Physics.SyncTransforms();
++                    Assert.That(top(), Is.EqualTo(0f).Within(1e-4f), "La meme chaussee dans la scene locale est vue.");
++                });
++            });
++        }
++
+         [Test]
+         public void CoverageIsExactNotSampled()
+         {
+@@ -470,6 +516,110 @@ public void TheFiveJunctionsPassBothGatesEverywhere()
+             Assert.That(result.Rows.Select(r => r.Junction).Distinct().Count(), Is.EqualTo(5));
+         }
+ 
++        [Test]
++        public void EveryImportedJunctionMovementHasRowsAndRightTurnsHavePhysicalObstacles()
++        {
++            var result = MeasureMvpRun();
++            WithMvpRun(scene =>
++            {
++                var migration = MigrationReport.Run(scene, File.ReadAllText(MigrationReport.LineageFullPath));
++                Assert.That(migration.Import != null && migration.Import.Succeeded, Is.True, string.Join("\n", migration.Failures.ToArray()));
++                string[] expected = migration.Import.Movements
++                    .Where(m => m.Module.Kind == V1ModuleKind.Crossroads || m.Module.Kind == V1ModuleKind.TJunction)
++                    .Select(m => m.Module.Label + "|" + m.Label).OrderBy(s => s, StringComparer.Ordinal).ToArray();
++                string[] actual = result.Rows.Select(r => r.Junction + "|" + r.Movement).Distinct()
++                    .OrderBy(s => s, StringComparer.Ordinal).ToArray();
++                Assert.That(actual, Is.EqualTo(expected), "Le jeu des mouvements mesures doit egaler exactement celui de l'import V1.");
++            });
++
++            var empty = result.Rows.Where(r => float.IsPositiveInfinity(r.Physical.Residual)).ToArray();
++            Assert.That(empty.All(r => r.PhysicalSetEmpty && string.IsNullOrEmpty(r.Physical.Obstacle)), Is.True,
++                "Chaque residu physique +infini (aucun obstacle participant) est publie explicitement, jamais silencieux.");
++            var rightTurns = result.Rows.Where(r => r.Movement.Contains("(droite)"))
++                .GroupBy(r => r.Junction + "|" + r.Movement).Select(g => g.First()).ToArray();
++            Assert.That(rightTurns.Length, Is.EqualTo(12));
++            Assert.That(rightTurns.All(r => !r.PhysicalSetEmpty && !float.IsInfinity(r.Physical.Residual)
++                && r.Physical.Residual > 0f && !string.IsNullOrEmpty(r.Physical.Obstacle)), Is.True,
++                "Chacun des 12 virages a droite doit garder un obstacle physique attendu, distinct du cas vide.");
++        }
++
++        [Test]
++        public void NewAuthoredSidewalkLooksAndTwoAdjacentFiveCentimetreCellsAreDetected()
++        {
++            var role = typeof(JunctionClearance).GetMethod("IsAuthoredSidewalkVisual", BindingFlags.NonPublic | BindingFlags.Static);
++            var adjacent = typeof(JunctionClearance).GetMethod("HasAdjacentMismatch", BindingFlags.NonPublic | BindingFlags.Static);
++            Assert.That(role, Is.Not.Null);
++            Assert.That(adjacent, Is.Not.Null);
++            WithScratchScene(() =>
++            {
++                var visual = new GameObject("Sidewalk_NewMeshAndMaterial").AddComponent<MeshRenderer>();
++                var road = new GameObject("Road_NewMeshAndMaterial").AddComponent<MeshRenderer>();
++                Assert.That((bool)role.Invoke(null, new object[] { visual }), Is.True);
++                Assert.That((bool)role.Invoke(null, new object[] { road }), Is.False, "Le decor ordinaire reste hors gate.");
++                visual.name = "Chamfer_Visual_0";
++                Assert.That((bool)role.Invoke(null, new object[] { visual }), Is.True);
++            });
++
++            var cells = new byte[3 * 3];
++            Func<int, int, bool> hasPair = (x, z) => (bool)adjacent.Invoke(null, new object[] { cells, 3, 3, x, z, (byte)2 });
++            cells[1 * 3 + 1] = 2;
++            Assert.That(hasPair(1, 1), Is.False, "Une cellule de 5 cm seule reste sous la tolerance.");
++            cells[1 * 3 + 2] = 2;
++            Assert.That(hasPair(1, 1) && hasPair(1, 2), Is.True, "Deux cellules voisines de 5 cm echouent.");
++            cells[1 * 3 + 2] = 0;
++            cells[2 * 3 + 2] = 2;
++            Assert.That(hasPair(1, 1), Is.False, "Une diagonale ne forme pas une bande contigue de deux cellules.");
++        }
++
++        [Test]
++        public void ANameOnlySidewalkVisualOutsideDeclaredRegionsFailsAndStaysQuietWithoutTheName()
++        {
++            WithMvpRun(scene =>
++            {
++                var module = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<Transform>(true))
++                    .First(t => t.name == "TJunction_South" && t.parent != null && t.parent.name == "LaneGraph");
++                var corner = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<BoxCollider>(true))
++                    .First(c => c.name == "Col_Sidewalk_Corner_SE" && HasAncestor(c.transform, "TJunction_South"));
++                float outward = Mathf.Sign(corner.bounds.center.z - module.position.z);
++                var visual = new GameObject("Sidewalk_ScratchUnknownLook");
++                var mesh = new Mesh();
++                try
++                {
++                    mesh.vertices = new[]
++                    {
++                        new Vector3(-0.2f, 0f, -0.2f), new Vector3(0.2f, 0f, -0.2f),
++                        new Vector3(0.2f, 0f, 0.2f), new Vector3(-0.2f, 0f, 0.2f)
++                    };
++                    mesh.triangles = new[] { 0, 2, 1, 0, 3, 2 };
++                    mesh.uv = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };
++                    visual.AddComponent<MeshFilter>().sharedMesh = mesh;
++                    visual.AddComponent<MeshRenderer>();
++                    visual.transform.SetParent(module, false);
++                    visual.transform.position = new Vector3(
++                        corner.bounds.center.x,
++                        0.5f,
++                        corner.bounds.center.z + outward * (corner.bounds.extents.z + 0.5f));
++                    Physics.SyncTransforms();
++
++                    var named = MeasureFresh(scene);
++                    Assert.That(named.Failures.Any(f => f.StartsWith("Visuel Sidewalk discordant TJunction_South", StringComparison.Ordinal)
++                        && f.Contains("trottoir visible non declare")), Is.True,
++                        "Un visuel nomme trottoir hors zone declaree est signale par la porte visuelle.");
++
++                    visual.name = "Road_ScratchUnknownLook";
++                    var neutral = MeasureFresh(scene);
++                    Assert.That(neutral.Failures.Any(f => f.StartsWith("Visuel Sidewalk discordant TJunction_South", StringComparison.Ordinal)), Is.False,
++                        "Le meme visuel sans nom authoring trottoir reste hors de la porte.");
++                }
++                finally
++                {
++                    UnityEngine.Object.DestroyImmediate(visual);
++                    UnityEngine.Object.DestroyImmediate(mesh);
++                    Physics.SyncTransforms();
++                }
++            });
++        }
++
+         [Test]
+         public void DisabledNorthCornersRemainSemanticInputsAndOrdinaryRoadDoesNot()
+         {
+@@ -573,6 +723,66 @@ public void PhysicalAndSemanticFingerprintsInvalidateIndependently()
+             });
+         }
+ 
++        [Test]
++        public void SemanticFingerprintChangesWhenOnlyMeshUvsChange()
++        {
++            WithScratchScene(() =>
++            {
++                var visual = new GameObject("Visual");
++                var mesh = new Mesh();
++                try
++                {
++                    mesh.vertices = new[] { Vector3.zero, Vector3.right, Vector3.forward };
++                    mesh.triangles = new[] { 0, 1, 2 };
++                    mesh.uv = new[] { Vector2.zero, Vector2.right, Vector2.up };
++                    visual.AddComponent<MeshFilter>().sharedMesh = mesh;
++                    var renderer = visual.AddComponent<MeshRenderer>();
++                    var method = typeof(JunctionClearance).GetMethod("Fingerprint", BindingFlags.NonPublic | BindingFlags.Static);
++                    Assert.That(method, Is.Not.Null);
++                    Func<string> fingerprint = () => (string)method.Invoke(null, new object[] { new Component[] { renderer }, "", 0 });
++                    string baseline = fingerprint();
++
++                    mesh.uv = new[] { Vector2.zero, new Vector2(0.5f, 0f), Vector2.up };
++                    string changedUv0 = fingerprint();
++                    Assert.That(changedUv0, Is.Not.EqualTo(baseline), "Le canal UV principal modifie l'empreinte semantique.");
++
++                    mesh.uv2 = new[] { Vector2.zero, Vector2.right, Vector2.up };
++                    Assert.That(fingerprint(), Is.Not.EqualTo(changedUv0), "Un canal UV secondaire la modifie aussi.");
++                }
++                finally
++                {
++                    UnityEngine.Object.DestroyImmediate(mesh);
++                }
++            });
++        }
++
++        [Test]
++        public void CollisionMeshUvsDoNotInvalidateThePhysicalFingerprint()
++        {
++            WithScratchScene(() =>
++            {
++                var mesh = UnityEngine.Object.Instantiate(Resources.GetBuiltinResource<Mesh>("Cube.fbx"));
++                try
++                {
++                    var collision = new GameObject("Collision").AddComponent<MeshCollider>();
++                    collision.sharedMesh = mesh;
++                    var method = typeof(JunctionClearance).GetMethod("Fingerprint", BindingFlags.NonPublic | BindingFlags.Static);
++                    Assert.That(method, Is.Not.Null);
++                    Func<string> fingerprint = () => (string)method.Invoke(null, new object[] { new Component[] { collision }, "", 0 });
++                    string baseline = fingerprint();
++
++                    var uv = mesh.uv;
++                    uv[0] = new Vector2(uv[0].x + 0.25f, uv[0].y);
++                    mesh.uv = uv;
++                    Assert.That(fingerprint(), Is.EqualTo(baseline), "Les UV d'un mesh de collision restent hors de l'empreinte physique.");
++                }
++                finally
++                {
++                    UnityEngine.Object.DestroyImmediate(mesh);
++                }
++            });
++        }
++
+         private static JunctionClearanceResult _measured;
+ 
+         private static bool HasAncestor(Transform transform, string name)
+@@ -606,6 +816,31 @@ private static JunctionClearanceResult MeasureFresh(Scene scene, IReadOnlyList<J
+             return JunctionClearance.Measure(scene, migration.Import, model, sidewalks);
+         }
+ 
++        /// <summary>
++        /// Ouvre Bootstrap en additif pour un test de scene etrangere ; ferme uniquement ce que ce test a
++        /// ouvert, refusant une instance deja ouverte et modifiee (motif de WithMvpRun).
++        /// </summary>
++        private static void WithBootstrapScene(Action<Scene> body)
++        {
++            const string bootstrap = "Assets/RoadRage/App/Scenes/Bootstrap.unity";
++            var alreadyOpen = SceneManager.GetSceneByPath(bootstrap);
++            bool wasOpen = alreadyOpen.IsValid() && alreadyOpen.isLoaded;
++            if (wasOpen)
++            {
++                Assert.That(alreadyOpen.isDirty, Is.False, "Bootstrap est ouvert avec des modifications non sauvegardees.");
++            }
++
++            var scene = wasOpen ? alreadyOpen : EditorSceneManager.OpenScene(bootstrap, OpenSceneMode.Additive);
++            try
++            {
++                body(scene);
++            }
++            finally
++            {
++                if (!wasOpen) EditorSceneManager.CloseScene(scene, true);
++            }
++        }
++
+         private static void WithMvpRun(Action<Scene> body)
+         {
+             var alreadyOpen = SceneManager.GetSceneByPath(MigrationReport.ScenePath);
+diff --git a/_bmad-output/implementation-artifacts/spec-5-51-junction-corner-clearance-for-right-turns.md b/_bmad-output/implementation-artifacts/spec-5-51-junction-corner-clearance-for-right-turns.md
+index 74978d1..620c290 100644
+--- a/_bmad-output/implementation-artifacts/spec-5-51-junction-corner-clearance-for-right-turns.md
++++ b/_bmad-output/implementation-artifacts/spec-5-51-junction-corner-clearance-for-right-turns.md
+@@ -2,7 +2,7 @@
+ title: 'Story 5.51 - Degagement physique des angles pour virages a droite'
+ type: 'feature'
+ created: '2026-09-28'
+-status: 'in-progress'
++status: 'in-review'
+ baseline_commit: '58c230a311ef61f81611ca640dd28b4c5bac28a9'
+ review_loop_iteration: 0
+ context:
+diff --git a/_bmad-output/implementation-artifacts/v1-regression-5-51/resume-proof.md b/_bmad-output/implementation-artifacts/v1-regression-5-51/resume-proof.md
+index 4a8bda6..db2518e 100644
+--- a/_bmad-output/implementation-artifacts/v1-regression-5-51/resume-proof.md
++++ b/_bmad-output/implementation-artifacts/v1-regression-5-51/resume-proof.md
+@@ -19,6 +19,8 @@
+ 
+ Les reliefs publies sont `Rampe_Ouest`, `Rampe_Est` et `Relief_MarcheBasse_AvenueCenterToEast`, hauteur `0,12 m` contre garde statique IA `0,158031285 m`. Apres `open_scene` depuis le disque, [la seconde mesure](after-clearance-measure-reloaded.txt) est identique octet par octet, empreintes incluses.
+ 
++La revue independante releve 28 lignes de T avec `P=Infinity`, position `(0,0)` et obstacle vide : aucun obstacle physique n'a fourni de temoin fini pour ces mouvements. Le minimum physique publie ci-dessus est fini, mais le contrat de preuve de ces lignes reste soumis a la decision du proprietaire.
++
+ ## Scene, visuels et NavMesh
+ 
+ [Audit des 12 coins](after-corner-audit.txt) apres reouverture : chaque coin est une instance de prefab avec 3 `BoxCollider` et 3 `Chamfer_Visual_*` actifs, plus un `Chamfer_RoadFill_*` actif. Les deux parents `Col_Sidewalk_Corner_*` de `TJunction_North` restent desactives physiquement ; leurs declarations participent au gate Sidewalk. Les 36 visuels de coupe emploient `Greybox_Ground_Mat` ; les 12 remplissages emploient `Road_01`. Tous les renderers et meshes de remplacement sont presents et actifs. La concordance de surface visible/declaration passe dans la mesure complete et dans les tests adversariaux. Le jugement du rendu depuis les cameras des cinq jonctions reste a effectuer.
+@@ -40,3 +42,5 @@ Le NavMesh rebake a SHA-256 `563A438F20E5BB1A56C3519BB6E99D30F41E25956C66F76A497
+ ## Ecarts ouverts
+ 
+ Le rendu des cinq jonctions depuis les cameras de jeu et la validation esthetique des remplissages `Road_01` n'ont pas recu d'acceptation visuelle du proprietaire. Les controles de structure/mesh/materiau et la concordance geometrique automatises couvrent les 12 angles, mais ne remplacent pas cette decision. La revue de code independante reste a faire. Gate A demeure fermee ; 5.28 et 5.51 restent `in-progress`.
++
++Les ecarts visuels deja identifies restent ouverts : les dalles de trottoir gris uni paraissent plus sombres que les pieces Synty, et certaines portions de bordure physique n'ont pas de representation visuelle. Ils ne sont pas acceptes par ce rapport. La revue independante examine aussi la portee du controle automatise pour un nouveau couple mesh/materiau et pour une discordance visuelle d'environ 10 cm ; la disposition attend le proprietaire.

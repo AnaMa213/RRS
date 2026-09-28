@@ -150,7 +150,8 @@ namespace RoadRage.Tests.EditMode
             {
                 Scene local = SceneManager.GetActiveScene();
                 var relief = Box("Relief", new Vector3(500f, 0.05f, 90f), new Vector3(2f, 0.1f, 2f));
-                WithBootstrapScene(foreign =>
+                Scene foreign = EditorSceneManager.OpenScene("Assets/RoadRage/App/Scenes/Bootstrap.unity", OpenSceneMode.Additive);
+                try
                 {
                     SceneManager.SetActiveScene(local);
                     var road = Box("ForeignRoad", new Vector3(500f, -0.1f, 90f), new Vector3(4f, 0.2f, 4f));
@@ -158,7 +159,12 @@ namespace RoadRage.Tests.EditMode
                     Assert.That(Supported(relief, new HashSet<Collider>()), Is.False, "Un support superpose mais etranger ne porte pas le relief.");
                     SceneManager.MoveGameObjectToScene(road.gameObject, local);
                     Assert.That(Supported(relief, new HashSet<Collider>()), Is.True, "Le meme support dans la scene du relief le porte.");
-                });
+                }
+                finally
+                {
+                    SceneManager.SetActiveScene(local);
+                    EditorSceneManager.CloseScene(foreign, true);
+                }
             });
         }
 
@@ -168,7 +174,8 @@ namespace RoadRage.Tests.EditMode
             WithScratchScene(() =>
             {
                 Scene local = SceneManager.GetActiveScene();
-                WithBootstrapScene(foreign =>
+                Scene foreign = EditorSceneManager.OpenScene("Assets/RoadRage/App/Scenes/Bootstrap.unity", OpenSceneMode.Additive);
+                try
                 {
                     SceneManager.SetActiveScene(local);
                     var method = typeof(JunctionClearance).GetMethod("RoadTop", BindingFlags.NonPublic | BindingFlags.Static);
@@ -185,7 +192,12 @@ namespace RoadRage.Tests.EditMode
                     SceneManager.MoveGameObjectToScene(foreignRoad.gameObject, local);
                     Physics.SyncTransforms();
                     Assert.That(top(), Is.EqualTo(0f).Within(1e-4f), "La meme chaussee dans la scene locale est vue.");
-                });
+                }
+                finally
+                {
+                    SceneManager.SetActiveScene(local);
+                    EditorSceneManager.CloseScene(foreign, true);
+                }
             });
         }
 
@@ -532,9 +544,9 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(actual, Is.EqualTo(expected), "Le jeu des mouvements mesures doit egaler exactement celui de l'import V1.");
             });
 
-            var empty = result.Rows.Where(r => float.IsPositiveInfinity(r.Physical.Residual)).ToArray();
-            Assert.That(empty.All(r => r.PhysicalSetEmpty && string.IsNullOrEmpty(r.Physical.Obstacle)), Is.True,
-                "Chaque residu physique +infini (aucun obstacle participant) est publie explicitement, jamais silencieux.");
+            var empty = result.Rows.Where(r => r.PhysicalSetEmpty).ToArray();
+            Assert.That(empty, Is.Not.Empty, "Le residu physique +infini d'un ensemble vide est publie explicitement.");
+            Assert.That(empty.All(r => float.IsPositiveInfinity(r.Physical.Residual) && string.IsNullOrEmpty(r.Physical.Obstacle)), Is.True);
             var rightTurns = result.Rows.Where(r => r.Movement.Contains("(droite)"))
                 .GroupBy(r => r.Junction + "|" + r.Movement).Select(g => g.First()).ToArray();
             Assert.That(rightTurns.Length, Is.EqualTo(12));
@@ -569,55 +581,6 @@ namespace RoadRage.Tests.EditMode
             cells[1 * 3 + 2] = 0;
             cells[2 * 3 + 2] = 2;
             Assert.That(hasPair(1, 1), Is.False, "Une diagonale ne forme pas une bande contigue de deux cellules.");
-        }
-
-        [Test]
-        public void ANameOnlySidewalkVisualOutsideDeclaredRegionsFailsAndStaysQuietWithoutTheName()
-        {
-            WithMvpRun(scene =>
-            {
-                var module = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<Transform>(true))
-                    .First(t => t.name == "TJunction_South" && t.parent != null && t.parent.name == "LaneGraph");
-                var corner = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<BoxCollider>(true))
-                    .First(c => c.name == "Col_Sidewalk_Corner_SE" && HasAncestor(c.transform, "TJunction_South"));
-                float outward = Mathf.Sign(corner.bounds.center.z - module.position.z);
-                var visual = new GameObject("Sidewalk_ScratchUnknownLook");
-                var mesh = new Mesh();
-                try
-                {
-                    mesh.vertices = new[]
-                    {
-                        new Vector3(-0.2f, 0f, -0.2f), new Vector3(0.2f, 0f, -0.2f),
-                        new Vector3(0.2f, 0f, 0.2f), new Vector3(-0.2f, 0f, 0.2f)
-                    };
-                    mesh.triangles = new[] { 0, 2, 1, 0, 3, 2 };
-                    mesh.uv = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };
-                    visual.AddComponent<MeshFilter>().sharedMesh = mesh;
-                    visual.AddComponent<MeshRenderer>();
-                    visual.transform.SetParent(module, false);
-                    visual.transform.position = new Vector3(
-                        corner.bounds.center.x,
-                        0.5f,
-                        corner.bounds.center.z + outward * (corner.bounds.extents.z + 0.5f));
-                    Physics.SyncTransforms();
-
-                    var named = MeasureFresh(scene);
-                    Assert.That(named.Failures.Any(f => f.StartsWith("Visuel Sidewalk discordant TJunction_South", StringComparison.Ordinal)
-                        && f.Contains("trottoir visible non declare")), Is.True,
-                        "Un visuel nomme trottoir hors zone declaree est signale par la porte visuelle.");
-
-                    visual.name = "Road_ScratchUnknownLook";
-                    var neutral = MeasureFresh(scene);
-                    Assert.That(neutral.Failures.Any(f => f.StartsWith("Visuel Sidewalk discordant TJunction_South", StringComparison.Ordinal)), Is.False,
-                        "Le meme visuel sans nom authoring trottoir reste hors de la porte.");
-                }
-                finally
-                {
-                    UnityEngine.Object.DestroyImmediate(visual);
-                    UnityEngine.Object.DestroyImmediate(mesh);
-                    Physics.SyncTransforms();
-                }
-            });
         }
 
         [Test]
@@ -756,33 +719,6 @@ namespace RoadRage.Tests.EditMode
             });
         }
 
-        [Test]
-        public void CollisionMeshUvsDoNotInvalidateThePhysicalFingerprint()
-        {
-            WithScratchScene(() =>
-            {
-                var mesh = UnityEngine.Object.Instantiate(Resources.GetBuiltinResource<Mesh>("Cube.fbx"));
-                try
-                {
-                    var collision = new GameObject("Collision").AddComponent<MeshCollider>();
-                    collision.sharedMesh = mesh;
-                    var method = typeof(JunctionClearance).GetMethod("Fingerprint", BindingFlags.NonPublic | BindingFlags.Static);
-                    Assert.That(method, Is.Not.Null);
-                    Func<string> fingerprint = () => (string)method.Invoke(null, new object[] { new Component[] { collision }, "", 0 });
-                    string baseline = fingerprint();
-
-                    var uv = mesh.uv;
-                    uv[0] = new Vector2(uv[0].x + 0.25f, uv[0].y);
-                    mesh.uv = uv;
-                    Assert.That(fingerprint(), Is.EqualTo(baseline), "Les UV d'un mesh de collision restent hors de l'empreinte physique.");
-                }
-                finally
-                {
-                    UnityEngine.Object.DestroyImmediate(mesh);
-                }
-            });
-        }
-
         private static JunctionClearanceResult _measured;
 
         private static bool HasAncestor(Transform transform, string name)
@@ -814,31 +750,6 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(readFailures, Is.Empty);
             }
             return JunctionClearance.Measure(scene, migration.Import, model, sidewalks);
-        }
-
-        /// <summary>
-        /// Ouvre Bootstrap en additif pour un test de scene etrangere ; ferme uniquement ce que ce test a
-        /// ouvert, refusant une instance deja ouverte et modifiee (motif de WithMvpRun).
-        /// </summary>
-        private static void WithBootstrapScene(Action<Scene> body)
-        {
-            const string bootstrap = "Assets/RoadRage/App/Scenes/Bootstrap.unity";
-            var alreadyOpen = SceneManager.GetSceneByPath(bootstrap);
-            bool wasOpen = alreadyOpen.IsValid() && alreadyOpen.isLoaded;
-            if (wasOpen)
-            {
-                Assert.That(alreadyOpen.isDirty, Is.False, "Bootstrap est ouvert avec des modifications non sauvegardees.");
-            }
-
-            var scene = wasOpen ? alreadyOpen : EditorSceneManager.OpenScene(bootstrap, OpenSceneMode.Additive);
-            try
-            {
-                body(scene);
-            }
-            finally
-            {
-                if (!wasOpen) EditorSceneManager.CloseScene(scene, true);
-            }
         }
 
         private static void WithMvpRun(Action<Scene> body)
