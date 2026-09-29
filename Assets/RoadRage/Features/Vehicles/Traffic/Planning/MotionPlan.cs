@@ -7,7 +7,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
     public enum VehicleCoverage { NotEstablished }
     public enum MotionIssue { None, HorizonNonConforming, InvalidSteeringCeiling, GateAEvidenceMissing,
         GateAEvidenceStale, NotCoveredByGateA }
-    public enum SpeedProfileIssue { None, InvalidSpeedProfile, AccelerationBoundExceeded, SteeringCeilingExceeded }
+    // PlanInfeasible est ajoute en fin : le plan ne permet aucun verdict (la cause exacte est PlanIssue).
+    public enum SpeedProfileIssue { None, InvalidSpeedProfile, AccelerationBoundExceeded, SteeringCeilingExceeded,
+        PlanInfeasible }
     [Flags]
     public enum MotionDiagnostic { None = 0, SteeringInactiveSpan = 1, HorizonTruncated = 2 }
 
@@ -45,8 +47,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         public readonly SpeedProfileIssue Issue;
         public readonly float DistanceMeters;
         public readonly MotionDiagnostic Diagnostics;
-        internal SpeedProfileResult(SpeedProfileIssue issue, float distance, MotionDiagnostic diagnostics)
-        { Issue = issue; DistanceMeters = distance; Diagnostics = diagnostics; }
+        /// <summary>Cause exacte de l'infaisabilite quand <see cref="Issue"/> vaut PlanInfeasible, sinon None.</summary>
+        public readonly MotionIssue PlanIssue;
+        internal SpeedProfileResult(SpeedProfileIssue issue, float distance, MotionDiagnostic diagnostics,
+            MotionIssue planIssue = MotionIssue.None)
+        { Issue = issue; DistanceMeters = distance; Diagnostics = diagnostics; PlanIssue = planIssue; }
     }
 
     /// <summary>Geometric constraints and a candidate checker; no speed profile is generated.</summary>
@@ -102,6 +107,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         public SpeedProfileResult VerifySpeedProfile(IReadOnlyList<SpeedProfilePoint> candidate,
             LongitudinalBounds bounds)
         {
+            // Un plan infaisable ne juge aucun candidat : jamais None, et la cause reste nommee.
+            if (Issue != MotionIssue.None)
+                return new SpeedProfileResult(SpeedProfileIssue.PlanInfeasible, IssueDistanceMeters, Diagnostics, Issue);
             if (candidate == null || candidate.Count < 2 || !bounds.Valid)
                 return new SpeedProfileResult(SpeedProfileIssue.InvalidSpeedProfile, 0f, Diagnostics);
             for (int i = 0; i < candidate.Count; i++)
@@ -115,13 +123,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                     return new SpeedProfileResult(SpeedProfileIssue.InvalidSpeedProfile, p.DistanceMeters, Diagnostics);
             }
 
+            // Un candidat partiel laisserait des portions de l'horizon non jugees.
+            if (candidate[0].DistanceMeters > PlanningTolerances.ProfileSpanToleranceMeters)
+                return new SpeedProfileResult(SpeedProfileIssue.InvalidSpeedProfile, 0f, Diagnostics);
+            if (candidate[candidate.Count - 1].DistanceMeters < Path.LengthMeters - PlanningTolerances.ProfileSpanToleranceMeters)
+                return new SpeedProfileResult(SpeedProfileIssue.InvalidSpeedProfile,
+                    candidate[candidate.Count - 1].DistanceMeters, Diagnostics);
+
             for (int i = 1; i < candidate.Count; i++)
             {
                 var a = candidate[i - 1]; var b = candidate[i];
                 double acceleration = ((double)b.SpeedMetersPerSecond * b.SpeedMetersPerSecond
                     - (double)a.SpeedMetersPerSecond * a.SpeedMetersPerSecond)
                     / (2d * (b.DistanceMeters - a.DistanceMeters));
-                if (acceleration > bounds.MaxAcceleration || acceleration < -bounds.MaxDeceleration)
+                if (acceleration > bounds.MaxAcceleration + PlanningTolerances.AccelerationBoundToleranceMetersPerSecondSquared
+                    || acceleration < -(bounds.MaxDeceleration + PlanningTolerances.AccelerationBoundToleranceMetersPerSecondSquared))
                     return new SpeedProfileResult(SpeedProfileIssue.AccelerationBoundExceeded, b.DistanceMeters, Diagnostics);
             }
 

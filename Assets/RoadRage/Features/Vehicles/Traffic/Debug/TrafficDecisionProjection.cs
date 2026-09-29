@@ -22,8 +22,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         public RoadId NextMovementId { get; }
         public string PathPlanId { get; }
         public string MotionPlanId { get; }
-        public GateAEvidenceStatus EvidenceStatus { get; }
-        public ReferenceCoverage ReferenceCoverage { get; }
+        /// <summary>Null quand aucune liaison n'a ete evaluee (pas de plan de route).</summary>
+        public GateAEvidenceStatus? EvidenceStatus { get; }
+        /// <summary>Null quand aucune couverture n'a ete evaluee (pas de plan de route).</summary>
+        public ReferenceCoverage? ReferenceCoverage { get; }
         public VehicleCoverage VehicleCoverage { get; }
         public string SteeringCeilingText { get; }
         public string Code { get; }
@@ -45,18 +47,24 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
             string key = frameId.ToString(CultureInfo.InvariantCulture) + ":" + trafficId;
             PathPlanId = motion == null ? "aucun" : key + ":path";
             MotionPlanId = motion == null ? "aucun" : key + ":motion";
-            EvidenceStatus = motion == null ? GateAEvidenceStatus.GateAEvidenceMissing : motion.Evidence.Status;
-            ReferenceCoverage = motion == null ? ReferenceCoverage.GateAEvidenceMissing : motion.ReferenceCoverage;
+            if (motion != null)
+            {
+                EvidenceStatus = motion.Evidence.Status;
+                ReferenceCoverage = motion.ReferenceCoverage;
+            }
             VehicleCoverage = VehicleCoverage.NotEstablished;
             float minimum = float.PositiveInfinity;
             if (motion != null)
                 foreach (var interval in motion.Path.Intervals)
                     foreach (var point in interval.Points)
                         minimum = Math.Min(minimum, point.SteeringCeilingMetersPerSecond);
-            SteeringCeilingText = float.IsPositiveInfinity(minimum) ? "aucun"
+            SteeringCeilingText = motion == null ? NotEvaluated
+                : float.IsPositiveInfinity(minimum) ? "aucun"
                 : minimum.ToString("R", CultureInfo.InvariantCulture) + " m/s";
             Code = code;
         }
+
+        private const string NotEvaluated = "non evalue";
 
         private static RouteOccurrence[] Copy(IReadOnlyList<RouteOccurrence> source)
         {
@@ -80,7 +88,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
             text.Append('\n').Append("Next movement ").Append(NextMovementId).Append('\n');
             text.Append("Path/Motion plan ").Append(PathPlanId).Append(" / ").Append(MotionPlanId).Append('\n');
             text.Append("Steering ceiling ").Append(SteeringCeilingText).Append('\n');
-            text.Append("Gate A ").Append(EvidenceStatus).Append(" / reference ").Append(ReferenceCoverage)
+            text.Append("Gate A ").Append(EvidenceStatus.HasValue ? EvidenceStatus.Value.ToString() : NotEvaluated)
+                .Append(" / reference ")
+                .Append(ReferenceCoverage.HasValue ? ReferenceCoverage.Value.ToString() : NotEvaluated)
                 .Append(" / vehicle ").Append(VehicleCoverage).Append('\n');
             text.Append("Code ").Append(Code);
             return text.ToString();

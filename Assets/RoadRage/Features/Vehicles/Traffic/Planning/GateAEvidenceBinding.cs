@@ -6,7 +6,8 @@ using UnityEngine;
 
 namespace RoadRage.Features.Vehicles.Traffic.Planning
 {
-    public enum GateAEvidenceStatus { Valid, GateAEvidenceMissing, GateAEvidenceStale }
+    // GateAEvidenceMissing reste a 0 : un GateAEvidenceResult par defaut ne vaut jamais preuve valide.
+    public enum GateAEvidenceStatus { GateAEvidenceMissing, Valid, GateAEvidenceStale }
 
     public readonly struct GateAEvidenceResult
     {

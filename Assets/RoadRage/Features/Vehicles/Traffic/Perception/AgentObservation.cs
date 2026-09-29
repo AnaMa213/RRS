@@ -5,6 +5,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
         public readonly ulong FrameId;
         public readonly RoadId TrafficId;
         public readonly RoadLocation Location;
+        /// <summary>Vitesse signee le long de l'avant de l'empreinte. Aucun consommateur de plan ne la lit comme vitesse de progression.</summary>
         public readonly float TangentialSpeedMetersPerSecond;
         public readonly VehicleFootprint Footprint;
 

@@ -45,6 +45,7 @@ namespace RoadRage.Tests.EditMode
             string report = File.ReadAllText("_bmad-output/implementation-artifacts/migration-report-5-28-mvp-run.md");
             var model = RoadModelCompiler.Compile(RoadModelDocument.Load(modelText));
             int entries = 0;
+            var observedRing = new HashSet<string>();
             foreach (var entry in model.Portals.Where(p => p.Role == PortalRole.Entry))
             {
                 entries++;
@@ -75,7 +76,25 @@ namespace RoadRage.Tests.EditMode
                         RoadId.None, new RouteSeed(7), 10000f, modelText, signoff, report,
                         default(RoadRage.Features.Vehicles.DriverProfile), bounds: new LongitudinalBounds(2f, 3f)));
                     Assert.That(decision.Route.Plan, Is.Not.Null, occurrence.Id.ToString());
+                    // Reutilisation : meme sortie, memes occurrences, progression sur l'occurrence courante.
+                    var reused = decision.Route.Plan;
+                    Assert.That(decision.Route.Outcome, Is.EqualTo(RouteOutcome.Planned), occurrence.Id.ToString());
+                    Assert.That(decision.Route.Reason, Is.EqualTo(RouteReason.Requested), occurrence.Id.ToString());
+                    Assert.That(reused.ExitPortalId, Is.EqualTo(initial.ExitPortalId));
+                    Assert.That(reused.Occurrences.Count, Is.EqualTo(initial.Occurrences.Count));
+                    Assert.That(reused.ProgressOccurrenceIndex, Is.LessThanOrEqualTo(i));
+                    Assert.That(reused.Occurrences[reused.ProgressOccurrenceIndex].Id, Is.EqualTo(occurrence.Id));
                     Assert.That(decision.Path.Issue, Is.EqualTo(PathIssue.None), occurrence.Id.ToString());
+                    // L'horizon atteint le portail de sortie, par les occurrences restantes et rien d'autre.
+                    Assert.That(decision.Path.End, Is.EqualTo(HorizonEnd.ExitPortal), occurrence.Id.ToString());
+                    Assert.That(decision.Path.Intervals.Count,
+                        Is.EqualTo(reused.Occurrences.Count - reused.ProgressOccurrenceIndex));
+                    Assert.That(decision.Path.Intervals[decision.Path.Intervals.Count - 1].Id,
+                        Is.EqualTo(reused.Occurrences[reused.Occurrences.Count - 1].Id));
+                    float remaining = reused.Occurrences[reused.ProgressOccurrenceIndex].EndSMeters - reused.ProgressSMeters;
+                    for (int r = reused.ProgressOccurrenceIndex + 1; r < reused.Occurrences.Count; r++)
+                        remaining += reused.Occurrences[r].EndSMeters - reused.Occurrences[r].StartSMeters;
+                    Assert.That(decision.Path.LengthMeters, Is.EqualTo(remaining).Within(.01f), occurrence.Id.ToString());
                     Assert.That(decision.Motion.ReferenceCoverage, Is.EqualTo(ReferenceCoverage.Covered));
                     Assert.That(decision.Motion.VehicleCoverage, Is.EqualTo(VehicleCoverage.NotEstablished));
                     foreach (var interval in decision.Path.Intervals)
@@ -86,19 +105,31 @@ namespace RoadRage.Tests.EditMode
                             Assert.That(point.SteeringCeilingMetersPerSecond, Is.GreaterThanOrEqualTo(
                                 model.DrivabilityProfile.SteeringInactiveBelowMetersPerSecond));
                     }
-                    foreach (var seam in decision.Path.Seams)
+                    for (int j = 0; j < decision.Path.Seams.Count; j++)
                     {
+                        var seam = decision.Path.Seams[j];
                         Assert.That(seam.GapMeters, Is.LessThanOrEqualTo(model.ValidationProfile.SeamGapToleranceMeters));
                         Assert.That(seam.TangentJumpDegrees,
                             Is.LessThanOrEqualTo(model.ValidationProfile.SeamTangentToleranceDegrees));
-                        Assert.That(Math.Abs(seam.CurvatureJumpPerMeter),
-                            Is.LessThanOrEqualTo(PlanningTolerances.SeamCurvatureJumpPerMeter).Or.EqualTo(
-                                PlanningTolerances.RoundaboutCurvaturePerMeter).Within(.001f));
+                        bool jump = Math.Abs(seam.CurvatureJumpPerMeter) > PlanningTolerances.SeamCurvatureJumpPerMeter;
+                        // Une discontinuite n'est publiee que sur un raccord de l'anneau signe, avec v* = min des deux cotes.
+                        Assert.That(seam.RoundaboutDiscontinuity, Is.EqualTo(jump));
+                        if (!jump) continue;
+                        Assert.That(Math.Abs(seam.CurvatureJumpPerMeter), Is.EqualTo(
+                            PlanningTolerances.RoundaboutCurvaturePerMeter).Within(PlanningTolerances.SeamCurvatureJumpPerMeter));
+                        Assert.That(seam.MinimumCeilingMetersPerSecond, Is.EqualTo(
+                            Math.Min(seam.LeftCeilingMetersPerSecond, seam.RightCeilingMetersPerSecond)));
+                        var left = decision.Path.Intervals[j];
+                        var right = decision.Path.Intervals[j + 1];
+                        observedRing.Add(left.Kind == RoadElementKind.JunctionMovement
+                            ? left.Id + ":exit" : right.Id + ":entry");
                     }
                 }
                 Assert.That(decision.Route.Plan.ExitPortalId, Is.Not.EqualTo(RoadId.None));
             }
             Assert.That(entries, Is.EqualTo(4));
+            Assert.That(observedRing, Is.Not.Empty);
+            Assert.That(observedRing.IsSubsetOf(ExpectedRingDiscontinuities), Is.True);
         }
 
         [Test]

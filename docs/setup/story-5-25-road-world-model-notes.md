@@ -32,8 +32,20 @@ Traffic imposerait une reference de Traffic vers la feature Vehicles ou le depla
 du profil V1 retenu. Le banc oracle 5.24 garde V1 et V2 dans la meme portee. Aucun
 `.asmdef` n'est ajoute et la chaine 5.30 ne lit ni ne compose `VehicleDriveIntent`.
 
-## Ce que la story livre
+Mesure du 2026-09-29 sous `Assets/RoadRage/Features/Vehicles/Traffic/` (recherche textuelle sur les `.cs`) :
 
+| Mesure | Resultat |
+| --- | --- |
+| Fichiers referencant `DriverProfile` | 1 : `PlanningSpine.cs` (bornes longitudinales par defaut) |
+| Fichiers referencant `VehicleDriveIntent` | 0 |
+| `.asmdef` sous `Traffic/` | 0 ; le code compile dans `RoadRage.Features.Vehicles` (`Features/Vehicles/RoadRage.Features.Vehicles.asmdef`) |
+
+La seule dependance sortante est donc `PlanningSpine.cs` vers `DriverProfile`, un type V1 retenu de
+la meme feature. Extraire Traffic ferait referencer la feature Vehicles depuis un assembly qui en
+est aujourd'hui une partie, ce que la convention interdit ; deplacer `DriverProfile` est exclu par
+`epics.md:1676`.
+
+## Ce que la story livre
 
 | Fichier | Role |
 | --- | --- |

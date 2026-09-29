@@ -187,7 +187,7 @@ development_status:
   # 5.28 stays in-progress.
   5-51-junction-corner-clearance-for-right-turns: done
   5-29-deterministic-strategic-route-plan: done
-  5-30-traffic-v2-planning-and-runtime-spine-foundation: review
+  5-30-traffic-v2-planning-and-runtime-spine-foundation: done
   5-31-first-driven-traffic-v2-vertical-slice-portal-to-portal: backlog
   5-32-perception-boundary-occupancy-leader-and-hazards: backlog
   5-33-vehicle-following-through-named-speed-constraints: backlog

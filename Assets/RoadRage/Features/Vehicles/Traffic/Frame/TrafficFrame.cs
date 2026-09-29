@@ -7,6 +7,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
     {
         public readonly RoadId TrafficId;
         public readonly VehicleFootprintPose Pose;
+        /// <summary>Vitesse signee le long de l'avant de l'empreinte (negative en marche arriere). Ce n'est pas la vitesse de progression sur la route.</summary>
         public readonly float TangentialSpeedMetersPerSecond;
         public readonly RoadId PreviousElementId;
 
@@ -58,8 +59,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
             {
                 if (inputs[i].TrafficId.IsEmpty) throw new ArgumentException("EmptyTrafficId", "inputs");
                 if (float.IsNaN(inputs[i].TangentialSpeedMetersPerSecond)
-                    || float.IsInfinity(inputs[i].TangentialSpeedMetersPerSecond)
-                    || inputs[i].TangentialSpeedMetersPerSecond < 0f)
+                    || float.IsInfinity(inputs[i].TangentialSpeedMetersPerSecond))
                     throw new ArgumentException("InvalidSpeed", "inputs");
                 ordered.Add(inputs[i]);
             }

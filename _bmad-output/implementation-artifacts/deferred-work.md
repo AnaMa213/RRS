@@ -467,3 +467,18 @@ evidence: Revue d'overlay 5.28 : V1 a connu des interblocages face a face sur gi
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-29-deterministic-strategic-route-plan.md`
   summary: Le graphe Graphify livre avec la story (mise a jour 2026-09-29 : 227 fichiers, 5 326 noeuds, 14 240 liens) depasse le seuil utile de 5 000 noeuds documente dans `AGENTS.md`, loin des 2 820 noeuds mesures le 2026-09-18. La Verification constate le franchissement (« vue agregee au-dela du seuil utile ») sans relier l'etat livre au seuil ni arreter de suite (elagage, decoupage par domaine, ou acceptation de la vue agregee). Les nouvelles exclusions `.graphifyignore` (Assets/Editor/, AgentScripts/) sont bien absentes du graphe courant.
   evidence: Releve par `blind-hunter` et `verification-gap` (revue du 2026-09-29). L'etat du graphe est cumulatif au projet, pas propre aux sources de la 5.29 ; le seuil et la politique d'agregation appartiennent au proprietaire de l'outillage. CONDITION DE REOUVERTURE : prochaine mise a jour Graphify significative, ou decision de seuil/elagage.
+
+## Deferred from: code review of story-5-30-traffic-v2-planning-and-runtime-spine-foundation (2026-09-29)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-30-traffic-v2-planning-and-runtime-spine-foundation.md`
+  summary: Les 24 raccords d'anneau signes sont des identifiants `MVP_Run` codes en dur dans `PathHorizon.SignedRingSeams` (dupliques dans `Story530PlanningReplayTests`). Tout modele regenere ou different perd ou classe mal ces raccords (`SeamCurvature`).
+  evidence: Releve par `acceptance-auditor` et `blind-hunter`. La decision proprietaire du 2026-09-29 epingle bien les 24 raccords ; le lieu de la liste (code ou donnee signee) n'est pas tranche. CONDITION DE REOUVERTURE : regeneration du modele ou re-signature Gate A (5.31).
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-30-traffic-v2-planning-and-runtime-spine-foundation.md`
+  summary: `PlanningSpine.Evaluate` appelle `GateAEvidenceBinding.Bind` a chaque decision : SHA-256 du texte du modele, `JsonUtility` et decoupage du rapport, par vehicule et par frame ; la projection est aussi construite a chaque decision meme sans lecteur.
+  evidence: Releve par `blind-hunter`. Sans objet tant que la 5.30 n'a pas de chemin runtime (Design Notes « Portee runtime »). CONDITION DE REOUVERTURE : transport runtime de la liaison (5.31), avec cache du resultat de `Bind` par modele.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-30-traffic-v2-planning-and-runtime-spine-foundation.md`
+  summary: L'analyse du rapport Gate A repose sur des ancres litterales (`### Residus\n`, `\na_e = `, `\n| Genre |`, terminateur `\n\n`) ; l'unite apres a_e n'est pas validee ; tout CRLF, meme hors du bloc hache, donne `GateAEvidenceStale`.
+  evidence: Releve par `edge-case-hunter`, `acceptance-auditor` et `blind-hunter`. Echec ferme, `.gitattributes` impose `eol=lf` et le hash du bloc garde l'unite. CONDITION DE REOUVERTURE : transport runtime de la liaison (5.31).
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-30-traffic-v2-planning-and-runtime-spine-foundation.md`
+  summary: `PathPoint.SteeringCeilingMetersPerSecond` porte +∞ comme un `float` ; `Unbounded` n'en est qu'un booleen derive, alors que la spec exige qu'un v* = +∞ ne soit « jamais une vitesse ». Seule la projection l'affiche « aucun ».
+  evidence: Releve par `acceptance-auditor`. La forme de l'API (type dedie ou nullable) depend de la lecture qu'en fera le planificateur. CONDITION DE REOUVERTURE : premier consommateur de `PathPoint` (5.31).
