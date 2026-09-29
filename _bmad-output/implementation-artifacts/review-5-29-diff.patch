@@ -1,0 +1,1265 @@
+﻿diff --git a/.graphifyignore b/.graphifyignore
+index c6796a3..80e8a6d 100644
+--- a/.graphifyignore
++++ b/.graphifyignore
+@@ -55,6 +55,8 @@ graphify-out/
+ Assets/Synty/
+ Assets/Awbmecreations/
+ Assets/TutorialInfo/
++Assets/Editor/
++AgentScripts/
+ 
+ # --- Second passage (2026-09-18) : fuites mesurees apres le premier rescope ---
+ 
+diff --git a/Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs b/Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs
+index f82b9a6..adcfda4 100644
+--- a/Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs
++++ b/Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs
+@@ -405,6 +405,13 @@ public static IReadOnlyList<RoadModelValidationIssue> Validate(RoadModelSource s
+                 ResolveReference(issues, kindById, movement.ToCorridorId, RoadRecordKind.Corridor, movement.Id, "JunctionMovement.ToCorridorId");
+                 CheckFinite(issues, movement.LengthMeters, movement.Id, "JunctionMovement.LengthMeters");
+                 CheckFinite(issues, movement.RoutePreferenceWeight, movement.Id, "JunctionMovement.RoutePreferenceWeight");
++                if (IsFinite(movement.RoutePreferenceWeight) && movement.RoutePreferenceWeight < 0f)
++                {
++                    issues.Add(new RoadModelValidationIssue(
++                        RoadModelValidationCode.NumericValueOutOfRange,
++                        movement.Id,
++                        "JunctionMovement.RoutePreferenceWeight doit etre positif ou nul."));
++                }
+                 CheckSamples(issues, movement.Samples, movement.Id, "JunctionMovement");
+             }
+ 
+diff --git a/Assets/RoadRage/Features/Vehicles/Traffic/Routing.meta b/Assets/RoadRage/Features/Vehicles/Traffic/Routing.meta
+new file mode 100644
+index 0000000..5b34f46
+--- /dev/null
++++ b/Assets/RoadRage/Features/Vehicles/Traffic/Routing.meta
+@@ -0,0 +1,8 @@
++fileFormatVersion: 2
++guid: 46c292e12cf128a48903ebc04ad3f226
++folderAsset: yes
++DefaultImporter:
++  externalObjects: {}
++  userData:
++  assetBundleName:
++  assetBundleVariant:
+diff --git a/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs b/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs
+new file mode 100644
+index 0000000..301259f
+--- /dev/null
++++ b/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs
+@@ -0,0 +1,98 @@
++using System;
++using System.Collections.Generic;
++
++namespace RoadRage.Features.Vehicles.Traffic.Routing
++{
++    public enum RouteOutcome { Planned = 0, Replanned = 1, NoRoute = 2, InvalidInput = 3 }
++    public enum RouteReason { Requested = 0, StalePlan = 1, InvalidStart = 2, StaleLocalization = 3,
++        DestinationUnavailable = 4, DestinationUnreachable = 5 }
++
++    [Flags]
++    public enum RouteDiagnostic { None = 0, ZeroWeightFallback = 1 }
++
++    /// <summary>Une visite dirigee ; une meme identite peut apparaitre plusieurs fois apres une boucle.</summary>
++    public readonly struct RouteOccurrence
++    {
++        public readonly RoadElementKind Kind;
++        public readonly RoadId Id;
++        public readonly float StartSMeters;
++        public readonly float EndSMeters;
++
++        public RouteOccurrence(RoadElementKind kind, RoadId id, float startSMeters, float endSMeters)
++        {
++            Kind = kind;
++            Id = id;
++            StartSMeters = startSMeters;
++            EndSMeters = endSMeters;
++        }
++    }
++
++    public sealed class RoutePlan
++    {
++        public RoadId ModelId { get; }
++        public RoadModelVersion ModelVersion { get; }
++        public RoadId TrafficId { get; }
++        public RoadId ExitPortalId { get; }
++        public RouteReason Reason { get; }
++        public IReadOnlyList<RouteOccurrence> Occurrences { get; }
++        public int ProgressOccurrenceIndex { get; }
++        public float ProgressSMeters { get; }
++        public double DistanceMeters { get; }
++        public double PreferenceCost { get; }
++        public double TotalCost { get { return DistanceMeters + PreferenceCost; } }
++        public RouteDiagnostic Diagnostics { get; }
++
++        internal RoutePlan(RoadId modelId, RoadModelVersion version, RoadId trafficId, RoadId exitPortalId, RouteReason reason,
++            List<RouteOccurrence> occurrences, double distanceMeters, double preferenceCost, RouteDiagnostic diagnostics)
++        {
++            ModelId = modelId;
++            ModelVersion = version;
++            TrafficId = trafficId;
++            ExitPortalId = exitPortalId;
++            Reason = reason;
++            Occurrences = occurrences.AsReadOnly();
++            ProgressOccurrenceIndex = 0;
++            ProgressSMeters = occurrences[0].StartSMeters;
++            DistanceMeters = distanceMeters;
++            PreferenceCost = preferenceCost;
++            Diagnostics = diagnostics;
++        }
++
++        private RoutePlan(RoutePlan source, int occurrenceIndex, float sMeters)
++        {
++            ModelId = source.ModelId;
++            ModelVersion = source.ModelVersion;
++            TrafficId = source.TrafficId;
++            ExitPortalId = source.ExitPortalId;
++            Reason = source.Reason;
++            Occurrences = source.Occurrences;
++            ProgressOccurrenceIndex = occurrenceIndex;
++            ProgressSMeters = sMeters;
++            DistanceMeters = source.DistanceMeters;
++            PreferenceCost = source.PreferenceCost;
++            Diagnostics = source.Diagnostics;
++        }
++
++        internal RoutePlan Advance(int occurrenceIndex, float sMeters)
++        {
++            return occurrenceIndex == ProgressOccurrenceIndex && sMeters == ProgressSMeters
++                ? this : new RoutePlan(this, occurrenceIndex, sMeters);
++        }
++    }
++
++    public readonly struct RouteResult
++    {
++        public readonly RouteOutcome Outcome;
++        public readonly RouteReason Reason;
++        public readonly RouteDiagnostic Diagnostics;
++        public readonly RoutePlan Plan;
++
++        internal RouteResult(RouteOutcome outcome, RouteReason reason, RoutePlan plan)
++        {
++            Outcome = outcome;
++            Reason = reason;
++            Plan = plan;
++            Diagnostics = plan == null ? RouteDiagnostic.None : plan.Diagnostics;
++        }
++    }
++}
+diff --git a/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs.meta b/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs.meta
+new file mode 100644
+index 0000000..3cd8555
+--- /dev/null
++++ b/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs.meta
+@@ -0,0 +1,2 @@
++fileFormatVersion: 2
++guid: c730e981c0024204494d4dd4b0e43a66
+\ No newline at end of file
+diff --git a/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs b/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs
+new file mode 100644
+index 0000000..1b181ce
+--- /dev/null
++++ b/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs
+@@ -0,0 +1,418 @@
++using System;
++using System.Collections.Generic;
++
++namespace RoadRage.Features.Vehicles.Traffic.Routing
++{
++    /// <summary>Planification pure sur les liens diriges du modele compile.</summary>
++    public static class RoutePlanner
++    {
++        private sealed class Edge
++        {
++            public RoadId Id;
++            public RoadId From;
++            public RoadId To;
++            public RoadElementKind Kind;
++            public float MovementLength;
++            public float Weight;
++            public double Preference;
++            public bool ZeroFallback;
++        }
++
++        private sealed class Node
++        {
++            public RoadId Id;
++            public float Length;
++            public readonly List<Edge> Edges = new List<Edge>();
++            public readonly List<Portal> Portals = new List<Portal>();
++            public double Cost = double.PositiveInfinity;
++            public Edge Next;
++            public Portal? Exit;
++        }
++
++        public static RouteResult Plan(CompiledRoadModel model, RoadLocation location, RoadId destinationExitId,
++            ulong sessionSeed, RoadId trafficId, string decisionDomain, ulong decisionCounter,
++            RoutePlan existing = null, bool replan = false, IReadOnlyCollection<RoadId> closedPortalIds = null)
++        {
++            if (model == null || trafficId.IsEmpty || string.IsNullOrEmpty(decisionDomain))
++                return new RouteResult(RouteOutcome.InvalidInput, RouteReason.InvalidStart, null);
++
++            if (location.ModelId != model.ModelId || location.ModelVersion != model.Version)
++                return new RouteResult(RouteOutcome.InvalidInput, RouteReason.StaleLocalization, null);
++
++            float startLength;
++            CompiledJunctionMovement startMovement = default(CompiledJunctionMovement);
++            EffectiveLaneCorridor startCorridor;
++            if (!location.Localized || location.ElementKind == RoadElementKind.None || location.ElementId.IsEmpty)
++                return new RouteResult(RouteOutcome.InvalidInput, RouteReason.InvalidStart, null);
++            if (location.ElementKind == RoadElementKind.LaneCorridor && model.TryGetCorridor(location.ElementId, out startCorridor))
++                startLength = startCorridor.LengthMeters;
++            else if (location.ElementKind == RoadElementKind.JunctionMovement && model.TryGetMovement(location.ElementId, out startMovement))
++                startLength = startMovement.LengthMeters;
++            else
++                return new RouteResult(RouteOutcome.InvalidInput, RouteReason.InvalidStart, null);
++            if (float.IsNaN(location.SMeters) || float.IsInfinity(location.SMeters)
++                || location.SMeters < 0f || location.SMeters > startLength)
++                return new RouteResult(RouteOutcome.InvalidInput, RouteReason.InvalidStart, null);
++
++            var portals = new List<Portal>();
++            for (int i = 0; i < model.Portals.Count; i++)
++            {
++                var portal = model.Portals[i];
++                EffectiveLaneCorridor portalCorridor;
++                if (portal.Role == PortalRole.Exit && (destinationExitId.IsEmpty || portal.Id == destinationExitId)
++                    && !IsClosed(portal.Id, closedPortalIds)
++                    && model.TryGetCorridor(portal.CorridorId, out portalCorridor)
++                    && portal.SMeters <= portalCorridor.LengthMeters)
++                    portals.Add(portal);
++            }
++            if (portals.Count == 0)
++                return new RouteResult(RouteOutcome.NoRoute, RouteReason.DestinationUnavailable, null);
++
++            RoutePlan reused = null;
++            bool stale = existing != null && (IsClosed(existing.ExitPortalId, closedPortalIds)
++                || !TryReuse(existing, model, location, destinationExitId, trafficId, out reused));
++            if (existing != null && !stale && !replan)
++                return new RouteResult(RouteOutcome.Planned, RouteReason.Requested, reused);
++
++            var nodes = new Dictionary<RoadId, Node>();
++            for (int i = 0; i < model.Corridors.Count; i++)
++            {
++                var corridor = model.Corridors[i];
++                nodes.Add(corridor.CorridorId, new Node { Id = corridor.CorridorId, Length = corridor.LengthMeters });
++            }
++            for (int i = 0; i < model.Connections.Count; i++)
++            {
++                var connection = model.Connections[i];
++                nodes[connection.FromCorridorId].Edges.Add(new Edge {
++                    Id = connection.Id, From = connection.FromCorridorId, To = connection.ToCorridorId,
++                    Kind = RoadElementKind.None, Weight = 1f });
++            }
++            for (int i = 0; i < model.Movements.Count; i++)
++            {
++                var movement = model.Movements[i];
++                nodes[movement.FromCorridorId].Edges.Add(new Edge {
++                    Id = movement.Id, From = movement.FromCorridorId, To = movement.ToCorridorId,
++                    Kind = RoadElementKind.JunctionMovement, MovementLength = movement.LengthMeters,
++                    Weight = movement.RoutePreferenceWeight });
++            }
++            for (int i = 0; i < portals.Count; i++)
++                nodes[portals[i].CorridorId].Portals.Add(portals[i]);
++
++            var ordered = new List<Node>(nodes.Values);
++            ordered.Sort((a, b) => a.Id.CompareTo(b.Id));
++            for (int i = 0; i < ordered.Count; i++)
++            {
++                ordered[i].Edges.Sort((a, b) => a.Id.CompareTo(b.Id));
++                ordered[i].Portals.Sort((a, b) => a.Id.CompareTo(b.Id));
++            }
++
++            // Une continuation ne compte que si son suffixe atteint la sortie sans revenir au
++            // meme etat d'entree. Sinon un cycle positif masquerait une sortie a poids nul.
++            for (int i = 0; i < ordered.Count; i++)
++            {
++                var node = ordered[i];
++                bool hasPositive = false;
++                int feasible = 0;
++                for (int e = 0; e < node.Edges.Count; e++)
++                    if (CanReachWithout(nodes, node.Edges[e].To, node.Id))
++                    {
++                        feasible++;
++                        hasPositive |= node.Edges[e].Weight > 0f;
++                    }
++                for (int e = 0; e < node.Edges.Count; e++)
++                {
++                    var edge = node.Edges[e];
++                    if (!CanReachWithout(nodes, edge.To, node.Id) || (hasPositive && edge.Weight == 0f))
++                    {
++                        edge.Preference = double.PositiveInfinity;
++                        continue;
++                    }
++                    edge.ZeroFallback = !hasPositive && feasible > 0;
++                    edge.Preference = feasible <= 1 ? 0d : -Math.Log(UnitDraw(sessionSeed, trafficId, decisionDomain, decisionCounter, edge.Id))
++                        / (hasPositive ? edge.Weight : 1d);
++                }
++            }
++
++            for (int i = 0; i < ordered.Count; i++)
++                for (int p = 0; p < ordered[i].Portals.Count; p++)
++                    ConsiderPortal(ordered[i], ordered[i].Portals[p]);
++
++            // Bellman-Ford sur couts strictement positifs ; les cycles ne peuvent ameliorer un chemin.
++            for (int pass = 0; pass < ordered.Count; pass++)
++            {
++                bool changed = false;
++                for (int i = 0; i < ordered.Count; i++)
++                {
++                    var node = ordered[i];
++                    for (int e = 0; e < node.Edges.Count; e++)
++                    {
++                        var edge = node.Edges[e];
++                        double cost = node.Length + edge.MovementLength + edge.Preference + nodes[edge.To].Cost;
++                        if (cost < node.Cost)
++                        {
++                            node.Cost = cost;
++                            node.Next = edge;
++                            node.Exit = null;
++                            changed = true;
++                        }
++                    }
++                }
++                if (!changed) break;
++            }
++
++            var occurrences = new List<RouteOccurrence>();
++            double distance = 0d;
++            double preference = 0d;
++            RouteDiagnostic diagnostics = RouteDiagnostic.None;
++            Node current;
++            float s;
++            if (location.ElementKind == RoadElementKind.JunctionMovement)
++            {
++                current = nodes[startMovement.ToCorridorId];
++                if (double.IsInfinity(current.Cost))
++                    return new RouteResult(RouteOutcome.NoRoute, RouteReason.DestinationUnreachable, null);
++                occurrences.Add(new RouteOccurrence(RoadElementKind.JunctionMovement, location.ElementId,
++                    location.SMeters, startMovement.LengthMeters));
++                distance += startMovement.LengthMeters - location.SMeters;
++                s = 0f;
++            }
++            else
++            {
++                current = nodes[location.ElementId];
++                s = location.SMeters;
++            }
++
++            // Premiere visite partielle : le portail doit etre strictement devant s.
++            Portal? direct = null;
++            double best = double.PositiveInfinity;
++            for (int p = 0; p < current.Portals.Count; p++)
++            {
++                var portal = current.Portals[p];
++                if (portal.SMeters > s && portal.SMeters - s < best)
++                {
++                    direct = portal;
++                    best = portal.SMeters - s;
++                }
++            }
++            Edge firstEdge = null;
++            double firstPreference = 0d;
++            bool firstZeroFallback = false;
++            bool partialStart = s > 0f;
++            bool firstHasPositive = false;
++            int firstFeasible = 0;
++            for (int e = 0; e < current.Edges.Count; e++)
++            {
++                var edge = current.Edges[e];
++                if (partialStart ? !double.IsInfinity(nodes[edge.To].Cost) : !double.IsInfinity(edge.Preference))
++                {
++                    firstFeasible++;
++                    firstHasPositive |= edge.Weight > 0f;
++                }
++            }
++            for (int e = 0; e < current.Edges.Count; e++)
++            {
++                var edge = current.Edges[e];
++                bool feasibleEdge = partialStart ? !double.IsInfinity(nodes[edge.To].Cost)
++                    : !double.IsInfinity(edge.Preference);
++                if (!feasibleEdge || (firstHasPositive && edge.Weight == 0f)) continue;
++                double edgePreference = partialStart
++                    ? (firstFeasible <= 1 ? 0d : -Math.Log(UnitDraw(sessionSeed, trafficId,
++                        decisionDomain, decisionCounter, edge.Id)) / (firstHasPositive ? edge.Weight : 1d))
++                    : edge.Preference;
++                double cost = current.Length - s + edge.MovementLength + edgePreference + nodes[edge.To].Cost;
++                if (cost < best)
++                {
++                    best = cost;
++                    firstEdge = edge;
++                    firstPreference = edgePreference;
++                    firstZeroFallback = !firstHasPositive && firstFeasible > 0;
++                    direct = null;
++                }
++            }
++            if (double.IsInfinity(best))
++                return new RouteResult(RouteOutcome.NoRoute, RouteReason.DestinationUnreachable, null);
++
++            Edge selected = firstEdge;
++            double selectedPreference = firstPreference;
++            bool selectedZeroFallback = firstZeroFallback;
++            for (int visits = 0; visits <= ordered.Count; visits++)
++            {
++                if (selected == null)
++                {
++                    Portal portal = direct ?? current.Exit.Value;
++                    occurrences.Add(new RouteOccurrence(RoadElementKind.LaneCorridor, current.Id, s, portal.SMeters));
++                    distance += portal.SMeters - s;
++                    var reason = stale ? RouteReason.StalePlan : RouteReason.Requested;
++                    var plan = new RoutePlan(model.ModelId, model.Version, trafficId, portal.Id, reason, occurrences,
++                        distance, preference, diagnostics);
++                    return new RouteResult(existing != null || replan ? RouteOutcome.Replanned : RouteOutcome.Planned,
++                        reason, plan);
++                }
++                occurrences.Add(new RouteOccurrence(RoadElementKind.LaneCorridor, current.Id, s, current.Length));
++                distance += current.Length - s;
++                preference += selectedPreference;
++                if (selectedZeroFallback) diagnostics |= RouteDiagnostic.ZeroWeightFallback;
++                if (selected.Kind == RoadElementKind.JunctionMovement)
++                {
++                    occurrences.Add(new RouteOccurrence(RoadElementKind.JunctionMovement, selected.Id, 0f, selected.MovementLength));
++                    distance += selected.MovementLength;
++                }
++                current = nodes[selected.To];
++                s = 0f;
++                selected = current.Next;
++                if (selected != null)
++                {
++                    selectedPreference = selected.Preference;
++                    selectedZeroFallback = selected.ZeroFallback;
++                }
++                direct = null;
++            }
++            return new RouteResult(RouteOutcome.NoRoute, RouteReason.DestinationUnreachable, null);
++        }
++
++        private static void ConsiderPortal(Node node, Portal portal)
++        {
++            if (portal.SMeters > 0f && portal.SMeters < node.Cost)
++            {
++                node.Cost = portal.SMeters;
++                node.Exit = portal;
++                node.Next = null;
++            }
++        }
++
++        private static bool CanReachWithout(Dictionary<RoadId, Node> nodes, RoadId start, RoadId forbidden)
++        {
++            var seen = new HashSet<RoadId> { forbidden };
++            var stack = new Stack<RoadId>();
++            stack.Push(start);
++            while (stack.Count > 0)
++            {
++                RoadId id = stack.Pop();
++                if (!seen.Add(id)) continue;
++                var node = nodes[id];
++                for (int p = 0; p < node.Portals.Count; p++)
++                    if (node.Portals[p].SMeters > 0f) return true;
++                for (int e = 0; e < node.Edges.Count; e++)
++                    stack.Push(node.Edges[e].To);
++            }
++            return false;
++        }
++
++        private static bool IsClosed(RoadId portalId, IReadOnlyCollection<RoadId> closedPortalIds)
++        {
++            if (closedPortalIds == null) return false;
++            foreach (var id in closedPortalIds)
++                if (id == portalId) return true;
++            return false;
++        }
++
++        private static bool TryReuse(RoutePlan plan, CompiledRoadModel model, RoadLocation location,
++            RoadId destination, RoadId trafficId, out RoutePlan reused)
++        {
++            reused = null;
++            if (plan.ModelId != model.ModelId || plan.ModelVersion != model.Version || plan.Occurrences.Count == 0
++                || plan.TrafficId != trafficId || (!destination.IsEmpty && plan.ExitPortalId != destination)) return false;
++            if (plan.ProgressOccurrenceIndex < 0 || plan.ProgressOccurrenceIndex >= plan.Occurrences.Count)
++                return false;
++            int match = -1;
++            for (int i = 0; i < plan.Occurrences.Count; i++)
++            {
++                var occurrence = plan.Occurrences[i];
++                if (occurrence.Kind != location.ElementKind || occurrence.Id != location.ElementId) continue;
++                // Sans index de visite externe, un ID repete ne designe pas une occurrence unique.
++                if (match >= 0) return false;
++                match = i;
++            }
++            if (match < plan.ProgressOccurrenceIndex) return false;
++            var matched = plan.Occurrences[match];
++            if (match < 0 || location.SMeters < matched.StartSMeters || location.SMeters > matched.EndSMeters
++                || (match == plan.ProgressOccurrenceIndex && location.SMeters < plan.ProgressSMeters)) return false;
++            Portal exit = default(Portal);
++            bool found = false;
++            for (int i = 0; i < model.Portals.Count; i++)
++                if (model.Portals[i].Id == plan.ExitPortalId && model.Portals[i].Role == PortalRole.Exit)
++                {
++                    exit = model.Portals[i];
++                    found = true;
++                    break;
++                }
++            if (!found) return false;
++            for (int i = 0; i < plan.Occurrences.Count; i++)
++            {
++                var occurrence = plan.Occurrences[i];
++                float length;
++                EffectiveLaneCorridor corridor;
++                CompiledJunctionMovement movement = default(CompiledJunctionMovement);
++                if (occurrence.Kind == RoadElementKind.LaneCorridor && model.TryGetCorridor(occurrence.Id, out corridor))
++                    length = corridor.LengthMeters;
++                else if (occurrence.Kind == RoadElementKind.JunctionMovement && model.TryGetMovement(occurrence.Id, out movement))
++                    length = movement.LengthMeters;
++                else return false;
++                if (occurrence.StartSMeters < 0f || occurrence.EndSMeters > length
++                    || occurrence.EndSMeters < occurrence.StartSMeters) return false;
++                if (i + 1 < plan.Occurrences.Count && occurrence.EndSMeters != length) return false;
++                if (i + 1 < plan.Occurrences.Count)
++                {
++                    var next = plan.Occurrences[i + 1];
++                    if (next.StartSMeters != 0f) return false;
++                    if (occurrence.Kind == RoadElementKind.JunctionMovement)
++                    {
++                        if (next.Kind != RoadElementKind.LaneCorridor || next.Id != movement.ToCorridorId) return false;
++                    }
++                    else if (next.Kind == RoadElementKind.JunctionMovement)
++                    {
++                        if (!model.TryGetMovement(next.Id, out movement) || movement.FromCorridorId != occurrence.Id)
++                            return false;
++                    }
++                    else if (next.Kind == RoadElementKind.LaneCorridor)
++                    {
++                        bool connected = false;
++                        for (int c = 0; c < model.Connections.Count; c++)
++                            connected |= model.Connections[c].FromCorridorId == occurrence.Id
++                                && model.Connections[c].ToCorridorId == next.Id;
++                        if (!connected) return false;
++                    }
++                    else return false;
++                }
++            }
++            var last = plan.Occurrences[plan.Occurrences.Count - 1];
++            if (last.Kind != RoadElementKind.LaneCorridor || last.Id != exit.CorridorId
++                || last.EndSMeters != exit.SMeters || last.EndSMeters <= last.StartSMeters) return false;
++            reused = plan.Advance(match, location.SMeters);
++            return true;
++        }
++
++        private static double UnitDraw(ulong seed, RoadId trafficId, string domain, ulong counter, RoadId edgeId)
++        {
++            ulong hash = 14695981039346656037UL;
++            Mix(ref hash, seed);
++            Mix(ref hash, trafficId.High);
++            Mix(ref hash, trafficId.Low);
++            Mix(ref hash, counter);
++            for (int i = 0; i < domain.Length; i++) Mix(ref hash, domain[i]);
++            Mix(ref hash, edgeId.High);
++            Mix(ref hash, edgeId.Low);
++            unchecked
++            {
++                hash ^= hash >> 30;
++                hash *= 0xbf58476d1ce4e5b9UL;
++                hash ^= hash >> 27;
++                hash *= 0x94d049bb133111ebUL;
++                hash ^= hash >> 31;
++            }
++            return ((hash >> 11) + 1d) / 9007199254740993d;
++        }
++
++        private static void Mix(ref ulong hash, ulong value)
++        {
++            unchecked
++            {
++                for (int i = 0; i < 8; i++)
++                {
++                    hash ^= (byte)(value >> (8 * i));
++                    hash *= 1099511628211UL;
++                }
++            }
++        }
++    }
++}
+diff --git a/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs.meta b/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs.meta
+new file mode 100644
+index 0000000..453809e
+--- /dev/null
++++ b/Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs.meta
+@@ -0,0 +1,2 @@
++fileFormatVersion: 2
++guid: 1c350ed856b46374f8e054df9c8d1aa1
+\ No newline at end of file
+diff --git a/Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs b/Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs
+new file mode 100644
+index 0000000..c9d10fa
+--- /dev/null
++++ b/Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs
+@@ -0,0 +1,452 @@
++using System;
++using System.IO;
++using NUnit.Framework;
++using RoadRage.Features.Vehicles.Traffic;
++using RoadRage.Features.Vehicles.Traffic.Routing;
++using UnityEngine;
++
++namespace RoadRage.Tests.EditMode
++{
++    [Category("Core")]
++    public sealed class Story529RoutePlanTests
++    {
++        private static RoadId Id(int n) { return new RoadId(0x529UL, (ulong)n); }
++
++        private static RoadModelSource Source(float[] weights, bool[] exits = null)
++        {
++            var source = new RoadModelSource();
++            source.ModelId = Id(1);
++            source.ValidationProfile = new RoadModelValidationProfile {
++                MaxVehicleHalfWidthMeters = 1f, MaxVehicleLengthMeters = 4f,
++                LateralClearanceMarginMeters = .25f, SeamGapToleranceMeters = .05f,
++                SeamTangentToleranceDegrees = 5f, LengthToleranceMeters = .05f,
++                EnvelopeOverlapToleranceMeters = .05f, GroundingMaxOffAxisDegrees = 45f };
++            source.LocalizationProfile = new RoadLocalizationProfile {
++                ScoreBandMeters = .15f, HysteresisMeters = .1f,
++                AcceptanceDistanceMeters = 2.5f, WrongWayHeadingDegrees = 90f };
++            source.Sections = new RoadSection[4];
++            source.Corridors = new LaneCorridor[4];
++            for (int i = 0; i < 4; i++)
++            {
++                source.Sections[i] = new RoadSection {
++                    Id = Id(10 + i), RoadClass = RoadClass.Local, Surface = RoadSurface.Asphalt,
++                    DefaultSpeedLimitMetersPerSecond = 10f, DefaultAllowedVehicleClasses = VehicleClassMask.Car };
++                source.Corridors[i] = new LaneCorridor {
++                    Id = Id(20 + i), SectionId = source.Sections[i].Id,
++                    LateralOrder = 0, IsCrossSectionDatum = true,
++                    Samples = Line(i == 0 ? 0f : 20f, i == 0 ? 10f : 30f), LengthMeters = 10f };
++            }
++            source.Junctions = new[] { new Junction {
++                Id = Id(30), Feature = JunctionFeature.Crossroads,
++                Boundary = new RoadBoundsBox { Center = new Vector3(0f, 0f, 15f), Extents = new Vector3(3f, 3f, 6f) } } };
++            source.Movements = new JunctionMovement[3];
++            for (int i = 0; i < 3; i++)
++                source.Movements[i] = new JunctionMovement {
++                    Id = Id(40 + i), JunctionId = Id(30), FromCorridorId = Id(20), ToCorridorId = Id(21 + i),
++                    Samples = Line(10f, 20f), LengthMeters = 10f, RoutePreferenceWeight = weights[i] };
++            source.Controls = new[] { new JunctionControl {
++                Id = Id(50), JunctionId = Id(30), Kind = JunctionControlKind.Uncontrolled,
++                ControlledMovementIds = new[] { Id(40), Id(41), Id(42) } } };
++            if (exits == null) exits = new[] { true, true, true };
++            var portals = new System.Collections.Generic.List<Portal>();
++            for (int i = 0; i < 3; i++)
++                if (exits[i]) portals.Add(new Portal {
++                    Id = Id(60 + i), CorridorId = Id(21 + i), Role = PortalRole.Exit,
++                    SMeters = 9.5f, EnvelopeLengthMeters = 1f, EnvelopeHalfWidthMeters = 1f });
++            source.Portals = portals.ToArray();
++            return source;
++        }
++
++        private static RoadCurveSample[] Line(float z0, float z1)
++        {
++            return new[] {
++                Sample(0f, z0), Sample(z1 - z0, z1) };
++        }
++
++        private static RoadCurveSample Sample(float s, float z)
++        {
++            return new RoadCurveSample {
++                SMeters = s, Position = new Vector3(0f, 0f, z), Tangent = Vector3.forward,
++                Up = Vector3.up, HalfWidthLeftMeters = 2f, HalfWidthRightMeters = 2f };
++        }
++
++        private static RoadLocation At(CompiledRoadModel model, RoadId element, float s = 0f,
++            RoadElementKind kind = RoadElementKind.LaneCorridor)
++        {
++            return new RoadLocation {
++                ModelId = model.ModelId, ModelVersion = model.Version, Localized = true,
++                ElementKind = kind, ElementId = element, SMeters = s };
++        }
++
++        private static RouteResult Plan(CompiledRoadModel model, RoadId start, ulong seed = 1)
++        {
++            return RoutePlanner.Plan(model, At(model, start), RoadId.None, seed, Id(80), "route", 0);
++        }
++
++        private static RoadModelSource Loop(bool portalOnLoop)
++        {
++            var source = Source(new[] { 1f, 1f, 1f });
++            source.Sections = new[] { source.Sections[0], source.Sections[1] };
++            var samples = new RoadCurveSample[17];
++            for (int i = 0; i < samples.Length; i++)
++            {
++                float theta = 2f * Mathf.PI * i / 16f;
++                samples[i] = new RoadCurveSample {
++                    SMeters = 10f * theta,
++                    Position = new Vector3(10f * Mathf.Cos(theta), 0f, 10f * Mathf.Sin(theta)),
++                    Tangent = new Vector3(-Mathf.Sin(theta), 0f, Mathf.Cos(theta)),
++                    Up = Vector3.up, CurvaturePerMeter = .1f,
++                    HalfWidthLeftMeters = 2f, HalfWidthRightMeters = 2f };
++            }
++            var ring = source.Corridors[0];
++            ring.Samples = samples;
++            ring.LengthMeters = samples[16].SMeters;
++            var isolated = source.Corridors[1];
++            source.Corridors = new[] { ring, isolated };
++            source.Connections = new[] { new LaneConnection {
++                Id = Id(90), FromCorridorId = ring.Id, ToCorridorId = ring.Id,
++                Kind = LaneConnectionKind.Continuation } };
++            source.Junctions = new Junction[0];
++            source.Movements = new JunctionMovement[0];
++            source.Controls = new JunctionControl[0];
++            source.Portals = portalOnLoop
++                ? new[] { new Portal { Id = Id(70), CorridorId = ring.Id, Role = PortalRole.Exit,
++                    SMeters = 5f, EnvelopeLengthMeters = 1f, EnvelopeHalfWidthMeters = 1f } }
++                : new[] { new Portal { Id = Id(71), CorridorId = isolated.Id, Role = PortalRole.Exit,
++                    SMeters = 5f, EnvelopeLengthMeters = 1f, EnvelopeHalfWidthMeters = 1f } };
++            return source;
++        }
++
++        private static RoadModelSource PositiveCycleWithZeroExit()
++        {
++            var source = Source(new[] { 0f, 1f, 1f });
++            var ring = Loop(true).Corridors[0];
++            var otherRing = ring;
++            otherRing.Id = Id(21);
++            otherRing.SectionId = Id(11);
++            var exitCorridor = source.Corridors[2];
++            exitCorridor.Samples = Line(10f, 20f);
++            for (int i = 0; i < exitCorridor.Samples.Length; i++)
++                exitCorridor.Samples[i].Position.x = 10f;
++            source.Sections = new[] { source.Sections[0], source.Sections[1], source.Sections[2] };
++            source.Corridors = new[] { ring, otherRing, exitCorridor };
++            source.Connections = new[] {
++                new LaneConnection { Id = Id(90), FromCorridorId = ring.Id,
++                    ToCorridorId = otherRing.Id, Kind = LaneConnectionKind.Continuation },
++                new LaneConnection { Id = Id(91), FromCorridorId = otherRing.Id,
++                    ToCorridorId = ring.Id, Kind = LaneConnectionKind.Continuation } };
++            var movementSamples = Line(0f, 10f);
++            for (int i = 0; i < movementSamples.Length; i++)
++                movementSamples[i].Position.x = 10f;
++            source.Junctions = new[] { new Junction { Id = Id(30), Feature = JunctionFeature.Crossroads,
++                Boundary = new RoadBoundsBox { Center = new Vector3(10f, 0f, 5f),
++                    Extents = new Vector3(3f, 3f, 6f) } } };
++            source.Movements = new[] { new JunctionMovement { Id = Id(40), JunctionId = Id(30),
++                FromCorridorId = ring.Id, ToCorridorId = exitCorridor.Id,
++                Samples = movementSamples, LengthMeters = 10f, RoutePreferenceWeight = 0f } };
++            source.Controls = new[] { new JunctionControl { Id = Id(50), JunctionId = Id(30),
++                Kind = JunctionControlKind.Uncontrolled, ControlledMovementIds = new[] { Id(40) } } };
++            source.Portals = new[] { new Portal { Id = Id(60), CorridorId = exitCorridor.Id,
++                Role = PortalRole.Exit, SMeters = 9.5f, EnvelopeLengthMeters = 1f,
++                EnvelopeHalfWidthMeters = 1f } };
++            return source;
++        }
++
++        [Test]
++        public void WeightedChoicesAreReproducibleAndRespectRatios()
++        {
++            var model = RoadModelCompiler.Compile(Source(new[] { 30f, 50f, 20f }));
++            var counts = new int[3];
++            for (ulong seed = 0; seed < 4000; seed++)
++            {
++                var result = Plan(model, Id(20), seed);
++                Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned));
++                Assert.That(result.Plan.TotalCost, Is.GreaterThan(0d));
++                Assert.That(double.IsInfinity(result.Plan.TotalCost), Is.False);
++                Assert.That(double.IsNaN(result.Plan.DistanceMeters) || double.IsInfinity(result.Plan.DistanceMeters), Is.False);
++                Assert.That(double.IsNaN(result.Plan.PreferenceCost) || double.IsInfinity(result.Plan.PreferenceCost), Is.False);
++                int chosen = (int)result.Plan.ExitPortalId.Low - 60;
++                counts[chosen]++;
++                Assert.That(Plan(model, Id(20), seed).Plan.ExitPortalId, Is.EqualTo(result.Plan.ExitPortalId));
++            }
++            Assert.That(counts[0], Is.InRange(1050, 1350));
++            Assert.That(counts[1], Is.InRange(1800, 2200));
++            Assert.That(counts[2], Is.InRange(650, 950));
++
++            var reordered = Source(new[] { 30f, 50f, 20f });
++            Array.Reverse(reordered.Movements);
++            Array.Reverse(reordered.Portals);
++            var permuted = RoadModelCompiler.Compile(reordered);
++            Assert.That(permuted.Version, Is.EqualTo(model.Version));
++            for (ulong seed = 0; seed < 100; seed++)
++                Assert.That(Plan(permuted, Id(20), seed).Plan.ExitPortalId,
++                    Is.EqualTo(Plan(model, Id(20), seed).Plan.ExitPortalId));
++
++            var raised = RoadModelCompiler.Compile(Source(new[] { 60f, 50f, 20f }));
++            for (ulong seed = 0; seed < 100; seed++)
++                if (Plan(model, Id(20), seed).Plan.ExitPortalId == Id(60))
++                    Assert.That(Plan(raised, Id(20), seed).Plan.ExitPortalId, Is.EqualTo(Id(60)));
++
++            bool identityChangesDecision = false, domainChangesDecision = false;
++            for (ulong seed = 0; seed < 100; seed++)
++            {
++                var baseline = Plan(model, Id(20), seed).Plan.ExitPortalId;
++                identityChangesDecision |= RoutePlanner.Plan(model, At(model, Id(20)), RoadId.None,
++                    seed, Id(81), "route", 0).Plan.ExitPortalId != baseline;
++                domainChangesDecision |= RoutePlanner.Plan(model, At(model, Id(20)), RoadId.None,
++                    seed, Id(80), "other", 1).Plan.ExitPortalId != baseline;
++            }
++            Assert.That(identityChangesDecision, Is.True);
++            Assert.That(domainChangesDecision, Is.True);
++        }
++
++        [Test]
++        public void InfeasibleAndZeroWeightChoicesHaveExplicitBehavior()
++        {
++            var deadEnd = RoadModelCompiler.Compile(Source(new[] { 1f, 1f, 1000f }, new[] { true, true, false }));
++            for (ulong seed = 0; seed < 100; seed++)
++                Assert.That(Plan(deadEnd, Id(20), seed).Plan.ExitPortalId, Is.Not.EqualTo(Id(62)));
++
++            var mixed = RoadModelCompiler.Compile(Source(new[] { 0f, 1f, 0f }));
++            for (ulong seed = 0; seed < 100; seed++)
++                Assert.That(Plan(mixed, Id(20), seed).Plan.ExitPortalId, Is.EqualTo(Id(61)));
++
++            var zeros = RoadModelCompiler.Compile(Source(new[] { 0f, 0f, 0f }));
++            var first = Plan(zeros, Id(20));
++            Assert.That(first.Diagnostics, Is.EqualTo(RouteDiagnostic.ZeroWeightFallback));
++            Assert.That(first.Plan.ExitPortalId, Is.EqualTo(Plan(zeros, Id(20)).Plan.ExitPortalId));
++            var zeroCounts = new int[3];
++            var shuffledZeros = Source(new[] { 0f, 0f, 0f });
++            Array.Reverse(shuffledZeros.Movements);
++            Array.Reverse(shuffledZeros.Portals);
++            var permutedZeros = RoadModelCompiler.Compile(shuffledZeros);
++            for (ulong seed = 0; seed < 2400; seed++)
++            {
++                var result = Plan(zeros, Id(20), seed);
++                zeroCounts[(int)result.Plan.ExitPortalId.Low - 60]++;
++                Assert.That(result.Diagnostics, Is.EqualTo(RouteDiagnostic.ZeroWeightFallback));
++                Assert.That(Plan(permutedZeros, Id(20), seed).Plan.ExitPortalId,
++                    Is.EqualTo(result.Plan.ExitPortalId));
++            }
++            foreach (int count in zeroCounts) Assert.That(count, Is.InRange(650, 950));
++
++            var onlyZerosReach = RoadModelCompiler.Compile(Source(new[] { 0f, 0f, 1000f },
++                new[] { true, true, false }));
++            for (ulong seed = 0; seed < 100; seed++)
++            {
++                var result = Plan(onlyZerosReach, Id(20), seed);
++                Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned));
++                Assert.That(result.Diagnostics, Is.EqualTo(RouteDiagnostic.ZeroWeightFallback));
++                Assert.That(result.Plan.ExitPortalId, Is.Not.EqualTo(Id(62)));
++            }
++            var invalid = Source(new[] { -1f, 1f, 1f });
++            Assert.Throws<RoadModelCompilationException>(() => RoadModelCompiler.Compile(invalid));
++        }
++
++        [Test]
++        public void PortalPositionAndStaleInputsAreNamed()
++        {
++            var source = Source(new[] { 1f, 1f, 1f });
++            source.Portals = new[] { new Portal {
++                Id = Id(70), CorridorId = Id(20), Role = PortalRole.Exit,
++                SMeters = 5f, EnvelopeLengthMeters = 1f, EnvelopeHalfWidthMeters = 1f } };
++            var model = RoadModelCompiler.Compile(source);
++            var ahead = RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0);
++            Assert.That(ahead.Plan.Occurrences.Count, Is.EqualTo(1));
++            Assert.That(ahead.Plan.DistanceMeters, Is.EqualTo(1d));
++            foreach (float s in new[] { 5f, 6f })
++            {
++                var result = RoutePlanner.Plan(model, At(model, Id(20), s), Id(70), 1, Id(80), "route", 0);
++                Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.NoRoute));
++                Assert.That(result.Reason, Is.EqualTo(RouteReason.DestinationUnreachable));
++            }
++            var stale = At(model, Id(20));
++            stale.ModelVersion = default(RoadModelVersion);
++            Assert.That(RoutePlanner.Plan(model, stale, Id(70), 1, Id(80), "route", 0).Reason,
++                Is.EqualTo(RouteReason.StaleLocalization));
++            Assert.That(RoutePlanner.Plan(model, At(model, Id(99)), Id(70), 1, Id(80), "route", 0).Reason,
++                Is.EqualTo(RouteReason.InvalidStart));
++            Assert.That(RoutePlanner.Plan(model, At(model, Id(20)), Id(99), 1, Id(80), "route", 0).Reason,
++                Is.EqualTo(RouteReason.DestinationUnavailable));
++            Assert.That(RoutePlanner.Plan(model, At(model, Id(20)), Id(70), 1, Id(80), "route", 0,
++                closedPortalIds: new[] { Id(70) }).Reason,
++                Is.EqualTo(RouteReason.DestinationUnavailable));
++            var old = RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0).Plan;
++            var replacement = RoutePlanner.Plan(model, At(model, Id(20), 3f), Id(70), 1, Id(80), "route", 0, old);
++            Assert.That(replacement.Outcome, Is.EqualTo(RouteOutcome.Replanned));
++            Assert.That(replacement.Reason, Is.EqualTo(RouteReason.StalePlan));
++            Assert.That(replacement.Plan.Occurrences[0].StartSMeters, Is.EqualTo(3f));
++            Assert.That(RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0, old).Plan,
++                Is.SameAs(old));
++            Assert.That(RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0,
++                old, true).Outcome, Is.EqualTo(RouteOutcome.Replanned));
++
++            var changedSource = Source(new[] { 2f, 1f, 1f });
++            var changedModel = RoadModelCompiler.Compile(changedSource);
++            var versionReplan = RoutePlanner.Plan(changedModel, At(changedModel, Id(20)), RoadId.None,
++                1, Id(80), "route", 0, old);
++            Assert.That(versionReplan.Outcome, Is.EqualTo(RouteOutcome.Replanned));
++            Assert.That(versionReplan.Reason, Is.EqualTo(RouteReason.StalePlan));
++
++            var movementModel = RoadModelCompiler.Compile(Source(new[] { 1f, 1f, 1f }));
++            var inMovement = RoutePlanner.Plan(movementModel,
++                At(movementModel, Id(40), 4f, RoadElementKind.JunctionMovement), Id(60),
++                1, Id(80), "route", 0);
++            Assert.That(inMovement.Outcome, Is.EqualTo(RouteOutcome.Planned));
++            Assert.That(inMovement.Plan.Occurrences[0].StartSMeters, Is.EqualTo(4f));
++            Assert.That(inMovement.Plan.Occurrences[1].Id, Is.EqualTo(Id(21)));
++        }
++
++        [Test]
++        public void PortalBehindRequiresASecondDirectedVisitAndClosedCycleTerminates()
++        {
++            var model = RoadModelCompiler.Compile(Loop(true));
++            foreach (float s in new[] { 5f, 6f })
++            {
++                var result = RoutePlanner.Plan(model, At(model, Id(20), s), Id(70),
++                    1, Id(80), "route", 0);
++                Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned));
++                Assert.That(result.Plan.Occurrences.Count, Is.EqualTo(2));
++                Assert.That(result.Plan.Occurrences[0].Id, Is.EqualTo(Id(20)));
++                Assert.That(result.Plan.Occurrences[0].EndSMeters, Is.EqualTo(model.Corridors[0].LengthMeters));
++                Assert.That(result.Plan.Occurrences[1].Id, Is.EqualTo(Id(20)));
++                Assert.That(result.Plan.Occurrences[1].StartSMeters, Is.Zero);
++                Assert.That(result.Plan.Occurrences[1].EndSMeters, Is.EqualTo(5f));
++            }
++            var closed = RoadModelCompiler.Compile(Loop(false));
++            var noRoute = Plan(closed, Id(20));
++            Assert.That(noRoute.Outcome, Is.EqualTo(RouteOutcome.NoRoute));
++            Assert.That(noRoute.Reason, Is.EqualTo(RouteReason.DestinationUnreachable));
++        }
++
++        [Test]
++        public void ReuseTracksForwardProgressAndTrafficIdentity()
++        {
++            var model = RoadModelCompiler.Compile(Source(new[] { 1f, 1f, 1f }));
++            var original = RoutePlanner.Plan(model, At(model, Id(20)), Id(60),
++                1, Id(80), "route", 0).Plan;
++            var corridorProgress = RoutePlanner.Plan(model, At(model, Id(20), 5f), Id(60),
++                1, Id(80), "route", 0, original);
++            Assert.That(corridorProgress.Outcome, Is.EqualTo(RouteOutcome.Planned));
++            Assert.That(corridorProgress.Plan.ProgressOccurrenceIndex, Is.Zero);
++            Assert.That(corridorProgress.Plan.ProgressSMeters, Is.EqualTo(5f));
++            Assert.That(corridorProgress.Plan.Occurrences, Is.SameAs(original.Occurrences));
++
++            var movementProgress = RoutePlanner.Plan(model,
++                At(model, Id(40), 4f, RoadElementKind.JunctionMovement), Id(60),
++                1, Id(80), "route", 0, corridorProgress.Plan);
++            Assert.That(movementProgress.Outcome, Is.EqualTo(RouteOutcome.Planned));
++            Assert.That(movementProgress.Plan.ProgressOccurrenceIndex, Is.EqualTo(1));
++            Assert.That(movementProgress.Plan.ProgressSMeters, Is.EqualTo(4f));
++
++            var backward = RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(60),
++                1, Id(80), "route", 0, corridorProgress.Plan);
++            Assert.That(backward.Outcome, Is.EqualTo(RouteOutcome.Replanned));
++            Assert.That(backward.Reason, Is.EqualTo(RouteReason.StalePlan));
++            var oldOccurrence = RoutePlanner.Plan(model, At(model, Id(20), 9f), Id(60),
++                1, Id(80), "route", 0, movementProgress.Plan);
++            Assert.That(oldOccurrence.Outcome, Is.EqualTo(RouteOutcome.Replanned));
++
++            var otherTraffic = RoutePlanner.Plan(model, At(model, Id(20)), Id(60),
++                1, Id(81), "route", 0, original);
++            Assert.That(otherTraffic.Outcome, Is.EqualTo(RouteOutcome.Replanned));
++            Assert.That(otherTraffic.Reason, Is.EqualTo(RouteReason.StalePlan));
++            Assert.That(otherTraffic.Plan.TrafficId, Is.EqualTo(Id(81)));
++
++            var loop = RoadModelCompiler.Compile(Loop(true));
++            var repeated = RoutePlanner.Plan(loop, At(loop, Id(20), 6f), Id(70),
++                1, Id(80), "route", 0).Plan;
++            Assert.That(RoutePlanner.Plan(loop, At(loop, Id(20), 7f), Id(70),
++                1, Id(80), "route", 0, repeated).Outcome, Is.EqualTo(RouteOutcome.Replanned));
++        }
++
++        [Test]
++        public void PositiveCycleDoesNotHideTheOnlyZeroWeightExit()
++        {
++            var model = RoadModelCompiler.Compile(PositiveCycleWithZeroExit());
++            var result = Plan(model, Id(20));
++            Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned));
++            Assert.That(result.Plan.ExitPortalId, Is.EqualTo(Id(60)));
++            Assert.That(result.Diagnostics, Is.EqualTo(RouteDiagnostic.ZeroWeightFallback));
++            Assert.That(result.Plan.Occurrences.Count, Is.EqualTo(3));
++        }
++
++        [Test]
++        public void ToleratedOutOfRangePortalNeverProducesAnOutOfRangeOccurrence()
++        {
++            var source = Source(new[] { 1f, 1f, 1f });
++            var portal = source.Portals[0];
++            portal.SMeters = 10.01f;
++            source.Portals[0] = portal;
++            var model = RoadModelCompiler.Compile(source);
++            var unavailable = RoutePlanner.Plan(model, At(model, Id(20)), Id(60),
++                1, Id(80), "route", 0);
++            Assert.That(unavailable.Outcome, Is.EqualTo(RouteOutcome.NoRoute));
++            Assert.That(unavailable.Reason, Is.EqualTo(RouteReason.DestinationUnavailable));
++            Assert.That(unavailable.Plan, Is.Null);
++        }
++
++        [Test]
++        public void ClosedExistingExitReplansToAnotherOpenExit()
++        {
++            var model = RoadModelCompiler.Compile(Source(new[] { 1f, 1f, 1f }));
++            var location = At(model, Id(20));
++            var old = RoutePlanner.Plan(model, location, RoadId.None,
++                1, Id(80), "route", 0).Plan;
++            var result = RoutePlanner.Plan(model, location, RoadId.None,
++                1, Id(80), "route", 0, old, closedPortalIds: new[] { old.ExitPortalId });
++            Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Replanned));
++            Assert.That(result.Reason, Is.EqualTo(RouteReason.StalePlan));
++            Assert.That(result.Plan.ExitPortalId, Is.Not.EqualTo(old.ExitPortalId));
++        }
++
++        [Test]
++        public void SignedModelConnectsEveryEntryToEveryExitByMovements()
++        {
++            var source = RoadModelDocument.Load(File.ReadAllText("Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json"));
++            var model = RoadModelCompiler.Compile(source);
++            Assert.That(model.Connections.Count, Is.Zero);
++            foreach (var entry in model.Portals)
++            {
++                if (entry.Role != PortalRole.Entry) continue;
++                foreach (var exit in model.Portals)
++                {
++                    if (exit.Role != PortalRole.Exit) continue;
++                    var result = RoutePlanner.Plan(model, At(model, entry.CorridorId, entry.SMeters),
++                        exit.Id, 7, Id(80), "route", 0);
++                    Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned), entry.Id + " -> " + exit.Id);
++                    Assert.That(result.Plan.ExitPortalId, Is.EqualTo(exit.Id));
++                    Assert.That(result.Plan.ModelVersion, Is.EqualTo(model.Version));
++                    Assert.That(result.Plan.TotalCost, Is.GreaterThan(0d));
++                    Assert.That(double.IsInfinity(result.Plan.TotalCost), Is.False);
++                    Assert.That(double.IsNaN(result.Plan.DistanceMeters) || double.IsInfinity(result.Plan.DistanceMeters), Is.False);
++                    Assert.That(double.IsNaN(result.Plan.PreferenceCost) || double.IsInfinity(result.Plan.PreferenceCost), Is.False);
++                    double sum = 0d;
++                    for (int i = 0; i < result.Plan.Occurrences.Count; i++)
++                    {
++                        var step = result.Plan.Occurrences[i];
++                        sum += step.EndSMeters - step.StartSMeters;
++                        float length;
++                        EffectiveLaneCorridor corridor;
++                        CompiledJunctionMovement movement;
++                        if (step.Kind == RoadElementKind.LaneCorridor)
++                        {
++                            Assert.That(model.TryGetCorridor(step.Id, out corridor), Is.True);
++                            length = corridor.LengthMeters;
++                        }
++                        else
++                        {
++                            Assert.That(model.TryGetMovement(step.Id, out movement), Is.True);
++                            length = movement.LengthMeters;
++                        }
++                        Assert.That(step.StartSMeters, Is.GreaterThanOrEqualTo(0f));
++                        Assert.That(step.EndSMeters, Is.InRange(step.StartSMeters, length));
++                        if (i + 1 < result.Plan.Occurrences.Count)
++                            Assert.That(step.EndSMeters, Is.EqualTo(length));
++                    }
++                    Assert.That(result.Plan.DistanceMeters, Is.EqualTo(sum).Within(1e-5d));
++                }
++            }
++        }
++    }
++}
+diff --git a/Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs.meta b/Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs.meta
+new file mode 100644
+index 0000000..5065c87
+--- /dev/null
++++ b/Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs.meta
+@@ -0,0 +1,2 @@
++fileFormatVersion: 2
++guid: 87e4e662fb86c004ab24f4d2f3e4af1a
+\ No newline at end of file
+diff --git a/_bmad-output/implementation-artifacts/epic-5-context.md b/_bmad-output/implementation-artifacts/epic-5-context.md
+index f2ffec6..6097605 100644
+--- a/_bmad-output/implementation-artifacts/epic-5-context.md
++++ b/_bmad-output/implementation-artifacts/epic-5-context.md
+@@ -24,13 +24,13 @@ Establish host-authoritative vehicle physics and configurable NPC Rage/Fear resp
+ - Story 5.14: AI Drives by Intent
+ - Story 5.15: Credible Collisions and Damage Integration
+ - Story 5.16: Lobby-Configurable Traffic Settings
+-- Story 5.17: Wider Perception and Progressive Unblocking (historical)
+-- Story 5.18: Intersection Rules and Deadlock Prevention (historical)
+-- Story 5.19: Rage and Fear as Driving Model Modulation (historical)
+-- Story 5.20: Thrown Litter Foundation and Attribution (historical)
+-- Story 5.21: Player-Targeted Rage Ladder and Rage Road Trigger (historical)
+-- Story 5.22: Scale Validation and Network Budget (historical)
+-- Story 5.23: Epic 5 AI Traffic Playable Checkpoint (historical)
++- Story 5.17: Wider Perception and Progressive Unblocking
++- Story 5.18: Intersection Rules and Deadlock Prevention
++- Story 5.19: Rage and Fear as Driving Model Modulation
++- Story 5.20: Thrown Litter Foundation and Attribution
++- Story 5.21: Player-Targeted Rage Ladder and Rage Road Trigger
++- Story 5.22: Scale Validation and Network Budget
++- Story 5.23: Epic 5 AI Traffic Playable Checkpoint
+ - Story 5.24: V2 Regression Oracle Bench and V1 Trace Contract
+ - Story 5.25: Road World Model Records, Compiler and Deterministic Versioning
+ - Story 5.26: Directed Arc-Length Geometry and Lane Localization
+@@ -65,20 +65,21 @@ Establish host-authoritative vehicle physics and configurable NPC Rage/Fear resp
+ - The host alone simulates AI, car bodies, collisions, target state, and traffic decisions; clients receive replicated presentation. Traffic population and litter-thrower limits are lobby settings bounded by authored definitions. Approximately 30 simultaneous AI vehicles is a measurement target, not an assumed production capacity.
+ - AI vehicles enter and leave visibly only through authored portals. Normal congestion, blockage, collision, or route failure must not silently remove an agent. Rage and Fear affect authored driver parameters and policy within one driving stack; intentional contact needs target-scoped authorization.
+ - Traffic V1 remains a frozen oracle. V2 must account for each oracle scenario and pass host/client integration in `MVP_Run` before V1 retirement. Physical-only changes to the district keep V1 authored traffic data and lineage intact, but require a before/after V1 behavioral regression; an unchanged hash alone proves no behavioral equivalence.
+-- `MVP_Run` is the acceptance map. Its nine junctions need reviewed road semantics and drivable clearances. For the five conventional junctions, the inflated compiled-reference footprint must pass two independent, strictly positive conservative gates: separation from obstacle volumes within vehicle height, and planar separation from authored `Sidewalk` surfaces regardless of collider height or activation. The semantic proof includes disabled north T-junction corners and checks that declarations match visible sidewalks. Each gate publishes its own per-corner/per-movement results and canonical input fingerprint. Gate A binds both proofs and refreshed roundabout evidence; any relevant input change invalidates the proof.
++- Stories 5.17ÔÇô5.23 are superseded requirements evidence, not executable backlog. Traffic V2 begins at 5.24; 5.47 exists only if profiling triggers its performance requirement.
++- `MVP_Run` is the acceptance map. Its nine junctions need reviewed road semantics and drivable clearances. Conventional junction turns require two independent, strictly positive conservative proofs: separation from physical obstacles and planar separation from declared `Sidewalk` surfaces, including disabled colliders. Declared surfaces must match visible sidewalks. Drivable carriageway relief is excluded from obstacles only when its complete projection is supported by road, avoids sidewalks, and fits below the vehicle's profile-derived body clearance. Each proof has its own results and input fingerprint; relevant changes invalidate Gate A.
+ 
+ ## Technical Decisions
+ 
+ - Player and AI use one host-simulated raycast-wheel physics body. AI issues `VehicleDriveIntent`; it does not move the `Rigidbody` directly. Driver kernels are pure and parameterized; Rage/Fear modulation sits above physics.
+-- V2 uses a one-way imported, semantically validated Road World Model with stable opaque IDs and a deterministic compiler version. Directed 3D arc-length curves, width envelopes, explicit junction movements, one control binding per movement, conflicts, signals, and portals are authored facts. V1's graph is never a second V2 road authority; NavMesh is not its route authority.
++- V2 uses a one-way imported, semantically validated Road World Model with stable opaque IDs and deterministic versioning. Directed 3D arc-length corridors, authored lateral order, width envelopes, explicit junction movements, one control binding per movement, conflicts, signals, and portals are road facts. V1's graph and NavMesh are not V2 route authorities.
+ - One immutable host `TrafficFrame` feeds observation, route, rules/coordination, tactical choice, local plans, a narrow `SafetyFilter`, one intent composer, and shared physics. Route, path, and timed motion are distinct. Versioned decisions expose stable debug reasons; grants become effective in the next frame.
+ - Traffic rules may admit explicit policy exceptions, but simulation invariants, compatible junction grants, finite controls, and single intent ownership remain mandatory. Collision and recovery supervisors request tactical work; they do not teleport, actuate, or despawn traffic. Fidelity scaling is conditional on measured cost.
+ 
+ ## UX & Interaction Patterns
+ 
+-- Start Game and online play share the session bootstrap. Character selection happens before lobby entry; the lobby shows that identity read-only, and the spawned player reflects it.
++- Start Game and Create Lobby use one host session path. Escape opens a menu without pausing the host simulation, suppresses local driving/action input, and returns through the established session-exit path. Traffic state changes and Rage Road escalation need visible player feedback.
+ 
+ ## Cross-Story Dependencies
+ 
+-- The V1 oracle bench precedes V2 migration and runtime replacement. Road records, geometry, importer, dual clearance proofs, and junction semantics establish Gate A before the driven V2 slice. Story 5.51 follows final movement geometry from 5.50; its first corner must pass physical shape, semantic region, visible rendering, save/reload, and scene-only diff together before the other cuts. It unlocks resumed 5.28 overlay review but does not sign Gate A.
++- The V1 oracle bench precedes V2 migration and replacement. Road records, geometry, importer, roundabout widening, corrected movements, and corner clearance feed the resumed 5.28 overlay review. Gate A binds the model, both clearance proofs, refreshed roundabout evidence, and owner sign-off before routing and the driven V2 slice.
+ - Story 5.46 decides whether conditional 5.47 exists. Story 5.48 follows the V2 parity and integration gate.
+diff --git a/_bmad-output/implementation-artifacts/spec-5-29-deterministic-strategic-route-plan.md b/_bmad-output/implementation-artifacts/spec-5-29-deterministic-strategic-route-plan.md
+new file mode 100644
+index 0000000..c749a16
+--- /dev/null
++++ b/_bmad-output/implementation-artifacts/spec-5-29-deterministic-strategic-route-plan.md
+@@ -0,0 +1,128 @@
++---
++title: 'Story 5.29 -- RoutePlan strategique deterministe'
++type: 'feature'
++created: '2026-09-28'
++status: 'done'
++baseline_commit: 'd3e8945d33dcd8d54c2ce7f5cbfccc468543d95e'
++review_loop_iteration: 0
++context:
++  - '_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
++---
++
++<frozen-after-approval reason="human-owned intent ÔÇö do not modify unless human renegotiates">
++
++## Intent
++
++**Problem:** Le modele routier signe possede des corridors, mouvements et portails stables, mais aucun plan ne relie une localisation a une sortie. Le routage V1 tire un virage a chaque carrefour et peut rediriger vers une sortie choisie par proximite geometrique.
++
++**Approach:** Produire un `RoutePlan` strategique complet sur la topologie compilee, avec identites ordonnees, sortie, cout, raison et version du modele. Les preferences de virage influencent les couts et la variation reproductible ; une destination inaccessible ou un plan devenu invalide donnent un resultat explicite.
++
++## Boundaries & Constraints
++
++**Always:** Parcourir les `LaneConnection` et `JunctionMovement` diriges, et ne retenir que des continuations menant reellement a l'objectif. Le cout global d'une route complete combine distance dirigee restante (corridors et mouvements, depuis le `s` courant jusqu'au `s` du portail) et cout de preference issu d'un tirage deterministe ; publier ces composantes et le cout total finis. La preference n'est pas un choix glouton local : a continuations de meme cout de distance, la probabilite de selection suit les poids authores, et augmenter un poids ne reduit pas sa preference a cout aval fixe. Deriver l'alea de la graine de session, de l'identite trafic stable et d'un domaine/compteur de decision, jamais de `NetworkObjectId` seul. L'ordre des collections ne change pas le resultat. Verifier identites et version avant reutilisation ; calcul et replan sont bornes par les etats topologiques, pas par le budget d'aretes V1.
++
++Sur chaque visite de corridor ou mouvement, le `s` ne decroit jamais : transition au bout de l'element seulement, puis `s=0` sur le suivant. Un portail est atteignable sur une visite seulement si son `s` est strictement devant le `s` d'entree ; l'egalite ne vaut pas franchissement. Une sortie derriere le depart exige une boucle topologique complete et une nouvelle visite du corridor, identifiable par une occurrence repetee dans le plan. Une boucle fermee sans sortie termine par `NoRoute` ; une repetition d'ID ou de zone geometrique n'est pas a elle seule une erreur.
++
++Poids negatifs/non finis : validation refusee. Parmi les choix qui atteignent l'objectif, un poids nul ne participe pas au tirage si un poids positif existe ; il demeure une route admissible si les choix positifs ne menent pas a l'objectif. Si tous les choix admissibles valent zero, tirage uniforme deterministe et diagnostic `ZeroWeightFallback`, sans rendre la destination inaccessible.
++
++Le resultat separe `Outcome` (`Planned`, `Replanned`, `NoRoute`, `InvalidInput`), `Reason` (`Requested`, `StalePlan`, `InvalidStart`, `StaleLocalization`, `DestinationUnavailable`, `DestinationUnreachable`) et diagnostics dont `ZeroWeightFallback` ; le repli peut ainsi accompagner une route reussie. Un plan existant avec version ou ID obsolete est replannifie depuis la localisation actuelle, jamais reutilise silencieusement.
++
++**Ask First:** Changer la topologie ou les poids authores de `MVP_Run`, la semantique des portails ou le contrat de version du modele ; ajouter une dependance ou une assembly.
++
++**Never:** Produire chemin local, trajectoire, vitesse, volant, grant ou effet sur le cycle de vie d'un vehicule ; utiliser NavMesh, proximite euclidienne, `WaypointIndex`, memoire auto-evitante V1, budget d'aretes V1 ou redirection gloutonne vers la sortie la plus proche.
++
++## I/O & Edge-Case Matrix
++
++| Scenario | Input / State | Expected Output / Behavior | Error Handling |
++|----------|--------------|---------------------------|----------------|
++| Route normale | Localisation valide, sortie accessible | Occurrences continues d'IDs corridor/mouvement avec intervalles `s`, portail, couts et version | N/A |
++| Replan | Plan anterieur stale, ID disparu ou demande explicite | Nouveau plan valide avec `Replanned` et raison `StalePlan`/`Requested`, ou echec nomme | Aucun effet vehicule |
++| Entree invalide | Localisation absente ou version du modele differente | `InvalidStart`/`StaleLocalization` | Aucun plan suppose valide |
++| Destination indisponible | Sortie absente ou fermee | `NoRoute` + `DestinationUnavailable` | Aucun despawn/teleport/reinsertion |
++| Destination inaccessible | Sortie presente mais sans route dirigee | `NoRoute` + `DestinationUnreachable`, calcul termine | Aucun effet vehicule |
++| Portail sur corridor courant | `s` devant, egal ou derriere le depart | Direct si strictement devant ; sinon boucle topologique ou `NoRoute` | Aucun saut arriere |
++| Cycle legal / ferme | Giratoire avec sortie / cycle sans sortie | Nouvelle visite permise / `NoRoute` borne | Pas de rejet par position seule |
++| Poids invalides ou nuls | Negatif/non fini ; zero melange aux positifs ; tous admissibles a zero | Validation refusee ; zero exclu du tirage positif ; repli uniforme `ZeroWeightFallback` | Pas de biais silencieux |
++
++</frozen-after-approval>
++
++## Code Map
++
++- `Assets/RoadRage/Features/Vehicles/Traffic/CompiledRoadModel.cs:253,500,580` -- `Version`, corridors, connexions, mouvements, portails et recherches ; `GetSuccessorCorridors` ne couvre que les connexions.
++- `Assets/RoadRage/Features/Vehicles/Traffic/RoadModelRecords.cs:39,409,461,563` -- `RoadId`, liens diriges, poids de mouvement et portails.
++- `Assets/RoadRage/Features/Vehicles/Traffic/RoadLocalization.cs:88` -- `RoadLocation` porte element, `s`, `ModelId` et `ModelVersion` ; aucun deplacement physique.
++- `Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs:407` -- poids actuellement controles pour finitude seulement ; ajouter le refus des negatifs.
++- `Assets/RoadRage/Features/Vehicles/Traffic/Migration/MigrationReport.cs:493` -- parcours de reachability source, utile comme precedent ; pas un planner runtime.
++- `Assets/RoadRage/Features/Vehicles/Traffic/RoadModelDocument.cs:71` -- charge le modele `MVP_Run.road-model.json` sans ouvrir la scene.
++- `Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs:75` -- matrices de ratios et graines V1, scenarios a reprendre sans copier l'algorithme.
++- `Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json` -- modele reel : 44 corridors, 72 mouvements, 0 connexion, 4 entrees et 4 sorties ; test indispensable du parcours par mouvements.
++
++## Tasks & Acceptance
++
++**Execution:**
++- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs` et `RoutePlanner.cs` -- contrats immuables des occurrences dirigees et intervalles `s`, resultat/codes stables, couts decomposes, selection globale bornee et replan explicite.
++- [x] `Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs` -- refuser les poids negatifs ; garder un repli uniforme diagnostique si tous les choix faisables valent zero.
++- [x] `Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs` -- matrice ci-dessus : ratio 30/50/20 sur trois continuations synthetiques faisables de meme cout aval (pas sur toute la carte), preference monotone, branche fortement ponderee en impasse, permutations d'ordre, graines/identites/domaines ; portail devant/egal/derriere avec et sans retour, cycle ferme, zeros mixtes/tous zeros, version/ID stale. Sur le modele signe `MVP_Run`, verifier chaque entree vers les quatre sorties par mouvements (aucune `LaneConnection`), continuite et bornes de chaque occurrence, IDs/version et absence d'effet de cycle de vie.
++- [x] `_bmad-output/implementation-artifacts/sprint-status.yaml` -- suivre le statut de la story ; `graphify update .` apres les sources.
++
++**Acceptance Criteria:**
++- Given le modele compile et une localisation courante, when le planner recoit un objectif de sortie, then le plan ordonne des IDs existants relie le depart au portail par la seule topologie, porte raison/cout/version et reste distinct d'un chemin ou d'une commande de conduite.
++- Given trois continuations faisables de cout aval egal ponderees 30/50/20, when des identites/graines variees sont planifiees, then les frequences reproduisent ces ratios et la meme entree de decision donne le meme plan ; un choix prefere menant a une impasse est exclu avant le tirage.
++- Given un portail derriere le `s` courant, when le planner cherche la sortie, then il n'y parvient qu'apres une vraie boucle dirigee et une nouvelle visite du corridor, ou renvoie `NoRoute` en temps borne ; aucun saut arriere ni rejet automatique d'une zone revisitee.
++- Given des poids nuls parmi les chemins admissibles, when un calcul est demande, then les positifs gouvernent le tirage s'ils existent ; un ensemble admissible tout nul utilise un repli uniforme signale, sans cacher une destination atteignable.
++- Given une sortie inaccessible ou un plan obsolete, when un calcul ou replan est demande, then le resultat nomme sa cause et termine sans modifier le monde.
++
++## Spec Change Log
++
++## Review Findings
++
++- Corrige : une boucle positive ne masque plus une sortie accessible par une continuation de poids nul.
++- Corrige : un portail au-dela de la longueur de son corridor est `DestinationUnavailable`.
++- Ajoute aux tests : fermeture de la sortie planifiee, distance totale egale a la somme des occurrences, boucle positive avec seule sortie de poids nul.
++
++## Design Notes
++
++La topologie signee `MVP_Run` contient 44 corridors, 72 mouvements, zero connexion, quatre entrees a `s=0` et quatre sorties a `sÔëê9,5` ; chacune des entrees atteint les quatre sorties par 4ÔÇô7 transitions. Ses autres embranchements portent aussi 60/40 et 50/50 : le ratio 30/50/20 se mesure sur un graphe controle a cout aval egal, pas sur la distribution de toutes les routes reelles. L'objectif peut etre une sortie precise ou ┬½ toute sortie ┬╗ ; le resultat nomme toujours le portail retenu. La representation des visites distingue le depart partiel d'un retour ulterieur sur le meme element, afin de permettre un tour de giratoire sans revisite indefinie du meme etat dirige.
++
++## Verification
++
++**Commands:**
++- `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story529RoutePlanTests"` -- fixture verte, zero erreur Console.
++- `.\scripts\validate.ps1 -TestMode EditMode` -- suite complete verte sur le modele reel.
++
++**Resultats (2026-09-29) :** fixture 5.29 `9/9` ; suite complete `937/937`, 0 ignore, 0 inconclusif, `scriptCompilationFailed=false`, 0 erreur Console depuis le curseur 51, scene `MVP_Run` propre. `graphify update .` execute apres le dernier changement source ; graphe 5 326 noeuds, vue agregee au-dela du seuil utile 5 000. Les suppressions paralleles de `Assets/Readme.asset` et `Assets/TutorialInfo/` ont ete laissees intactes.
++
++## Suggested Review Order
++
++**Selection et cout global**
++
++- Point d'entree : valide les identites, la localisation et les sorties disponibles.
++  [`RoutePlanner.cs:32`](../../Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs#L32)
++
++- Ne tire que parmi les continuations qui atteignent une sortie sans cycle inutile.
++  [`RoutePlanner.cs:109`](../../Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs#L109)
++
++- Combine distance dirigee et preference deterministe sur la route complete.
++  [`RoutePlanner.cs:140`](../../Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs#L140)
++
++**Position et reutilisation**
++
++- Traite le `s` initial et autorise une nouvelle visite apres un tour dirige.
++  [`RoutePlanner.cs:178`](../../Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs#L178)
++
++- Refuse la reutilisation si identites, progression ou continuite sont devenues invalides.
++  [`RoutePlanner.cs:309`](../../Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs#L309)
++
++**Contrats et preuves**
++
++- Expose occurrences, progression, couts et codes de resultat sans effet de conduite.
++  [`RoutePlan.cs:6`](../../Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs#L6)
++
++- Refuse les poids de mouvement negatifs dans le validateur du modele.
++  [`RoadModelValidator.cs:407`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs#L407)
++
++- Prouve ratios, cycles, poids nuls, replan et 16 routes du modele reel.
++  [`Story529RoutePlanTests.cs:11`](../../Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs#L11)
++
++- Conserve le graphe limite au code RoadRage lors de sa mise a jour.
++  [`.graphifyignore:58`](../../.graphifyignore#L58)
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index 84cf707..38a186c 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -29,7 +29,7 @@
+ # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+ # - Retrospective appends its action items to action_items; the status view surfaces open ones
+ generated: 2026-09-02 16:30
+-last_updated: 2026-09-28
++last_updated: 2026-09-29
+ # 2026-09-22 planning run: the Traffic V2 replacement stories now exist as
+ # 5.24-5.48, planned INSIDE Epic 5 because building the AI traffic network is
+ # Epic 5's own unfinished mission. This filing decision supersedes section 3.14
+@@ -186,7 +186,7 @@ development_status:
+   # independent code review and owner visual acceptance remain open. Gate A unsigned;
+   # 5.28 stays in-progress.
+   5-51-junction-corner-clearance-for-right-turns: done
+-  5-29-deterministic-strategic-route-plan: backlog
++  5-29-deterministic-strategic-route-plan: review
+   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog
+   5-31-first-driven-traffic-v2-vertical-slice-portal-to-portal: backlog
+   5-32-perception-boundary-occupancy-leader-and-hazards: backlog

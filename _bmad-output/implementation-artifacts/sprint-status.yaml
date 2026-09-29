@@ -186,7 +186,7 @@ development_status:
   # independent code review and owner visual acceptance remain open. Gate A unsigned;
   # 5.28 stays in-progress.
   5-51-junction-corner-clearance-for-right-turns: done
-  5-29-deterministic-strategic-route-plan: review
+  5-29-deterministic-strategic-route-plan: done
   5-30-traffic-v2-planning-and-runtime-spine-foundation: backlog
   5-31-first-driven-traffic-v2-vertical-slice-portal-to-portal: backlog
   5-32-perception-boundary-occupancy-leader-and-hazards: backlog

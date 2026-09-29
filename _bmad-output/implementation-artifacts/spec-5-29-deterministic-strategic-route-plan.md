@@ -74,11 +74,47 @@ Le resultat separe `Outcome` (`Planned`, `Replanned`, `NoRoute`, `InvalidInput`)
 
 ## Spec Change Log
 
+- Decision (code review 2026-09-29) : la reutilisation accepte un plan a visites repetees ; l'occurrence courante est choisie par progression acquise, intervalle `s` et non-regression stricte ; `StalePlan` est reserve a une vraie invalidation (recul sans visite porteuse), plus jamais a un plan simplement cyclique.
+- Decision (code review 2026-09-29) : `RouteRequest` immuable remplace la signature positionnelle ; `RouteSeed` / `DecisionCounter`, types distincts sans conversion implicite, interdisent l'echange des deux `ulong`.
+- Documentation (code review 2026-09-29) : `epic-5-context.md` attribue par commentaire de provenance (sources normatives nommees) ; faits normatifs et marqueurs historiques restaures ; formulations de 5.47 harmonisees sur `epics.md`.
+
 ## Review Findings
 
 - Corrige : une boucle positive ne masque plus une sortie accessible par une continuation de poids nul.
 - Corrige : un portail au-dela de la longueur de son corridor est `DestinationUnavailable`.
 - Ajoute aux tests : fermeture de la sortie planifiee, distance totale egale a la somme des occurrences, boucle positive avec seule sortie de poids nul.
+
+### Review Findings
+
+Revue adversariale du 2026-09-29 (lentilles : blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor ; base `d3e8945`, diff `review-5-29-diff.patch`, 12 fichiers +1133/-13). 4 decisions, 20 patches, 1 defer, 7 constats ecartes comme bruit. Tous les constats decision/patch sont resolus et appliques le 2026-09-29 (decisions du proprietaire : D1:2, D2:1, D3:2, D4:1) ; chaque constat porte sa resolution ci-dessous.
+
+- [x] [Review][Patch] (ex-Decision D1) `epic-5-context.md` : mettre la mise a jour documentaire en face de son vrai perimetre — resolu : commentaire de provenance date en tete du document, nommant les sources normatives (`epics.md`, AD-42/AD-48, clarification Gate A du 2026-09-28) ; aucune reecriture de l'historique Git ; le contenu legitime est conserve.
+- [x] [Review][Patch] (ex-Decision D2) `epic-5-context.md` : restaurer les faits normatifs, harmoniser 5.47 — resolu : selection du personnage avant lobby, preuves et reserves Gate A (cinq carrefours conventionnels, separation sous hauteur vehicule, coins nord desactives, resultats par coin/mouvement, empreinte d'entree canonique, sequence cinq-portes de la 5.51, « ne signe pas Gate A »), frontieres d'autorite V1/NavMesh et marqueurs `(historical)` restaures ; la clarification de relief roulable du 2026-09-28 est conservee ; les deux formulations de 5.47 sont harmonisees sur `epics.md` (5.46 decide, 5.47 conditionnel non specifie, saute si budget satisfait).
+- [x] [Review][Patch] (ex-Decision D3) Reutilisation des plans a visites repetees sans `StalePlan` abusif — resolu : `TryReuse` choisit l'occurrence par progression acquise, intervalle `s` et non-regression stricte a progression egale ; un retour de giratoire reutilise le plan (`Planned`/`Requested`), un recul reel sans visite porteuse reste `Replanned`/`StalePlan` ; tests ajoutes (`ReuseDistinguishesRepeatedVisitsOnALoop`).
+- [x] [Review][Patch] (ex-Decision D4) Contrat de requete immuable a types distincts — resolu : `RouteRequest` remplace la signature positionnelle ; `RouteSeed` et `DecisionCounter`, types distincts sans conversion implicite, interdisent l'echange silencieux des deux `ulong` ; appels et tests migres ; aucune dependance ou assembly ajoutee.
+
+- [x] [Review][Patch] Garde d'entree du constructeur `RoutePlan` (occurrences vide dereferencee) [Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs:55] — resolu : `ArgumentException` explicite.
+- [x] [Review][Patch] Supprimer la condition morte `match < 0` de `RoutePlanner.TryReuse` (le test precedent la couvre) [Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs:328] — resolu : supprimee par la reecriture de `TryReuse` (D3).
+- [x] [Review][Patch] Supprimer le champ mort `Edge.From` (renseigne, jamais relu) [Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs:12] — resolu : champ supprime, `Edge.Feasible` ajoute au passage.
+- [x] [Review][Patch] Corriger le commentaire Bellman-Ford : couts non negatifs, pas strictement positifs [Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs:140] — resolu : « couts non negatifs ».
+- [x] [Review][Patch] Eviter le calcul double de `CanReachWithout` et le balayage lineaire de `IsClosed` [Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs:117] — resolu : faisabilite calculee une fois par arete ; portails fermes indexes en `HashSet`.
+- [x] [Review][Patch] Documenter l'egalite float exacte comme contrat de reutilisation (valeurs stockees re-emises telles quelles) [Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs:353] — resolu : contrat documente dans `TryReuse` et la doc de `Advance`.
+- [x] [Review][Patch] Documenter l'API publique : types, parametres de `Plan`, semantique destination vide / `existing` / `closedPortalIds`, fautes d'appel partageant `InvalidStart` [Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs:6] — resolu : docs XML ajoutees (enums, requete, resultat, semantiques).
+- [x] [Review][Patch] Rendre falsifiables les assertions `Is.Not.EqualTo(Id(62))` (portail absent des modeles mort-ne) [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:208] — resolu : plan non nul + sortie attendue reelle (60 ou 61).
+- [x] [Review][Patch] Isoler domaine et compteur dans `domainChangesDecision` [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:196] — resolu : domaine seul et compteur seul testes separement, les trois sensibilites assertees.
+- [x] [Review][Patch] Renforcer les preuves AC2 : permutation et poids augmente compares sur le plan complet, ratios sur plusieurs identites, reproductibilite du plan entier [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:177] — resolu : equivalence de plan complet, ratios par identite (80 et 81), reproductibilite integrale, poids augmente compare en nombre de choix et en cout.
+- [x] [Review][Patch] Observer `RouteOutcome.InvalidInput` et la convention `Plan` nul, avec un cas `s` hors bornes [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:265] — resolu : assertees sur version stale, element inconnu, non localise, `s` hors bornes.
+- [x] [Review][Patch] Verrouiller le modele signe : 4 entrees, 4 sorties et 16 paires planifiees (test sinon vacue) [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:404] — resolu : comptes verrouilles.
+- [x] [Review][Patch] Couvrir la selection : plus proche portail parmi plusieurs en avant, victoire de la continuation au cout aval moindre [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:247] — resolu : test `NearestAheadPortalWinsAndDistanceBeatsPreference` (portail le plus proche ; branche longue perdante sur 200 graines).
+- [x] [Review][Patch] Verifier `PreferenceCost` > 0 quand un tirage a lieu et la decomposition du cout total [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:423] — resolu : > 0 et < 40 asserte sur 2 x 4000 graines.
+- [x] [Review][Patch] Verifier l'absence de `ZeroWeightFallback` sur une route ponderee normale [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:156] — resolu : `Diagnostics == None` asserte.
+- [x] [Review][Patch] Asserter `RouteReason.Requested` sur les chemins nominaux (plan frais, reutilisation, replan explicite) [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:280] — resolu : asserte sur les trois chemins.
+- [x] [Review][Patch] Exercer la clause de destination de `TryReuse` (sortie differente du plan en cache) [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:275] — resolu : test `ReuseRefusesADifferentDestination`.
+- [x] [Review][Patch] Verrouiller le refus des poids negatifs (code `NumericValueOutOfRange`, champ) et le cas non fini [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:243] — resolu : code et mouvement fautif verifies ; cas non fini couvert (`NonFiniteNumericValue`).
+- [x] [Review][Patch] Ajouter un en-tete date/motive aux exclusions `.graphifyignore` (convention du fichier) [.graphifyignore:58] — resolu : troisieme passage date (2026-09-29).
+- [x] [Review][Patch] Materialiser la preuve d'absence d'effet de cycle de vie (non-mutation du modele) [Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs:404] — resolu : non-mutation du modele et re-plan equivalent assertees.
+
+- [x] [Review][Defer] Graphe Graphify au-dela du seuil utile, etat non reconcilie avec la documentation [graphify-out/GRAPH_REPORT.md] — deferred, pre-existing
 
 ## Design Notes
 
@@ -91,6 +127,8 @@ La topologie signee `MVP_Run` contient 44 corridors, 72 mouvements, zero connexi
 - `.\scripts\validate.ps1 -TestMode EditMode` -- suite complete verte sur le modele reel.
 
 **Resultats (2026-09-29) :** fixture 5.29 `9/9` ; suite complete `937/937`, 0 ignore, 0 inconclusif, `scriptCompilationFailed=false`, 0 erreur Console depuis le curseur 51, scene `MVP_Run` propre. `graphify update .` execute apres le dernier changement source ; graphe 5 326 noeuds, vue agregee au-dela du seuil utile 5 000. Les suppressions paralleles de `Assets/Readme.asset` et `Assets/TutorialInfo/` ont ete laissees intactes.
+
+**Resultats corrections de revue (2026-09-29) :** fixture 5.29 `12/12` (`validate.ps1 -TestMode EditMode -TestFilter` : 0 erreur Console depuis le curseur 397, `scriptCompilationFailed=false`, scene `MVP_Run` propre, 0 ignore, 0 inconclusif) ; suite complete `-Profile Full` verte : `940/940`, 0 ignore, 0 inconclusif, aucune exclusion (profil Full : suite complete), 0 erreur Console depuis le curseur 429, `scriptCompilationFailed=false`, scene `MVP_Run` propre. `graphify update .` re-execute apres corrections : 5 337 noeuds / 14 278 liens, vue agregee au-dela du seuil utile (constat differe inchange, voir `deferred-work.md`).
 
 ## Suggested Review Order
 
