@@ -5,3 +5,9 @@
 #
 # [agents.bmad-agent-pm]
 # description = "Prefers short, bulleted PRDs over narrative drafts."
+
+[core]
+# Absent de _bmad/config.toml (seul document_output_language y figure) : sans
+# cette cle, render_skill.py echoue sur un clone frais ou config.user.toml
+# (gitignore) n'existe pas.
+communication_language = "French"
