@@ -278,6 +278,7 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - Le repli devient une regle par pas selon la vitesse mesuree (frein a main a basse vitesse et en recul, etats terminaux diagnostiques), avec un banc physique a tres basse vitesse.
   - Campagne : constructeur deterministe, tracabilite par element, `NonMesure` / `NonSelectionnable` explicites, campagnes `[Explicit]` separees.
   - Controle du fichier : aucun doublon dans le Code Map ni dans les Tasks.
+- **2026-09-29 -- contenu approuve par le proprietaire ([A], revision 1).** Le bloc fige est verrouille. Le passage en `ready-for-dev` reste suspendu : il attend l'approbation et l'application du correct-course du 2026-09-29, qui n'est pas approuve a cette date.
 
 ## Design Notes
 
