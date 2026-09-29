@@ -2,7 +2,8 @@
 title: 'Story 5.30 -- Fondation de la chaine de planification et de l epine runtime Traffic V2'
 type: 'feature'
 created: '2026-09-29'
-status: 'ready-for-dev'
+status: 'done'
+baseline_commit: '883a07342711657153e5da2a5bff77d1721df4fa'
 review_loop_iteration: 0
 context:
   - '_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
@@ -132,20 +133,20 @@ Le `MotionPlan` publie les contraintes geometriques, verifie un profil de vitess
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Frame/TrafficFrame.cs` -- frame immuable, acteurs et builder deterministe avec localisation integree -- BC-1.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Perception/AgentObservation.cs` -- observation minimale.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/PlanningTolerances.cs`, `PathHorizon.cs`, `GateAEvidenceBinding.cs`, `MotionPlan.cs` -- tolerances, horizon, raccords, liaison documentaire, couverture a deux niveaux, contraintes publiees et verificateur de profil.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs` -- projection et `ToText()`.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/PlanningSpine.cs` -- orchestrateur sans etat.
-- [ ] `docs/setup/story-5-25-road-world-model-notes.md` -- section « Confirmation 5.30 » avec la direction de dependance mesuree.
-- [ ] `Assets/RoadRage/Tests/EditMode/Story530PlanningSpineTests.cs` `[Category("Core")]` -- couvrir :
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Frame/TrafficFrame.cs` -- frame immuable, acteurs et builder deterministe avec localisation integree -- BC-1.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Perception/AgentObservation.cs` -- observation minimale.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/PlanningTolerances.cs`, `PathHorizon.cs`, `GateAEvidenceBinding.cs`, `MotionPlan.cs` -- tolerances, horizon, raccords, liaison documentaire, couverture a deux niveaux, contraintes publiees et verificateur de profil.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs` -- projection et `ToText()`.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/PlanningSpine.cs` -- orchestrateur sans etat.
+- [x] `docs/setup/story-5-25-road-world-model-notes.md` -- section « Confirmation 5.30 » avec la direction de dependance mesuree.
+- [x] `Assets/RoadRage/Tests/EditMode/Story530PlanningSpineTests.cs` `[Category("Core")]` -- couvrir :
   - la matrice sur modeles et textes synthetiques, dont les alterations d'un octet du bloc, du modele et de la version ;
   - la permutation d'ordre et l'immuabilite de la frame ;
   - trois contrats distincts, et aucun membre entier cible/waypoint dans `PathHorizon` ou `MotionPlan` ;
   - une liaison valide sur les artefacts commites reels ;
   - un scan source et une reflexion sur les nouveaux dossiers : aucun `VehicleDriveIntent`, `VehiclePhysicsBody`, `ApplyDriveIntent`, `Rigidbody`, `MonoBehaviour`, `NetworkVariable`, `Rpc`, et aucune lecture de `LateralClearanceMarginMeters`.
-- [ ] `Assets/RoadRage/Tests/EditMode/Story530PlanningReplayTests.cs` `[Category("Geometry")]` -- sur le modele reel, rejeu cinematique de chaque entree jusqu'au portail : pose placee sur l'horizon, nouvelle frame, reutilisation ou replanification. Chaque raccord et intervalle traverse respecte les tolerances. Ensemble des discontinuites d'anneau epingle par (mouvement, cote). Reference couverte a chaque pas.
-- [ ] `_bmad-output/implementation-artifacts/sprint-status.yaml` -- statut de la story. Puis `graphify update .`.
+- [x] `Assets/RoadRage/Tests/EditMode/Story530PlanningReplayTests.cs` `[Category("Geometry")]` -- sur le modele reel, rejeu cinematique de chaque entree jusqu'au portail : pose placee sur l'horizon, nouvelle frame, reutilisation ou replanification. Chaque raccord et intervalle traverse respecte les tolerances. Ensemble des discontinuites d'anneau epingle par (mouvement, cote). Reference couverte a chaque pas.
+- [x] `_bmad-output/implementation-artifacts/sprint-status.yaml` -- statut de la story. Puis `graphify update .`.
 
 **Acceptance Criteria:**
 - Given un cycle de decision hote, when la chaine s'execute, then elle lit une seule frame immuable, independante de l'ordre d'appel, et produit trois contrats distincts, aucun n'etant represente par un index de cible.
@@ -194,7 +195,47 @@ Le `MotionPlan` publie les contraintes geometriques, verifie un profil de vitess
 
 ## Verification
 
+**Execute le 2026-09-29 :** fixture Core 8/8 ; profil Full 950/950 EditMode, 0 erreur Console depuis le curseur 1275, compilation saine, aucun test exclu ou ignore, `MVP_Run` propre. `graphify update .` execute ; le graphe conserve un depassement preexistant de la limite utile (5337 noeuds avant, 5519 apres).
+
 **Commands:**
 - `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story530PlanningSpineTests"` -- expected: fixture verte, 0 erreur Console.
 - `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story530PlanningReplayTests"` -- expected: rejeu vert sur les 4 entrees.
 - `.\scripts\validate.ps1 -Profile Full` -- expected: suite EditMode complete verte, dont `GateAIsOpenedOnlyByTheOwnersBoundSignoff`. Story de contrat, donc profil Full.
+
+## Suggested Review Order
+
+**Chaine de decision**
+
+- Une evaluation pure relie observation, route, horizon, mouvement et projection.
+  [PlanningSpine.cs:61](../../Assets/RoadRage/Features/Vehicles/Traffic/PlanningSpine.cs#L61)
+
+- La frame trie et copie les acteurs avant une localisation unique.
+  [TrafficFrame.cs:42](../../Assets/RoadRage/Features/Vehicles/Traffic/Frame/TrafficFrame.cs#L42)
+
+**Geometrie et couverture**
+
+- L'horizon suit exclusivement les occurrences et courbes compilees; seuls les raccords signes derogent.
+  [PathHorizon.cs:74](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/PathHorizon.cs#L74)
+
+- La preuve documentaire lie version et empreintes des trois textes signes.
+  [GateAEvidenceBinding.cs:32](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/GateAEvidenceBinding.cs#L32)
+
+- Le plan distingue contraintes geometriques, couverture de reference et couverture vehicule.
+  [MotionPlan.cs:53](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionPlan.cs#L53)
+
+- Le verificateur controle un profil fourni sans produire de vitesses.
+  [MotionPlan.cs:102](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionPlan.cs#L102)
+
+**Lecture et preuves**
+
+- La projection fournit une sortie textuelle stable indexee sur la frame.
+  [TrafficDecisionProjection.cs:10](../../Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs#L10)
+
+- Les tests Core couvrent les contrats, les erreurs et la liaison Gate A.
+  [Story530PlanningSpineTests.cs:48](../../Assets/RoadRage/Tests/EditMode/Story530PlanningSpineTests.cs#L48)
+
+- Le rejeu Geometry traverse quatre entrees et epingle les 24 exceptions d'anneau.
+  [Story530PlanningReplayTests.cs:41](../../Assets/RoadRage/Tests/EditMode/Story530PlanningReplayTests.cs#L41)
+
+- La note explique le maintien de l'assembly existant.
+  [story-5-25-road-world-model-notes.md:27](../../docs/setup/story-5-25-road-world-model-notes.md#L27)

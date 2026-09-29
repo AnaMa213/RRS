@@ -24,7 +24,16 @@ plutot que supposee. Si Traffic doit alors referencer `VehicleDriveIntent`, deux
 ouvertes — deplacer `VehicleDriveIntent` vers `RoadRage.Shared` et extraire l'assembly, ou garder
 l'assembly unique — et le choix se tranche sur la dependance mesuree, pas sur cette note.
 
+## Confirmation 5.30
+
+L'assembly unique reste le choix mesure. La chaine Traffic V2 lit le `DriverProfile`
+de `RoadRage.Features.Vehicles` pour les bornes longitudinales par defaut ; extraire
+Traffic imposerait une reference de Traffic vers la feature Vehicles ou le deplacement
+du profil V1 retenu. Le banc oracle 5.24 garde V1 et V2 dans la meme portee. Aucun
+`.asmdef` n'est ajoute et la chaine 5.30 ne lit ni ne compose `VehicleDriveIntent`.
+
 ## Ce que la story livre
+
 
 | Fichier | Role |
 | --- | --- |
