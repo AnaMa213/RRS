@@ -55,6 +55,10 @@ graphify-out/
 Assets/Synty/
 Assets/Awbmecreations/
 Assets/TutorialInfo/
+
+# --- Troisieme passage (2026-09-29) : outillage editeur et scripts d'agent,
+# mesures hors perimetre applicatif lors de la mise a jour du graphe de la 5.29 ---
+
 Assets/Editor/
 AgentScripts/
 
