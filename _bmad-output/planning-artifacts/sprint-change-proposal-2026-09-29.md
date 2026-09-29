@@ -1,7 +1,7 @@
 # Sprint Change Proposal - 2026-09-29
 
 **Sujet :** L'erreur de suivi du vehicule physique n'est couverte par aucune preuve Gate A signee. Il faut inserer une story de couverture et de re-signature avant la Gate B, et ajuster l'AC normative de la 5.31.
-**Statut :** PROPOSE. En attente de l'approbation de Kenan. Aucune edition n'est appliquee, aucun artefact Gate A n'est modifie, aucune implementation n'est engagee.
+**Statut :** PROPOSE, revision 1 (2026-09-29 : borne entre deux pas, repli multi-pas, campagne de couverture).  En attente de l'approbation de Kenan. Aucune edition n'est appliquee, aucun artefact Gate A n'est modifie, aucune implementation n'est engagee.
 **Mode :** Batch, pour presenter ensemble les editions liees de la 5.31, de la nouvelle story, du contrat et des regles de build.
 **Portee :** Moderee. Ajustement direct dans l'Epic 5 : une story inseree, sans nouvel epic et sans changement de perimetre produit.
 **Decisions proprietaire deja prises (planification 5.31) :** A1 = a, A2 = a, A3 = a, A4 = a, A5 = b. Leur texte integral est consigne dans la spec 5.31.
@@ -78,7 +78,7 @@ Effort : 5.31 de taille L (inchangee hors ce retrait) ; 5.52 de taille M a L. Ri
   - Nouveau : `**Completion evidence:** EditMode suite green; PlayMode milestone 1 recorded under an explicit measurement run with its raw output, the owner-declared ε_t (after an exploratory run) and the published coverage verdict; ...` (le reste de la ligne est inchange). Ajouter a la suite : `Gate B is not claimed by this story.`
 - **l. 2681 (Unlocks).** Prefixer : `Story 5.52 integrates the declared ε_t into the Gate A evidence; after its re-signature, `.
 - **l. 2697-2700.** Remplacer les quatre lignes par :
-  - `**And** ε_t bounds the maximum displacement of every point of the maximum-gauge footprint (translation and heading), relative to the reference pose at the corresponding progress, including between physics steps under a declared conservative interval rule; an exploratory measurement run measures it, the owner then declares the bound, and acceptance runs verify it; any observed displacement beyond the declared ε_t fails`
+  - `**And** ε_t bounds the maximum displacement of every point of the maximum-gauge footprint (translation and heading) relative to the reference pose at matched progress; it is evaluated exactly at every physics step and, between steps, only under a declared interpolation model (linear translation, shortest-arc heading, matched progress interpolated linearly) with a rigorous Lipschitz remainder and seam jumps added; no continuous physical guarantee is claimed beyond that model; an exploratory campaign measures it, the owner then declares the bound, and acceptance campaigns verify it on every movement and roundabout seam, each element reported measured or explicitly not measured; any displacement beyond the declared ε_t fails, and a runtime monitor evaluates it at every step`
   - `**And** the coverage verdict (max |o(s)| + ε_t ≤ a_e of the valid evidence) is published; while it does not hold, no V2 vehicle drives outside an explicit measurement run, a test proves the refusal, and the measurement authorization is reserved to the test protocol and cannot enable normal operation`
   - `**And** integrating ε_t into the Gate A evidence and re-signing Gate A belong to Story 5.52; this story never regenerates or signs Gate A evidence, and never converts the reserved clearance margin or a residual clearance into a tracking allowance`
 - **l. 2704.**
@@ -86,7 +86,7 @@ Effort : 5.31 de taille L (inchangee hors ce retrait) ; 5.52 de taille M a L. Ri
   - Nouveau : `or the V2 fallback brake command when no valid plan exists`
 - **l. 2710.**
   - Ancien : `**Then** it is diagnosed and replaced by \`Idle\` before physics`
-  - Nouveau : `**Then** it is diagnosed and replaced before physics by the V2 fallback brake command: finite, bounded, valid for one physics step, service brake only above the direction-change speed and no brake input below it; the vehicle stays present with a diagnostic, without despawn, teleport or forced realignment; the global semantics of \`VehicleDriveIntent.Idle\` used by V1 are unchanged`
+  - Nouveau : `**Then** it is diagnosed and replaced before physics by the V2 fallback command, recomputed every physics step from the measured longitudinal speed: service brake only above the direction-change speed, handbrake hold at or below it and while rolling backward, never a brake-reverse input at or below that speed; it stays safe over successive steps until a diagnosed held stop or an explicit stop-overrun diagnostic, a physics test proves it at very low speed, and the vehicle stays present without despawn, teleport or forced realignment; the global semantics of \`VehicleDriveIntent.Idle\` used by V1 are unchanged`
 - **l. 2716.**
   - Ancien : `**Then** it combines desired speed, road limit, curve limit and the steering speed ceiling as named constraints and identifies the binding one`
   - Nouveau : `**Then** it applies desired speed, the steering speed ceiling and the declared longitudinal bounds as named constraints and identifies the binding one; road limit and the grip-based curve limit are named, reported as deferred to Story 5.33 and not applied, and an authored non-zero road limit is reported as authored-but-not-applied, never as the absence of a limit`
@@ -112,7 +112,7 @@ So that V2 vehicles drive outside measurement runs only on trajectories the sign
 
 **Capability delivered:** the allowance a_e = max |o(s)| + ε_t enters, beside the reserved margin and δ_c, the inflation of every Gate A proof: conflict candidates, junction physical clearance, `Sidewalk` planar clearance, roundabout residuals. Candidates and clearance are regenerated, and the candidate diff and fingerprints are published. The signed roundabout seam list moves into signed data. A new sign-off record is bound to the regenerated evidence, and the previous record is kept as superseded history.
 
-**Rules:** the reserved clearance margin and any residual clearance are never converted into allowance. Pairs whose conflict geometry fingerprint changed are materially changed: a decision bound to a previous conflict geometry is never reused silently, and becomes a historical proposal to reconfirm. New pairs and orphaned decisions are handled explicitly. The approved delegated decision mechanism `5.50-AUTO-DECISIONS-v1` applies under all its conditions where applicable. Any non-positive residual fails; a geometry change is an owner decision through a separate course correction. Gate A is re-signed only by the owner, explicitly, never automatically.
+**Rules:** ε_t keeps the Story 5.31 definition (matched-progress footprint displacement, exact at steps, declared interpolation model between steps). The reserved clearance margin and any residual clearance are never converted into allowance. This story decides the normal-operation response to a runtime `TrackingToleranceExceeded` diagnostic. Pairs whose conflict geometry fingerprint changed are materially changed: a decision bound to a previous conflict geometry is never reused silently, and becomes a historical proposal to reconfirm. New pairs and orphaned decisions are handled explicitly. The approved delegated decision mechanism `5.50-AUTO-DECISIONS-v1` applies under all its conditions where applicable. Any non-positive residual fails; a geometry change is an owner decision through a separate course correction. Gate A is re-signed only by the owner, explicitly, never automatically.
 
 **Non-goals:** no geometry change, no driving-behavior change, no change of the declared ε_t (a new value reruns this story).
 
@@ -144,9 +144,9 @@ So that V2 vehicles drive outside measurement runs only on trajectories the sign
 
 ### 4.7 Contrat `ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md`
 
-- **§8, puce « Lateral quantities are distinct », a la fin :** ajouter *2026-09-29 :* `ε_t bounds the maximum displacement of every point of the maximum-gauge footprint, translation and heading included, relative to the reference pose at the corresponding progress, with a declared conservative rule between physics steps; the reserved margin and any residual clearance are never converted into an allowance.`
+- **§8, puce « Lateral quantities are distinct », a la fin :** ajouter *2026-09-29 :* `ε_t bounds the maximum displacement of every point of the maximum-gauge footprint, translation and heading included, relative to the reference pose at matched progress. It is exact at every physics step; between steps it holds only under a declared interpolation model with a rigorous remainder, and is never presented as a continuous physical guarantee beyond that model. The reserved margin and any residual clearance are never converted into an allowance.`
 - **§8, puce « Gate A evidence lifecycle », a la fin :** ajouter `The allowance enters the inflation of every proof; a value recorded only as text covers nothing.`
-- **§10 (composeur), l. 445-447 :** ajouter *2026-09-29 :* `For Traffic V2, the replacement output is a finite, bounded fallback brake command valid for one physics step (service brake only above the direction-change speed); the global meaning of \`VehicleDriveIntent.Idle\` is unchanged. This is not the Safety Filter.`
+- **§10 (composeur), l. 445-447 :** ajouter *2026-09-29 :* `For Traffic V2, the replacement output is a finite, bounded fallback command recomputed every physics step from measured speed: service brake above the direction-change speed, handbrake hold at or below it and while rolling backward, never brake-reverse at or below it, until a diagnosed held stop or stop-overrun; the global meaning of \`VehicleDriveIntent.Idle\` is unchanged. This is not the Safety Filter.`
 
 ### 4.8 `docs/setup/build-workflow-rules.md` §6
 
@@ -160,6 +160,12 @@ Inserer apres `5-31-...: backlog` :
   # coverage in Gate A evidence and owner re-signature. Gate B closes after it.
   5-52-tracking-error-coverage-in-gate-a-evidence-and-owner-re-signature: backlog
 ```
+
+## 4.10 Revision 1 -- justification des trois corrections
+
+- **Borne entre deux pas.** La regle `max(d_k, d_k+1) + δ/2` issue du lemme 5.50 est **valide** pour le vehicule physique sous le modele d'interpolation lineaire. Elle est cependant **inutilisable** : elle facture tout le deplacement le long de la route. A 8 m/s sur l'anneau de 6 m, avec un pas de 0,02 s, on obtient δ/2 = 0,113 m, soit l'integralite du residu signe minimal (0,1127 m). Elle est remplacee par une borne a progression appariee (spec 5.31). La pose de reference est interpolee comme le vehicule, et le reste est borne rigoureusement par une constante de Lipschitz.
+- **Repli.** Sous 0,25 m/s, `BrakeReverse` engage la marche arriere (`VehicleTireModel.ResolveWheelDriveTorque`). Le frein a main (`VehiclePhysicsBody.cs:449-466`, couple max(service, 4 500) sur les roues non directrices) retient le vehicule dans les deux sens. Le repli devient donc une regle par pas, et un test physique a tres basse vitesse l'accompagne.
+- **Campagne.** La topologie permet de parcourir les 72 mouvements (verifie sur le JSON signe : 72/72 sur un chemin entree → sortie, aucun poids nul). Que le planificateur les *choisisse* reellement reste a etablir en local, par une campagne deterministe avec un resultat explicite pour chaque element.
 
 ## 5. Transfert et approbation
 
