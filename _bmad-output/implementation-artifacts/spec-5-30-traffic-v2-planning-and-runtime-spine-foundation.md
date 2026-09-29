@@ -2,7 +2,7 @@
 title: 'Story 5.30 -- Fondation de la chaine de planification et de l epine runtime Traffic V2'
 type: 'feature'
 created: '2026-09-29'
-status: 'draft'
+status: 'ready-for-dev'
 review_loop_iteration: 0
 context:
   - '_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
