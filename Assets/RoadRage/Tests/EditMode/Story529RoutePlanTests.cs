@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using RoadRage.Features.Vehicles.Traffic;
@@ -80,7 +81,32 @@ namespace RoadRage.Tests.EditMode
 
         private static RouteResult Plan(CompiledRoadModel model, RoadId start, ulong seed = 1)
         {
-            return RoutePlanner.Plan(model, At(model, start), RoadId.None, seed, Id(80), "route", 0);
+            return Plan(model, At(model, start), RoadId.None, seed, Id(80), "route", 0);
+        }
+
+        private static RouteResult Plan(CompiledRoadModel model, RoadLocation location, RoadId destination,
+            ulong seed, RoadId traffic, string domain, ulong counter,
+            RoutePlan existing = null, bool replan = false, IReadOnlyCollection<RoadId> closedPortalIds = null)
+        {
+            return RoutePlanner.Plan(new RouteRequest(model, location, destination, new RouteSeed(seed), traffic,
+                domain, new DecisionCounter(counter), existing, replan, closedPortalIds));
+        }
+
+        private static void AssertEquivalent(RoutePlan expected, RoutePlan actual)
+        {
+            Assert.That(actual.ExitPortalId, Is.EqualTo(expected.ExitPortalId));
+            Assert.That(actual.Reason, Is.EqualTo(expected.Reason));
+            Assert.That(actual.Occurrences.Count, Is.EqualTo(expected.Occurrences.Count));
+            for (int i = 0; i < expected.Occurrences.Count; i++)
+            {
+                Assert.That(actual.Occurrences[i].Kind, Is.EqualTo(expected.Occurrences[i].Kind));
+                Assert.That(actual.Occurrences[i].Id, Is.EqualTo(expected.Occurrences[i].Id));
+                Assert.That(actual.Occurrences[i].StartSMeters, Is.EqualTo(expected.Occurrences[i].StartSMeters));
+                Assert.That(actual.Occurrences[i].EndSMeters, Is.EqualTo(expected.Occurrences[i].EndSMeters));
+            }
+            Assert.That(actual.DistanceMeters, Is.EqualTo(expected.DistanceMeters));
+            Assert.That(actual.PreferenceCost, Is.EqualTo(expected.PreferenceCost));
+            Assert.That(actual.Diagnostics, Is.EqualTo(expected.Diagnostics));
         }
 
         private static RoadModelSource Loop(bool portalOnLoop)
@@ -156,22 +182,30 @@ namespace RoadRage.Tests.EditMode
         public void WeightedChoicesAreReproducibleAndRespectRatios()
         {
             var model = RoadModelCompiler.Compile(Source(new[] { 30f, 50f, 20f }));
-            var counts = new int[3];
-            for (ulong seed = 0; seed < 4000; seed++)
+            foreach (ulong identity in new[] { 80UL, 81UL })
             {
-                var result = Plan(model, Id(20), seed);
-                Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned));
-                Assert.That(result.Plan.TotalCost, Is.GreaterThan(0d));
-                Assert.That(double.IsInfinity(result.Plan.TotalCost), Is.False);
-                Assert.That(double.IsNaN(result.Plan.DistanceMeters) || double.IsInfinity(result.Plan.DistanceMeters), Is.False);
-                Assert.That(double.IsNaN(result.Plan.PreferenceCost) || double.IsInfinity(result.Plan.PreferenceCost), Is.False);
-                int chosen = (int)result.Plan.ExitPortalId.Low - 60;
-                counts[chosen]++;
-                Assert.That(Plan(model, Id(20), seed).Plan.ExitPortalId, Is.EqualTo(result.Plan.ExitPortalId));
+                var counts = new int[3];
+                for (ulong seed = 0; seed < 4000; seed++)
+                {
+                    var result = Plan(model, At(model, Id(20)), RoadId.None, seed, Id((int)identity), "route", 0);
+                    Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned));
+                    Assert.That(result.Reason, Is.EqualTo(RouteReason.Requested));
+                    Assert.That(result.Plan.TotalCost, Is.GreaterThan(0d));
+                    Assert.That(double.IsInfinity(result.Plan.TotalCost), Is.False);
+                    Assert.That(double.IsNaN(result.Plan.DistanceMeters) || double.IsInfinity(result.Plan.DistanceMeters), Is.False);
+                    Assert.That(double.IsNaN(result.Plan.PreferenceCost) || double.IsInfinity(result.Plan.PreferenceCost), Is.False);
+                    Assert.That(result.Plan.PreferenceCost, Is.GreaterThan(0d));
+                    Assert.That(result.Plan.PreferenceCost, Is.LessThan(40d));
+                    Assert.That(result.Plan.Diagnostics, Is.EqualTo(RouteDiagnostic.None));
+                    int chosen = (int)result.Plan.ExitPortalId.Low - 60;
+                    counts[chosen]++;
+                    AssertEquivalent(result.Plan,
+                        Plan(model, At(model, Id(20)), RoadId.None, seed, Id((int)identity), "route", 0).Plan);
+                }
+                Assert.That(counts[0], Is.InRange(1050, 1350));
+                Assert.That(counts[1], Is.InRange(1800, 2200));
+                Assert.That(counts[2], Is.InRange(650, 950));
             }
-            Assert.That(counts[0], Is.InRange(1050, 1350));
-            Assert.That(counts[1], Is.InRange(1800, 2200));
-            Assert.That(counts[2], Is.InRange(650, 950));
 
             var reordered = Source(new[] { 30f, 50f, 20f });
             Array.Reverse(reordered.Movements);
@@ -179,25 +213,39 @@ namespace RoadRage.Tests.EditMode
             var permuted = RoadModelCompiler.Compile(reordered);
             Assert.That(permuted.Version, Is.EqualTo(model.Version));
             for (ulong seed = 0; seed < 100; seed++)
-                Assert.That(Plan(permuted, Id(20), seed).Plan.ExitPortalId,
-                    Is.EqualTo(Plan(model, Id(20), seed).Plan.ExitPortalId));
+                AssertEquivalent(Plan(model, Id(20), seed).Plan, Plan(permuted, Id(20), seed).Plan);
 
             var raised = RoadModelCompiler.Compile(Source(new[] { 60f, 50f, 20f }));
-            for (ulong seed = 0; seed < 100; seed++)
-                if (Plan(model, Id(20), seed).Plan.ExitPortalId == Id(60))
-                    Assert.That(Plan(raised, Id(20), seed).Plan.ExitPortalId, Is.EqualTo(Id(60)));
+            var baseCounts = new int[3];
+            var raisedCounts = new int[3];
+            for (ulong seed = 0; seed < 4000; seed++)
+            {
+                var baseline = Plan(model, Id(20), seed).Plan;
+                var boosted = Plan(raised, Id(20), seed).Plan;
+                baseCounts[(int)baseline.ExitPortalId.Low - 60]++;
+                raisedCounts[(int)boosted.ExitPortalId.Low - 60]++;
+                if (baseline.ExitPortalId == Id(60))
+                {
+                    Assert.That(boosted.ExitPortalId, Is.EqualTo(Id(60)));
+                    Assert.That(boosted.PreferenceCost, Is.LessThan(baseline.PreferenceCost));
+                }
+            }
+            Assert.That(raisedCounts[0], Is.GreaterThan(baseCounts[0]));
 
-            bool identityChangesDecision = false, domainChangesDecision = false;
+            bool identityChangesDecision = false, domainChangesDecision = false, counterChangesDecision = false;
             for (ulong seed = 0; seed < 100; seed++)
             {
                 var baseline = Plan(model, Id(20), seed).Plan.ExitPortalId;
-                identityChangesDecision |= RoutePlanner.Plan(model, At(model, Id(20)), RoadId.None,
+                identityChangesDecision |= Plan(model, At(model, Id(20)), RoadId.None,
                     seed, Id(81), "route", 0).Plan.ExitPortalId != baseline;
-                domainChangesDecision |= RoutePlanner.Plan(model, At(model, Id(20)), RoadId.None,
-                    seed, Id(80), "other", 1).Plan.ExitPortalId != baseline;
+                domainChangesDecision |= Plan(model, At(model, Id(20)), RoadId.None,
+                    seed, Id(80), "other", 0).Plan.ExitPortalId != baseline;
+                counterChangesDecision |= Plan(model, At(model, Id(20)), RoadId.None,
+                    seed, Id(80), "route", 1).Plan.ExitPortalId != baseline;
             }
             Assert.That(identityChangesDecision, Is.True);
             Assert.That(domainChangesDecision, Is.True);
+            Assert.That(counterChangesDecision, Is.True);
         }
 
         [Test]
@@ -205,7 +253,11 @@ namespace RoadRage.Tests.EditMode
         {
             var deadEnd = RoadModelCompiler.Compile(Source(new[] { 1f, 1f, 1000f }, new[] { true, true, false }));
             for (ulong seed = 0; seed < 100; seed++)
-                Assert.That(Plan(deadEnd, Id(20), seed).Plan.ExitPortalId, Is.Not.EqualTo(Id(62)));
+            {
+                var result = Plan(deadEnd, Id(20), seed);
+                Assert.That(result.Plan, Is.Not.Null);
+                Assert.That(result.Plan.ExitPortalId, Is.EqualTo(Id(60)).Or.EqualTo(Id(61)));
+            }
 
             var mixed = RoadModelCompiler.Compile(Source(new[] { 0f, 1f, 0f }));
             for (ulong seed = 0; seed < 100; seed++)
@@ -237,10 +289,21 @@ namespace RoadRage.Tests.EditMode
                 var result = Plan(onlyZerosReach, Id(20), seed);
                 Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned));
                 Assert.That(result.Diagnostics, Is.EqualTo(RouteDiagnostic.ZeroWeightFallback));
-                Assert.That(result.Plan.ExitPortalId, Is.Not.EqualTo(Id(62)));
+                Assert.That(result.Plan, Is.Not.Null);
+                Assert.That(result.Plan.ExitPortalId, Is.EqualTo(Id(60)).Or.EqualTo(Id(61)));
             }
             var invalid = Source(new[] { -1f, 1f, 1f });
-            Assert.Throws<RoadModelCompilationException>(() => RoadModelCompiler.Compile(invalid));
+            var negative = Assert.Throws<RoadModelCompilationException>(() => RoadModelCompiler.Compile(invalid));
+            Assert.That(negative.HasCode(RoadModelValidationCode.NumericValueOutOfRange), Is.True);
+            bool negativeOnMovement = false;
+            foreach (var issue in negative.Issues)
+                negativeOnMovement |= issue.Code == RoadModelValidationCode.NumericValueOutOfRange
+                    && issue.SubjectId == Id(40);
+            Assert.That(negativeOnMovement, Is.True);
+
+            var notFinite = Source(new[] { float.NaN, 1f, 1f });
+            var notFiniteFailure = Assert.Throws<RoadModelCompilationException>(() => RoadModelCompiler.Compile(notFinite));
+            Assert.That(notFiniteFailure.HasCode(RoadModelValidationCode.NonFiniteNumericValue), Is.True);
         }
 
         [Test]
@@ -251,45 +314,58 @@ namespace RoadRage.Tests.EditMode
                 Id = Id(70), CorridorId = Id(20), Role = PortalRole.Exit,
                 SMeters = 5f, EnvelopeLengthMeters = 1f, EnvelopeHalfWidthMeters = 1f } };
             var model = RoadModelCompiler.Compile(source);
-            var ahead = RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0);
+            var ahead = Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0);
+            Assert.That(ahead.Outcome, Is.EqualTo(RouteOutcome.Planned));
+            Assert.That(ahead.Reason, Is.EqualTo(RouteReason.Requested));
             Assert.That(ahead.Plan.Occurrences.Count, Is.EqualTo(1));
             Assert.That(ahead.Plan.DistanceMeters, Is.EqualTo(1d));
             foreach (float s in new[] { 5f, 6f })
             {
-                var result = RoutePlanner.Plan(model, At(model, Id(20), s), Id(70), 1, Id(80), "route", 0);
+                var result = Plan(model, At(model, Id(20), s), Id(70), 1, Id(80), "route", 0);
                 Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.NoRoute));
                 Assert.That(result.Reason, Is.EqualTo(RouteReason.DestinationUnreachable));
+                Assert.That(result.Plan, Is.Null);
             }
             var stale = At(model, Id(20));
             stale.ModelVersion = default(RoadModelVersion);
-            Assert.That(RoutePlanner.Plan(model, stale, Id(70), 1, Id(80), "route", 0).Reason,
-                Is.EqualTo(RouteReason.StaleLocalization));
-            Assert.That(RoutePlanner.Plan(model, At(model, Id(99)), Id(70), 1, Id(80), "route", 0).Reason,
+            var staleResult = Plan(model, stale, Id(70), 1, Id(80), "route", 0);
+            Assert.That(staleResult.Outcome, Is.EqualTo(RouteOutcome.InvalidInput));
+            Assert.That(staleResult.Reason, Is.EqualTo(RouteReason.StaleLocalization));
+            Assert.That(staleResult.Plan, Is.Null);
+            var unknown = Plan(model, At(model, Id(99)), Id(70), 1, Id(80), "route", 0);
+            Assert.That(unknown.Outcome, Is.EqualTo(RouteOutcome.InvalidInput));
+            Assert.That(unknown.Reason, Is.EqualTo(RouteReason.InvalidStart));
+            var notLocalized = At(model, Id(20));
+            notLocalized.Localized = false;
+            Assert.That(Plan(model, notLocalized, Id(70), 1, Id(80), "route", 0).Outcome,
+                Is.EqualTo(RouteOutcome.InvalidInput));
+            Assert.That(Plan(model, At(model, Id(20), 11f), Id(70), 1, Id(80), "route", 0).Reason,
                 Is.EqualTo(RouteReason.InvalidStart));
-            Assert.That(RoutePlanner.Plan(model, At(model, Id(20)), Id(99), 1, Id(80), "route", 0).Reason,
+            Assert.That(Plan(model, At(model, Id(20)), Id(99), 1, Id(80), "route", 0).Reason,
                 Is.EqualTo(RouteReason.DestinationUnavailable));
-            Assert.That(RoutePlanner.Plan(model, At(model, Id(20)), Id(70), 1, Id(80), "route", 0,
+            Assert.That(Plan(model, At(model, Id(20)), Id(70), 1, Id(80), "route", 0,
                 closedPortalIds: new[] { Id(70) }).Reason,
                 Is.EqualTo(RouteReason.DestinationUnavailable));
-            var old = RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0).Plan;
-            var replacement = RoutePlanner.Plan(model, At(model, Id(20), 3f), Id(70), 1, Id(80), "route", 0, old);
+            var old = Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0).Plan;
+            var replacement = Plan(model, At(model, Id(20), 3f), Id(70), 1, Id(80), "route", 0, old);
             Assert.That(replacement.Outcome, Is.EqualTo(RouteOutcome.Replanned));
             Assert.That(replacement.Reason, Is.EqualTo(RouteReason.StalePlan));
             Assert.That(replacement.Plan.Occurrences[0].StartSMeters, Is.EqualTo(3f));
-            Assert.That(RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0, old).Plan,
-                Is.SameAs(old));
-            Assert.That(RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0,
-                old, true).Outcome, Is.EqualTo(RouteOutcome.Replanned));
+            var reused = Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0, old).Plan;
+            Assert.That(reused, Is.SameAs(old));
+            Assert.That(reused.Reason, Is.EqualTo(RouteReason.Requested));
+            var explicitReplan = Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0, old, true);
+            Assert.That(explicitReplan.Outcome, Is.EqualTo(RouteOutcome.Replanned));
+            Assert.That(explicitReplan.Reason, Is.EqualTo(RouteReason.Requested));
 
             var changedSource = Source(new[] { 2f, 1f, 1f });
             var changedModel = RoadModelCompiler.Compile(changedSource);
-            var versionReplan = RoutePlanner.Plan(changedModel, At(changedModel, Id(20)), RoadId.None,
-                1, Id(80), "route", 0, old);
+            var versionReplan = Plan(changedModel, At(changedModel, Id(20)), RoadId.None, 1, Id(80), "route", 0, old);
             Assert.That(versionReplan.Outcome, Is.EqualTo(RouteOutcome.Replanned));
             Assert.That(versionReplan.Reason, Is.EqualTo(RouteReason.StalePlan));
 
             var movementModel = RoadModelCompiler.Compile(Source(new[] { 1f, 1f, 1f }));
-            var inMovement = RoutePlanner.Plan(movementModel,
+            var inMovement = Plan(movementModel,
                 At(movementModel, Id(40), 4f, RoadElementKind.JunctionMovement), Id(60),
                 1, Id(80), "route", 0);
             Assert.That(inMovement.Outcome, Is.EqualTo(RouteOutcome.Planned));
@@ -298,12 +374,23 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void ReuseRefusesADifferentDestination()
+        {
+            var model = RoadModelCompiler.Compile(Source(new[] { 1f, 1f, 1f }));
+            var original = Plan(model, At(model, Id(20)), Id(60), 1, Id(80), "route", 0).Plan;
+            var redirected = Plan(model, At(model, Id(20)), Id(61), 1, Id(80), "route", 0, original);
+            Assert.That(redirected.Outcome, Is.EqualTo(RouteOutcome.Replanned));
+            Assert.That(redirected.Reason, Is.EqualTo(RouteReason.StalePlan));
+            Assert.That(redirected.Plan.ExitPortalId, Is.EqualTo(Id(61)));
+        }
+
+        [Test]
         public void PortalBehindRequiresASecondDirectedVisitAndClosedCycleTerminates()
         {
             var model = RoadModelCompiler.Compile(Loop(true));
             foreach (float s in new[] { 5f, 6f })
             {
-                var result = RoutePlanner.Plan(model, At(model, Id(20), s), Id(70),
+                var result = Plan(model, At(model, Id(20), s), Id(70),
                     1, Id(80), "route", 0);
                 Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned));
                 Assert.That(result.Plan.Occurrences.Count, Is.EqualTo(2));
@@ -323,41 +410,70 @@ namespace RoadRage.Tests.EditMode
         public void ReuseTracksForwardProgressAndTrafficIdentity()
         {
             var model = RoadModelCompiler.Compile(Source(new[] { 1f, 1f, 1f }));
-            var original = RoutePlanner.Plan(model, At(model, Id(20)), Id(60),
+            var original = Plan(model, At(model, Id(20)), Id(60),
                 1, Id(80), "route", 0).Plan;
-            var corridorProgress = RoutePlanner.Plan(model, At(model, Id(20), 5f), Id(60),
+            var corridorProgress = Plan(model, At(model, Id(20), 5f), Id(60),
                 1, Id(80), "route", 0, original);
             Assert.That(corridorProgress.Outcome, Is.EqualTo(RouteOutcome.Planned));
+            Assert.That(corridorProgress.Reason, Is.EqualTo(RouteReason.Requested));
             Assert.That(corridorProgress.Plan.ProgressOccurrenceIndex, Is.Zero);
             Assert.That(corridorProgress.Plan.ProgressSMeters, Is.EqualTo(5f));
             Assert.That(corridorProgress.Plan.Occurrences, Is.SameAs(original.Occurrences));
 
-            var movementProgress = RoutePlanner.Plan(model,
+            var movementProgress = Plan(model,
                 At(model, Id(40), 4f, RoadElementKind.JunctionMovement), Id(60),
                 1, Id(80), "route", 0, corridorProgress.Plan);
             Assert.That(movementProgress.Outcome, Is.EqualTo(RouteOutcome.Planned));
+            Assert.That(movementProgress.Reason, Is.EqualTo(RouteReason.Requested));
             Assert.That(movementProgress.Plan.ProgressOccurrenceIndex, Is.EqualTo(1));
             Assert.That(movementProgress.Plan.ProgressSMeters, Is.EqualTo(4f));
 
-            var backward = RoutePlanner.Plan(model, At(model, Id(20), 4f), Id(60),
+            var backward = Plan(model, At(model, Id(20), 4f), Id(60),
                 1, Id(80), "route", 0, corridorProgress.Plan);
             Assert.That(backward.Outcome, Is.EqualTo(RouteOutcome.Replanned));
             Assert.That(backward.Reason, Is.EqualTo(RouteReason.StalePlan));
-            var oldOccurrence = RoutePlanner.Plan(model, At(model, Id(20), 9f), Id(60),
+            var oldOccurrence = Plan(model, At(model, Id(20), 9f), Id(60),
                 1, Id(80), "route", 0, movementProgress.Plan);
             Assert.That(oldOccurrence.Outcome, Is.EqualTo(RouteOutcome.Replanned));
 
-            var otherTraffic = RoutePlanner.Plan(model, At(model, Id(20)), Id(60),
+            var otherTraffic = Plan(model, At(model, Id(20)), Id(60),
                 1, Id(81), "route", 0, original);
             Assert.That(otherTraffic.Outcome, Is.EqualTo(RouteOutcome.Replanned));
             Assert.That(otherTraffic.Reason, Is.EqualTo(RouteReason.StalePlan));
             Assert.That(otherTraffic.Plan.TrafficId, Is.EqualTo(Id(81)));
+        }
 
-            var loop = RoadModelCompiler.Compile(Loop(true));
-            var repeated = RoutePlanner.Plan(loop, At(loop, Id(20), 6f), Id(70),
-                1, Id(80), "route", 0).Plan;
-            Assert.That(RoutePlanner.Plan(loop, At(loop, Id(20), 7f), Id(70),
-                1, Id(80), "route", 0, repeated).Outcome, Is.EqualTo(RouteOutcome.Replanned));
+        [Test]
+        public void ReuseDistinguishesRepeatedVisitsOnALoop()
+        {
+            var model = RoadModelCompiler.Compile(Loop(true));
+            var repeated = Plan(model, At(model, Id(20), 6f), Id(70), 1, Id(80), "route", 0).Plan;
+            Assert.That(repeated.Occurrences.Count, Is.EqualTo(2));
+            Assert.That(repeated.Occurrences[0].Id, Is.EqualTo(Id(20)));
+            Assert.That(repeated.Occurrences[1].Id, Is.EqualTo(Id(20)));
+
+            var firstVisit = Plan(model, At(model, Id(20), 7f), Id(70), 1, Id(80), "route", 0, repeated);
+            Assert.That(firstVisit.Outcome, Is.EqualTo(RouteOutcome.Planned));
+            Assert.That(firstVisit.Reason, Is.EqualTo(RouteReason.Requested));
+            Assert.That(firstVisit.Plan.ProgressOccurrenceIndex, Is.Zero);
+            Assert.That(firstVisit.Plan.ProgressSMeters, Is.EqualTo(7f));
+            Assert.That(firstVisit.Plan.Occurrences, Is.SameAs(repeated.Occurrences));
+
+            var secondVisit = Plan(model, At(model, Id(20), 2f), Id(70), 1, Id(80), "route", 0, firstVisit.Plan);
+            Assert.That(secondVisit.Outcome, Is.EqualTo(RouteOutcome.Planned));
+            Assert.That(secondVisit.Reason, Is.EqualTo(RouteReason.Requested));
+            Assert.That(secondVisit.Plan.ProgressOccurrenceIndex, Is.EqualTo(1));
+            Assert.That(secondVisit.Plan.ProgressSMeters, Is.EqualTo(2f));
+            Assert.That(secondVisit.Plan.Occurrences, Is.SameAs(repeated.Occurrences));
+
+            var advanced = Plan(model, At(model, Id(20), 4f), Id(70), 1, Id(80), "route", 0, secondVisit.Plan);
+            Assert.That(advanced.Outcome, Is.EqualTo(RouteOutcome.Planned));
+            Assert.That(advanced.Plan.ProgressOccurrenceIndex, Is.EqualTo(1));
+            Assert.That(advanced.Plan.ProgressSMeters, Is.EqualTo(4f));
+
+            var backwardVisit = Plan(model, At(model, Id(20), 3f), Id(70), 1, Id(80), "route", 0, advanced.Plan);
+            Assert.That(backwardVisit.Outcome, Is.EqualTo(RouteOutcome.Replanned));
+            Assert.That(backwardVisit.Reason, Is.EqualTo(RouteReason.StalePlan));
         }
 
         [Test]
@@ -379,7 +495,7 @@ namespace RoadRage.Tests.EditMode
             portal.SMeters = 10.01f;
             source.Portals[0] = portal;
             var model = RoadModelCompiler.Compile(source);
-            var unavailable = RoutePlanner.Plan(model, At(model, Id(20)), Id(60),
+            var unavailable = Plan(model, At(model, Id(20)), Id(60),
                 1, Id(80), "route", 0);
             Assert.That(unavailable.Outcome, Is.EqualTo(RouteOutcome.NoRoute));
             Assert.That(unavailable.Reason, Is.EqualTo(RouteReason.DestinationUnavailable));
@@ -387,13 +503,48 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void NearestAheadPortalWinsAndDistanceBeatsPreference()
+        {
+            var source = Source(new[] { 1f, 1f, 1f });
+            source.Portals = new[] {
+                new Portal { Id = Id(70), CorridorId = Id(20), Role = PortalRole.Exit, SMeters = 8f,
+                    EnvelopeLengthMeters = 1f, EnvelopeHalfWidthMeters = 1f },
+                new Portal { Id = Id(71), CorridorId = Id(20), Role = PortalRole.Exit, SMeters = 5f,
+                    EnvelopeLengthMeters = 1f, EnvelopeHalfWidthMeters = 1f } };
+            var corridorModel = RoadModelCompiler.Compile(source);
+            var middle = Plan(corridorModel, At(corridorModel, Id(20), 4f), RoadId.None, 1, Id(80), "route", 0);
+            Assert.That(middle.Outcome, Is.EqualTo(RouteOutcome.Planned));
+            Assert.That(middle.Plan.ExitPortalId, Is.EqualTo(Id(71)));
+            Assert.That(middle.Plan.DistanceMeters, Is.EqualTo(1d));
+            var past = Plan(corridorModel, At(corridorModel, Id(20), 6f), RoadId.None, 1, Id(80), "route", 0);
+            Assert.That(past.Plan.ExitPortalId, Is.EqualTo(Id(70)));
+            Assert.That(past.Plan.DistanceMeters, Is.EqualTo(2d));
+
+            var far = Source(new[] { 1f, 1f, 1f });
+            var farCorridor = far.Corridors[3];
+            farCorridor.LengthMeters = 100f;
+            farCorridor.Samples = Line(20f, 120f);
+            far.Corridors[3] = farCorridor;
+            var farPortal = far.Portals[2];
+            farPortal.SMeters = 99.5f;
+            far.Portals[2] = farPortal;
+            var farModel = RoadModelCompiler.Compile(far);
+            for (ulong seed = 0; seed < 200; seed++)
+            {
+                var result = Plan(farModel, Id(20), seed);
+                Assert.That(result.Plan, Is.Not.Null);
+                Assert.That(result.Plan.ExitPortalId, Is.EqualTo(Id(60)).Or.EqualTo(Id(61)));
+            }
+        }
+
+        [Test]
         public void ClosedExistingExitReplansToAnotherOpenExit()
         {
             var model = RoadModelCompiler.Compile(Source(new[] { 1f, 1f, 1f }));
             var location = At(model, Id(20));
-            var old = RoutePlanner.Plan(model, location, RoadId.None,
+            var old = Plan(model, location, RoadId.None,
                 1, Id(80), "route", 0).Plan;
-            var result = RoutePlanner.Plan(model, location, RoadId.None,
+            var result = Plan(model, location, RoadId.None,
                 1, Id(80), "route", 0, old, closedPortalIds: new[] { old.ExitPortalId });
             Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Replanned));
             Assert.That(result.Reason, Is.EqualTo(RouteReason.StalePlan));
@@ -406,13 +557,25 @@ namespace RoadRage.Tests.EditMode
             var source = RoadModelDocument.Load(File.ReadAllText("Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json"));
             var model = RoadModelCompiler.Compile(source);
             Assert.That(model.Connections.Count, Is.Zero);
+            int entries = 0, exits = 0, pairs = 0;
+            foreach (var portal in model.Portals)
+            {
+                if (portal.Role == PortalRole.Entry) entries++;
+                if (portal.Role == PortalRole.Exit) exits++;
+            }
+            Assert.That(entries, Is.EqualTo(4));
+            Assert.That(exits, Is.EqualTo(4));
+            int portalsBefore = model.Portals.Count;
+            int corridorsBefore = model.Corridors.Count;
+            var versionBefore = model.Version;
             foreach (var entry in model.Portals)
             {
                 if (entry.Role != PortalRole.Entry) continue;
                 foreach (var exit in model.Portals)
                 {
                     if (exit.Role != PortalRole.Exit) continue;
-                    var result = RoutePlanner.Plan(model, At(model, entry.CorridorId, entry.SMeters),
+                    pairs++;
+                    var result = Plan(model, At(model, entry.CorridorId, entry.SMeters),
                         exit.Id, 7, Id(80), "route", 0);
                     Assert.That(result.Outcome, Is.EqualTo(RouteOutcome.Planned), entry.Id + " -> " + exit.Id);
                     Assert.That(result.Plan.ExitPortalId, Is.EqualTo(exit.Id));
@@ -445,8 +608,15 @@ namespace RoadRage.Tests.EditMode
                             Assert.That(step.EndSMeters, Is.EqualTo(length));
                     }
                     Assert.That(result.Plan.DistanceMeters, Is.EqualTo(sum).Within(1e-5d));
+                    AssertEquivalent(result.Plan, Plan(model, At(model, entry.CorridorId, entry.SMeters),
+                        exit.Id, 7, Id(80), "route", 0).Plan);
                 }
             }
+            Assert.That(pairs, Is.EqualTo(16));
+            // Le planner est pur : aucun acces scene/cycle de vie, et le modele compile n'est pas mute.
+            Assert.That(model.Portals.Count, Is.EqualTo(portalsBefore));
+            Assert.That(model.Corridors.Count, Is.EqualTo(corridorsBefore));
+            Assert.That(model.Version, Is.EqualTo(versionBefore));
         }
     }
 }

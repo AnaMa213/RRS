@@ -3,12 +3,92 @@ using System.Collections.Generic;
 
 namespace RoadRage.Features.Vehicles.Traffic.Routing
 {
+    /// <summary>Issue globale d'une demande : planifie, replanifie, sans route, ou refusee en entree.</summary>
     public enum RouteOutcome { Planned = 0, Replanned = 1, NoRoute = 2, InvalidInput = 3 }
+
+    /// <summary>
+    /// Cause stable du resultat. Les chemins nominaux portent <see cref="Requested"/> ; les fautes
+    /// d'appel (modele nul, identite de trafic vide, domaine vide) partagent <see cref="InvalidStart"/>
+    /// avec une localisation inexploitable ; <see cref="StaleLocalization"/> signale une localisation
+    /// absente ou d'une autre version du modele.
+    /// </summary>
     public enum RouteReason { Requested = 0, StalePlan = 1, InvalidStart = 2, StaleLocalization = 3,
         DestinationUnavailable = 4, DestinationUnreachable = 5 }
 
+    /// <summary>Diagnostics non bloquants ; plusieurs drapeaux peuvent coexister.</summary>
     [Flags]
     public enum RouteDiagnostic { None = 0, ZeroWeightFallback = 1 }
+
+    /// <summary>
+    /// Graine de session de l'aleatoire de preference. Type distinct, sans conversion implicite,
+    /// pour interdire l'echange silencieux avec <see cref="DecisionCounter"/>.
+    /// </summary>
+    public readonly struct RouteSeed
+    {
+        public readonly ulong Value;
+
+        public RouteSeed(ulong value)
+        {
+            Value = value;
+        }
+    }
+
+    /// <summary>
+    /// Compteur de decision dans un domaine. Type distinct, sans conversion implicite, pour
+    /// interdire l'echange silencieux avec <see cref="RouteSeed"/>.
+    /// </summary>
+    public readonly struct DecisionCounter
+    {
+        public readonly ulong Value;
+
+        public DecisionCounter(ulong value)
+        {
+            Value = value;
+        }
+    }
+
+    /// <summary>
+    /// Requete immuable de planification strategique ; remplace la signature positionnelle.
+    /// </summary>
+    public readonly struct RouteRequest
+    {
+        /// <summary>Modele compile ; sa version et son identite sont verifiees contre la localisation.</summary>
+        public readonly CompiledRoadModel Model;
+        /// <summary>Localisation courante ; elle doit appartenir au modele et a sa version.</summary>
+        public readonly RoadLocation Location;
+        /// <summary>Sortie visee ; vide signifie "toute sortie disponible" et le resultat nomme le portail retenu.</summary>
+        public readonly RoadId DestinationExitId;
+        /// <summary>Graine de session de l'aleatoire de preference.</summary>
+        public readonly RouteSeed Seed;
+        /// <summary>Identite trafic stable, jamais `NetworkObjectId` seul.</summary>
+        public readonly RoadId TrafficId;
+        /// <summary>Domaine de decision, qui isole l'aleatoire par usage avec le compteur.</summary>
+        public readonly string DecisionDomain;
+        /// <summary>Compteur de decision dans le domaine.</summary>
+        public readonly DecisionCounter Counter;
+        /// <summary>Plan candidat a la reutilisation ; il doit etre re-emis tel quel (egalite exacte du contrat).</summary>
+        public readonly RoutePlan Existing;
+        /// <summary>Force un nouveau plan meme si `Existing` resterait reutilisable.</summary>
+        public readonly bool Replan;
+        /// <summary>Sorties considerees fermees ; `null` signifie aucune fermeture.</summary>
+        public readonly IReadOnlyCollection<RoadId> ClosedPortalIds;
+
+        public RouteRequest(CompiledRoadModel model, RoadLocation location, RoadId destinationExitId,
+            RouteSeed seed, RoadId trafficId, string decisionDomain, DecisionCounter counter,
+            RoutePlan existing = null, bool replan = false, IReadOnlyCollection<RoadId> closedPortalIds = null)
+        {
+            Model = model;
+            Location = location;
+            DestinationExitId = destinationExitId;
+            Seed = seed;
+            TrafficId = trafficId;
+            DecisionDomain = decisionDomain;
+            Counter = counter;
+            Existing = existing;
+            Replan = replan;
+            ClosedPortalIds = closedPortalIds;
+        }
+    }
 
     /// <summary>Une visite dirigee ; une meme identite peut apparaitre plusieurs fois apres une boucle.</summary>
     public readonly struct RouteOccurrence
@@ -27,6 +107,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
         }
     }
 
+    /// <summary>
+    /// Plan strategique immuable : occurrences dirigees ordonnees, progression acquise et couts
+    /// publies. Une meme identite peut apparaitre plusieurs fois apres une boucle legale. Aucun
+    /// effet de conduite : ni chemin, ni consigne, ni mutation du modele ou du monde.
+    /// </summary>
     public sealed class RoutePlan
     {
         public RoadId ModelId { get; }
@@ -45,6 +130,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
         internal RoutePlan(RoadId modelId, RoadModelVersion version, RoadId trafficId, RoadId exitPortalId, RouteReason reason,
             List<RouteOccurrence> occurrences, double distanceMeters, double preferenceCost, RouteDiagnostic diagnostics)
         {
+            if (occurrences == null || occurrences.Count == 0)
+                throw new ArgumentException("Au moins une occurrence est requise.", "occurrences");
             ModelId = modelId;
             ModelVersion = version;
             TrafficId = trafficId;
@@ -73,6 +160,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             Diagnostics = source.Diagnostics;
         }
 
+        /// <summary>
+        /// Progression sur la meme occurrence : l'egalite exacte du couple (index, s) est le contrat,
+        /// les valeurs etant des donnees re-emises telles quelles ; une valeur quantifiee en amont
+        /// doit produire un nouveau plan, jamais une reutilisation approximative.
+        /// </summary>
         internal RoutePlan Advance(int occurrenceIndex, float sMeters)
         {
             return occurrenceIndex == ProgressOccurrenceIndex && sMeters == ProgressSMeters
@@ -80,6 +172,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
         }
     }
 
+    /// <summary>Resultat nomme d'une demande ; `Plan` est nul pour tout resultat non planifie.</summary>
     public readonly struct RouteResult
     {
         public readonly RouteOutcome Outcome;

@@ -9,13 +9,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
         private sealed class Edge
         {
             public RoadId Id;
-            public RoadId From;
             public RoadId To;
             public RoadElementKind Kind;
             public float MovementLength;
             public float Weight;
             public double Preference;
             public bool ZeroFallback;
+            public bool Feasible;
         }
 
         private sealed class Node
@@ -29,10 +29,33 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             public Portal? Exit;
         }
 
-        public static RouteResult Plan(CompiledRoadModel model, RoadLocation location, RoadId destinationExitId,
-            ulong sessionSeed, RoadId trafficId, string decisionDomain, ulong decisionCounter,
-            RoutePlan existing = null, bool replan = false, IReadOnlyCollection<RoadId> closedPortalIds = null)
+        /// <summary>
+        /// Planifie vers une sortie du modele par la seule topologie dirigee. Le cout publie combine
+        /// distance dirigee restante et cout de preference issu du tirage deterministe (graine de
+        /// session, identite trafic, domaine et compteur de decision). Pure : aucun effet de conduite,
+        /// de cycle de vie ou de mutation du modele ; `InvalidStart` couvre aussi les fautes d'appel
+        /// (modele nul, identite de trafic vide, domaine vide).
+        /// </summary>
+        public static RouteResult Plan(RouteRequest request)
         {
+            var model = request.Model;
+            var location = request.Location;
+            var destinationExitId = request.DestinationExitId;
+            ulong sessionSeed = request.Seed.Value;
+            RoadId trafficId = request.TrafficId;
+            string decisionDomain = request.DecisionDomain;
+            ulong decisionCounter = request.Counter.Value;
+            RoutePlan existing = request.Existing;
+            bool replan = request.Replan;
+            IReadOnlyCollection<RoadId> closedPortalIds = request.ClosedPortalIds;
+
+            HashSet<RoadId> closedPortals = null;
+            if (closedPortalIds != null && closedPortalIds.Count > 0)
+            {
+                closedPortals = new HashSet<RoadId>();
+                foreach (var closedId in closedPortalIds) closedPortals.Add(closedId);
+            }
+
             if (model == null || trafficId.IsEmpty || string.IsNullOrEmpty(decisionDomain))
                 return new RouteResult(RouteOutcome.InvalidInput, RouteReason.InvalidStart, null);
 
@@ -60,7 +83,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
                 var portal = model.Portals[i];
                 EffectiveLaneCorridor portalCorridor;
                 if (portal.Role == PortalRole.Exit && (destinationExitId.IsEmpty || portal.Id == destinationExitId)
-                    && !IsClosed(portal.Id, closedPortalIds)
+                    && !IsClosed(portal.Id, closedPortals)
                     && model.TryGetCorridor(portal.CorridorId, out portalCorridor)
                     && portal.SMeters <= portalCorridor.LengthMeters)
                     portals.Add(portal);
@@ -69,7 +92,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
                 return new RouteResult(RouteOutcome.NoRoute, RouteReason.DestinationUnavailable, null);
 
             RoutePlan reused = null;
-            bool stale = existing != null && (IsClosed(existing.ExitPortalId, closedPortalIds)
+            bool stale = existing != null && (IsClosed(existing.ExitPortalId, closedPortals)
                 || !TryReuse(existing, model, location, destinationExitId, trafficId, out reused));
             if (existing != null && !stale && !replan)
                 return new RouteResult(RouteOutcome.Planned, RouteReason.Requested, reused);
@@ -84,14 +107,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             {
                 var connection = model.Connections[i];
                 nodes[connection.FromCorridorId].Edges.Add(new Edge {
-                    Id = connection.Id, From = connection.FromCorridorId, To = connection.ToCorridorId,
+                    Id = connection.Id, To = connection.ToCorridorId,
                     Kind = RoadElementKind.None, Weight = 1f });
             }
             for (int i = 0; i < model.Movements.Count; i++)
             {
                 var movement = model.Movements[i];
                 nodes[movement.FromCorridorId].Edges.Add(new Edge {
-                    Id = movement.Id, From = movement.FromCorridorId, To = movement.ToCorridorId,
+                    Id = movement.Id, To = movement.ToCorridorId,
                     Kind = RoadElementKind.JunctionMovement, MovementLength = movement.LengthMeters,
                     Weight = movement.RoutePreferenceWeight });
             }
@@ -108,21 +131,29 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
 
             // Une continuation ne compte que si son suffixe atteint la sortie sans revenir au
             // meme etat d'entree. Sinon un cycle positif masquerait une sortie a poids nul.
+            // Le graphe est fige : la faisabilite est calculee une seule fois par arete, puis
+            // partagee par les deux passes.
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                var node = ordered[i];
+                for (int e = 0; e < node.Edges.Count; e++)
+                    node.Edges[e].Feasible = CanReachWithout(nodes, node.Edges[e].To, node.Id);
+            }
             for (int i = 0; i < ordered.Count; i++)
             {
                 var node = ordered[i];
                 bool hasPositive = false;
                 int feasible = 0;
                 for (int e = 0; e < node.Edges.Count; e++)
-                    if (CanReachWithout(nodes, node.Edges[e].To, node.Id))
-                    {
-                        feasible++;
-                        hasPositive |= node.Edges[e].Weight > 0f;
-                    }
+                {
+                    if (!node.Edges[e].Feasible) continue;
+                    feasible++;
+                    hasPositive |= node.Edges[e].Weight > 0f;
+                }
                 for (int e = 0; e < node.Edges.Count; e++)
                 {
                     var edge = node.Edges[e];
-                    if (!CanReachWithout(nodes, edge.To, node.Id) || (hasPositive && edge.Weight == 0f))
+                    if (!edge.Feasible || (hasPositive && edge.Weight == 0f))
                     {
                         edge.Preference = double.PositiveInfinity;
                         continue;
@@ -137,7 +168,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
                 for (int p = 0; p < ordered[i].Portals.Count; p++)
                     ConsiderPortal(ordered[i], ordered[i].Portals[p]);
 
-            // Bellman-Ford sur couts strictement positifs ; les cycles ne peuvent ameliorer un chemin.
+            // Bellman-Ford sur couts non negatifs ; les cycles ne peuvent jamais ameliorer un chemin.
             for (int pass = 0; pass < ordered.Count; pass++)
             {
                 bool changed = false;
@@ -298,12 +329,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             return false;
         }
 
-        private static bool IsClosed(RoadId portalId, IReadOnlyCollection<RoadId> closedPortalIds)
+        private static bool IsClosed(RoadId portalId, HashSet<RoadId> closedPortals)
         {
-            if (closedPortalIds == null) return false;
-            foreach (var id in closedPortalIds)
-                if (id == portalId) return true;
-            return false;
+            return closedPortals != null && closedPortals.Contains(portalId);
         }
 
         private static bool TryReuse(RoutePlan plan, CompiledRoadModel model, RoadLocation location,
@@ -314,19 +342,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
                 || plan.TrafficId != trafficId || (!destination.IsEmpty && plan.ExitPortalId != destination)) return false;
             if (plan.ProgressOccurrenceIndex < 0 || plan.ProgressOccurrenceIndex >= plan.Occurrences.Count)
                 return false;
+            // Une identite repetee est une boucle legale, pas une raison de refuser le plan :
+            // l'occurrence courante est la premiere qui contient `s`, en partant de la progression
+            // acquise. A progression egale, `s` ne recule jamais ; une occurrence ulterieure du meme
+            // element est une nouvelle visite (retour de giratoire), jamais un saut arriere.
+            // `s` et les bornes sont des donnees stockees re-emises telles quelles : l'egalite
+            // exacte est le contrat, une valeur quantifiee en amont doit produire un nouveau plan.
             int match = -1;
-            for (int i = 0; i < plan.Occurrences.Count; i++)
+            for (int i = plan.ProgressOccurrenceIndex; i < plan.Occurrences.Count; i++)
             {
                 var occurrence = plan.Occurrences[i];
                 if (occurrence.Kind != location.ElementKind || occurrence.Id != location.ElementId) continue;
-                // Sans index de visite externe, un ID repete ne designe pas une occurrence unique.
-                if (match >= 0) return false;
+                if (location.SMeters < occurrence.StartSMeters || location.SMeters > occurrence.EndSMeters) continue;
+                if (i == plan.ProgressOccurrenceIndex && location.SMeters < plan.ProgressSMeters) continue;
                 match = i;
+                break;
             }
-            if (match < plan.ProgressOccurrenceIndex) return false;
-            var matched = plan.Occurrences[match];
-            if (match < 0 || location.SMeters < matched.StartSMeters || location.SMeters > matched.EndSMeters
-                || (match == plan.ProgressOccurrenceIndex && location.SMeters < plan.ProgressSMeters)) return false;
+            if (match < 0) return false;
             Portal exit = default(Portal);
             bool found = false;
             for (int i = 0; i < model.Portals.Count; i++)
