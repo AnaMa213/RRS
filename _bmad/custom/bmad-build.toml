@@ -19,11 +19,9 @@ Launch a subagent with no prior conversation context, with this prompt:
 
 > Read {spec_file} fully and implement it. Load every file listed in its frontmatter `context:` before you start.
 >
-> Keep scope surgical. Use risk-scaled verification:
->
-> - docs, comments, formatting, copy, or tiny local changes: inspect the changed files and run the cheapest relevant check, if any;
-> - normal behavior changes: run targeted tests or the nearest existing verification command;
-> - shared contracts, migrations, auth, payments, concurrency, build tooling, or broad refactors: run broader checks.
+> Keep scope surgical. Follow the story test routing and end-of-epic procedure in
+> docs/setup/build-workflow-rules.md. During a story, run only its Story category
+> in the applicable modes through scripts/validate.ps1.
 >
 > Do not add tests just to satisfy process. Add or update tests only when changed behavior is regression-prone and the project already has a suitable test pattern.
 >

@@ -46,128 +46,92 @@ resolution**, jamais une reponse.
 
 ## 2. Routage des tests (EditMode / PlayMode)
 
-Ne lance pas les deux par reflexe. Classe selon ce que la story **touche reellement**, pas selon son
-libelle.
+La story porte `[Category("Story<epic><story>")]` sur chaque fixture creee ou modifiee :
+5.31 -> `Story531`, 5.9 -> `Story59`. En EditMode, conserver aussi `Core` ou
+`Geometry` ; la garde `TestSuiteCategoryPartitionTests` reste obligatoire. Une campagne
+`[Explicit]` conserve sa categorie dediee (par exemple `Story531Campaign`) et ne porte
+pas la categorie de story.
 
-**EditMode** — logique pure, donnees, calculs, validation, algorithmes, `ScriptableObject` hors
-runtime, code independant du cycle de vie Unity.
+Choisir les modes selon les tests de la story. **EditMode** couvre logique pure, donnees,
+calculs et validation hors runtime. **PlayMode** couvre notamment RPC, ownership, scene,
+prefab runtime, `GameObject`, cycle de vie, coroutine, vehicule, physique et IA runtime.
+En cas de doute sur le classement, PlayMode. `Both` convient si la story a des fixtures
+dans les deux modes ; un mode demande sans test correspondant est un echec (AD-8).
 
-**PlayMode** — des que la story touche : RPC, host/client, ownership, `NetworkVariable` runtime,
-spawn/despawn, scene, prefab runtime, `GameObject`, cycle de vie `MonoBehaviour`, coroutine,
-timing/frame, vehicule, physique, collisions, controleurs vehicule, IA dependant du runtime,
-interaction entre plusieurs composants.
-
-Le reseau implique PlayMode, mais n'en est **pas** la seule justification. **En cas de doute sur le
-classement, PlayMode.**
-
-`Both` seulement si la story contient a la fois de la logique pure testable et du runtime.
-
-**Deux pieges a connaitre :**
-
-- `-TestMode Both` applique le **meme** `-TestFilter` aux deux modes. Un filtre nommant une fixture
-  d'un seul mode fait donc echouer l'autre mode sur « aucun test execute » — et c'est voulu (AD-8 :
-  une absence de resultat n'est jamais un succes).
-- Le filtrage par `testName`/`assembly` **ne fonctionne pas en PlayMode** (le filtrage par
-  **categorie**, si — mesures en section 3). En pratique, chemin officiel :
-  `-TestMode EditMode -TestFilter …` pour cibler, `-TestMode PlayMode` **sans filtre** pour le
-  runtime.
-- Les **profils de validation** (section 3, `-Profile`) ne s'appliquent qu'à EditMode. Les combiner
-  avec `-TestMode PlayMode`/`Both` est **refuse ferme** par `validate.ps1` : la suite runtime se
-  lance complète, sinon ses références de comparaison (section 3, échecs PlayMode connus) ne
-  seraient plus valides.
+Le filtre par categorie fonctionne en PlayMode. Les filtres `testName` et `assembly`
+n'y fonctionnent pas (mesure du 2026-09-18). Le CLI compare la categorie par egalite :
+`Story531` n'inclut pas `Story531Campaign`. Avec `include_explicit=false` (defaut),
+son pipeline exclut les tests et fixtures `[Explicit]` avant le filtrage.
+`list_tests` rapporte pourtant `Explicit=false` pour les campagnes PlayMode
+marquees au niveau fixture : le profil Story controle aussi leur source et
+echoue ferme si une fixture explicite porte la categorie ciblee.
 
 ## 3. Checkpoint de verification
 
-L'agent **execute lui-meme** `scripts/validate.ps1` et les commandes `unity cmd` de verification
-(AD-4 abrogee le 2026-09-18, voir `AGENTS.md`). Il lit la sortie produite telle quelle et ne la
-reformule pas de memoire.
-
-Commande a executer, avec le mode issu du point 2 :
+L'agent execute lui-meme `scripts/validate.ps1` (AD-4 abrogee le 2026-09-18).
+Pendant la boucle de developpement **et** au checkpoint de la story, lancer seulement
+les tests de ses fixtures creees ou modifiees :
 
 ```powershell
-.\scripts\validate.ps1 -TestMode EditMode                 # profil Full : suite complète (défaut)
-.\scripts\validate.ps1 -TestMode PlayMode                 # suite runtime complète
-.\scripts\validate.ps1 -TestMode EditMode -TestFilter "<Namespace>.<Fixture>"   # ciblage manuel
-.\scripts\validate.ps1 -Profile Auto                      # selection selon les fichiers modifiés (dev)
-.\scripts\validate.ps1 -Profile Geometry                  # preuves 5.49-5.51 + porte A 5.28
-.\scripts\validate.ps1 -Profile FullSansGeometry          # officiel d'une story non géométrique
-.\scripts\validate.ps1 -Profile Auto -Since <git-ref>     # livraison multi-commit : classe la plage
+.\scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode EditMode
+.\scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode PlayMode
+.\scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode Both
 ```
 
-Sans nouveau parametre, la commande se comporte comme avant : profil `Full`, suite EditMode
-entiere, aucune exclusion.
+Choisir uniquement les modes ou la story a des tests. `-Story` exige `X.Y` et
+`-Profile Story` ; `-TestFilter` est incompatible. Le recapitulatif porte
+`VALIDATION STORY`, les nombres executes et l'absence des suites completes.
+Les campagnes `[Explicit]` suivent leur procedure dediee si le spec les exige ;
+elles ne font pas partie du profil Story.
 
-### 3.1 Profils de validation EditMode
+Sans nouveau parametre, la commande reste `Full` EditMode, sans exclusion.
+Les suites completes EditMode et PlayMode sont reservees a la **fin d'epic**, y compris
+pour les gates, contrats, corrections de revue et livraisons importantes.
+**Risque accepte (decision proprietaire du 2026-09-29) : une regression dans les tests
+d'une autre story n'est detectee qu'en fin d'epic.**
 
-La suite EditMode est partitionnee en **deux categories NUnit** portees par les fixtures
-(`[Category("Core")]` / `[Category("Geometry")]`), pas par des listes tenues a la main :
+### 3.1 Profils et partition EditMode
 
-| Categorie  | Contenu | Cout mesure (2026-09-28) |
-| ---------- | ------------------------------------------------------------------------------------ | ------------------------ |
-| `Core`     | contrats, invariants rapides, logique pure, validite des artefacts, oracle de trafic | ~10 s (784 tests)        |
-| `Geometry` | preuves coûteuses 5.49/5.50/5.51, porte A 5.28, balayages, dégagements, migration   | ~430 s (145 tests)       |
+La suite EditMode reste partitionnee par `[Category("Core")]` et
+`[Category("Geometry")]`. `Story` ajoute une categorie, sans remplacer cette
+partition. `list_tests` est interroge apres recompilation et stabilisation ;
+un compte execute different du compte attendu ou une partition incomplete echoue
+ferme. `TestSuiteCategoryPartitionTests` verifie aussi la partition.
 
-| Profil             | Selection                                                                 | Usage                                                                                                                                   |
-| ------------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `Full`             | aucun filtre                                                              | **Seule execution citable comme « validation complète ».** Par defaut, inchange.                                                       |
-| `Fast`             | categorie `Core`                                                          | developpement courant. Jamais une acceptation.                                                                                          |
-| `FullSansGeometry` | categorie `Core` (meme selection que Fast)                                | validation officielle d'une story **non géométrique**, avec la classification Auto jointe.                                              |
-| `Geometry`         | categorie `Geometry`                                                      | itération sur les preuves.                                                                                                             |
-| `Auto`             | classifie les fichiers modifiés ; géométrie ou inconnu -> `Full`, sinon `Core` | checkpoint de story. La décision et sa justification sont imprimées dans la sortie.                                                    |
+| Profil | Selection | Usage |
+| --- | --- | --- |
+| `Story` | categorie exacte `Story<epic><story>` | boucle et checkpoint de story, EditMode, PlayMode ou Both ; jamais validation complete |
+| `Full` | aucun filtre | suite complete EditMode en fin d'epic ; defaut inchange |
+| `Fast` | `Core` | diagnostic EditMode, jamais acceptation complete |
+| `FullSansGeometry` | `Core` | diagnostic EditMode avec classification Auto jointe |
+| `Geometry` | `Geometry` | diagnostic des preuves geometriques |
+| `Auto` | fichiers modifies : geometrie ou inconnu -> `Full`, sinon `Core` | diagnostic de selection |
 
-**Regles d'usage — a respecter sans exception :**
+`Auto` reste conservateur. Le mapping des chemins vit dans
+`scripts/validation-profiles.ps1` et son `-SelfTest`. Il classe la scene
+`MVP_Run`, les prefabs, le pipeline Traffic V2 hors `Traffic/Routing/`, les
+empreintes vehicule, `SidewalkDeclarations`, `ProjectSettings/` et les packages
+comme sensibles ; une fixture EditMode est classee par son contenu. `Auto`
+considere le travail en cours et le dernier commit si l'arbre est propre ;
+`-Since <git-ref>` couvre une livraison multi-commit.
 
-- `-Profile Full` reste le seul profil qui vaut « validation complète ». Un profil partiel ne peut
-  jamais etre presente comme tel : `validate.ps1` imprime `VALIDATION PARTIELLE` et le nombre exact
-  de tests **non executes par selection** (jamais « reussis »). Le recapitulatif distingue
-  explicitement : reussis, echoues, non executes par selection (par categorie), et ignores reels
-  (`skipped`/`inconclusive` de l'execution).
-- **Checkpoints de gate, modifications de contrat, corrections issues d'une code review, livraisons
-  importantes : `-Profile Full`.** Ces changements ne prennent pas le raccourci des profils partiels.
-- Pour les autres stories : `-Profile Auto` (le checkpoint par defaut du cycle), ou
-  `-Profile FullSansGeometry` quand la classification non géométrique est établie et jointe au
-  compte rendu. Au moindre doute : `Full`.
-- `Fast` est un outil de boucle de developpement ; il n'est jamais cité comme preuve d'acceptation.
-- La selection est **conservatrice** : une entree géométrique ou **inconnue** parmi les fichiers
-  classés bascule `Auto` sur `Full`. Le mapping des chemins vit dans
-  `scripts/validation-profiles.ps1` (source unique, `-SelfTest` pour les simulations de selection) :
-  scene `MVP_Run` et ses artefacts, prefabs, pipeline du modèle de route
-  (`Features/Vehicles/Traffic/**` **hors `Traffic/Routing/`**, le routage runtime stratégique qui ne
-  produit ni courbe ni collider), empreintes véhicule (`VehicleProfileDef*`, `VehicleWheel`),
-  `SidewalkDeclarations`, `ProjectSettings/`, manifeste de packages ; une fixture EditMode est
-  classée par sa catégorie ; un chemin RoadRage non reconnu ou un fichier de test sans catégorie
-  est traité comme géométrique.
-- **Portée d'`Auto`** : travail en cours (`git status`, y compris non suivis) et dernier commit
-  quand l'arbre est propre. Pour une livraison etalee sur plusieurs commits, passer
-  `-Since <git-ref>`. Sans cela, la sortie le dit explicitement.
-- **Partition verifiee** : `validate.ps1` compare la selection annoncée au contenu réel
-  (`list_tests`) et echoue ferme si un test EditMode n'a ni `Core` ni `Geometry`, ou si l'exécution
-  ne correspond pas au compte attendu. La garde `TestSuiteCategoryPartitionTests` le verifie aussi
-  dans la suite elle-meme. Une nouvelle fixture lourde doit etre classee `Geometry` explicitement.
-- **Gate A** : signée par le propriétaire, jamais regeneree ni signée automatiquement. Le profil
-  partiel exécute le controle leger du sign-off (présence + liaison aux artefacts committés, fixture
-  5.28, catégorie `Core`) : une signature absente ou détachée des artefacts committés est vue meme
-  en `Fast`. La liaison complète (empreintes physiques/sémantiques/clearance, source V1) reste dans
-  `Geometry`/`Full`, que `Auto` declenche des qu'une entree géométrique est touchee.
-- **PlayMode** : pas de profils, suite complete, et la comparaison aux references applicables reste
-  due lors des régressions (les échecs PlayMode connus ne sont jamais masqués).
+Un profil partiel indique les tests non executes par selection, jamais comme
+reussis. La Gate A signee n'est jamais regeneree ni signee automatiquement.
 
-**Cout mesure (2026-09-28, Editeur 6000.6.0f1, 929 tests EditMode)** : profil `Full` ~430 s de
-  temps de test (porte complète ~7-8 min) ; profil `Fast` 784/784 en ~10 s de tests cumulés ;
-  profil `Geometry` ~145 tests pour ~430 s. La référence de 72,7 s du 2026-09-18 (523+33 tests)
-  est historique : entre-temps la suite a intégré les preuves Traffic V2, qui portent 99 % du coût.
-  C'est ce qui justifie la partition — le choix n'est pas un confort, c'est la seule optimisation
-  qui ne retire aucune garantie : ce qui n'est pas exécuté est nommé et compte.
+### 3.2 Procedure de fin d'epic
 
-**Filtrage en PlayMode (CLI `1.0.0-beta.8` + UTF `1.8.0`)** : `-TestFilter` avec
-`-TestFilterType testName` ou `assembly` **ne matche pas en PlayMode** (mesure du 2026-09-18 : nom
-de classe, nom de methode complet et nom d'assemblage renvoient « aucun test execute », echec
-ferme — alors que la meme forme matche en EditMode). En revanche le filtre par **categorie**
-fonctionne en PlayMode (mesure du 2026-09-28 : `--filter Story59 --filter_type category` a execute
-le seul test PlayMode de la fixture, 10,4 s, filtre applique `category: Story59`). Le chemin
-officiel PlayMode reste neanmoins la suite complete **sans filtre** (comparaison aux references et
-aux echecs connus) : le filtrage par categorie sert au ciblage manuel depuis le Test Runner
-(bouton « Category ») ou pour une verification directe, jamais a la place de la suite complete.
+La story checkpoint `X.N` execute cette procedure et est la seule a promouvoir
+le `sprint-status` en `done`. Sans story checkpoint, l'executer avant
+`bmad-retrospective`.
+
+1. Demander a l'utilisateur de redemarrer l'Editeur : le runner PlayMode ne
+   fonctionne qu'une fois par session.
+2. Lancer `.\scripts\validate.ps1 -Profile Full`, puis
+   `.\scripts\validate.ps1 -TestMode PlayMode`, une seule fois chacun.
+3. Comparer PlayMode a
+   `_bmad-output/implementation-artifacts/v1-regression-5-51/after-playmode-results.json`
+   (6 echecs connus) ; aucun nouvel echec n'est admis.
+4. Consigner les sorties brutes ; la retrospective les cite.
 
 Le script verifie le CLI Unity, l'Editeur connecte, la recompilation, la Console niveau erreur, les
 tests cibles, puis l'etat final scenes/Git. **Il echoue ferme** : Editeur inaccessible, CLI muet,

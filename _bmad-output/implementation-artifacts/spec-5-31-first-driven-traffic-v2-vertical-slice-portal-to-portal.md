@@ -460,11 +460,10 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
 
 ## Verification
 
-Rien n'a ete execute dans le Cloud (pas d'Unity, de PowerShell ni de Test Runner).
+Pendant la boucle et au checkpoint, executer les fixtures de la story seulement :
 
-**Commands:**
-- `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story531SpeedPlanAndComposerTests"` -- expected: vert, 0 erreur Console.
-- `.\scripts\validate.ps1 -Profile Full` -- expected: EditMode complet vert.
-- `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story531DrivenReplayTests"` -- expected: rejeu vert, campagne construite, aucun `NotSelectable`.
-- `.\scripts\validate.ps1 -TestMode PlayMode` -- expected: suite par defaut complete. Tests 5.31 courts et banc de repli verts, 6 echecs connus identiques, aucun nouveau.
-- `.\scripts\validate.ps1 -TestMode PlayMode -TestFilter Story531Campaign -TestFilterType category` -- expected: en plus de la suite, jamais a sa place. Campagne exploratoire, puis acceptation apres declaration de ε_t. Tous les elements `Measured`, aucun couple de repli negatif, aucun contact, rapports bruts consignes.
+- `.\scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode EditMode` -- tests Core et Geometry `Story531`, dont le rejeu et le constructeur de campagne ; compte attendu = compte execute, 0 erreur Console.
+- `.\scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode PlayMode` -- tests courts `Story531` et banc de repli. Redemarrer l'Editeur avant cette commande si le runner PlayMode a deja servi dans la session.
+- `.\scripts\validate.ps1 -TestMode PlayMode -TestFilter Story531Campaign -TestFilterType category` -- campagne `[Explicit]` distincte, selon ses conditions d'acceptation et avec rapports bruts. Elle ne fait pas partie du profil Story.
+
+Les suites completes EditMode et PlayMode et la comparaison aux 6 echecs PlayMode connus relevent de la procedure de fin d'epic dans `docs/setup/build-workflow-rules.md`.

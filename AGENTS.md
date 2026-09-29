@@ -101,3 +101,5 @@ cycle de build.
 ## Verification executee par l'agent (AD-4, abrogee le 2026-09-18)
 
 La verification (compilation, tests, `validate.ps1`, toute commande `unity cmd` qui n'est pas en lecture seule au sens de la garde ci-dessus) est **executee directement par l'agent** — pas seulement dans les routes `bmad-build`, mais dans toute session, y compris en dehors de BMAD. La commande attendue, son mode et son interpretation vivent dans `docs/setup/build-workflow-rules.md`.
+
+Pendant une story, limiter les tests a sa categorie ; les suites completes relevent de la fin d'epic selon `docs/setup/build-workflow-rules.md`.
