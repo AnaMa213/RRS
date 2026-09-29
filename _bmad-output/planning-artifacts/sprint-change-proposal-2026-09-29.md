@@ -1,6 +1,6 @@
 # Sprint Change Proposal - 2026-09-29
 
-**Statut :** PROPOSE (revision 2, consolidee). En attente de l'approbation de Kenan. Aucune edition n'est appliquee, aucun artefact Gate A n'est modifie, aucune implementation n'est engagee. Ce texte remplace integralement les revisions 0 et 1.
+**Statut :** APPROUVE par Kenan le 2026-09-29 (revision 2, consolidee) et APPLIQUE : editions 4.1 a 4.9 dans `epics.md`, le contrat Road World Model, `build-workflow-rules.md` et `sprint-status.yaml` ; repercussions 4.10 dans la spec 5.31, passee `ready-for-dev`. Aucun artefact Gate A n'est modifie, aucune signature n'est impliquee, aucune implementation n'est engagee. Ce texte remplace integralement les revisions 0 et 1.
 **Sujet :** L'erreur de suivi du vehicule physique n'est couverte par aucune preuve Gate A signee. La proposition insere une story de couverture et de re-signature (5.52) avant la Gate B, et ajuste l'AC normative de la 5.31.
 **Mode :** Batch. **Portee :** moderee, ajustement direct dans l'Epic 5, sans nouvel epic et sans changement de perimetre produit.
 **Decisions proprietaire prises :** A1 = a, A2 = a, A3 = a, A4 = a, A5 = b (planification 5.31). Revision demandee le 2026-09-29 sur trois points : texte normatif, portee de la borne entre deux pas, freinage multi-pas.

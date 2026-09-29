@@ -189,6 +189,9 @@ development_status:
   5-29-deterministic-strategic-route-plan: done
   5-30-traffic-v2-planning-and-runtime-spine-foundation: done
   5-31-first-driven-traffic-v2-vertical-slice-portal-to-portal: backlog
+  # Inserted 2026-09-29 (sprint-change-proposal-2026-09-29.md): tracking-error
+  # coverage in Gate A evidence and owner re-signature. Gate B closes after it.
+  5-52-tracking-error-coverage-in-gate-a-evidence-and-owner-re-signature: backlog
   5-32-perception-boundary-occupancy-leader-and-hazards: backlog
   5-33-vehicle-following-through-named-speed-constraints: backlog
   5-34-junction-coordination-core-grants-and-conflicts: backlog

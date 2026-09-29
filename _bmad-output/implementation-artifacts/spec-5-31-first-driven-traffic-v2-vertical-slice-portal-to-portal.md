@@ -2,7 +2,7 @@
 title: 'Story 5.31 -- Premiere tranche verticale Traffic V2 conduite, de portail a portail (run de mesure)'
 type: 'feature'
 created: '2026-09-29'
-status: 'draft'
+status: 'ready-for-dev'
 review_loop_iteration: 0
 context:
   - '_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
@@ -28,7 +28,7 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
 
 **Always:**
 
-- **Prealable.** Le correct-course du 2026-09-29 doit etre approuve avant que cette spec passe `ready-for-dev`.
+- **Prealable.** Correct-course du 2026-09-29 approuve et applique (revision 2).
 - **Admission.**
   - Modele : `RoadModelDocument.Load` puis `Compile`.
   - Preuve : `GateAEvidenceBinding.Bind` sur les trois textes commites, lus seulement dans l'Editeur, avec le resultat mis en cache par modele.
@@ -69,11 +69,15 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - A chaque pas, il produit exactement un `VehicleDriveIntent` et trois scalaires d'autorite (`maxForwardSpeed`, `steerRateDegreesPerSecond`, `brakeTorque`, issus du `VehicleProfile`), tous finis.
 - **Commande de repli V2 (A5).**
   - Emission : par ce seul composeur, quand il n'y a pas de commande valide (absente, hors fenetre, profil refuse, axe ou scalaire non fini).
-  - Recalcul : a **chaque pas**, a partir de la vitesse longitudinale mesuree v (telemetrie) et de v_dir = `MinimumDirectionSpeed` (0,25 m/s).
+  - Recalcul : a **chaque pas**, a partir de la vitesse longitudinale mesuree v (telemetrie), de v_dir = `MinimumDirectionSpeed` (0,25 m/s) et de la bande de service v_s = v_dir + 2·b·Δt (0,41 m/s avec b = `SafeBrakingLimit` = 4 m/s² et Δt = 0,02 s). La bande couvre un pas de latence entre la mesure et l'application, dans les deux ordres possibles de `FixedUpdate`.
   - Regles :
-    - v > v_dir : gaz 0 ; frein de service = `SafeBrakingLimit` converti par la capacite de frein, borne ]0, 1] ; frein a main 0 ; volant = dernier volant fini valide, sinon 0.
-    - |v| ≤ v_dir : gaz 0, `BrakeReverse` 0, **frein a main 1** (maintien). Le frein a main applique max(service, `HandbrakeTorque`) aux roues non directrices, quel que soit le sens de marche (`VehiclePhysicsBody.cs:449-466`).
+    - v > v_s : gaz 0 ; frein de service = `SafeBrakingLimit` converti par la capacite de frein, borne ]0, 1] ; frein a main 0 ; volant = dernier volant fini valide, sinon 0.
+    - v ≤ v_s, y compris en recul : gaz 0, `BrakeReverse` 0, **frein a main 1** (maintien). Le frein a main applique max(service, `HandbrakeTorque`) aux roues non directrices, quel que soit le sens de marche (`VehiclePhysicsBody.cs:449-466`).
     - v < −v_dir (le vehicule recule) : meme sortie, plus un diagnostic `RollingBackward`.
+    - Conversion par `VehicleTireModel` :
+      - au-dessus de v_s, couple moteur 0 et frein b_f × `BrakeTorque` sur chaque roue ;
+      - en dessous, couple moteur 0 (aucune entree de gaz ni de marche arriere) ; roues non directrices a max(service, 4 500), roues directrices a `coastTorque`.
+    - Risque residuel mesure, non exclu : une chute de vitesse de plus de 2·b·Δt en un pas peut produire un pas de couple de marche arriere. Le couple recalcule doit etre ≥ 0 ; tout couple negatif pendant un repli est un echec publie.
     - Jamais `BrakeReverse > 0` pour v ≤ v_dir, vitesses negatives comprises : `VehicleTireModel` y engagerait la marche arriere.
   - Etats terminaux, diagnostiques et publies. Le vehicule reste present.
     - `FallbackHeld` : |v| ≤ `FallbackStoppedSpeed` pendant `FallbackStoppedSteps` pas consecutifs.
@@ -89,33 +93,36 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - Ni `LateralClearanceMarginMeters` ni un residu 5.51 n'entrent dans ce calcul, et la 5.31 ne regenere ni ne signe rien.
 - **Mesure (A2).**
   - **Hypotheses declarees.**
-    - H1 : la simulation ne definit l'etat du vehicule qu'aux pas physiques (PhysX discret, `m_CollisionDetection: 0`). Entre deux pas, le mouvement est *modelise* : translation lineaire du point de reference, cap lineaire sur l'arc le plus court, |Δθ| < 90° par pas (echec ferme sinon).
-    - H2 : road-up constant (C4).
-    - H3 : le gabarit max contient la caisse. Le test le verifie sur le prefab V2 (collider centre sur le point de reference, dans le gabarit).
-    - Aucune garantie continue n'est revendiquee au-dela de H1.
+    - M (modele d'integration) : la simulation ne definit l'etat qu'aux pas physiques (PGS, `m_CollisionDetection: 0`). Pendant un pas, le corps est *modelise* comme se deplacant avec les vitesses lineaire et angulaire de fin de pas : centre de masse lineaire, rotation a vitesse angulaire constante.
+      - M est **verifie a chaque pas** contre la variation de pose enregistree, avec une tolerance declaree. Un intervalle en echec est `ModelNotVerified` et compte comme non mesure.
+      - Aucune garantie continue n'est revendiquee au-dela de M.
+    - H3 : la boite du gabarit max contient la caisse. Le test le verifie sur le prefab V2 (collider centre sur le point de reference, dans la boite).
   - **Grandeur mesuree.**
-    - Gabarit max (L = `MaxVehicleLengthMeters`, W = `MaxVehicleHalfWidthMeters`), centre sur le point de reference.
-    - s* est la projection du point de reference reel sur la reference compilee, en distance d'horizon. La pose nominale N(s*) est la pose de reference en s*.
-    - f_i = coin_i(reel) − coin_i(N). d = max_i |f_i|. Le deplacement est affine en chaque point du corps, donc son maximum sur le rectangle est atteint en un coin.
+    - Boite du gabarit max : L = `MaxVehicleLengthMeters`, W = `MaxVehicleHalfWidthMeters`, hauteur du collider ; centree sur le point de reference.
+    - s* est la projection du point de reference reel sur la reference compilee, en distance d'horizon. La pose nominale N(s*) est la pose de reference **droite** en s* (sans roulis ni tangage).
+    - Pour chacun des **8 coins** : f_i = projection au sol du coin reel − coin nominal correspondant. d = max_i |f_i|. Roulis, tangage, cap et translation sont donc inclus. Le deplacement est affine en chaque point de la boite, donc son maximum est atteint en un coin.
   - **Au pas k :** d_k est exact.
-  - **Entre deux pas** (borne a progression appariee) :
-    - σ(τ) interpole lineairement s*_k → s*_k+1, et le reel suit H1.
-    - On evalue d sur une sous-grille de pas h en τ, bornes comprises, puis : sup d ≤ max_grille d + L_k·h/2 + ζ_k.
-      - L_k = |Δp| + ρ|Δθ| + ℓ_k(1 + ρ·ψ'_max), ρ = √((L/2)² + W²), ℓ_k = |Δs*|.
+  - **Entre deux pas** (borne a progression appariee, sous M) :
+    - σ(τ) interpole lineairement s*_k → s*_k+1.
+    - L'intervalle est **decoupe a chaque raccord traverse**. Au raccord, d est evalue avec les deux poses nominales (limite avant et limite apres) et le max est retenu. Aucun reste ne franchit un raccord.
+    - Sur chaque morceau, on evalue d sur une sous-grille de pas h en τ, bornes comprises, puis : sup d ≤ max_grille d + L_k·h/2.
+      - L_k = |Δp_CoM| + r·|Δφ| + ℓ_k(1 + ρ·ψ'_max).
+      - r = distance 3D max d'un coin au centre de masse ; |Δφ| = angle de rotation 3D du pas ; ρ = √((L/2)² + W²) ; ℓ_k = |Δs*|.
       - ψ'_max = max, sur les segments compiles traverses, de 2·tan(α_j/2)/Δs_j (taux de rotation de la tangente normalisee-interpolee).
-      - ζ_k = ecart + ρ·saut de cap de tout raccord traverse.
     - h est choisi pour que L_k·h/2 ≤ 1 mm.
     - La preuve est en Design Notes.
-    - La regle `max(d_k, d_k+1) + δ/2` du lemme 5.50 est valide sous H1 mais **n'est pas utilisee** : elle consomme a elle seule le residu signe (voir Design Notes).
+    - La regle `max(d_k, d_k+1) + δ/2` du lemme 5.50 est valide sous M mais **n'est pas utilisee** : elle consomme a elle seule le residu signe (voir Design Notes).
+  - **Controle physique empirique.** Tout contact du vehicule V2 avec un collider hors chaussee pendant une campagne fait echouer la campagne.
   - Publies aussi : ecart lateral, ecart de cap, vitesse observee face a v*(s*).
   - **Moniteur runtime.** La borne au pas est evaluee a chaque pas pour chaque vehicule V2 (diagnostic `TrackingToleranceExceeded`). La borne entre deux pas complete le calcul en post-traitement de la trace.
   - Toute vitesse > v*, ou une borne > ε_t declare, fait echouer la campagne d'acceptation.
   - **Campagne deterministe.**
     - Un constructeur EditMode (Geometry) cherche, avec un budget declare de graines, des triplets (entree, sortie, graine) dont les routes planifiees par `RoutePlanner` couvrent les 72 mouvements, les 24 raccords d'anneau et les 44 corridors.
     - Il ecrit la campagne et l'incidence element → triplets.
-    - Un element jamais selectionne dans le budget est publie `NonSelectionnable`. La campagne est alors refusee, et on s'arrete pour demander au proprietaire (Ask First).
-  - **Tracabilite par element** (corridor, mouvement, raccord et son cote) : passages, runs, d max (au pas et entre deux pas), max v/v*, marge a ε_t.
-    - Un element non parcouru est publie `NonMesure`. Il n'est **jamais** compte comme couvert, et il rend la campagne incomplete.
+    - Un element jamais selectionne dans le budget est publie `NotSelectable`. La campagne est alors refusee, et on s'arrete pour demander au proprietaire (Ask First).
+  - **Tracabilite par element** (72 mouvements, 24 raccords × 2 cotes, 44 corridors) : passages, runs, d max (au pas et entre deux pas), max v/v*, marge a ε_t.
+    - Statuts : `Measured`, `NotMeasured` (non parcouru, ou parcouru seulement par des intervalles `ModelNotVerified`), `NotSelectable`.
+    - Seul `Measured` compte comme couvert. Tout autre statut fait echouer la campagne d'acceptation.
     - Rapports bruts separes, exploratoire et acceptation, sous `_bmad-output/implementation-artifacts/traffic-v2-5-31-measurements/`.
   - **Separation des validations.** Les campagnes PlayMode sont `[Explicit]` + `[Category("Story531Campaign")]`, hors suite par defaut, et lancees par filtre de categorie en plus de la suite complete, jamais a sa place. La suite par defaut garde les tests courts.
   - Conditions consignees : pas physique 0,02 s, Editeur en hote, profils par defaut, commit, budget de graines.
@@ -157,13 +164,14 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
 | Hors mesure | `V2Slice`, a_e = 0 | Aucune insertion | `NotCoveredByGateA` / `TrackingToleranceUndeclared` |
 | Jeton hors tests | Construction dans le code de production | Echec d'assertion structurelle | N/A |
 | Preuve / modele | Build joueur, preuve perimee, modele non declare | Aucune insertion | Code nomme |
-| Repli, v > 0,25 m/s | NaN/∞, fenetre perimee, profil refuse | Frein de service borne, recalcule a chaque pas jusqu'a l'arret | Diagnostic |
-| Repli, \|v\| ≤ 0,25 m/s | Idem | Frein a main, aucun `BrakeReverse`, puis `FallbackHeld` | Diagnostic |
+| Repli, v > 0,41 m/s | NaN/∞, fenetre perimee, profil refuse | Frein de service borne, recalcule a chaque pas jusqu'a l'arret | Diagnostic |
+| Repli, v ≤ 0,41 m/s | Idem | Frein a main, aucun `BrakeReverse`, puis `FallbackHeld` | Diagnostic |
 | Repli, recul | v < −0,25 m/s | Frein a main, aucun `BrakeReverse` | `RollingBackward` |
 | Repli sans arret | Arret non atteint dans la borne | Maintien continue, vehicule present | `FallbackStopOverrun` |
-| Element non parcouru | Campagne sans passage sur un mouvement ou raccord | `NonMesure`, jamais couvert | Campagne incomplete |
-| Element non selectionnable | Aucune graine du budget ne le route | `NonSelectionnable` | Campagne refusee, Ask First |
-| Pas physique a grand cap | \|Δθ\| ≥ 90° entre deux pas | Borne non evaluable | Echec ferme |
+| Element non mesure | Non parcouru, ou seulement par des intervalles `ModelNotVerified` | `NotMeasured`, jamais couvert | Campagne en echec |
+| Element non selectionnable | Aucune graine du budget ne le route | `NotSelectable` | Campagne refusee, Ask First |
+| Modele M non verifie | Variation de pose ≠ vitesses de fin de pas | Intervalle `ModelNotVerified` | Non mesure |
+| Contact | Collider hors chaussee touche pendant une campagne | Campagne en echec | Echec publie |
 | Plafond | Courbe plus serree, v* inatteignable | Freinage anticipe ; sinon `SteeringCeilingUnreachable` et frein a `SafeBrakingLimit` | Refus du verificateur → repli |
 | Limites reportees | 0 authore ; valeur non nulle synthetique | `DeferredUnauthored` ; `DeferredAuthored(v)`, jamais appliquee | N/A |
 | Echec en route | `NoRoute`, horizon non conforme | Vehicule present, repli | Aucun retrait |
@@ -209,7 +217,7 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - la matrice ;
   - un intent par pas ;
   - le repli pour chaque axe et chaque scalaire NaN/∞, et pour une fenetre perimee ;
-  - la regle de repli par pas selon v (au-dessus du seuil, dans ±0,25, en recul), sans aucun `BrakeReverse > 0` a v ≤ 0,25 ;
+  - la regle de repli par pas selon v (au-dessus de la bande, dans la bande, en recul), sans aucun `BrakeReverse > 0` a v ≤ v_s ;
   - les etats `FallbackHeld` / `FallbackStopOverrun` et la reprise sur commande valide ;
   - la validite d'un pas ;
   - `Idle` V1 inchange ;
@@ -224,22 +232,23 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - retrait uniquement a s ≥ portail ;
   - la borne entre deux pas sur des trajectoires synthetiques :
     - ecart lateral constant en ligne droite → borne = ecart a 1 mm pres ;
-    - rotation pure ;
-    - traversee de raccord ;
-    - |Δθ| ≥ 90° → echec ;
+    - rotation pure, roulis et tangage (8 coins) ;
+    - traversee de raccord avec decoupe ;
+    - modele M viole → `ModelNotVerified` ;
     - borne ≥ maximum dense par force brute ;
     - borne ≤ regle δ/2 sur un cas de suivi parfait a 8 m/s ;
-  - H3 : collider du prefab V2 contenu dans le gabarit, centre sur le point de reference ;
+  - H3 : collider du prefab V2 contenu dans la boite du gabarit, centre sur le point de reference ;
   - des scans : seul le composeur construit l'intent ; seul le driver V2 appelle `ApplyDriveIntent` ; aucune ecriture Rigidbody ou `Teleport` ; jeton `MeasurementRun` absent hors `Tests/` ; prefab V2 sans type V1 ; gardes 5.7 et 5.30 verts.
 - [ ] `Assets/RoadRage/Tests/EditMode/Story531DrivenReplayTests.cs` `[Category("Geometry")]` -- couvrir :
   - le rejeu cinematique de toute la chaine sur `MVP_Run`, v ≤ v* partout ;
-  - le constructeur de campagne : budget de graines declare, incidence par element (72 mouvements, 24 raccords avec leur cote, 44 corridors), `NonSelectionnable` explicite, fichier de campagne ecrit.
+  - le constructeur de campagne : budget de graines declare, incidence par element (72 mouvements, 24 raccords avec leur cote, 44 corridors), `NotSelectable` explicite, fichier de campagne ecrit.
 - [ ] `Assets/RoadRage/Tests/PlayMode/Story531V2VerticalSlicePlayModeTests.cs` (suite par defaut, tests courts) -- couvrir :
   - le refus hors mesure ;
   - le modele non declare ;
   - un run de mesure court sur une route.
 - [ ] `Assets/RoadRage/Tests/PlayMode/Story531FallbackLowSpeedPlayModeTests.cs` (suite par defaut) -- banc physique isole (patron Story512/513), `VehiclePhysicsBody` et profil du prefab V2. Repli force a chaque pas depuis :
   - 8 m/s ;
+  - 0,35 m/s (dans la bande) ;
   - 0,3 m/s ;
   - 0,2 m/s ;
   - −0,5 m/s ;
@@ -248,19 +257,21 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - vitesse longitudinale jamais < −v_dir apres un depart en marche avant ;
   - decroissance jusqu'a `FallbackHeld` ou `FallbackStopOverrun` explicite ;
   - maintien |v| ≤ 0,05 m/s pendant l'arret ;
-  - aucun `BrakeReverse > 0` a v ≤ v_dir ;
+  - aucun `BrakeReverse > 0` a v ≤ v_s, et couple moteur de chaque roue recalcule a chaque pas par `VehicleTireModel.ResolveWheelDriveTorque` (entrees et vitesse reelles) ≥ 0 ;
+  - vehicule toujours present, pose finie, au-dessus du sol ;
   - trace brute publiee. Les seuils de resultat ne sont pas presumes.
-- [ ] `Assets/RoadRage/Tests/PlayMode/Story531MeasurementCampaignPlayModeTests.cs` `[Explicit]` `[Category("Story531Campaign")]` -- campagnes exploratoire et d'acceptation (l'acceptation exige ε_t declare) ; tracabilite par element ; rapports bruts sous `traffic-v2-5-31-measurements/`.
+- [ ] `Assets/RoadRage/Tests/PlayMode/Story531MeasurementCampaignPlayModeTests.cs` `[Explicit]` `[Category("Story531Campaign")]` -- campagnes exploratoire et d'acceptation (l'acceptation exige ε_t declare) ; verification de M a chaque pas ; controle de contact ; couple de repli ≥ 0 ; tracabilite par element ; rapports bruts sous `traffic-v2-5-31-measurements/`.
 - [ ] `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml` -- reports 5.30 traites (cache de liaison, transport Editeur, consommation de `Unbounded`) ; raccords d'anneau renvoyes a la 5.52. Puis `graphify update .`.
 
 **Acceptance Criteria:**
 - Given une campagne d'acceptation sous `MeasurementRun` avec ε_t declare, when elle s'execute dans `MVP_Run`, then :
   - chaque vehicule V2 s'insere a une entree et se retire a une sortie, sans evenement en route ni controleur V1 ;
-  - la borne au pas et entre deux pas reste ≤ ε_t, et v ≤ v*(s) ;
-  - chaque mouvement, raccord d'anneau et corridor est rapporte `Mesure` avec ses valeurs. Un seul `NonMesure` fait echouer la campagne.
-- Given un repli force a chaque pas, when le banc physique part de 8, 0,3, 0,2 ou −0,5 m/s, then le vehicule n'accelere jamais en marche arriere et atteint `FallbackHeld`, ou emet `FallbackStopOverrun`, en restant present.
+  - la borne au pas (8 coins) et entre deux pas (sous M) reste ≤ ε_t, et v ≤ v*(s) ;
+  - chaque mouvement, raccord d'anneau (chaque cote) et corridor est rapporte `Measured` avec ses valeurs. Un seul autre statut fait echouer la campagne.
+  - aucun contact avec un collider hors chaussee.
+- Given un repli force a chaque pas, when le banc physique part de 8, 0,35, 0,3, 0,2 ou −0,5 m/s, then le couple moteur recalcule reste ≥ 0 a chaque pas, le vehicule n'accelere jamais en marche arriere, atteint `FallbackHeld` ou emet `FallbackStopOverrun`, et reste present dans le monde.
 - Given a_e = 0 signe, when un vehicule V2 est demande hors `MeasurementRun`, then aucune insertion n'a lieu, la raison est publiee et aucune preuve n'est ecrite.
-- Given une commande invalide en route, when le composeur emet, then la commande de repli est finie, recalculee a chaque pas selon la vitesse mesuree, sans `BrakeReverse` a v ≤ 0,25 m/s, et le vehicule reste present.
+- Given une commande invalide en route, when le composeur emet, then la commande de repli est finie, recalculee a chaque pas selon la vitesse mesuree, sans `BrakeReverse` a v ≤ v_s, et le vehicule reste present.
 - Given la composition `V1` par defaut, when la suite PlayMode complete s'execute, then les resultats V1 egalent la reference (6 echecs connus, aucun nouveau).
 - Given une decision, when sa projection est inspectee, then elle distingue contraintes appliquees et reportees et porte la liante, les epoques, l'intent final, la couverture et l'etiquette de mesure, sans nouveau chemin de synchronisation client.
 
@@ -279,6 +290,15 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - Campagne : constructeur deterministe, tracabilite par element, `NonMesure` / `NonSelectionnable` explicites, campagnes `[Explicit]` separees.
   - Controle du fichier : aucun doublon dans le Code Map ni dans les Tasks.
 - **2026-09-29 -- contenu approuve par le proprietaire ([A], revision 1).** Le bloc fige est verrouille. Le passage en `ready-for-dev` reste suspendu : il attend l'approbation et l'application du correct-course du 2026-09-29, qui n'est pas approuve a cette date.
+- **2026-09-29 -- correct-course revision 2 approuve et applique** (`sprint-change-proposal-2026-09-29.md`, repercussions 4.10). Bloc fige renegocie :
+  - modele M verifie par pas a la place de H1 ;
+  - 8 coins de la boite ;
+  - decoupe aux raccords ;
+  - controle de contact ;
+  - statuts `Measured` / `NotMeasured` / `NotSelectable` ;
+  - bande de service de 0,41 m/s ;
+  - conversion `VehicleTireModel` et couple ≥ 0 verifie par pas.
+  Passage en `ready-for-dev`.
 
 ## Design Notes
 
@@ -289,22 +309,31 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
 
 **Pourquoi aux coins.** Un ecart de cap deplace les coins d'environ (L/2)·|sin Δψ| a ecart lateral nul. Seule une borne sur chaque point du gabarit rend valide le gonflement de Minkowski de la preuve. Pour un point b du corps, f_b = (p − n) + (R(θ) − R(ψ))·b est affine en b, donc |f_b| est convexe en b et maximal en un coin du rectangle.
 
-**Borne entre deux pas -- preuve.**
-- *Hypotheses :* H1 a H3 (Boundaries). La preuve Gate A couvre toute pose nominale continue en s, puisque le balayage 5.51 inclut son propre terme d'intervalle. Il suffit donc de borner la distance de chaque point reel a *une* pose nominale.
+**Borne entre deux pas -- preuve et portee.**
+- *Hypotheses :* M et H3 (Boundaries). La preuve Gate A couvre toute pose nominale continue en s, puisque le balayage 5.51 inclut son propre terme d'intervalle. Il suffit donc de borner la distance de chaque point reel a *une* pose nominale.
 - *Construction :*
-  - on apparie τ ↦ N(σ(τ)), avec σ lineaire de s*_k a s*_k+1 ;
-  - sous H1, un point reel du corps se deplace a au plus |Δp| + ρ|Δθ| par unite de τ ;
-  - le point nominal correspondant se deplace a au plus ℓ_k(|dn/ds| + ρ|dψ/ds|), avec |dn/ds| ≤ 1 (positions compilees lineaires en s, corde ≤ arc) et |dψ/ds| ≤ 2·tan(α_j/2)/Δs_j sur chaque segment (tangente normalisee-interpolee, maximum au milieu du segment) ;
+  - on apparie τ ↦ N(σ(τ)), avec σ lineaire de s*_k a s*_k+1, sur chaque morceau entre deux raccords ;
+  - sous M, un point de la boite se deplace a au plus |Δp_CoM| + r·|Δφ| par unite de τ (centre de masse lineaire, rotation d'angle |Δφ| a vitesse constante, r = distance 3D max d'un coin au centre de masse) ;
+  - le point nominal correspondant se deplace a au plus ℓ_k(|dn/ds| + ρ|dψ/ds|), avec |dn/ds| ≤ 1 (positions compilees lineaires en s, corde ≤ arc) et |dψ/ds| ≤ 2·tan(α_j/2)/Δs_j (tangente normalisee-interpolee, maximum au milieu du segment) ;
   - chaque |f_i| est donc L_k-lipschitzienne en τ, et le max sur les coins aussi.
-- *Conclusion :* sur une grille de pas h, sup ≤ max aux noeuds + L_k·h/2. Un raccord traverse ajoute son saut, ζ_k. La borne est exacte aux pas et rigoureuse entre les pas **sous H1 seulement**. Le vrai mouvement PhysX n'est pas defini entre deux pas, puisque la detection de collision est discrete.
-- *Pourquoi pas δ/2 (lemme 5.50) :* ce lemme borne la distance a une pose *reelle* d'extremite. Il reste valide pour le vehicule physique sous H1, mais il facture toute la translation le long de la route.
+- *Conclusion :* sur une grille de pas h, sup ≤ max aux noeuds + L_k·h/2. Aux raccords, la decoupe et l'evaluation des deux poses laterales remplacent tout terme de saut.
+- *Ce qui est garanti :*
+  - la couverture **aux pas simules**, exacte ;
+  - **entre les pas**, seulement sous M, qui est verifie a chaque pas sinon l'intervalle est non mesure.
+- *Ce qui ne l'est pas :*
+  - le mouvement physique continu hors de M. PGS ne definit rien entre deux pas, et l'integration « vitesses de fin de pas » est une connaissance generale de PhysX, non verifiee dans ce depot.
+  - Le controle de contact est un indice physique empirique, pas une preuve.
+  - La Gate B est formulee dans cette portee (`epics.md`, table des gates).
+- *Pourquoi pas δ/2 (lemme 5.50) :* ce lemme reste valide sous M, mais il facture toute la translation le long de la route.
   - A 8 m/s sur l'anneau de 6 m, avec un pas de 0,02 s : |Δp| = 0,16 m, Δθ = 0,0267 rad, ρ = 2,4746 m, donc δ/2 = 0,113 m.
-  - C'est l'integralite du residu signe minimal (0,1127 m). La borne appariee retire ce terme. A suivi parfait, les termes de second ordre sont de l'ordre du millimetre (calcul d'ordre de grandeur, pas une mesure).
-- *Garantie empirique :* ε_t declare est verifie sur la campagne, pas prouve pour des conditions non parcourues. D'ou le moniteur runtime a chaque pas.
+  - C'est l'integralite du residu signe minimal (0,1127 m).
+  - La borne appariee retire ce terme. A suivi parfait, les termes restants sont de l'ordre du millimetre (calcul d'ordre de grandeur, pas une mesure).
+- *Garantie empirique :* ε_t declare est verifie sur la campagne, pas prouve hors des conditions parcourues. D'ou le moniteur runtime a chaque pas.
 - *H3, verifie statiquement :*
   - essieux a z = ±1,55 (`VehicleProfileDef_Default`), donc point de reference = origine ;
-  - `BoxCollider` 2,06 × 4,44 m centre a l'origine (`Greybox_AIVehicle.prefab`), contenu dans le gabarit 2,06 × 4,5 m, sans aucune marge en largeur ;
-  - a reverifier sur le prefab V2.
+  - centre de masse explicite (0 ; −0,35 ; 0) ;
+  - `BoxCollider` 2,06 × 1,42 × 4,44 m centre a l'origine, contenu dans la boite 2,06 × 4,5 m, sans aucune marge en largeur ;
+  - a reverifier sur le prefab V2. L'ampleur du roulis est inconnue.
 
 **Repli.** `BrakeReverse` sous v_dir = marche arriere (`VehicleTireModel.ResolveWheelDriveTorque`). Le frein a main agit sur les roues non directrices, quel que soit le sens (`VehiclePhysicsBody.cs:449-466`). L'echec PlayMode connu `Story512...TheHandbrakeLocksTheRearWheelsAndBreaksTheirGrip` porte sur la perte d'adherence en vitesse, pas sur le maintien. L'efficacite du maintien reste a mesurer sur le banc.
 
@@ -348,6 +377,6 @@ Rien n'a ete execute dans le Cloud (pas d'Unity, de PowerShell ni de Test Runner
 **Commands:**
 - `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story531SpeedPlanAndComposerTests"` -- expected: vert, 0 erreur Console.
 - `.\scripts\validate.ps1 -Profile Full` -- expected: EditMode complet vert.
-- `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story531DrivenReplayTests"` -- expected: rejeu vert, campagne construite, aucun `NonSelectionnable`.
+- `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story531DrivenReplayTests"` -- expected: rejeu vert, campagne construite, aucun `NotSelectable`.
 - `.\scripts\validate.ps1 -TestMode PlayMode` -- expected: suite par defaut complete. Tests 5.31 courts et banc de repli verts, 6 echecs connus identiques, aucun nouveau.
-- `.\scripts\validate.ps1 -TestMode PlayMode -TestFilter Story531Campaign -TestFilterType category` -- expected: en plus de la suite, jamais a sa place. Campagne exploratoire, puis acceptation apres declaration de ε_t. Aucun `NonMesure`, rapports bruts consignes.
+- `.\scripts\validate.ps1 -TestMode PlayMode -TestFilter Story531Campaign -TestFilterType category` -- expected: en plus de la suite, jamais a sa place. Campagne exploratoire, puis acceptation apres declaration de ε_t. Tous les elements `Measured`, aucun couple de repli negatif, aucun contact, rapports bruts consignes.

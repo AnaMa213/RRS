@@ -1680,7 +1680,7 @@ The decision has one knock-on: the naming conventions forbid direct feature-to-f
 | Gate | After | Meaning | Runtime evidence |
 | --- | --- | --- | --- |
 | **A — `MVP_Run` Road Model Migration Validated** | 5.28 (sign-off after 5.49, 5.50 and 5.51) | The **data** gate, not the design gate: the real `MVP_Run` V1 authoring has been imported, compiled, measured, validated and visually reviewed as V2 data — zero hard errors, every source item disposed, every declared element drivable, human-signed overlay bound to the model hashes and to the reviewed physical clearance evidence | EditMode + overlay sign-off |
-| **B — V2 Spine Driven End to End** | 5.31 | One AI vehicle spawns, localizes, routes, plans, drives and exits under V2 in `MVP_Run` | **PlayMode milestone 1** |
+| **B — V2 Spine Driven End to End** | 5.52 (after 5.31) | One AI vehicle spawns, localizes, routes, plans, drives and exits under V2 in `MVP_Run`, outside any measurement run, on trajectories covered by Gate A evidence that includes the declared tracking tolerance. Coverage is established at every simulated physics step and, between steps, only under the per-step-verified integration model of Story 5.31; continuous physical coverage beyond that model is not claimed | **PlayMode milestone 1**, rerun after the 5.52 re-signature |
 | **C — Ordered Traffic in `MVP_Run`** | 5.35 | Multiple vehicles negotiate the crossroads, T junctions and roundabouts without deadlock | **PlayMode milestone 2** |
 | **D — One Stack for Normal and Road Rage** | 5.44 | Road Rage runs on the same stack as normal traffic; no second perception, navigation or physics path exists | **PlayMode milestone 3** |
 | **E — Parity Approved and V1 Retired** | 5.48 | Every oracle row judged, host and client smoke passed, **any AD-42-triggered performance requirement resolved**, V1 runtime path removed | **PlayMode milestone 4** |
@@ -1698,7 +1698,7 @@ Therefore: **prove trajectory, curvature, speed, topology, identity, versioning 
 ```text
 5.24 ──────────────────────────────────────────────────────────────────────────────────────┐  (oracle + trace contract feed every later test)
                                                                                            │
-5.25 ─► 5.26 ─► 5.27 ─► 5.28 ─► 5.49 ─► 5.50 ─► 5.51 ─► 5.28✓ ═GATE A═ ─► 5.29 ─► 5.30 ─► 5.31 ═GATE B═
+5.25 ─► 5.26 ─► 5.27 ─► 5.28 ─► 5.49 ─► 5.50 ─► 5.51 ─► 5.28✓ ═GATE A═ ─► 5.29 ─► 5.30 ─► 5.31 ─► 5.52 ═GATE B═
                                                                                            │
                                                          ┌─────────────────────────────────┴─────────────────┐
                                                          ▼                                                   ▼
@@ -1783,7 +1783,7 @@ Lightweight, observational measurements are captured early so architectural cost
 | Baseline | Captured in | Content |
 | --- | --- | --- |
 | V1 reference cost | 5.24 | host CPU cost of the V1 decision step at the current authored headcount |
-| V2 spine cost | 5.30 (Gate B) | host CPU cost of one V2 vehicle: frame build, localization, route, plan, compose |
+| V2 spine cost | 5.31 (before Gate B) | host CPU cost of one V2 vehicle: frame build, localization, route, plan, compose |
 | V2 multi-agent cost | 5.35 (Gate C) | cost trend across a small vehicle sweep, attributed per boundary |
 | Formal budget | 5.46 | the full ~30-vehicle host+client measurement with per-layer attribution |
 
@@ -2656,7 +2656,7 @@ As a player,
 I want to watch an AI vehicle enter the district, drive its route and leave through an exit tunnel under the new traffic system,
 So that the V2 architecture is proven to work end to end before any advanced traffic behavior is built on it.
 
-**Capability delivered:** portal spawn → V2 localization → `RoutePlan` → `TrafficFrame` and observation → `PathHorizon` and `MotionPlan` → free-road speed constraints → the sole `VehicleDriveIntentComposer` → the existing `VehiclePhysicsBody` → route progress → exit portal, in the real `MVP_Run`, beside V1, selected by composition. **This closes Gate B.**
+**Capability delivered:** portal spawn → V2 localization → `RoutePlan` → `TrafficFrame` and observation → `PathHorizon` and `MotionPlan` → free-road speed constraints → the sole `VehicleDriveIntentComposer` → the existing `VehiclePhysicsBody` → route progress → exit portal, in the real `MVP_Run`, beside V1, selected by composition. It proves the driven slice under an explicit measurement run; **Gate B closes after Story 5.52** (sprint-change-proposal-2026-09-29.md).
 
 **Why here:** this is the milestone. It occurs at the earliest point the architecture safely allows — the road model must exist, be addressable, be routable and be plannable first, and none of those can be faked.
 
@@ -2668,17 +2668,17 @@ So that the V2 architecture is proven to work end to end before any advanced tra
 
 **Must NOT be copied:** `ApplyMovement`-style writes to `linearVelocity`, `MoveRotation`, position or rotation; `RecoverAtWaypoint`; open-loop longitudinal integration; `WaypointIndex` as progress; point-to-point seeking with `arrivalRadius`.
 
-**Artifacts:** `Planning/SpeedPlan` (free-road constraints only: desired speed, road limit, curve limit, with the binding constraint named); `Intent/` (the single composer and its finite-input guard); `Lifecycle/` (V2 vehicle lifecycle and portal binding); extension of the 5.30 debug projection with speed constraints, binding constraint and final intent.
+**Artifacts:** `Planning/SpeedPlan` (free-road constraints: desired speed and steering speed ceiling applied with declared longitudinal bounds; road limit and grip curve limit named, reported as deferred to 5.33 and never applied; binding constraint named); `Intent/` (the single composer and its finite-input guard); `Lifecycle/` (V2 vehicle lifecycle and portal binding); extension of the 5.30 debug projection with speed constraints, binding constraint and final intent.
 
-**EditMode verification:** exactly one composer emits at most one finite intent per vehicle per physics step, or `Idle` when no valid plan exists; a non-finite intent or authority scalar is diagnosed and replaced by `Idle` before physics — **this is the mandatory contract test the retained V1 types do not currently prove**; an accepted plan carries `SourceFrameId` and a validity window in host decision and physics epochs, so plan hold and expiry are explicit rather than implicit; the speed plan names its binding constraint and retains its rejected alternatives; the free-road IDM envelope from Story 5.9 is preserved; a kinematic replay over the migrated `MVP_Run` model reaches an exit from every entry.
+**EditMode verification:** exactly one composer emits at most one finite intent per vehicle per physics step, or the V2 fallback command when no valid plan exists; a non-finite intent or authority scalar is diagnosed and replaced by the V2 fallback command before physics — **this is the mandatory contract test the retained V1 types do not currently prove**; an accepted plan carries `SourceFrameId` and a validity window in host decision and physics epochs, so plan hold and expiry are explicit rather than implicit; the speed plan names its binding constraint and retains its rejected alternatives; the free-road IDM envelope from Story 5.9 is preserved; a kinematic replay over the migrated `MVP_Run` model reaches an exit from every entry.
 
 **PlayMode verification — MILESTONE 1:** in `MVP_Run`, one AI vehicle running the V2 path spawns at an entry portal, drives its route, and despawns at an exit portal; no mid-road spawn, despawn, teleport or reinsertion occurs; gravity, wheel authority and the Story 5.13 arcade assists affect it through the same physics as the player; the V1 controller is not present on that vehicle.
 
 **Regression scenarios covered:** V1-A01 host-only decisions, V1-A02 one intent and no Rigidbody writes, V1-A03 shared physics, V1-A04 missing profile fails inert with a diagnostic, V1-B01 free-road IDM, V1-D01 portal-only lifecycle, V1-E05 AI drives under authored policy, V1-G01 client presentation without a second synchronization path.
 
-**Completion evidence:** **Gate B** — EditMode suite green; PlayMode milestone 1 recorded with its raw output; the **V2 spine cost baseline** captured (frame build, localization, route, plan, compose, per vehicle) as observational data that triggers no optimization work.
+**Completion evidence:** EditMode suite green; the measurement campaigns recorded with raw output, the owner-declared ε_t and the published coverage verdict; the **V2 spine cost baseline** captured (frame build, localization, route, plan, compose, per vehicle) as observational data that triggers no optimization work. Gate B is not claimed by this story.
 
-**Unlocks:** every subsequent story adds facts, permissions, constraints or goals to a spine that is already proven. None of them re-proves the spine.
+**Unlocks:** Story 5.52 integrates the declared ε_t into the Gate A evidence; after its re-signature, every subsequent story adds facts, permissions, constraints or goals to a spine that is already proven. None of them re-proves the spine.
 
 **Acceptance Criteria:**
 
@@ -2694,30 +2694,83 @@ So that the V2 architecture is proven to work end to end before any advanced tra
 **And** the planned speed profile respects the steering speed ceiling locally: v(s) ≤ v*(s) at every point of the planned trajectory, reached with deceleration within the speed planner's declared deceleration bound, starting early enough before each tighter curve — not a single cap equal to the lowest ceiling anywhere in the look-ahead
 **And** when the ceiling cannot be met from the current state, the plan declares that infeasibility as its binding constraint and brakes at the declared bound
 **And** the observed speed at each traversed position is published against v*(s), and any exceedance fails the test
-**And** the tracking tolerance ε_t is declared as a bound and measured on test runs of the first driven slice; any observed lateral deviation beyond the declared ε_t fails the test
-**And** if every planned trajectory of the slice is covered by the valid Gate A evidence (max |o(s)| + ε_t ≤ its recorded allowance a_e), the Gate A signature stays valid and the coverage check is published; since the evidence first signed at Gate A has a_e = 0, any ε_t > 0 takes the next branch
-**And** otherwise the conflict candidates and the physical clearance are regenerated with the allowance max |o(s)| + ε_t, and the candidate diff against the signed set is published. The owner decides every new pair, reconfirms or changes every materially changed pair and disposes of every orphaned decision; the agent never does. Any non-positive residual fails. Gate A is re-reviewed on what changed (the candidate diff and the regenerated clearance results) and re-signed on a new sign-off record bound to the regenerated evidence, the previous record kept as superseded history
-**And** outside the measurement test runs, no vehicle drives a V2 trajectory that the valid evidence does not cover, a test proves the refusal, and 5.31 is not complete until coverage holds
+**And** ε_t bounds the maximum displacement, projected on the road plane, of the eight corners of the maximum-gauge box (maximum footprint extruded to the vehicle's collider height, centred on the reference point), relative to the upright reference pose at matched progress; it is evaluated exactly at every simulated physics step, so roll, pitch, heading and translation are all included
+**And** between two physics steps the bound holds only under the integration model M: over one step the body moves with the step's final linear and angular velocities. M is verified per step against the recorded pose change within a declared tolerance; an interval that fails the check is reported model-not-verified and counts as not measured. Under M the bound is the maximum on a sub-grid plus the Lipschitz remainder L·h/2, where L sums the actual corner speed bound and the matched nominal speed bound; intervals are split at every crossed seam, and both one-sided nominal poses are evaluated there. No continuous physical guarantee is claimed beyond M, and any contact of the vehicle with a non-road collider during a campaign fails
+**And** an exploratory campaign measures the displacement, the owner then declares ε_t, and an acceptance campaign verifies it. Every one of the 72 movements, the 24 roundabout seams (each side) and the 44 corridors is reported Measured, NotMeasured or NotSelectable, with its maxima; only Measured counts as covered, and any other status fails acceptance. Long campaigns run separately from, and in addition to, the default suite; any displacement beyond the declared ε_t fails, and a runtime monitor evaluates the per-step bound for every V2 vehicle
+**And** the coverage verdict (max |o(s)| + ε_t ≤ a_e of the valid evidence) is published; while it does not hold, no V2 vehicle drives outside an explicit measurement run, a test proves the refusal, and the measurement authorization is constructed only by the test protocol and cannot enable normal operation
+**And** integrating ε_t into the Gate A evidence and re-signing Gate A belong to Story 5.52; this story never regenerates or signs Gate A evidence, and never converts the reserved clearance margin or a residual clearance into a tracking allowance
+**And** no threshold is relaxed to obtain a favorable verdict
 
 **Given** one simulation step
 **When** the pipeline runs
-**Then** exactly one composer emits exactly one finite `VehicleDriveIntent`, or `Idle` when no valid plan exists
+**Then** exactly one composer emits exactly one finite `VehicleDriveIntent`, or the V2 fallback command when no valid plan exists
 **And** no perception, routing, planning or lifecycle component writes throttle, steering, brake, handbrake, velocity, position or rotation
 **And** `VehiclePhysicsBody` remains the sole executor of nominal movement
 
-**Given** a non-finite value reaches the composer or physics boundary, or a plan whose source frame is no longer valid
+**Given** a non-finite value reaches the composer or physics boundary, a plan whose source frame is no longer valid, or no valid plan
 **When** the intent is emitted
-**Then** it is diagnosed and replaced by `Idle` before physics
-**And** this holds for both the intent axes and the authority scalars
-**And** no broader safety behavior is implemented here, because the `SafetyFilter` boundary belongs to Story 5.37
+**Then** it is diagnosed and replaced before physics by the V2 fallback command, recomputed every physics step from the measured longitudinal speed v: above the service band v_dir + 2·b·Δt (v_dir the direction-change speed, b the fallback deceleration, Δt the physics step) it commands service brake only; at or below that band, and while rolling backward, it commands handbrake hold with zero brake-reverse and zero throttle, so that `VehicleTireModel` never receives a brake-reverse input at a speed where it would produce reverse drive torque
+**And** this holds for both the intent axes and the authority scalars, over successive steps, until a diagnosed held stop or an explicit stop-overrun diagnostic; the vehicle stays present without despawn, teleport or forced realignment; the global semantics of `VehicleDriveIntent.Idle` used by V1 are unchanged, and no broader safety behavior is implemented here, because the `SafetyFilter` boundary belongs to Story 5.37
+**And** a PlayMode physics test proves over several steps, at speeds near zero and negative, the resulting motion, the absence of commanded reverse drive torque, the stop or overrun diagnostic, and that the vehicle remains in the world
 
 **Given** the free-road speed plan
 **When** it is produced
-**Then** it combines desired speed, road limit, curve limit and the steering speed ceiling as named constraints and identifies the binding one
+**Then** it applies desired speed, the steering speed ceiling and the declared longitudinal bounds as named constraints and identifies the binding one; road limit and the grip-based curve limit are named, reported as deferred to Story 5.33 and not applied; an authored non-zero road limit is reported as authored-but-not-applied, never as the absence of a limit
 **And** the Story 5.9 IDM envelope is preserved unchanged
 
 ---
 
+### Story 5.52: Tracking-Error Coverage in Gate A Evidence and Owner Re-Signature
+
+**Type:** FOUNDATION (evidence) · **Boundary:** Road model evidence · **Complexity:** M
+**Implements:** AD-37, Road World Model contract §8 (Gate A evidence lifecycle), SimulationInvariant 7
+*Inserted 2026-09-29 (sprint-change-proposal-2026-09-29.md): Story 5.31 planning found that the signed allowance a_e is recorded text, not an input of any proof, so the first-signed evidence (a_e = 0) covers no physical vehicle.*
+
+As the owner,
+I want the Gate A evidence regenerated with the tracking tolerance declared and measured in Story 5.31,
+So that V2 vehicles drive outside measurement runs only on trajectories the signed evidence covers.
+
+**Prerequisites:** 5.31 (owner-declared ε_t and its accepted, fully Measured campaign).
+
+**Capability delivered:** a_e = max |o(s)| + ε_t enters, beside the reserved margin and δ_c, the inflation of every Gate A proof: conflict candidates, junction physical clearance, `Sidewalk` planar clearance, roundabout residuals. The pair fingerprint schema is versioned to record the inflation parameters (margin, δ_c, a_e) explicitly. Candidates and clearance are regenerated, with candidate diff and fingerprints published. The signed roundabout seam list moves into signed data. A new sign-off record is bound to the regenerated evidence; every previous record is kept as superseded history.
+
+**Rules:**
+- ε_t keeps the Story 5.31 definition and scope (per-step exact, model M between steps, no continuous physical claim).
+- The reserved clearance margin and any residual clearance are never converted into allowance.
+- Because a_e enlarges every inflated envelope, every pair's envelope changes: every prior decision becomes a historical proposal, and none is carried over without re-evaluation on the new envelope. New and orphaned pairs are handled explicitly.
+- The approved mechanism `5.50-AUTO-DECISIONS-v1` applies under all its conditions where applicable.
+- Any non-positive residual fails; a geometry change is an owner decision through a separate course correction.
+- Gate A is re-signed only by the owner, explicitly, never automatically.
+- This story decides the normal-operation response to a runtime `TrackingToleranceExceeded` diagnostic.
+
+**Non-goals:** no geometry change, no driving-behavior change, no change of the declared ε_t (a new value reruns this story).
+
+**EditMode verification:** a synthetic allowance enlarges every proof's inflation exactly by a_e; the fingerprint changes when any inflation parameter changes; no decision is reused without re-evaluation; a second run proposes no change; a stale fingerprint closes Gate A; the evidence binding reads a_e from the new record and equals the declared allowance.
+
+**PlayMode verification — MILESTONE 1 rerun:** in `MVP_Run`, outside any measurement run, V2 vehicles spawn at entry portals, drive covered trajectories within ε_t (per-step bound and model-M inter-step bound) and v ≤ v*(s), and despawn at exit portals, without contact with non-road colliders.
+
+**Completion evidence:** **Gate B** — EditMode green, regenerated evidence and diff published, owner re-signature recorded, PlayMode milestone 1 rerun with raw output, within the proof scope stated in the gate table.
+
+**Acceptance Criteria:**
+
+**Given** the ε_t declared in Story 5.31
+**When** the Gate A evidence is regenerated
+**Then** every proof's inflation includes a_e = max |o(s)| + ε_t in addition to the reserved margin and δ_c, each residual is published per movement and corner, and the pair fingerprints record the inflation parameters
+**And** any non-positive residual fails without allocating margin or residual clearance
+
+**Given** the regenerated conflict candidates
+**When** they are compared with the signed set
+**Then** every pair whose inflated envelope changed has its prior decision downgraded to a historical proposal and re-evaluated; new and orphaned pairs are identified; no decision bound to a previous envelope is reused silently; delegated decisions satisfy every condition of `5.50-AUTO-DECISIONS-v1`
+
+**Given** the regenerated evidence
+**When** Gate A is re-signed
+**Then** only the owner signs, on a new record bound to the regenerated evidence, and every previous record is kept as superseded history
+
+**Given** the new signature
+**When** the milestone 1 PlayMode test runs outside any measurement run
+**Then** V2 vehicles drive portal to portal on covered trajectories within the stated proof scope, and Gate B closes
+
+---
 
 ### Story 5.32: Perception Boundary — Occupancy Index, Leader and Hazard Observations
 
@@ -2798,7 +2851,7 @@ So that the road reads as traffic rather than as independent vehicles that happe
 
 **Must NOT be copied:** the controller's longitudinal branch writing a speed target; a single collapsed wait reason; low speed used as a proxy for blockage.
 
-**Artifacts:** `Features/Traffic/Planning/SpeedPlan` — the named-constraint set (desired speed, road limit, curve limit, leader following, obstacle) with binding-constraint selection; `Features/Traffic/Blockers/` — the `Blocker` record (id, source, kind, blocking actor or rule, legitimacy, expected-to-clear, recoverability, since-frame).
+**Artifacts:** `Features/Traffic/Planning/SpeedPlan` — the named-constraint set (desired speed, road limit, curve limit, leader following, obstacle) with binding-constraint selection; `Features/Traffic/Blockers/` — the `Blocker` record (id, source, kind, blocking actor or rule, legitimacy, expected-to-clear, recoverability, since-frame). This story reopens the deferred authored speed-limit field (Story 5.28 authoring decisions, `AuthoringDecisions`) and applies the road limit and the grip-based curve limit that Story 5.31 publishes as deferred.
 
 **EditMode verification:** free-road acceleration is finite and fades to zero at desired speed; a stopped leader produces firm finite braking, including at a zero or collapsed gap, with no NaN or infinity; following settles near the authored minimum gap measured bumper to bumper; response smoothing is finite, bounded and deterministic for the same inputs, including near-instant and zero-or-negative reaction times; the plan names its binding constraint and retains its rejected alternatives; several blockers coexist without collapsing — a leader and a future red signal are two records, not whichever branch ran last; a deliberate stop behind a leader is a **legitimate** blocker.
 

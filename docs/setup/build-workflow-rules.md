@@ -284,5 +284,9 @@ version differente invalide la revision precedente et impose un nouveau run, jam
 silencieux. L'ambiguite d'une paire ne provoque pas de HALT. Les HALT sont reserves aux changements
 de contrat, aux defauts systemiques non resolus ou a l'absence de politique sure et bornee.
 
-Cette exception ne s'etend a aucune autre story et n'autorise jamais la revue ni la signature de
+Cette exception ne s'etend a aucune autre story que 5.52 et n'autorise jamais la revue ni la signature de
 Gate A, qui restent des actes proprietaire distincts.
+
+2026-09-29 (`sprint-change-proposal-2026-09-29.md`) : la meme exception, sous toutes ses conditions,
+s'applique a la Story 5.52 pour la reevaluation de toutes les paires dont l'enveloppe gonflee change ;
+elle n'autorise ni la revue ni la signature de Gate A.
