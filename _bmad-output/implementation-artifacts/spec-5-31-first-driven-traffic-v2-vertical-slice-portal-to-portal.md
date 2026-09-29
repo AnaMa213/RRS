@@ -2,7 +2,8 @@
 title: 'Story 5.31 -- Premiere tranche verticale Traffic V2 conduite, de portail a portail (run de mesure)'
 type: 'feature'
 created: '2026-09-29'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_commit: 'e970735a19faa78a720ebde45b781e2fdb5f7cb8'
 review_loop_iteration: 0
 context:
   - '_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
@@ -64,6 +65,8 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
 - **Commande de suivi.**
   - Acceleration visee plus angle de roue vise.
   - L'angle combine une anticipation de κ au point de reference, par la geometrie `DrivabilityProfile`, et une correction de l'ecart lateral et de cap.
+  - L'ecart de cap vise est le cap nominal cinematique de la route (contrat §8) : solution de de/ds = κ − sin(e)/a propre a la route, jamais le regime etabli asin(a·κ).
+  - Faisabilite : le long de chaque route de campagne, l'angle de roue implique par la pose nominale (tan δ = (L/a)·tan e) reste dans le braquage declare a la vitesse planifiee, et son taux dans le taux de braquage declare. Sinon, `NominalPoseInfeasible` : la route n'est ni conduite en acceptation ni comptee couverte.
   - Elle lit uniquement la reference compilee.
 - **Composeur unique** (`Intent/`).
   - A chaque pas, il produit exactement un `VehicleDriveIntent` et trois scalaires d'autorite (`maxForwardSpeed`, `steerRateDegreesPerSecond`, `brakeTorque`, issus du `VehicleProfile`), tous finis.
@@ -89,7 +92,8 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
 - **Couverture.**
   - Reference : regle 5.30.
   - Vehicule : il faut un ε_t declare (constante unique). Tant qu'il n'est pas declare, pas de conduite hors mesure (`TrackingToleranceUndeclared`). La regle 5.30 « compte 0 » ne vaut jamais autorisation.
-  - Couvert ⇔ max|o| + ε_t ≤ a_e de la preuve valide. Le verdict est publie.
+  - Couvert ⇔ max|o| + ε_t ≤ a_e d'une preuve valide dont le modele de pose enregistre est la pose nominale cinematique. Le verdict est publie.
+  - Une preuve a pose tangente, comme la preuve signee actuelle, ne rend jamais « couvert » : `NotCoveredByGateA`, raison `PoseModelMismatch`.
   - Ni `LateralClearanceMarginMeters` ni un residu 5.51 n'entrent dans ce calcul, et la 5.31 ne regenere ni ne signe rien.
 - **Mesure (A2).**
   - **Hypotheses declarees.**
@@ -99,34 +103,47 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
     - H3 : la boite du gabarit max contient la caisse. Le test le verifie sur le prefab V2 (collider centre sur le point de reference, dans la boite).
   - **Grandeur mesuree.**
     - Boite du gabarit max : L = `MaxVehicleLengthMeters`, W = `MaxVehicleHalfWidthMeters`, hauteur du collider ; centree sur le point de reference.
-    - s* est la projection du point de reference reel sur la reference compilee, en distance d'horizon. La pose nominale N(s*) est la pose de reference **droite** en s* (sans roulis ni tangage).
+    - s* est la projection du point de reference reel sur la reference compilee, en distance d'horizon.
+    - La pose nominale N(s*) est la **pose nominale cinematique** propre a la route (contrat §8), sans roulis ni tangage.
+      - Position : la reference en s*.
+      - Cap : la tangente tournee de l'ecart e(s*), solution de de/ds = κ − sin(e)/a.
+      - e = 0 a l'insertion, au s effectif du portail, eventuellement a l'interieur d'un element.
+      - e saute du saut de tangente signe a chaque raccord, et n'est jamais remis a zero ailleurs.
     - Pour chacun des **8 coins** : f_i = projection au sol du coin reel − coin nominal correspondant. d = max_i |f_i|. Roulis, tangage, cap et translation sont donc inclus. Le deplacement est affine en chaque point de la boite, donc son maximum est atteint en un coin.
   - **Au pas k :** d_k est exact.
   - **Entre deux pas** (borne a progression appariee, sous M) :
     - σ(τ) interpole lineairement s*_k → s*_k+1.
-    - L'intervalle est **decoupe a chaque raccord traverse**. Au raccord, d est evalue avec les deux poses nominales (limite avant et limite apres) et le max est retenu. Aucun reste ne franchit un raccord.
+    - L'intervalle est **decoupe a chaque raccord traverse**. Au raccord, d est evalue avec les deux poses nominales (limite avant et limite apres) et le max est retenu. Aucun reste ne franchit un raccord. Le cap de la caisse nominale est continu au raccord ; seule la position de reference peut y presenter deux limites.
     - Sur chaque morceau, on evalue d sur une sous-grille de pas h en τ, bornes comprises, puis : sup d ≤ max_grille d + L_k·h/2.
-      - L_k = |Δp_CoM| + r·|Δφ| + ℓ_k(1 + ρ·ψ'_max).
+      - L_k = |Δp_CoM| + r·|Δφ| + ℓ_k(1 + ρ·ω_max).
       - r = distance 3D max d'un coin au centre de masse ; |Δφ| = angle de rotation 3D du pas ; ρ = √((L/2)² + W²) ; ℓ_k = |Δs*|.
-      - ψ'_max = max, sur les segments compiles traverses, de 2·tan(α_j/2)/Δs_j (taux de rotation de la tangente normalisee-interpolee).
+      - ω_max = max|sin(e)|/a sur le morceau : taux de rotation de la caisse nominale (contrat §8), jamais le taux de la tangente.
     - h est choisi pour que L_k·h/2 ≤ 1 mm.
     - La preuve est en Design Notes.
     - La regle `max(d_k, d_k+1) + δ/2` du lemme 5.50 est valide sous M mais **n'est pas utilisee** : elle consomme a elle seule le residu signe (voir Design Notes).
-  - **Controle physique empirique.** Tout contact du vehicule V2 avec un collider hors chaussee pendant une campagne fait echouer la campagne.
+  - **Controle physique empirique.** Regle de contact des campagnes du contrat §8.
+    - Seuls les contacts du collider de caisse sont classes. L'appui des pneus par raycast de suspension n'est pas un contact ; il est publie par le nombre de roues au sol.
+    - Contact de caisse avec un relief roulable reconnu (ensemble de la preuve 5.51 valide, chemin de hierarchie et empreinte), ou avec la surface de chaussee elle-meme : observation publiee, non bloquante, sauf si un critere de consequence se declenche (sortie des bornes, perte de controle, arret anormal, continuation en echec).
+    - Donnees publiees : impulsion, vitesses, d, cap, roulis, tangage, roues au sol et poursuite de l'itineraire, sur une fenetre de ±50 pas avec le `fixedDeltaTime` reel consigne.
+    - Tout autre contact de caisse fait echouer une campagne d'acceptation.
+    - En run exploratoire, sans ε_t declare, les criteres declenches sont publies comme constats et rien n'est accepte.
   - Publies aussi : ecart lateral, ecart de cap, vitesse observee face a v*(s*).
   - **Moniteur runtime.** La borne au pas est evaluee a chaque pas pour chaque vehicule V2 (diagnostic `TrackingToleranceExceeded`). La borne entre deux pas complete le calcul en post-traitement de la trace.
   - Toute vitesse > v*, ou une borne > ε_t declare, fait echouer la campagne d'acceptation.
   - **Campagne deterministe.**
-    - Un constructeur EditMode (Geometry) cherche, avec un budget declare de graines, des triplets (entree, sortie, graine) dont les routes planifiees par `RoutePlanner` couvrent les 72 mouvements, les 24 raccords d'anneau et les 44 corridors.
+    - Un constructeur EditMode (Geometry) cherche des triplets (entree, mouvement vise, sortie, graine) dont les routes couvrent les 72 mouvements, les 24 raccords d'anneau et les 44 corridors.
+      - Chaque route est planifiee et validee par `RoutePlanner` avec l'objectif de mouvement intermediaire (contrat §4).
+      - Aucun plan n'est ecrit a la main, et aucun poids authore ne change.
+      - Le budget de graines reste declare, mais il ne decide plus de la selectionnabilite.
     - Il ecrit la campagne et l'incidence element → triplets.
-    - Un element jamais selectionne dans le budget est publie `NotSelectable`. La campagne est alors refusee, et on s'arrete pour demander au proprietaire (Ask First).
+    - Un mouvement n'est `NotSelectable` que si toutes les paires (entree, sortie) rendent `NoRoute` pour lui. La campagne est alors refusee, et on s'arrete pour demander au proprietaire (Ask First).
   - **Tracabilite par element** (72 mouvements, 24 raccords × 2 cotes, 44 corridors) : passages, runs, d max (au pas et entre deux pas), max v/v*, marge a ε_t.
     - Statuts : `Measured`, `NotMeasured` (non parcouru, ou parcouru seulement par des intervalles `ModelNotVerified`), `NotSelectable`.
     - Seul `Measured` compte comme couvert. Tout autre statut fait echouer la campagne d'acceptation.
     - Rapports bruts separes, exploratoire et acceptation, sous `_bmad-output/implementation-artifacts/traffic-v2-5-31-measurements/`.
   - **Separation des validations.** Les campagnes PlayMode sont `[Explicit]` + `[Category("Story531Campaign")]`, hors suite par defaut, et lancees par filtre de categorie en plus de la suite complete, jamais a sa place. La suite par defaut garde les tests courts.
   - Conditions consignees : pas physique 0,02 s, Editeur en hote, profils par defaut, commit, budget de graines.
-  - **Sequence :** (1) campagne exploratoire, qui ne vaut pas acceptation ; (2) declaration de ε_t par le proprietaire ; (3) campagne d'acceptation.
+  - **Sequence :** (1) campagne exploratoire, qui ne vaut pas acceptation ; (2) declaration de ε_t par le proprietaire ; (3) campagne d'acceptation. La campagne exploratoire `20260929-141746`, mesuree contre la pose tangente, est un historique qui ne compte pour rien ; le protocole repart a l'etape (1).
 - **Projection.** Etendre `TrafficDecisionProjection` avec :
   - les contraintes (appliquees et reportees) et la liante ;
   - les epoques et `SourceFrameId` ;
@@ -177,6 +194,12 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
 | Echec en route | `NoRoute`, horizon non conforme | Vehicule present, repli | Aucun retrait |
 | Profil conducteur absent | `DriverProfileDef` nul | Inerte | Diagnostic unique, sans repli code |
 | Composition | V1 par defaut ; V2 change apres insertion | V1 inchange ; choix fige | Diagnostic |
+| Objectif intermediaire | Requete avec mouvement vise | Route minimale par phase ; mouvement parcouru une fois, cout compte une fois ; objectif garde jusqu'au franchissement | `NoRouteToObjective` / `NoRouteAfterObjective` pour la requete ; `NotSelectable` seulement si toutes les paires (entree, sortie) echouent |
+| Contact de caisse, relief reconnu | Collider de la preuve 5.51 valide | Observation publiee (impulsion, vitesses, d, cap, roulis, tangage, roues au sol, poursuite) | Echec si un critere de consequence se declenche (acceptation) ; constat publie (exploratoire) |
+| Contact de caisse, relief non reconnu ou autre collider | Collider absent de la preuve ou empreinte perimee | Contact publie | Echec d'acceptation ; constat en exploratoire |
+| Talonnage | Caisse contre la surface de chaussee | Observation publiee | Memes criteres que le relief reconnu |
+| Pose nominale infaisable | Braquage ou taux au-dela du profil | Route ni conduite en acceptation ni couverte | `NominalPoseInfeasible` |
+| Preuve a pose tangente | Preuve signee actuelle | Jamais « couvert » | `NotCoveredByGateA` (`PoseModelMismatch`) |
 
 </frozen-after-approval>
 
@@ -201,6 +224,11 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
 - `Assets/RoadRage/Tests/PlayMode/Story510RoutedTrafficPlayModeTests.cs:104-307,384-406` -- gabarit bootstrap → lobby → `MVP_Run`.
 - `Assets/RoadRage/Tests/EditMode/Story57AiTrafficClientPresentationTests.cs:47,91-139,158-172,225-282`, `Story59ParameterizedDriverModelTests.cs:46-67`, `Story514AiDrivesByIntentTests.cs:55,104-147` -- gardes a garder verts.
 - `_bmad-output/implementation-artifacts/v1-regression-5-51/after-playmode-results.json` -- reference PlayMode : 45 tests, 39 reussis, 6 echecs connus.
+- `Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs:156-163`, `Routing/RoutePlan.cs:53` -- regle du poids nul, preference −ln(U)/w, `RouteRequest` a etendre (objectif intermediaire).
+- `Assets/RoadRage/Features/Vehicles/Traffic/RoadModelCompiler.cs:44-50` -- `RadiusMeters` : R_P = √((L/tan δ)² + a²), coherent avec la tractrice.
+- `Assets/RoadRage/Features/Vehicles/VehicleSteeringModel.cs:94-102` -- direction parallele (sans Ackermann), roues arriere fixes.
+- `Assets/RoadRage/Features/Vehicles/Traffic/Migration/JunctionClearance.cs` (`DrivableReliefs`) -- reliefs roulables reconnus par la preuve 5.51.
+- `_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-29-kinematic-pose.md` -- correct-course applique (pose nominale cinematique, objectif intermediaire, contacts).
 
 ## Tasks & Acceptance
 
@@ -261,14 +289,29 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - vehicule toujours present, pose finie, au-dessus du sol ;
   - trace brute publiee. Les seuils de resultat ne sont pas presumes.
 - [ ] `Assets/RoadRage/Tests/PlayMode/Story531MeasurementCampaignPlayModeTests.cs` `[Explicit]` `[Category("Story531Campaign")]` -- campagnes exploratoire et d'acceptation (l'acceptation exige ε_t declare) ; verification de M a chaque pas ; controle de contact ; couple de repli ≥ 0 ; tracabilite par element ; rapports bruts sous `traffic-v2-5-31-measurements/`.
+- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlan.cs`, `Routing/RoutePlanner.cs` -- objectif de mouvement intermediaire (contrat §4) : phases, cout compte une fois, occurrences contigues, `NoRouteToObjective` / `NoRouteAfterObjective`, persistance jusqu'au franchissement ; champ pose seulement par le chemin de mesure du cycle de vie.
+- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrackingMeasurement.cs` -- pose nominale cinematique propre a la route (tractrice, sauts aux raccords, e = 0 au s du portail) ; ω_max dans L_k.
+- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionCommand.cs` -- cap vise = cap nominal de la route ; faisabilite braquage et taux (`NominalPoseInfeasible`).
+- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs` -- classification des contacts de caisse (relief reconnu, chaussee, autre), fenetre ±50 pas, `fixedDeltaTime` consigne ; verdict de couverture `PoseModelMismatch`.
+- [ ] `Assets/RoadRage/Tests/EditMode/Story531ViaObjectiveRoutingTests.cs` `[Category("Core")]` -- couvrir :
+  - piege de couplage contre une enumeration exhaustive bornee ;
+  - cout du mouvement impose ;
+  - cycles ;
+  - `NoRoute` contre `NotSelectable` ;
+  - replan ;
+  - aucun code de production hors du chemin de mesure ne pose l'objectif.
+- [ ] `Assets/RoadRage/Tests/EditMode/Story531DrivenReplayTests.cs` -- constructeur de campagne par objectif intermediaire ; fixture `[Category("Geometry")]` de confrontation des modeles de cap sur trace.
 - [ ] `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml` -- reports 5.30 traites (cache de liaison, transport Editeur, consommation de `Unbounded`) ; raccords d'anneau renvoyes a la 5.52. Puis `graphify update .`.
 
 **Acceptance Criteria:**
 - Given une campagne d'acceptation sous `MeasurementRun` avec ε_t declare, when elle s'execute dans `MVP_Run`, then :
   - chaque vehicule V2 s'insere a une entree et se retire a une sortie, sans evenement en route ni controleur V1 ;
-  - la borne au pas (8 coins) et entre deux pas (sous M) reste ≤ ε_t, et v ≤ v*(s) ;
-  - chaque mouvement, raccord d'anneau (chaque cote) et corridor est rapporte `Measured` avec ses valeurs. Un seul autre statut fait echouer la campagne.
-  - aucun contact avec un collider hors chaussee.
+  - la borne au pas (8 coins) et entre deux pas (sous M), mesuree contre la pose nominale cinematique de la route, reste ≤ ε_t, et v ≤ v*(s) ;
+  - chaque mouvement, raccord d'anneau (chaque cote) et corridor est rapporte `Measured` avec ses valeurs, sur des routes planifiees par `RoutePlanner` avec l'objectif intermediaire. Un seul autre statut fait echouer la campagne.
+  - les contacts de caisse suivent la regle de contact du contrat §8 : un relief reconnu ou la chaussee donnent une observation publiee sans critere de consequence declenche ; tout autre contact fait echouer ;
+  - aucune route n'est `NominalPoseInfeasible`.
+- Given une route planifiee, when la commande de suivi est calculee, then l'ecart de cap vise est la solution nominale de la route (de/ds = κ − sin(e)/a, sauts aux raccords), jamais asin(a·κ).
+- Given la preuve signee actuelle (pose tangente), when la couverture est evaluee, then le verdict est `NotCoveredByGateA` (`PoseModelMismatch`), jamais « couvert ».
 - Given un repli force a chaque pas, when le banc physique part de 8, 0,35, 0,3, 0,2 ou −0,5 m/s, then le couple moteur recalcule reste ≥ 0 a chaque pas, le vehicule n'accelere jamais en marche arriere, atteint `FallbackHeld` ou emet `FallbackStopOverrun`, et reste present dans le monde.
 - Given a_e = 0 signe, when un vehicule V2 est demande hors `MeasurementRun`, then aucune insertion n'a lieu, la raison est publiee et aucune preuve n'est ecrite.
 - Given une commande invalide en route, when le composeur emet, then la commande de repli est finie, recalculee a chaque pas selon la vitesse mesuree, sans `BrakeReverse` a v ≤ v_s, et le vehicule reste present.
@@ -299,6 +342,51 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - bande de service de 0,41 m/s ;
   - conversion `VehicleTireModel` et couple ≥ 0 verifie par pas.
   Passage en `ready-for-dev`.
+- **2026-09-29 -- implementation interrompue, blocage de contrat, decisions proprietaire 1A / 2a / 3** (build en cours, statut `in-progress`, aucune tache ni aucun critere coche) :
+  - *Constat 1, pose nominale.*
+    - La campagne exploratoire donne d max ≈ 0,996 m.
+    - Le suivi de position est bon : ecart lateral moyen 0,105 m, d ≈ 0,005 m en ligne droite.
+    - C'est le cap qui porte l'ecart : la caisse d'un vehicule a essieu arriere non directeur fait un angle e avec la tangente au point de reference (a = 1,55 m, L = 3,10 m).
+    - Or N(s*) (5.31) et le balayage Gate A (`ConflictSweep.cs:590`, `JunctionClearance.cs:168`) alignent le gabarit sur la tangente. Ils decrivent une caisse que la cinematique du profil declare (`RoadModelCompiler.RadiusMeters`) ne permet pas en courbe.
+  - *Verification analytique (demandee par le proprietaire).*
+    - Sous le point de reference sur la courbe et sans derive laterale a l'essieu arriere : de/ds = κ(s) − sin(e)/a (tractrice), et tan δ = (L/a)·tan e.
+    - Sur un arc constant, e tend vers asin(a·κ) avec une longueur de relaxation a. C'est coherent avec `RadiusMeters`.
+    - La formule asin(a·κ) n'est que ce regime etabli ; elle saute aux discontinuites de κ.
+    - Confrontation hors Unity aux 23 311 pas publies (v ≥ 0,3 m/s) :
+
+      | Modele de cap | Ecart RMS | Ecart max |
+      |---|---|---|
+      | tangente | 10,7° | 22,9° |
+      | regime etabli asin(a·κ) | 9,4° | 32,2° |
+      | tractrice | 2,7° | 7,8° |
+
+    - Exces residuel face a la tractrice : +1,8° a +3,4°, sans croissance nette avec l'acceleration laterale.
+    - Causes a separer par la mesure : la commande vise le regime etabli (`MotionCommand.Track`, `expectedHeading`), et la direction physique est parallele, sans Ackermann (`VehicleSteeringModel.ResolveWheelSteerAngleDegrees`).
+    - Analyse d'observation : elle devra devenir une fixture.
+  - *Decision 1A.*
+    - Un correct-course avant toute acceptation. Il distingue le changement de pose nominale, le glissement physique residuel et l'allocation ε_t.
+    - Regeneration des preuves concernees en 5.52, evaluation des conflits affectes, re-signature explicite du proprietaire, avec la preuve actuelle conservee comme historique.
+    - Un echec geometrique avec les degagements disponibles est remonte. Aucune marge ni aucun seuil n'est modifie pour obtenir un verdict.
+  - *Constat 2 et decision 2a.*
+    - Les 20 mouvements `NotSelectable` ne dependent pas de la graine : les 12 triplets utilisent tous la graine 0. Le terme −ln(U)/w, avec w de 20 a 60, pese quelques centimetres face a plusieurs metres d'ecart de distance.
+    - Decision : couverture dirigee, un objectif de mouvement par triplet. L'itineraire reste calcule et valide par `RoutePlanner`, sans `RoutePlan` ecrit a la main ni changement des poids authores.
+    - Toute extension d'API ou de contrat necessaire est consignee dans le correct-course. Un element non parcouru n'est jamais couvert.
+  - *Constat 3 et decision 3.*
+    - Les contacts `Rampe_Ouest` / `Rampe_Est` (run 1, pas 1365, d = 0,05 m, 5,4 m/s) viennent de la caisse sur le dos d'ane `Relief_DosDane_AvenueCenterToEast`, que la 5.51 classe en relief roulable.
+    - Decision : observation physique non bloquante seulement pour un relief roulable reconnu. Sont publies l'intensite, la vitesse, l'ecart de suivi, la stabilite et la poursuite de l'itineraire.
+    - Une perte de controle, une sortie des bornes ou un arret anormal reste un echec. Les autres colliders gardent leurs criteres bloquants.
+  - *Etat conserve.*
+    - Mesures exploratoires et corrections independantes conservees, dont le chemin de despawn unique : `Full` EditMode 1000/1001 dans l'Editeur, seul echec `NotSelectable`, script de validation interrompu, donc resultat non citable.
+    - La 5.31 n'est pas acceptable tant que le contrat de reference et la declaration d'ε_t ne sont pas resolus.
+- **2026-09-29 -- correct-course « pose nominale cinematique » approuve et applique** (`sprint-change-proposal-2026-09-29-kinematic-pose.md`, propositions 4.1 a 4.8). Bloc fige renegocie :
+  - N(s*) devient la pose nominale cinematique propre a la route (tractrice, e = 0 au s effectif du portail, sauts aux raccords), et ω_max = max|sin e|/a remplace ψ'_max dans L_k ;
+  - la commande vise le cap nominal de la route ;
+  - la faisabilite braquage et taux est controlee (`NominalPoseInfeasible`) ;
+  - le verdict de couverture exige une preuve a pose cinematique (`PoseModelMismatch` sinon) ;
+  - la campagne utilise l'objectif de mouvement intermediaire, et `NotSelectable` exige l'echec de toutes les paires (entree, sortie) ;
+  - regle de contact : caisse seulement, relief reconnu et chaussee observes sous criteres de consequence, runs exploratoires et d'acceptation distingues ;
+  - la campagne exploratoire `20260929-141746` devient historique.
+  Statut conserve `in-progress`. Aucune tache ni aucun critere coche. Objectif immediat du proprietaire : trajet V2 de portail a portail en Play Mode mesure, avec ses diagnostics ; preuves globales et re-signature en 5.52.
 
 ## Design Notes
 

@@ -1680,7 +1680,7 @@ The decision has one knock-on: the naming conventions forbid direct feature-to-f
 | Gate | After | Meaning | Runtime evidence |
 | --- | --- | --- | --- |
 | **A — `MVP_Run` Road Model Migration Validated** | 5.28 (sign-off after 5.49, 5.50 and 5.51) | The **data** gate, not the design gate: the real `MVP_Run` V1 authoring has been imported, compiled, measured, validated and visually reviewed as V2 data — zero hard errors, every source item disposed, every declared element drivable, human-signed overlay bound to the model hashes and to the reviewed physical clearance evidence | EditMode + overlay sign-off |
-| **B — V2 Spine Driven End to End** | 5.52 (after 5.31) | One AI vehicle spawns, localizes, routes, plans, drives and exits under V2 in `MVP_Run`, outside any measurement run, on trajectories covered by Gate A evidence that includes the declared tracking tolerance. Coverage is established at every simulated physics step and, between steps, only under the per-step-verified integration model of Story 5.31; continuous physical coverage beyond that model is not claimed | **PlayMode milestone 1**, rerun after the 5.52 re-signature |
+| **B — V2 Spine Driven End to End** | 5.52 (after 5.31) | One AI vehicle spawns, localizes, routes, plans, drives and exits under V2 in `MVP_Run`, outside any measurement run, on trajectories covered by Gate A evidence computed on the kinematic nominal pose set of the Road World Model contract (§8) and including the declared tracking tolerance. Evidence computed with the tangent-aligned pose never closes Gate B. Coverage is established at every simulated physics step and, between steps, only under the per-step-verified integration model of Story 5.31; continuous physical coverage beyond that model is not claimed | **PlayMode milestone 1**, rerun after the 5.52 re-signature |
 | **C — Ordered Traffic in `MVP_Run`** | 5.35 | Multiple vehicles negotiate the crossroads, T junctions and roundabouts without deadlock | **PlayMode milestone 2** |
 | **D — One Stack for Normal and Road Rage** | 5.44 | Road Rage runs on the same stack as normal traffic; no second perception, navigation or physics path exists | **PlayMode milestone 3** |
 | **E — Parity Approved and V1 Retired** | 5.48 | Every oracle row judged, host and client smoke passed, **any AD-42-triggered performance requirement resolved**, V1 runtime path removed | **PlayMode milestone 4** |
@@ -2668,7 +2668,7 @@ So that the V2 architecture is proven to work end to end before any advanced tra
 
 **Must NOT be copied:** `ApplyMovement`-style writes to `linearVelocity`, `MoveRotation`, position or rotation; `RecoverAtWaypoint`; open-loop longitudinal integration; `WaypointIndex` as progress; point-to-point seeking with `arrivalRadius`.
 
-**Artifacts:** `Planning/SpeedPlan` (free-road constraints: desired speed and steering speed ceiling applied with declared longitudinal bounds; road limit and grip curve limit named, reported as deferred to 5.33 and never applied; binding constraint named); `Intent/` (the single composer and its finite-input guard); `Lifecycle/` (V2 vehicle lifecycle and portal binding); extension of the 5.30 debug projection with speed constraints, binding constraint and final intent.
+**Artifacts:** `Planning/SpeedPlan` (free-road constraints: desired speed and steering speed ceiling applied with declared longitudinal bounds; road limit and grip curve limit named, reported as deferred to 5.33 and never applied; binding constraint named); `Intent/` (the single composer and its finite-input guard); `Lifecycle/` (V2 vehicle lifecycle and portal binding); extension of the 5.30 debug projection with speed constraints, binding constraint and final intent; `Routing/` extension: the optional intermediate movement objective of the Route Planner contract (§4), set only by the measurement lifecycle path.
 
 **EditMode verification:** exactly one composer emits at most one finite intent per vehicle per physics step, or the V2 fallback command when no valid plan exists; a non-finite intent or authority scalar is diagnosed and replaced by the V2 fallback command before physics — **this is the mandatory contract test the retained V1 types do not currently prove**; an accepted plan carries `SourceFrameId` and a validity window in host decision and physics epochs, so plan hold and expiry are explicit rather than implicit; the speed plan names its binding constraint and retains its rejected alternatives; the free-road IDM envelope from Story 5.9 is preserved; a kinematic replay over the migrated `MVP_Run` model reaches an exit from every entry.
 
@@ -2694,12 +2694,17 @@ So that the V2 architecture is proven to work end to end before any advanced tra
 **And** the planned speed profile respects the steering speed ceiling locally: v(s) ≤ v*(s) at every point of the planned trajectory, reached with deceleration within the speed planner's declared deceleration bound, starting early enough before each tighter curve — not a single cap equal to the lowest ceiling anywhere in the look-ahead
 **And** when the ceiling cannot be met from the current state, the plan declares that infeasibility as its binding constraint and brakes at the declared bound
 **And** the observed speed at each traversed position is published against v*(s), and any exceedance fails the test
-**And** ε_t bounds the maximum displacement, projected on the road plane, of the eight corners of the maximum-gauge box (maximum footprint extruded to the vehicle's collider height, centred on the reference point), relative to the upright reference pose at matched progress; it is evaluated exactly at every simulated physics step, so roll, pitch, heading and translation are all included
-**And** between two physics steps the bound holds only under the integration model M: over one step the body moves with the step's final linear and angular velocities. M is verified per step against the recorded pose change within a declared tolerance; an interval that fails the check is reported model-not-verified and counts as not measured. Under M the bound is the maximum on a sub-grid plus the Lipschitz remainder L·h/2, where L sums the actual corner speed bound and the matched nominal speed bound; intervals are split at every crossed seam, and both one-sided nominal poses are evaluated there. No continuous physical guarantee is claimed beyond M, and any contact of the vehicle with a non-road collider during a campaign fails
-**And** an exploratory campaign measures the displacement, the owner then declares ε_t, and an acceptance campaign verifies it. Every one of the 72 movements, the 24 roundabout seams (each side) and the 44 corridors is reported Measured, NotMeasured or NotSelectable, with its maxima; only Measured counts as covered, and any other status fails acceptance. Long campaigns run separately from, and in addition to, the default suite; any displacement beyond the declared ε_t fails, and a runtime monitor evaluates the per-step bound for every V2 vehicle
-**And** the coverage verdict (max |o(s)| + ε_t ≤ a_e of the valid evidence) is published; while it does not hold, no V2 vehicle drives outside an explicit measurement run, a test proves the refusal, and the measurement authorization is constructed only by the test protocol and cannot enable normal operation
+**And** ε_t bounds the maximum displacement, projected on the road plane, of the eight corners of the maximum-gauge box (maximum footprint extruded to the vehicle's collider height, centred on the reference point), relative to the **kinematic nominal pose** (Road World Model contract §8) at matched progress. The nominal heading comes from the route's own offset solution, which starts at 0 at insertion at the entry portal's effective progress and is never reset elsewhere. ε_t is evaluated exactly at every simulated physics step, so roll, pitch, the residual heading error and translation are all included
+**And** between two physics steps the bound holds only under the integration model M: over one step the body moves with the step's final linear and angular velocities. M is verified per step against the recorded pose change within a declared tolerance; an interval that fails the check is reported model-not-verified and counts as not measured. Under M the bound is the maximum on a sub-grid plus the Lipschitz remainder L·h/2, where L sums the actual corner speed bound and the matched nominal speed bound; intervals are split at every crossed seam, and both one-sided nominal poses are evaluated there. No continuous physical guarantee is claimed beyond M, and vehicle contacts follow the campaign contact rule of contract §8. Tyre support through the suspension raycasts is not a contact. A body contact with a recognized drivable relief of the valid Story 5.51 evidence, or with the carriageway surface itself, is a published non-blocking observation unless a consequence criterion fires. Any other body contact fails an acceptance campaign. An exploratory run, which has no declared ε_t, publishes every fired criterion as a finding and accepts nothing
+**And** an exploratory campaign measures the displacement, the owner then declares ε_t, and an acceptance campaign verifies it. The campaign reaches each movement through the measurement-only intermediate movement objective (contract §4). The Route Planner plans and validates every route; no plan is hand-written and no authored weight changes. A movement is NotSelectable only when every (entry, exit) pair yields `NoRoute` for it. Campaigns measured against the tangent-aligned pose are kept as history and count toward nothing. Every one of the 72 movements, the 24 roundabout seams (each side) and the 44 corridors is reported Measured, NotMeasured or NotSelectable, with its maxima; only Measured counts as covered, and any other status fails acceptance. Long campaigns run separately from, and in addition to, the default suite; any displacement beyond the declared ε_t fails, and a runtime monitor evaluates the per-step bound for every V2 vehicle
+**And** the coverage verdict (max |o(s)| + ε_t ≤ a_e of valid evidence **whose recorded pose model is the kinematic nominal pose**) is published. Tangent-aligned evidence never yields a covered verdict; while it does not hold, no V2 vehicle drives outside an explicit measurement run, a test proves the refusal, and the measurement authorization is constructed only by the test protocol and cannot enable normal operation
 **And** integrating ε_t into the Gate A evidence and re-signing Gate A belong to Story 5.52; this story never regenerates or signs Gate A evidence, and never converts the reserved clearance margin or a residual clearance into a tracking allowance
 **And** no threshold is relaxed to obtain a favorable verdict
+
+**Given** a planned route
+**When** the tracking command is computed
+**Then** its expected heading offset is the route's own nominal offset solution (de/ds = κ − sin(e)/a, with seam jumps), never the steady-state value asin(a·κ)
+**And** along every campaign route, the steering angle implied by the nominal pose stays within the declared lock at the planned speed, and its rate within the declared steer rate. Otherwise the route is diagnosed `NominalPoseInfeasible` and is neither driven in acceptance nor counted as covered.
 
 **Given** one simulation step
 **When** the pipeline runs
@@ -2720,11 +2725,12 @@ So that the V2 architecture is proven to work end to end before any advanced tra
 
 ---
 
-### Story 5.52: Tracking-Error Coverage in Gate A Evidence and Owner Re-Signature
+### Story 5.52: Tracking-Error Coverage and Kinematic Nominal Pose in Gate A Evidence, and Owner Re-Signature
 
-**Type:** FOUNDATION (evidence) · **Boundary:** Road model evidence · **Complexity:** M
+**Type:** FOUNDATION (evidence) · **Boundary:** Road model evidence · **Complexity:** L
 **Implements:** AD-37, Road World Model contract §8 (Gate A evidence lifecycle), SimulationInvariant 7
 *Inserted 2026-09-29 (sprint-change-proposal-2026-09-29.md): Story 5.31 planning found that the signed allowance a_e is recorded text, not an input of any proof, so the first-signed evidence (a_e = 0) covers no physical vehicle.*
+*Extended 2026-09-29 (sprint-change-proposal-2026-09-29-kinematic-pose.md): every Gate A proof oriented the gauge along the reference tangent, a body pose the declared drivability geometry cannot hold in a curve; the regeneration also moves every proof to the kinematic nominal pose.*
 
 As the owner,
 I want the Gate A evidence regenerated with the tracking tolerance declared and measured in Story 5.31,
@@ -2732,7 +2738,11 @@ So that V2 vehicles drive outside measurement runs only on trajectories the sign
 
 **Prerequisites:** 5.31 (owner-declared ε_t and its accepted, fully Measured campaign).
 
-**Capability delivered:** a_e = max |o(s)| + ε_t enters, beside the reserved margin and δ_c, the inflation of every Gate A proof: conflict candidates, junction physical clearance, `Sidewalk` planar clearance, roundabout residuals. The pair fingerprint schema is versioned to record the inflation parameters (margin, δ_c, a_e) explicitly. Candidates and clearance are regenerated, with candidate diff and fingerprints published. The signed roundabout seam list moves into signed data. A new sign-off record is bound to the regenerated evidence; every previous record is kept as superseded history.
+**Capability delivered:** a_e = max |o(s)| + ε_t enters, beside the reserved margin and δ_c, the inflation of every Gate A proof: conflict candidates, junction physical clearance, `Sidewalk` planar clearance, roundabout residuals. The pair fingerprint schema is versioned to record the inflation parameters (margin, δ_c, a_e) explicitly. Candidates and clearance are regenerated, with candidate diff and fingerprints published. The signed roundabout seam list moves into signed data. A new sign-off record is bound to the regenerated evidence; every previous record is kept as superseded history. Every Gate A proof moves from the tangent-aligned sweep pose to the kinematic nominal pose set of contract §8. The proofs concerned are: conflict candidates (`ConflictSweep`), junction physical clearance and `Sidewalk` planar clearance (`JunctionClearance`), and roundabout two-gauge residuals (`RoundaboutClearance`).
+- The per-element entry offset intervals are computed over the transition graph — every entry portal, seam tangent jumps, legal cycles — and accepted only by the inductiveness check.
+- Each proof covers the union over every offset in the interval, with the published offset-grid and between-sample remainders added to the inflation.
+- Steering lock and rate feasibility is checked on the whole pose set.
+- The pose-model version enters the pair fingerprint schema beside margin, δ_c and a_e. The previous evidence and sign-off are kept as superseded history.
 
 **Rules:**
 - ε_t keeps the Story 5.31 definition and scope (per-step exact, model M between steps, no continuous physical claim).
@@ -2742,10 +2752,20 @@ So that V2 vehicles drive outside measurement runs only on trajectories the sign
 - Any non-positive residual fails; a geometry change is an owner decision through a separate course correction.
 - Gate A is re-signed only by the owner, explicitly, never automatically.
 - This story decides the normal-operation response to a runtime `TrackingToleranceExceeded` diagnostic.
+- A closure that cannot be demonstrated fails with `HeadingOffsetBoundNotClosed`; a pose outside lock or rate fails with `NominalPoseInfeasible`. Neither is ever counted as covered.
+- The offset-grid and between-sample remainders are declared, published per proof and added to the inflation. They are never taken from the reserved margin.
+- If a proof fails on the kinematic pose with the available clearances, the failure is escalated to the owner through a separate course correction. No margin, threshold, remainder or geometry is changed to obtain a favorable verdict.
+- Tangent-aligned evidence never closes Gate B.
 
-**Non-goals:** no geometry change, no driving-behavior change, no change of the declared ε_t (a new value reruns this story).
+**Non-goals:** no geometry change, no driving-behavior change, no change of the declared ε_t (a new value reruns this story), no change of the reserved margin, δ_c or any threshold to absorb the kinematic pose.
 
-**EditMode verification:** a synthetic allowance enlarges every proof's inflation exactly by a_e; the fingerprint changes when any inflation parameter changes; no decision is reused without re-evaluation; a second run proposes no change; a stale fingerprint closes Gate A; the evidence binding reads a_e from the new record and equals the declared allowance.
+**EditMode verification:** a synthetic allowance enlarges every proof's inflation exactly by a_e; the fingerprint changes when any inflation parameter changes; no decision is reused without re-evaluation; a second run proposes no change; a stale fingerprint closes Gate A; the evidence binding reads a_e from the new record and equals the declared allowance. On synthetic straights, arcs, S-curves, seam tangent jumps and cycles:
+- the closed offset intervals contain the offset of every route of a bounded exhaustive route enumeration;
+- a non-closable case fails explicitly;
+- the union coverage is at least the dense-sampling maximum over offsets and progress;
+- the roundabout residual with a rotated gauge matches its closed form;
+- the fingerprint changes when the pose-model version changes;
+- the coverage verdict rejects tangent-aligned evidence.
 
 **PlayMode verification — MILESTONE 1 rerun:** in `MVP_Run`, outside any measurement run, V2 vehicles spawn at entry portals, drive covered trajectories within ε_t (per-step bound and model-M inter-step bound) and v ≤ v*(s), and despawn at exit portals, without contact with non-road colliders.
 
@@ -2755,8 +2775,8 @@ So that V2 vehicles drive outside measurement runs only on trajectories the sign
 
 **Given** the ε_t declared in Story 5.31
 **When** the Gate A evidence is regenerated
-**Then** every proof's inflation includes a_e = max |o(s)| + ε_t in addition to the reserved margin and δ_c, each residual is published per movement and corner, and the pair fingerprints record the inflation parameters
-**And** any non-positive residual fails without allocating margin or residual clearance
+**Then** every proof is computed on the kinematic nominal pose set and its inflation includes a_e = max |o(s)| + ε_t, the reserved margin, δ_c and the published pose remainders; each residual is published per movement and corner; and the pair fingerprints record the inflation parameters and the pose-model version
+**And** any non-positive residual, unclosed offset bound or infeasible nominal pose fails and is escalated, without allocating margin or residual clearance
 
 **Given** the regenerated conflict candidates
 **When** they are compared with the signed set
