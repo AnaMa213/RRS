@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e1e9996c`
+- Built from commit: `b1cca879`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -65,7 +65,7 @@
 - TrafficSettingsDef
 - Story514AiDrivesByIntentTests
 - PassengerActionDef
-- Story32DriverControlAndLocalCameraTests
+- List
 - RoadId
 - .HostSeesPortalSpawnedAiVehiclesAndTheirReplicatedLabels
 - .CheckVisuals
@@ -73,20 +73,20 @@
 - ImportContext
 - CharacterCatalog
 - NetworkedAIVehicleState
-- LobbyRoomService
+- Story28Epic2OnlinePlayableCheckpointTests
 - Story528AuthoringAndGateATests
 - Story525RoadWorldModelTests
 - Story34SimpleRouteCollisionAndVehicleRecoveryTests
 - LobbyFlowController
 - Story55NetworkedAiRageTargetingTests
 - .FrozenSelectionSpawnsTheSelectedCharacterInMvpRunAndStaysImmutable
-- List
+- Story32DriverControlAndLocalCameraTests
 - LobbyRosterSnapshot
 - RoadRage.Shared.Domain
 - PairReviewModel
 - .Capture
 - .NewFixture
-- .FullPath
+- LobbyRoomService
 - RageTuningDef
 - Story15EmptyMapEntryTests
 - MonoBehaviour
@@ -118,7 +118,7 @@
 - Difficulty
 - Story549RoundaboutWideningTests
 - OracleEvidenceClassification
-- Story28Epic2OnlinePlayableCheckpointTests
+- .FullPath
 - RoadCurveSample
 - LaneNode
 - MainMenuScreen
@@ -152,9 +152,9 @@
 - DispositionKind
 - RoadModelValidationCode
 - MovementRole
-- .NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId
-- Story510LaneGraphAndRoutedTrafficTests
 - .Configure
+- Story510LaneGraphAndRoutedTrafficTests
+- .NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId
 - .BuildSmoothCurve
 - JunctionClearanceResult
 - HistoricalMovementReader
@@ -169,9 +169,9 @@
 - .DeterministicSeededReplayProducesEqualTraceSequencesAndReachesAnExitPortal
 - WidthDecision
 - Story551JunctionClearanceTests
+- Story515CredibleCollisionsAndDamageIntegrationTests
 - StatusFilter
 - GreyboxAssetSeedMetadata
-- Story515CredibleCollisionsAndDamageIntegrationTests
 - AppSceneRouter.cs
 - RoadRage.Shared.Networking
 - TestSuiteCategoryPartitionTests
@@ -424,9 +424,9 @@ Nodes (5): Func, GameObject, Rigidbody, Test, Story514AiDrivesByIntentTests
 Cohesion: 0.09
 Nodes (22): List, PassengerActionCatalog, Count, Version, PassengerActionDef, CooldownSeconds, DisplayName, Id (+14 more)
 
-### Community 50 - "Story32DriverControlAndLocalCameraTests"
-Cohesion: 0.15
-Nodes (11): AssemblyDefinition, BoxCollider, CinemachineCamera, GameObject, NetworkBehaviour, NetworkTransform, Rigidbody, Test (+3 more)
+### Community 50 - "List"
+Cohesion: 0.14
+Nodes (9): Action, Bounds, List, Renderer, Scene, Transform, CurbTrafficMeasurement, ReplayTrace (+1 more)
 
 ### Community 51 - "RoadId"
 Cohesion: 0.07
@@ -456,9 +456,9 @@ Nodes (14): RoadRageBootstrap, MainMenuProfileFlowController, CurrentIndex, List
 Cohesion: 0.07
 Nodes (26): AiVehicleFixture, NetworkVariable, NetworkedRageState, CurrentDisposition, NetworkVariable, NetworkedAIVehicleState, IRageDispositionSource, CurrentDisposition (+18 more)
 
-### Community 59 - "LobbyRoomService"
-Cohesion: 0.13
-Nodes (11): Task, LobbyRoomService, DisplayJoinCode, JoinCode, Status, LobbyRoomStatus, Closed, Creating (+3 more)
+### Community 59 - "Story28Epic2OnlinePlayableCheckpointTests"
+Cohesion: 0.16
+Nodes (10): ApprovalResult, NetworkPlayerConnectionPayload, GameObject, NetworkObject, Test, ApprovalResult, Approved, Profile (+2 more)
 
 ### Community 60 - "Story528AuthoringAndGateATests"
 Cohesion: 0.08
@@ -484,9 +484,9 @@ Nodes (15): IReadOnlyList, Vector3, AiRageTargetResolution, GameObject, List, Ne
 Cohesion: 0.32
 Nodes (5): Component, IEnumerator, UnityTearDown, UnityTest, Story46ProfileFreezeSessionPayloadAndSelectedCharacterSpawnPlayModeTests
 
-### Community 66 - "List"
-Cohesion: 0.14
-Nodes (9): Action, Bounds, List, Renderer, Scene, Transform, CurbTrafficMeasurement, ReplayTrace (+1 more)
+### Community 66 - "Story32DriverControlAndLocalCameraTests"
+Cohesion: 0.15
+Nodes (11): AssemblyDefinition, BoxCollider, CinemachineCamera, GameObject, NetworkBehaviour, NetworkTransform, Rigidbody, Test (+3 more)
 
 ### Community 67 - "LobbyRosterSnapshot"
 Cohesion: 0.06
@@ -508,9 +508,9 @@ Nodes (9): BinaryWriter, IReadOnlyList, MenuItem, RoadBoundsBox, RoadCurveSample
 Cohesion: 0.14
 Nodes (13): Fixture, Func, GameObject, List, NetworkObject, Object, TearDown, Test (+5 more)
 
-### Community 72 - ".FullPath"
-Cohesion: 0.18
-Nodes (7): Action, KeyValuePair, MenuItem, Scene, Func, Category, CommittedSignoff
+### Community 72 - "LobbyRoomService"
+Cohesion: 0.13
+Nodes (11): Task, LobbyRoomService, DisplayJoinCode, JoinCode, Status, LobbyRoomStatus, Closed, Creating (+3 more)
 
 ### Community 73 - "RageTuningDef"
 Cohesion: 0.08
@@ -632,9 +632,9 @@ Nodes (11): RoadModelValidationProfile, Action, BoxCollider, IReadOnlyList, Mesh
 Cohesion: 0.18
 Nodes (13): IReadOnlyList, BoundTest, OracleCatalog, OracleEvidenceClassification, AutoEdit, AutoPlay, Gap, Manual (+5 more)
 
-### Community 104 - "Story28Epic2OnlinePlayableCheckpointTests"
-Cohesion: 0.16
-Nodes (10): ApprovalResult, NetworkPlayerConnectionPayload, GameObject, NetworkObject, Test, ApprovalResult, Approved, Profile (+2 more)
+### Community 104 - ".FullPath"
+Cohesion: 0.18
+Nodes (7): Action, KeyValuePair, MenuItem, Scene, Func, Category, CommittedSignoff
 
 ### Community 105 - "RoadCurveSample"
 Cohesion: 0.11
@@ -764,17 +764,17 @@ Nodes (44): RoadModelValidationCode, ArcPositionOutOfDomain, ConflictingMovement
 Cohesion: 0.33
 Nodes (5): MovementRole, RoundaboutContinuation, RoundaboutEntry, RoundaboutExit, Turn
 
-### Community 139 - ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId"
-Cohesion: 0.33
-Nodes (3): Collider, Renderer, Type
+### Community 139 - ".Configure"
+Cohesion: 0.25
+Nodes (6): CinemachineCamera, CinemachineDeoccluder, CinemachineOrbitalFollow, Transform, ThirdPersonCameraConfiguration, CinemachineRotationComposer
 
 ### Community 140 - "Story510LaneGraphAndRoutedTrafficTests"
 Cohesion: 0.10
 Nodes (8): BoxCollider, Collider, GameObject, Object, TearDown, Test, Vector3, Story510LaneGraphAndRoutedTrafficTests
 
-### Community 141 - ".Configure"
-Cohesion: 0.25
-Nodes (6): CinemachineCamera, CinemachineDeoccluder, CinemachineOrbitalFollow, Transform, ThirdPersonCameraConfiguration, CinemachineRotationComposer
+### Community 141 - ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId"
+Cohesion: 0.33
+Nodes (3): Collider, Renderer, Type
 
 ### Community 142 - ".BuildSmoothCurve"
 Cohesion: 0.29

@@ -1243,8 +1243,8 @@
   },
   "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json": {
     "mtime": 1790610405.8733563,
-    "seen": 1790612973.870719,
-    "ast_hash": "",
+    "seen": 1790669781.110792,
+    "ast_hash": "37b732fb17251675d0d8f511ca50244b",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story550CompatibilityGolden.cs": {
@@ -1338,15 +1338,15 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs": {
-    "mtime": 1790629869.8691645,
-    "seen": 1790629973.4603572,
-    "ast_hash": "f0076d885883bcffba50bebe84c7183a",
+    "mtime": 1790631042.520669,
+    "seen": 1790668931.7714727,
+    "ast_hash": "e706bb72ba383b374bbfda55384a91cd",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs": {
-    "mtime": 1790629891.8884912,
-    "seen": 1790629973.470886,
-    "ast_hash": "06004b3c71b5815d47b6600a5f83b1cc",
+    "mtime": 1790631085.507146,
+    "seen": 1790668931.7785025,
+    "ast_hash": "90012203f061eeac5ba7c7b2d52af7ba",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/TestSuiteCategoryPartitionTests.cs": {

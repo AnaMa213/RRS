@@ -350,64 +350,6 @@
       "source_location": "L37"
     },
     {
-      "id": "assets_roadrage_features_players_networkplayerconnectionpayload_roadrage_features_players_networkplayerconnectionpayload",
-      "label": "NetworkPlayerConnectionPayload",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Players",
-        "scope_chain": [
-          "s51"
-        ]
-      },
-      "norm_label": "networkplayerconnectionpayload",
-      "source_file": "Assets/RoadRage/Features/Players/NetworkPlayerConnectionPayload.cs",
-      "source_location": "L13"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_approvalresult",
-      "label": "ApprovalResult",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
-      "file_type": "code",
-      "metadata": {
-        "is_nested_type": true,
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s352"
-        ]
-      },
-      "norm_label": "approvalresult",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L191"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests",
-      "label": "Story28Epic2OnlinePlayableCheckpointTests",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s352"
-        ]
-      },
-      "norm_label": "story28epic2onlineplayablecheckpointtests",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L23"
-    },
-    {
       "id": "assets_roadrage_features_vehicles_traffic_roadmodelrecords_roadrage_features_vehicles_traffic_junctioncontrol",
       "label": "JunctionControl",
       "_callable": true,
@@ -2354,6 +2296,25 @@
       "source_location": "L69"
     },
     {
+      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_roadrage_shared_presentation_thirdpersoncameraconfiguration",
+      "label": "ThirdPersonCameraConfiguration",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 139,
+      "community_name": ".Configure",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Shared.Presentation",
+        "scope_chain": [
+          "s85"
+        ]
+      },
+      "norm_label": "thirdpersoncameraconfiguration",
+      "source_file": "Assets/RoadRage/Shared/Presentation/ThirdPersonCameraConfiguration.cs",
+      "source_location": "L7"
+    },
+    {
       "id": "assets_roadrage_features_vehicles_networkedvehicledamagevfxcontroller_roadrage_features_vehicles_networkedvehicledamagevfxcontroller",
       "label": "NetworkedVehicleDamageVfxController",
       "_callable": true,
@@ -2390,25 +2351,6 @@
       "norm_label": "story510lanegraphandroutedtraffictests",
       "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
       "source_location": "L28"
-    },
-    {
-      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_roadrage_shared_presentation_thirdpersoncameraconfiguration",
-      "label": "ThirdPersonCameraConfiguration",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 141,
-      "community_name": ".Configure",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Shared.Presentation",
-        "scope_chain": [
-          "s85"
-        ]
-      },
-      "norm_label": "thirdpersoncameraconfiguration",
-      "source_file": "Assets/RoadRage/Shared/Presentation/ThirdPersonCameraConfiguration.cs",
-      "source_location": "L7"
     },
     {
       "id": "assets_roadrage_features_vehicles_traffic_migration_v1roadmodelimporter_roadrage_features_vehicles_traffic_migration_circlefit",
@@ -3101,6 +3043,25 @@
       "source_location": "L22"
     },
     {
+      "id": "assets_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests",
+      "label": "Story515CredibleCollisionsAndDamageIntegrationTests",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 156,
+      "community_name": "Story515CredibleCollisionsAndDamageIntegrationTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s75"
+        ]
+      },
+      "norm_label": "story515crediblecollisionsanddamageintegrationtests",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story515CredibleCollisionsAndDamageIntegrationTests.cs",
+      "source_location": "L7"
+    },
+    {
       "id": "assets_roadrage_features_vehicles_traffic_migration_pairreviewwindow_roadrage_features_vehicles_traffic_migration_statusfilter",
       "label": "StatusFilter",
       "_callable": true,
@@ -3176,25 +3137,6 @@
       "norm_label": "onfootmovementintent",
       "source_file": "Assets/RoadRage/Features/OnFoot/OnFootMovementIntent.cs",
       "source_location": "L9"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests",
-      "label": "Story515CredibleCollisionsAndDamageIntegrationTests",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 160,
-      "community_name": "Story515CredibleCollisionsAndDamageIntegrationTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s75"
-        ]
-      },
-      "norm_label": "story515crediblecollisionsanddamageintegrationtests",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story515CredibleCollisionsAndDamageIntegrationTests.cs",
-      "source_location": "L7"
     },
     {
       "id": "assets_roadrage_app_services_appscenerouter_roadrage_app_services_appplaymodeentry",
@@ -6010,43 +5952,44 @@
       "source_location": "L27"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_assemblydefinition",
-      "label": "AssemblyDefinition",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_curbtrafficmeasurement",
+      "label": "CurbTrafficMeasurement",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
       "metadata": {
         "is_nested_type": true,
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s205"
+          "s351"
         ]
       },
-      "norm_label": "assemblydefinition",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L203"
+      "norm_label": "curbtrafficmeasurement",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1502"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests",
-      "label": "Story32DriverControlAndLocalCameraTests",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_replaytrace",
+      "label": "ReplayTrace",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
       "metadata": {
+        "is_nested_type": true,
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s205"
+          "s351"
         ]
       },
-      "norm_label": "story32drivercontrolandlocalcameratests",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L19"
+      "norm_label": "replaytrace",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1494"
     },
     {
       "id": "assets_roadrage_features_vehicles_traffic_compiledroadmodel_roadrage_features_vehicles_traffic_compiledconflictzone",
@@ -6566,42 +6509,62 @@
       "source_location": "L14"
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice",
-      "label": "LobbyRoomService",
+      "id": "assets_roadrage_features_players_networkplayerconnectionpayload_roadrage_features_players_networkplayerconnectionpayload",
+      "label": "NetworkPlayerConnectionPayload",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Online",
+        "namespace": "RoadRage.Features.Players",
         "scope_chain": [
-          "s81"
+          "s51"
         ]
       },
-      "norm_label": "lobbyroomservice",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "norm_label": "networkplayerconnectionpayload",
+      "source_file": "Assets/RoadRage/Features/Players/NetworkPlayerConnectionPayload.cs",
       "source_location": "L13"
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus",
-      "label": "LobbyRoomStatus",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_approvalresult",
+      "label": "ApprovalResult",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Online",
+        "is_nested_type": true,
+        "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s0"
+          "s352"
         ]
       },
-      "norm_label": "lobbyroomstatus",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
-      "source_location": "L8"
+      "norm_label": "approvalresult",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L191"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests",
+      "label": "Story28Epic2OnlinePlayableCheckpointTests",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s352"
+        ]
+      },
+      "norm_label": "story28epic2onlineplayablecheckpointtests",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L23"
     },
     {
       "id": "assets_roadrage_features_vehicles_networkedvehiclestate_roadrage_features_vehicles_networkedvehiclestate",
@@ -6951,44 +6914,43 @@
       "source_location": "L28"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_curbtrafficmeasurement",
-      "label": "CurbTrafficMeasurement",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_assemblydefinition",
+      "label": "AssemblyDefinition",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
       "metadata": {
         "is_nested_type": true,
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s351"
+          "s205"
         ]
       },
-      "norm_label": "curbtrafficmeasurement",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1502"
+      "norm_label": "assemblydefinition",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L203"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_replaytrace",
-      "label": "ReplayTrace",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests",
+      "label": "Story32DriverControlAndLocalCameraTests",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
       "metadata": {
-        "is_nested_type": true,
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s351"
+          "s205"
         ]
       },
-      "norm_label": "replaytrace",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1494"
+      "norm_label": "story32drivercontrolandlocalcameratests",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L19"
     },
     {
       "id": "assets_roadrage_features_online_isteamlobbyplatform_roadrage_features_online_isteamlobbyplatform",
@@ -7372,6 +7334,44 @@
       "norm_label": "story44passengeractiontwocreatesincidenttests",
       "source_file": "Assets/RoadRage/Tests/EditMode/Story44PassengerActionTwoCreatesIncidentTests.cs",
       "source_location": "L15"
+    },
+    {
+      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice",
+      "label": "LobbyRoomService",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 72,
+      "community_name": "LobbyRoomService",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s81"
+        ]
+      },
+      "norm_label": "lobbyroomservice",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L13"
+    },
+    {
+      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus",
+      "label": "LobbyRoomStatus",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 72,
+      "community_name": "LobbyRoomService",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s0"
+        ]
+      },
+      "norm_label": "lobbyroomstatus",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
+      "source_location": "L8"
     },
     {
       "id": "assets_roadrage_features_rage_ragetuningcatalog_roadrage_features_rage_ragetuningcatalog",
@@ -12291,372 +12291,494 @@
       "source_location": "L75"
     },
     {
-      "id": "assets_roadrage_features_players_networkplayerconnectionpayload_roadrage_features_players_networkplayerconnectionpayload_encode",
-      "label": ".Encode()",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_compileauthoredmodelmenu",
+      "label": ".CompileAuthoredModelMenu()",
       "_callable": true,
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Players",
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
         "scope_chain": [
-          "s51"
+          "s249"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "LogError",
+            "receiver_type": "Debug",
+            "lang": "csharp",
+            "line": "L2290"
+          },
+          {
+            "callee": "ImportAsset",
+            "receiver_type": "AssetDatabase",
+            "lang": "csharp",
+            "line": "L2294"
+          },
+          {
+            "callee": "Log",
+            "receiver_type": "Debug",
+            "lang": "csharp",
+            "line": "L2295"
+          }
         ]
       },
-      "norm_label": ".encode()",
-      "source_file": "Assets/RoadRage/Features/Players/NetworkPlayerConnectionPayload.cs",
-      "source_location": "L15"
+      "norm_label": ".compileauthoredmodelmenu()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L2281"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_assetspath",
-      "label": ".AssetsPath()",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_fullpath",
+      "label": ".FullPath()",
       "_callable": true,
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
         "scope_chain": [
-          "s352"
+          "s249"
         ],
         "unresolved_calls": [
           {
             "callee": "Combine",
             "receiver_type": "Path",
             "lang": "csharp",
-            "line": "L185"
-          }
-        ]
-      },
-      "norm_label": ".assetspath()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L180"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_connectionapprovalacceptsvalidprofilebelowfourreservedslots",
-      "label": ".ConnectionApprovalAcceptsValidProfileBelowFourReservedSlots()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s352"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L33"
+            "line": "L192"
           },
           {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
+            "callee": "GetParent",
+            "receiver_type": "Directory",
             "lang": "csharp",
-            "line": "L34"
+            "line": "L192"
           }
         ]
       },
-      "norm_label": ".connectionapprovalacceptsvalidprofilebelowfourreservedslots()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L28"
+      "norm_label": ".fullpath()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L190"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_connectionapprovalrejectsfifthreservedplayerbeforespawn",
-      "label": ".ConnectionApprovalRejectsFifthReservedPlayerBeforeSpawn()",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_generatereviewdiffmenu",
+      "label": ".GenerateReviewDiffMenu()",
       "_callable": true,
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
         "scope_chain": [
-          "s352"
+          "s249"
         ],
         "unresolved_calls": [
           {
-            "callee": "That",
-            "receiver_type": "Assert",
+            "callee": "LogError",
+            "receiver_type": "Debug",
             "lang": "csharp",
-            "line": "L62"
+            "line": "L2240"
           },
           {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
+            "callee": "Log",
+            "receiver_type": "Debug",
             "lang": "csharp",
-            "line": "L63"
+            "line": "L2244"
           }
         ]
       },
-      "norm_label": ".connectionapprovalrejectsfifthreservedplayerbeforespawn()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L57"
+      "norm_label": ".generatereviewdiffmenu()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L2223"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_connectionapprovalrejectsinvalidpayloadbeforespawn",
-      "label": ".ConnectionApprovalRejectsInvalidPayloadBeforeSpawn()",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_proposedecisionsmenu",
+      "label": ".ProposeDecisionsMenu()",
       "_callable": true,
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
         "scope_chain": [
-          "s352"
+          "s249"
         ],
         "unresolved_calls": [
           {
-            "callee": "That",
-            "receiver_type": "Assert",
+            "callee": "LogError",
+            "receiver_type": "Debug",
             "lang": "csharp",
-            "line": "L44"
+            "line": "L2262"
           },
           {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
+            "callee": "ImportAsset",
+            "receiver_type": "AssetDatabase",
             "lang": "csharp",
-            "line": "L45"
-          }
-        ]
-      },
-      "norm_label": ".connectionapprovalrejectsinvalidpayloadbeforespawn()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L39"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_connectionapprovalrejectsmissingcharacterprofilebeforedefaultfallback",
-      "label": ".ConnectionApprovalRejectsMissingCharacterProfileBeforeDefaultFallback()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s352"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L53"
+            "line": "L2276"
           },
           {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
+            "callee": "Log",
+            "receiver_type": "Debug",
             "lang": "csharp",
-            "line": "L54"
+            "line": "L2277"
           }
         ]
       },
-      "norm_label": ".connectionapprovalrejectsmissingcharacterprofilebeforedefaultfallback()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L48"
+      "norm_label": ".proposedecisionsmenu()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L2256"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_joinedclientstartbuttonwaitsforhostinsteadofstartingclient",
-      "label": ".JoinedClientStartButtonWaitsForHostInsteadOfStartingClient()",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_proposerefusal",
+      "label": ".ProposeRefusal()",
       "_callable": true,
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
         "scope_chain": [
-          "s352"
+          "s249"
         ],
         "unresolved_calls": [
           {
-            "callee": "ReadAllText",
+            "callee": "Exists",
             "receiver_type": "File",
             "lang": "csharp",
-            "line": "L80"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L82"
-          },
-          {
-            "callee": "Contain",
-            "receiver_type": "Does",
-            "lang": "csharp",
-            "line": "L82"
-          },
-          {
-            "callee": "GreaterThanOrEqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L87"
-          },
-          {
-            "callee": "GreaterThan",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L88"
+            "line": "L2251"
           }
         ]
       },
-      "norm_label": ".joinedclientstartbuttonwaitsforhostinsteadofstartingclient()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L77"
+      "norm_label": ".proposerefusal()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L2249"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_mainmenulobbycontrastregressioncoverageremainsregistered",
-      "label": ".MainMenuLobbyContrastRegressionCoverageRemainsRegistered()",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_proposetext",
+      "label": ".ProposeText()",
       "_callable": true,
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
         "scope_chain": [
-          "s352"
+          "s249"
+        ]
+      },
+      "norm_label": ".proposetext()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L2143"
+    },
+    {
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_readifexists",
+      "label": ".ReadIfExists()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 104,
+      "community_name": ".FullPath",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "scope_chain": [
+          "s249"
         ],
         "unresolved_calls": [
           {
-            "callee": "ReadAllText",
+            "callee": "Exists",
             "receiver_type": "File",
             "lang": "csharp",
-            "line": "L150"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L152"
-          },
-          {
-            "callee": "Contain",
-            "receiver_type": "Does",
-            "lang": "csharp",
-            "line": "L152"
-          }
-        ]
-      },
-      "norm_label": ".mainmenulobbycontrastregressioncoverageremainsregistered()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L147"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_networkedcheckpointkeepssceneprefabhudandlifecyclewiring",
-      "label": ".NetworkedCheckpointKeepsScenePrefabHudAndLifecycleWiring()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s352"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L125"
-          },
-          {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L125"
-          },
-          {
-            "callee": "Load",
-            "receiver_type": "Resources",
-            "lang": "csharp",
-            "line": "L127"
+            "line": "L2376"
           },
           {
             "callee": "ReadAllText",
             "receiver_type": "File",
             "lang": "csharp",
-            "line": "L136"
+            "line": "L2376"
+          }
+        ]
+      },
+      "norm_label": ".readifexists()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L2374"
+    },
+    {
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_trywrite",
+      "label": ".TryWrite()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 104,
+      "community_name": ".FullPath",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "scope_chain": [
+          "s249"
+        ]
+      },
+      "norm_label": ".trywrite()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L2305"
+    },
+    {
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_trywriteall",
+      "label": ".TryWriteAll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 104,
+      "community_name": ".FullPath",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "scope_chain": [
+          "s249"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "Combine",
+            "receiver_type": "Path",
+            "lang": "csharp",
+            "line": "L2324"
           },
           {
-            "callee": "Contain",
-            "receiver_type": "Does",
+            "callee": "GetParent",
+            "receiver_type": "Directory",
             "lang": "csharp",
-            "line": "L140"
+            "line": "L2324"
+          },
+          {
+            "callee": "CreateDirectory",
+            "receiver_type": "Directory",
+            "lang": "csharp",
+            "line": "L2325"
+          },
+          {
+            "callee": "Add",
+            "receiver_type": "List",
+            "lang": "csharp",
+            "line": "L2332"
+          },
+          {
+            "callee": "WriteAllText",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L2333"
+          },
+          {
+            "callee": "GetDirectoryName",
+            "receiver_type": "Path",
+            "lang": "csharp",
+            "line": "L2338"
+          },
+          {
+            "callee": "Exists",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L2339"
+          },
+          {
+            "callee": "Replace",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L2341"
+          },
+          {
+            "callee": "Move",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L2345"
+          },
+          {
+            "callee": "Delete",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L2365"
           }
         ]
       },
-      "norm_label": ".networkedcheckpointkeepssceneprefabhudandlifecyclewiring()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L122"
+      "norm_label": ".trywriteall()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L2321"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_resolveapproval",
-      "label": ".ResolveApproval()",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_withmvprun",
+      "label": ".WithMvpRun()",
       "_callable": true,
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "scope_chain": [
+          "s249"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "GetSceneByPath",
+            "receiver_type": "SceneManager",
+            "lang": "csharp",
+            "line": "L2382"
+          },
+          {
+            "callee": "LogError",
+            "receiver_type": "Debug",
+            "lang": "csharp",
+            "line": "L2388"
+          },
+          {
+            "callee": "OpenScene",
+            "receiver_type": "EditorSceneManager",
+            "lang": "csharp",
+            "line": "L2392"
+          },
+          {
+            "callee": "CloseScene",
+            "receiver_type": "EditorSceneManager",
+            "lang": "csharp",
+            "line": "L2407"
+          }
+        ]
+      },
+      "norm_label": ".withmvprun()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
+      "source_location": "L2380"
+    },
+    {
+      "id": "assets_roadrage_features_vehicles_traffic_migration_migrationreport_roadrage_features_vehicles_traffic_migration_migrationreport_refusalreason",
+      "label": ".RefusalReason()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 104,
+      "community_name": ".FullPath",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "scope_chain": [
+          "s210"
+        ]
+      },
+      "norm_label": ".refusalreason()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/MigrationReport.cs",
+      "source_location": "L1257"
+    },
+    {
+      "id": "assets_roadrage_features_vehicles_traffic_migration_pairreviewwindow_roadrage_features_vehicles_traffic_migration_pairreviewwindow_load",
+      "label": ".Load()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 104,
+      "community_name": ".FullPath",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "scope_chain": [
+          "s146"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "GetSceneByPath",
+            "receiver_type": "SceneManager",
+            "lang": "csharp",
+            "line": "L426"
+          },
+          {
+            "callee": "RepaintAll",
+            "receiver_type": "SceneView",
+            "lang": "csharp",
+            "line": "L455"
+          }
+        ]
+      },
+      "norm_label": ".load()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/PairReviewWindow.cs",
+      "source_location": "L422"
+    },
+    {
+      "id": "assets_roadrage_features_vehicles_traffic_migration_pairreviewwindow_roadrage_features_vehicles_traffic_migration_pairreviewwindow_write",
+      "label": ".Write()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 104,
+      "community_name": ".FullPath",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "scope_chain": [
+          "s146"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "LogError",
+            "receiver_type": "Debug",
+            "lang": "csharp",
+            "line": "L404"
+          },
+          {
+            "callee": "ImportAsset",
+            "receiver_type": "AssetDatabase",
+            "lang": "csharp",
+            "line": "L415"
+          },
+          {
+            "callee": "Log",
+            "receiver_type": "Debug",
+            "lang": "csharp",
+            "line": "L416"
+          }
+        ]
+      },
+      "norm_label": ".write()",
+      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/PairReviewWindow.cs",
+      "source_location": "L394"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story528authoringandgateatests_roadrage_tests_editmode_story528authoringandgateatests_thecommittedsignoffispresentandboundtothecommittedartifacts",
+      "label": ".TheCommittedSignoffIsPresentAndBoundToTheCommittedArtifacts()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 104,
+      "community_name": ".FullPath",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s352"
+          "s388"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L159"
-          }
-        ]
-      },
-      "norm_label": ".resolveapproval()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L156"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_rosterraiseseventwhenonlycharacteridchanges",
-      "label": ".RosterRaisesEventWhenOnlyCharacterIdChanges()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s352"
-        ],
-        "unresolved_calls": [
+            "line": "L941"
+          },
           {
-            "callee": "That",
-            "receiver_type": "Assert",
+            "callee": "FromJson",
+            "receiver_type": "JsonUtility",
             "lang": "csharp",
-            "line": "L119"
+            "line": "L944"
           },
           {
             "callee": "EqualTo",
             "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L119"
+            "line": "L946"
+          },
+          {
+            "callee": "Match",
+            "receiver_type": "Regex",
+            "lang": "csharp",
+            "line": "L965"
           }
         ]
       },
-      "norm_label": ".rosterraiseseventwhenonlycharacteridchanges()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L97"
+      "norm_label": ".thecommittedsignoffispresentandboundtothecommittedartifacts()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story528AuthoringAndGateATests.cs",
+      "source_location": "L927"
     },
     {
       "id": "assets_roadrage_features_vehicles_traffic_routing_routeplan_roadrage_features_vehicles_traffic_routing_routeplan_advance",
@@ -26759,104 +26881,30 @@
       "source_location": "L974"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_roadrage_tests_editmode_story25networkedplayerspawntests_invokeprivatemethod",
-      "label": ".InvokePrivateMethod()",
+      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_roadrage_shared_presentation_thirdpersoncameraconfiguration_configure",
+      "label": ".Configure()",
       "_callable": true,
       "_origin": "ast",
       "community": 139,
-      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
+      "community_name": ".Configure",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
+        "namespace": "RoadRage.Shared.Presentation",
         "scope_chain": [
-          "s327"
+          "s85"
         ],
         "unresolved_calls": [
           {
-            "callee": "That",
-            "receiver_type": "Assert",
+            "callee": "GetComponent",
+            "receiver_type": "CinemachineCamera",
             "lang": "csharp",
-            "line": "L372"
+            "line": "L14"
           }
         ]
       },
-      "norm_label": ".invokeprivatemethod()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story25NetworkedPlayerSpawnTests.cs",
-      "source_location": "L369"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_roadrage_tests_editmode_story25networkedplayerspawntests_networkedplayerpresentationcreatesgreyboxvisualfromcharacterid",
-      "label": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 139,
-      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s327"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "Load",
-            "receiver_type": "Resources",
-            "lang": "csharp",
-            "line": "L206"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L207"
-          },
-          {
-            "callee": "Instantiate",
-            "receiver_type": "Object",
-            "lang": "csharp",
-            "line": "L209"
-          },
-          {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L220"
-          },
-          {
-            "callee": "GreaterThan",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L221"
-          },
-          {
-            "callee": "DestroyImmediate",
-            "receiver_type": "Object",
-            "lang": "csharp",
-            "line": "L231"
-          }
-        ]
-      },
-      "norm_label": ".networkedplayerpresentationcreatesgreyboxvisualfromcharacterid()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story25NetworkedPlayerSpawnTests.cs",
-      "source_location": "L203"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_roadrage_tests_editmode_story25networkedplayerspawntests_totypes",
-      "label": ".ToTypes()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 139,
-      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s327"
-        ]
-      },
-      "norm_label": ".totypes()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story25NetworkedPlayerSpawnTests.cs",
-      "source_location": "L383"
+      "norm_label": ".configure()",
+      "source_file": "Assets/RoadRage/Shared/Presentation/ThirdPersonCameraConfiguration.cs",
+      "source_location": "L9"
     },
     {
       "id": "assets_roadrage_features_vehicles_networkedvehicledamagevfxcontroller_roadrage_features_vehicles_networkedvehicledamagevfxcontroller_awake",
@@ -29021,30 +29069,104 @@
       "source_location": "L1817"
     },
     {
-      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_roadrage_shared_presentation_thirdpersoncameraconfiguration_configure",
-      "label": ".Configure()",
+      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_roadrage_tests_editmode_story25networkedplayerspawntests_invokeprivatemethod",
+      "label": ".InvokePrivateMethod()",
       "_callable": true,
       "_origin": "ast",
       "community": 141,
-      "community_name": ".Configure",
+      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Shared.Presentation",
+        "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s85"
+          "s327"
         ],
         "unresolved_calls": [
           {
-            "callee": "GetComponent",
-            "receiver_type": "CinemachineCamera",
+            "callee": "That",
+            "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L14"
+            "line": "L372"
           }
         ]
       },
-      "norm_label": ".configure()",
-      "source_file": "Assets/RoadRage/Shared/Presentation/ThirdPersonCameraConfiguration.cs",
-      "source_location": "L9"
+      "norm_label": ".invokeprivatemethod()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story25NetworkedPlayerSpawnTests.cs",
+      "source_location": "L369"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_roadrage_tests_editmode_story25networkedplayerspawntests_networkedplayerpresentationcreatesgreyboxvisualfromcharacterid",
+      "label": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 141,
+      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s327"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "Load",
+            "receiver_type": "Resources",
+            "lang": "csharp",
+            "line": "L206"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L207"
+          },
+          {
+            "callee": "Instantiate",
+            "receiver_type": "Object",
+            "lang": "csharp",
+            "line": "L209"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L220"
+          },
+          {
+            "callee": "GreaterThan",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L221"
+          },
+          {
+            "callee": "DestroyImmediate",
+            "receiver_type": "Object",
+            "lang": "csharp",
+            "line": "L231"
+          }
+        ]
+      },
+      "norm_label": ".networkedplayerpresentationcreatesgreyboxvisualfromcharacterid()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story25NetworkedPlayerSpawnTests.cs",
+      "source_location": "L203"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_roadrage_tests_editmode_story25networkedplayerspawntests_totypes",
+      "label": ".ToTypes()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 141,
+      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s327"
+        ]
+      },
+      "norm_label": ".totypes()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story25NetworkedPlayerSpawnTests.cs",
+      "source_location": "L383"
     },
     {
       "id": "assets_roadrage_features_vehicles_traffic_migration_v1roadmodelimporter_roadrage_features_vehicles_traffic_migration_importcontext_buildsmoothcurve",
@@ -33193,6 +33315,88 @@
       "source_location": "L378"
     },
     {
+      "id": "assets_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_collisiondamageremainshostonlyandpreservesexistingfilters",
+      "label": ".CollisionDamageRemainsHostOnlyAndPreservesExistingFilters()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 156,
+      "community_name": "Story515CredibleCollisionsAndDamageIntegrationTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s75"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "ReadAllText",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L28"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L31"
+          },
+          {
+            "callee": "Contain",
+            "receiver_type": "Does",
+            "lang": "csharp",
+            "line": "L31"
+          }
+        ]
+      },
+      "norm_label": ".collisiondamageremainshostonlyandpreservesexistingfilters()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story515CredibleCollisionsAndDamageIntegrationTests.cs",
+      "source_location": "L25"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_measuredprofilekeepstheleastcostnotunnelmodeanddamagebreakpoints",
+      "label": ".MeasuredProfileKeepsTheLeastCostNoTunnelModeAndDamageBreakpoints()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 156,
+      "community_name": "Story515CredibleCollisionsAndDamageIntegrationTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s75"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "ReadAllText",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L16"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L17"
+          },
+          {
+            "callee": "Contain",
+            "receiver_type": "Does",
+            "lang": "csharp",
+            "line": "L17"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L18"
+          }
+        ]
+      },
+      "norm_label": ".measuredprofilekeepstheleastcostnotunnelmodeanddamagebreakpoints()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story515CredibleCollisionsAndDamageIntegrationTests.cs",
+      "source_location": "L13"
+    },
+    {
       "id": "assets_roadrage_shared_authoring_greyboxassetseedmetadata_roadrage_shared_authoring_greyboxassetseedmetadata_hasexpectedpath",
       "label": ".HasExpectedPath()",
       "_callable": true,
@@ -33713,88 +33917,6 @@
       "norm_label": ".localonfootcontrollerconsumessprintstaminaandblockssprintatzero()",
       "source_file": "Assets/RoadRage/Tests/EditMode/Story26InGameHudTests.cs",
       "source_location": "L122"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_collisiondamageremainshostonlyandpreservesexistingfilters",
-      "label": ".CollisionDamageRemainsHostOnlyAndPreservesExistingFilters()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 160,
-      "community_name": "Story515CredibleCollisionsAndDamageIntegrationTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s75"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "ReadAllText",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L28"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L31"
-          },
-          {
-            "callee": "Contain",
-            "receiver_type": "Does",
-            "lang": "csharp",
-            "line": "L31"
-          }
-        ]
-      },
-      "norm_label": ".collisiondamageremainshostonlyandpreservesexistingfilters()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story515CredibleCollisionsAndDamageIntegrationTests.cs",
-      "source_location": "L25"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_measuredprofilekeepstheleastcostnotunnelmodeanddamagebreakpoints",
-      "label": ".MeasuredProfileKeepsTheLeastCostNoTunnelModeAndDamageBreakpoints()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 160,
-      "community_name": "Story515CredibleCollisionsAndDamageIntegrationTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s75"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "ReadAllText",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L16"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L17"
-          },
-          {
-            "callee": "Contain",
-            "receiver_type": "Does",
-            "lang": "csharp",
-            "line": "L17"
-          },
-          {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L18"
-          }
-        ]
-      },
-      "norm_label": ".measuredprofilekeepstheleastcostnotunnelmodeanddamagebreakpoints()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story515CredibleCollisionsAndDamageIntegrationTests.cs",
-      "source_location": "L13"
     },
     {
       "id": "assets_roadrage_app_services_appscenerouter_roadrage_app_services_appplaymodeentry_onplaymodestatechanged",
@@ -63519,392 +63641,654 @@
       "source_location": "L287"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_devvehiclesandboxhasagroundsurfacefordrivetesting",
-      "label": ".DevVehicleSandboxHasAGroundSurfaceForDriveTesting()",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_collectcurbbounds",
+      "label": ".CollectCurbBounds()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s205"
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "GetRootGameObjects",
+            "receiver_type": "Scene",
+            "lang": "csharp",
+            "line": "L1598"
+          },
+          {
+            "callee": "Add",
+            "receiver_type": "List",
+            "lang": "csharp",
+            "line": "L1604"
+          }
+        ]
+      },
+      "norm_label": ".collectcurbbounds()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1595"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_countmodules",
+      "label": ".CountModules()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ]
+      },
+      "norm_label": ".countmodules()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1668"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_isinstanceof",
+      "label": ".IsInstanceOf()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "GetCorrespondingObjectFromSource",
+            "receiver_type": "PrefabUtility",
+            "lang": "csharp",
+            "line": "L1685"
+          },
+          {
+            "callee": "GetAssetPath",
+            "receiver_type": "AssetDatabase",
+            "lang": "csharp",
+            "line": "L1686"
+          }
+        ]
+      },
+      "norm_label": ".isinstanceof()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1683"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_measurecurbtraffic",
+      "label": ".MeasureCurbTraffic()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "Min",
+            "receiver_type": "Mathf",
+            "lang": "csharp",
+            "line": "L1565"
+          },
+          {
+            "callee": "Distance",
+            "receiver_type": "Vector3",
+            "lang": "csharp",
+            "line": "L1579"
+          }
+        ]
+      },
+      "norm_label": ".measurecurbtraffic()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1540"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_mvprundistrictcarriestwowayroadsjunctionsandtunnelportals",
+      "label": ".MvpRunDistrictCarriesTwoWayRoadsJunctionsAndTunnelPortals()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L160"
+            "line": "L304"
           },
           {
-            "callee": "Exists",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L160"
-          },
-          {
-            "callee": "ReadAllText",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L162"
-          },
-          {
-            "callee": "Contain",
-            "receiver_type": "Does",
-            "lang": "csharp",
-            "line": "L163"
-          }
-        ]
-      },
-      "norm_label": ".devvehiclesandboxhasagroundsurfacefordrivetesting()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L157"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_findchild",
-      "label": ".FindChild()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s205"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "GetComponentsInChildren",
-            "receiver_type": "Transform",
-            "lang": "csharp",
-            "line": "L192"
-          }
-        ]
-      },
-      "norm_label": ".findchild()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L190"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_greyboxplayercargameplayforwardmatchesvisualfrontandlongitudinalcollider",
-      "label": ".GreyboxPlayerCarGameplayForwardMatchesVisualFrontAndLongitudinalCollider()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s205"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L73"
-          },
-          {
-            "callee": "GreaterThan",
+            "callee": "GreaterThanOrEqualTo",
             "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L74"
-          }
-        ]
-      },
-      "norm_label": ".greyboxplayercargameplayforwardmatchesvisualfrontandlongitudinalcollider()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L65"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_greyboxplayercarhascamerarigwithinactivelocalcinemachinecameratargetingrootandunclaimeddriverbydefault",
-      "label": ".GreyboxPlayerCarHasCameraRigWithInactiveLocalCinemachineCameraTargetingRootAndUnclaimedDriverByDefault()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s205"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L118"
+            "line": "L304"
           },
           {
             "callee": "EqualTo",
             "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L129"
+            "line": "L310"
           }
         ]
       },
-      "norm_label": ".greyboxplayercarhascamerarigwithinactivelocalcinemachinecameratargetingrootandunclaimeddriverbydefault()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L110"
+      "norm_label": ".mvprundistrictcarriestwowayroadsjunctionsandtunnelportals()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L290"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_greyboxplayercarhasdrivercontrolleralongsidestateandrigidbody",
-      "label": ".GreyboxPlayerCarHasDriverControllerAlongsideStateAndRigidbody()",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_mvprundistrictisaconnectedportaltoportallanegraph",
+      "label": ".MvpRunDistrictIsAConnectedPortalToPortalLaneGraph()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s205"
+          "s351"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L58"
+            "line": "L278"
+          },
+          {
+            "callee": "GreaterThan",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L279"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L280"
           }
         ]
       },
-      "norm_label": ".greyboxplayercarhasdrivercontrolleralongsidestateandrigidbody()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L52"
+      "norm_label": ".mvprundistrictisaconnectedportaltoportallanegraph()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L270"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_greyboxplayercarhashostsimulatedrigidbodyandserverauthoritativenetworktransform",
-      "label": ".GreyboxPlayerCarHasHostSimulatedRigidbodyAndServerAuthoritativeNetworkTransform()",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_mvprunhasnoinsceneplacedtrafficandahostportalspawnerinstead",
+      "label": ".MvpRunHasNoInScenePlacedTrafficAndAHostPortalSpawnerInstead()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s205"
+          "s351"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L45"
+            "line": "L491"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L491"
+          },
+          {
+            "callee": "FindProperty",
+            "receiver_type": "SerializedObject",
+            "lang": "csharp",
+            "line": "L498"
+          },
+          {
+            "callee": "ReadAllText",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L501"
           }
         ]
       },
-      "norm_label": ".greyboxplayercarhashostsimulatedrigidbodyandserverauthoritativenetworktransform()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L39"
+      "norm_label": ".mvprunhasnoinsceneplacedtrafficandahostportalspawnerinstead()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L484"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_loadprefab",
-      "label": ".LoadPrefab()",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_nodesnearthecrossroads",
+      "label": ".NodesNearTheCrossroads()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s205"
+          "s351"
         ],
         "unresolved_calls": [
+          {
+            "callee": "Add",
+            "receiver_type": "List",
+            "lang": "csharp",
+            "line": "L1528"
+          }
+        ]
+      },
+      "norm_label": ".nodesnearthecrossroads()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1511"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_nominalaitrafficcrossesthecurbedcrossroadswithoutenteringthecurbfootprint",
+      "label": ".NominalAiTrafficCrossesTheCurbedCrossroadsWithoutEnteringTheCurbFootprint()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L1249"
+          },
+          {
+            "callee": "GreaterThan",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L1259"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L1261"
+          },
+          {
+            "callee": "LessThanOrEqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L1266"
+          }
+        ]
+      },
+      "norm_label": ".nominalaitrafficcrossesthecurbedcrossroadswithoutenteringthecurbfootprint()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1240"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_perturbedvehiclesalwaysreachanexitportalintheauthoreddistrict",
+      "label": ".PerturbedVehiclesAlwaysReachAnExitPortalInTheAuthoredDistrict()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "Add",
+            "receiver_type": "List",
+            "lang": "csharp",
+            "line": "L1206"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L1213"
+          },
+          {
+            "callee": "Take",
+            "receiver_type": "List",
+            "lang": "csharp",
+            "line": "L1216"
+          }
+        ]
+      },
+      "norm_label": ".perturbedvehiclesalwaysreachanexitportalintheauthoreddistrict()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1184"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_planardistancetofootprint",
+      "label": ".PlanarDistanceToFootprint()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "Max",
+            "receiver_type": "Mathf",
+            "lang": "csharp",
+            "line": "L1615"
+          },
+          {
+            "callee": "Sqrt",
+            "receiver_type": "Mathf",
+            "lang": "csharp",
+            "line": "L1617"
+          }
+        ]
+      },
+      "norm_label": ".planardistancetofootprint()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1613"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_resolvegraph",
+      "label": ".ResolveGraph()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "GetRootGameObjects",
+            "receiver_type": "Scene",
+            "lang": "csharp",
+            "line": "L1691"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L1692"
+          }
+        ]
+      },
+      "norm_label": ".resolvegraph()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1689"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_theaimpointstayscontinuousacrossnodechangesontheauthoreddistrict",
+      "label": ".TheAimPointStaysContinuousAcrossNodeChangesOnTheAuthoredDistrict()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L1303"
+          },
           {
             "callee": "LoadAssetAtPath",
             "receiver_type": "AssetDatabase",
             "lang": "csharp",
-            "line": "L185"
+            "line": "L1308"
           },
           {
-            "callee": "That",
-            "receiver_type": "Assert",
+            "callee": "GreaterThan",
+            "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L186"
+            "line": "L1310"
+          },
+          {
+            "callee": "Distance",
+            "receiver_type": "Vector3",
+            "lang": "csharp",
+            "line": "L1335"
+          },
+          {
+            "callee": "Max",
+            "receiver_type": "Mathf",
+            "lang": "csharp",
+            "line": "L1338"
+          },
+          {
+            "callee": "LessThanOrEqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L1354"
           }
         ]
       },
-      "norm_label": ".loadprefab()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L183"
+      "norm_label": ".theaimpointstayscontinuousacrossnodechangesontheauthoreddistrict()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1294"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_mvprunanddevvehiclesandboxmaincamerashavecinemachinebrain",
-      "label": ".MvpRunAndDevVehicleSandboxMainCamerasHaveCinemachineBrain()",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_thegroundplanesitsbelowthedrivingplanesoroadsdonotzfight",
+      "label": ".TheGroundPlaneSitsBelowTheDrivingPlaneSoRoadsDoNotZFight()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s205"
+          "s351"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L145"
+            "line": "L935"
           },
           {
-            "callee": "Exists",
-            "receiver_type": "File",
+            "callee": "LessThan",
+            "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L145"
+            "line": "L938"
           },
           {
-            "callee": "ReadAllText",
-            "receiver_type": "File",
+            "callee": "GreaterThan",
+            "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L148"
-          },
-          {
-            "callee": "Contain",
-            "receiver_type": "Does",
-            "lang": "csharp",
-            "line": "L149"
+            "line": "L940"
           }
         ]
       },
-      "norm_label": ".mvprunanddevvehiclesandboxmaincamerashavecinemachinebrain()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L142"
+      "norm_label": ".thegroundplanesitsbelowthedrivingplanesoroadsdonotzfight()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L928"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_networkedvehiclestatedeclaresdriverclaimsentinelandhelper",
-      "label": ".NetworkedVehicleStateDeclaresDriverClaimSentinelAndHelper()",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_themapcentrecarriesafourbranchcrossroadswithauthoredturnratios",
+      "label": ".TheMapCentreCarriesAFourBranchCrossroadsWithAuthoredTurnRatios()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s205"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "ReadAllText",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L32"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L34"
-          },
-          {
-            "callee": "Contain",
-            "receiver_type": "Does",
-            "lang": "csharp",
-            "line": "L34"
-          }
-        ]
-      },
-      "norm_label": ".networkedvehiclestatedeclaresdriverclaimsentinelandhelper()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L29"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_thesteerinputisnolongerinvertedinreversethetiregeometrydoesit",
-      "label": ".TheSteerInputIsNoLongerInvertedInReverseTheTireGeometryDoesIt()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s205"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "ReadAllText",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L99"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L101"
-          },
-          {
-            "callee": "Contain",
-            "receiver_type": "Does",
-            "lang": "csharp",
-            "line": "L104"
-          }
-        ]
-      },
-      "norm_label": ".thesteerinputisnolongerinvertedinreversethetiregeometrydoesit()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L90"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_vehiclesassemblyreferencesinputandcinemachinebutnootherfeatureslice",
-      "label": ".VehiclesAssemblyReferencesInputAndCinemachineButNoOtherFeatureSlice()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s205"
+          "s351"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L170"
+            "line": "L418"
           },
           {
-            "callee": "Exists",
-            "receiver_type": "File",
+            "callee": "EqualTo",
+            "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L170"
+            "line": "L418"
           },
           {
-            "callee": "FromJson",
-            "receiver_type": "JsonUtility",
+            "callee": "ProjectOnPlane",
+            "receiver_type": "Vector3",
             "lang": "csharp",
-            "line": "L172"
+            "line": "L421"
           },
           {
-            "callee": "ReadAllText",
-            "receiver_type": "File",
+            "callee": "LessThan",
+            "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L172"
+            "line": "L421"
           },
           {
-            "callee": "Contain",
-            "receiver_type": "Does",
+            "callee": "SignedAngle",
+            "receiver_type": "Vector3",
             "lang": "csharp",
-            "line": "L173"
+            "line": "L443"
+          },
+          {
+            "callee": "Range",
+            "receiver_type": "Enumerable",
+            "lang": "csharp",
+            "line": "L446"
+          },
+          {
+            "callee": "Abs",
+            "receiver_type": "Mathf",
+            "lang": "csharp",
+            "line": "L446"
+          },
+          {
+            "callee": "GreaterThan",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L453"
           }
         ]
       },
-      "norm_label": ".vehiclesassemblyreferencesinputandcinemachinebutnootherfeatureslice()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
-      "source_location": "L167"
+      "norm_label": ".themapcentrecarriesafourbranchcrossroadswithauthoredturnratios()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L404"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_twovehiclesenteringthesamemvprunportaltakedifferentroutes",
+      "label": ".TwoVehiclesEnteringTheSameMvpRunPortalTakeDifferentRoutes()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "Add",
+            "receiver_type": "List",
+            "lang": "csharp",
+            "line": "L474"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L475"
+          },
+          {
+            "callee": "Distinct",
+            "receiver_type": "List",
+            "lang": "csharp",
+            "line": "L479"
+          },
+          {
+            "callee": "GreaterThan",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L479"
+          }
+        ]
+      },
+      "norm_label": ".twovehiclesenteringthesamemvprunportaltakedifferentroutes()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L462"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_withmvprun",
+      "label": ".WithMvpRun()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s351"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "GetSceneByPath",
+            "receiver_type": "SceneManager",
+            "lang": "csharp",
+            "line": "L1701"
+          },
+          {
+            "callee": "OpenScene",
+            "receiver_type": "EditorSceneManager",
+            "lang": "csharp",
+            "line": "L1703"
+          },
+          {
+            "callee": "CloseScene",
+            "receiver_type": "EditorSceneManager",
+            "lang": "csharp",
+            "line": "L1713"
+          }
+        ]
+      },
+      "norm_label": ".withmvprun()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
+      "source_location": "L1699"
     },
     {
       "id": "assets_roadrage_features_vehicles_traffic_compiledroadmodel_roadrage_features_vehicles_traffic_compiledroadmodel_append",
@@ -67963,164 +68347,372 @@
       "source_location": "L46"
     },
     {
-      "id": "assets_roadrage_app_lobby_lobbyflowcontroller_roadrage_app_lobby_lobbyflowcontroller_handlecloseroomrequested",
-      "label": ".HandleCloseRoomRequested()",
+      "id": "assets_roadrage_features_players_networkplayerconnectionpayload_roadrage_features_players_networkplayerconnectionpayload_encode",
+      "label": ".Encode()",
       "_callable": true,
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.App.Lobby",
+        "namespace": "RoadRage.Features.Players",
         "scope_chain": [
-          "s434"
+          "s51"
+        ]
+      },
+      "norm_label": ".encode()",
+      "source_file": "Assets/RoadRage/Features/Players/NetworkPlayerConnectionPayload.cs",
+      "source_location": "L15"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_assetspath",
+      "label": ".AssetsPath()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s352"
         ],
         "unresolved_calls": [
           {
-            "callee": "Log",
-            "receiver_type": "Debug",
+            "callee": "Combine",
+            "receiver_type": "Path",
             "lang": "csharp",
-            "line": "L835"
+            "line": "L185"
           }
         ]
       },
-      "norm_label": ".handlecloseroomrequested()",
-      "source_file": "Assets/RoadRage/App/Lobby/LobbyFlowController.cs",
-      "source_location": "L828"
+      "norm_label": ".assetspath()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L180"
     },
     {
-      "id": "assets_roadrage_features_online_isteamlobbyplatform_roadrage_features_online_isteamlobbyplatform_leavecurrentlobby",
-      "label": ".LeaveCurrentLobby()",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_connectionapprovalacceptsvalidprofilebelowfourreservedslots",
+      "label": ".ConnectionApprovalAcceptsValidProfileBelowFourReservedSlots()",
       "_callable": true,
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Online",
+        "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s61"
-        ]
-      },
-      "norm_label": ".leavecurrentlobby()",
-      "source_file": "Assets/RoadRage/Features/Online/ISteamLobbyPlatform.cs",
-      "source_location": "L29"
-    },
-    {
-      "id": "assets_roadrage_features_online_isteamlobbyplatform_roadrage_features_online_isteamlobbyplatform_setlobbyjoincode",
-      "label": ".SetLobbyJoinCode()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 59,
-      "community_name": "LobbyRoomService",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Online",
-        "scope_chain": [
-          "s61"
-        ]
-      },
-      "norm_label": ".setlobbyjoincode()",
-      "source_file": "Assets/RoadRage/Features/Online/ISteamLobbyPlatform.cs",
-      "source_location": "L16"
-    },
-    {
-      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_closeroom",
-      "label": ".CloseRoom()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 59,
-      "community_name": "LobbyRoomService",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Online",
-        "scope_chain": [
-          "s81"
-        ]
-      },
-      "norm_label": ".closeroom()",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
-      "source_location": "L91"
-    },
-    {
-      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_createdisplayjoincode",
-      "label": ".CreateDisplayJoinCode()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 59,
-      "community_name": "LobbyRoomService",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Online",
-        "scope_chain": [
-          "s81"
+          "s352"
         ],
         "unresolved_calls": [
           {
-            "callee": "GetInt32",
-            "receiver_type": "RandomNumberGenerator",
+            "callee": "That",
+            "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L110"
+            "line": "L33"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L34"
           }
         ]
       },
-      "norm_label": ".createdisplayjoincode()",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
-      "source_location": "L104"
+      "norm_label": ".connectionapprovalacceptsvalidprofilebelowfourreservedslots()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L28"
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_createroomasync",
-      "label": ".CreateRoomAsync()",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_connectionapprovalrejectsfifthreservedplayerbeforespawn",
+      "label": ".ConnectionApprovalRejectsFifthReservedPlayerBeforeSpawn()",
       "_callable": true,
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Online",
+        "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s81"
+          "s352"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L62"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L63"
+          }
         ]
       },
-      "norm_label": ".createroomasync()",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
-      "source_location": "L52"
+      "norm_label": ".connectionapprovalrejectsfifthreservedplayerbeforespawn()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L57"
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_raisestatuschanged",
-      "label": ".RaiseStatusChanged()",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_connectionapprovalrejectsinvalidpayloadbeforespawn",
+      "label": ".ConnectionApprovalRejectsInvalidPayloadBeforeSpawn()",
       "_callable": true,
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Online",
+        "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s81"
+          "s352"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L44"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L45"
+          }
         ]
       },
-      "norm_label": ".raisestatuschanged()",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
-      "source_location": "L123"
+      "norm_label": ".connectionapprovalrejectsinvalidpayloadbeforespawn()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L39"
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_setstatus",
-      "label": ".SetStatus()",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_connectionapprovalrejectsmissingcharacterprofilebeforedefaultfallback",
+      "label": ".ConnectionApprovalRejectsMissingCharacterProfileBeforeDefaultFallback()",
       "_callable": true,
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Online",
+        "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s81"
+          "s352"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L53"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L54"
+          }
         ]
       },
-      "norm_label": ".setstatus()",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
-      "source_location": "L117"
+      "norm_label": ".connectionapprovalrejectsmissingcharacterprofilebeforedefaultfallback()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L48"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_joinedclientstartbuttonwaitsforhostinsteadofstartingclient",
+      "label": ".JoinedClientStartButtonWaitsForHostInsteadOfStartingClient()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s352"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "ReadAllText",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L80"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L82"
+          },
+          {
+            "callee": "Contain",
+            "receiver_type": "Does",
+            "lang": "csharp",
+            "line": "L82"
+          },
+          {
+            "callee": "GreaterThanOrEqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L87"
+          },
+          {
+            "callee": "GreaterThan",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L88"
+          }
+        ]
+      },
+      "norm_label": ".joinedclientstartbuttonwaitsforhostinsteadofstartingclient()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L77"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_mainmenulobbycontrastregressioncoverageremainsregistered",
+      "label": ".MainMenuLobbyContrastRegressionCoverageRemainsRegistered()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s352"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "ReadAllText",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L150"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L152"
+          },
+          {
+            "callee": "Contain",
+            "receiver_type": "Does",
+            "lang": "csharp",
+            "line": "L152"
+          }
+        ]
+      },
+      "norm_label": ".mainmenulobbycontrastregressioncoverageremainsregistered()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L147"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_networkedcheckpointkeepssceneprefabhudandlifecyclewiring",
+      "label": ".NetworkedCheckpointKeepsScenePrefabHudAndLifecycleWiring()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s352"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L125"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L125"
+          },
+          {
+            "callee": "Load",
+            "receiver_type": "Resources",
+            "lang": "csharp",
+            "line": "L127"
+          },
+          {
+            "callee": "ReadAllText",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L136"
+          },
+          {
+            "callee": "Contain",
+            "receiver_type": "Does",
+            "lang": "csharp",
+            "line": "L140"
+          }
+        ]
+      },
+      "norm_label": ".networkedcheckpointkeepssceneprefabhudandlifecyclewiring()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L122"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_resolveapproval",
+      "label": ".ResolveApproval()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s352"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L159"
+          }
+        ]
+      },
+      "norm_label": ".resolveapproval()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L156"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_rosterraiseseventwhenonlycharacteridchanges",
+      "label": ".RosterRaisesEventWhenOnlyCharacterIdChanges()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s352"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L119"
+          },
+          {
+            "callee": "EqualTo",
+            "receiver_type": "Is",
+            "lang": "csharp",
+            "line": "L119"
+          }
+        ]
+      },
+      "norm_label": ".rosterraiseseventwhenonlycharacteridchanges()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L97"
     },
     {
       "id": "assets_roadrage_app_run_runflowcontroller_roadrage_app_run_runflowcontroller_applynetworkedcollisiondamage",
@@ -76621,654 +77213,392 @@
       "source_location": "L40"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_collectcurbbounds",
-      "label": ".CollectCurbBounds()",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_devvehiclesandboxhasagroundsurfacefordrivetesting",
+      "label": ".DevVehicleSandboxHasAGroundSurfaceForDriveTesting()",
       "_callable": true,
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "GetRootGameObjects",
-            "receiver_type": "Scene",
-            "lang": "csharp",
-            "line": "L1598"
-          },
-          {
-            "callee": "Add",
-            "receiver_type": "List",
-            "lang": "csharp",
-            "line": "L1604"
-          }
-        ]
-      },
-      "norm_label": ".collectcurbbounds()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1595"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_countmodules",
-      "label": ".CountModules()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
-        ]
-      },
-      "norm_label": ".countmodules()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1668"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_isinstanceof",
-      "label": ".IsInstanceOf()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "GetCorrespondingObjectFromSource",
-            "receiver_type": "PrefabUtility",
-            "lang": "csharp",
-            "line": "L1685"
-          },
-          {
-            "callee": "GetAssetPath",
-            "receiver_type": "AssetDatabase",
-            "lang": "csharp",
-            "line": "L1686"
-          }
-        ]
-      },
-      "norm_label": ".isinstanceof()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1683"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_measurecurbtraffic",
-      "label": ".MeasureCurbTraffic()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "Min",
-            "receiver_type": "Mathf",
-            "lang": "csharp",
-            "line": "L1565"
-          },
-          {
-            "callee": "Distance",
-            "receiver_type": "Vector3",
-            "lang": "csharp",
-            "line": "L1579"
-          }
-        ]
-      },
-      "norm_label": ".measurecurbtraffic()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1540"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_mvprundistrictcarriestwowayroadsjunctionsandtunnelportals",
-      "label": ".MvpRunDistrictCarriesTwoWayRoadsJunctionsAndTunnelPortals()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
+          "s205"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L304"
+            "line": "L160"
           },
           {
-            "callee": "GreaterThanOrEqualTo",
-            "receiver_type": "Is",
+            "callee": "Exists",
+            "receiver_type": "File",
             "lang": "csharp",
-            "line": "L304"
-          },
-          {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L310"
-          }
-        ]
-      },
-      "norm_label": ".mvprundistrictcarriestwowayroadsjunctionsandtunnelportals()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L290"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_mvprundistrictisaconnectedportaltoportallanegraph",
-      "label": ".MvpRunDistrictIsAConnectedPortalToPortalLaneGraph()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L278"
-          },
-          {
-            "callee": "GreaterThan",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L279"
-          },
-          {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L280"
-          }
-        ]
-      },
-      "norm_label": ".mvprundistrictisaconnectedportaltoportallanegraph()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L270"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_mvprunhasnoinsceneplacedtrafficandahostportalspawnerinstead",
-      "label": ".MvpRunHasNoInScenePlacedTrafficAndAHostPortalSpawnerInstead()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L491"
-          },
-          {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L491"
-          },
-          {
-            "callee": "FindProperty",
-            "receiver_type": "SerializedObject",
-            "lang": "csharp",
-            "line": "L498"
+            "line": "L160"
           },
           {
             "callee": "ReadAllText",
             "receiver_type": "File",
             "lang": "csharp",
-            "line": "L501"
+            "line": "L162"
+          },
+          {
+            "callee": "Contain",
+            "receiver_type": "Does",
+            "lang": "csharp",
+            "line": "L163"
           }
         ]
       },
-      "norm_label": ".mvprunhasnoinsceneplacedtrafficandahostportalspawnerinstead()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L484"
+      "norm_label": ".devvehiclesandboxhasagroundsurfacefordrivetesting()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L157"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_nodesnearthecrossroads",
-      "label": ".NodesNearTheCrossroads()",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_findchild",
+      "label": ".FindChild()",
       "_callable": true,
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s351"
+          "s205"
         ],
         "unresolved_calls": [
           {
-            "callee": "Add",
-            "receiver_type": "List",
+            "callee": "GetComponentsInChildren",
+            "receiver_type": "Transform",
             "lang": "csharp",
-            "line": "L1528"
+            "line": "L192"
           }
         ]
       },
-      "norm_label": ".nodesnearthecrossroads()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1511"
+      "norm_label": ".findchild()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L190"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_nominalaitrafficcrossesthecurbedcrossroadswithoutenteringthecurbfootprint",
-      "label": ".NominalAiTrafficCrossesTheCurbedCrossroadsWithoutEnteringTheCurbFootprint()",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_greyboxplayercargameplayforwardmatchesvisualfrontandlongitudinalcollider",
+      "label": ".GreyboxPlayerCarGameplayForwardMatchesVisualFrontAndLongitudinalCollider()",
       "_callable": true,
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s351"
+          "s205"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L1249"
+            "line": "L73"
           },
           {
             "callee": "GreaterThan",
             "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L1259"
+            "line": "L74"
+          }
+        ]
+      },
+      "norm_label": ".greyboxplayercargameplayforwardmatchesvisualfrontandlongitudinalcollider()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L65"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_greyboxplayercarhascamerarigwithinactivelocalcinemachinecameratargetingrootandunclaimeddriverbydefault",
+      "label": ".GreyboxPlayerCarHasCameraRigWithInactiveLocalCinemachineCameraTargetingRootAndUnclaimedDriverByDefault()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s205"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L118"
           },
           {
             "callee": "EqualTo",
             "receiver_type": "Is",
             "lang": "csharp",
-            "line": "L1261"
-          },
-          {
-            "callee": "LessThanOrEqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L1266"
+            "line": "L129"
           }
         ]
       },
-      "norm_label": ".nominalaitrafficcrossesthecurbedcrossroadswithoutenteringthecurbfootprint()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1240"
+      "norm_label": ".greyboxplayercarhascamerarigwithinactivelocalcinemachinecameratargetingrootandunclaimeddriverbydefault()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L110"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_perturbedvehiclesalwaysreachanexitportalintheauthoreddistrict",
-      "label": ".PerturbedVehiclesAlwaysReachAnExitPortalInTheAuthoredDistrict()",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_greyboxplayercarhasdrivercontrolleralongsidestateandrigidbody",
+      "label": ".GreyboxPlayerCarHasDriverControllerAlongsideStateAndRigidbody()",
       "_callable": true,
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "Add",
-            "receiver_type": "List",
-            "lang": "csharp",
-            "line": "L1206"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L1213"
-          },
-          {
-            "callee": "Take",
-            "receiver_type": "List",
-            "lang": "csharp",
-            "line": "L1216"
-          }
-        ]
-      },
-      "norm_label": ".perturbedvehiclesalwaysreachanexitportalintheauthoreddistrict()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1184"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_planardistancetofootprint",
-      "label": ".PlanarDistanceToFootprint()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "Max",
-            "receiver_type": "Mathf",
-            "lang": "csharp",
-            "line": "L1615"
-          },
-          {
-            "callee": "Sqrt",
-            "receiver_type": "Mathf",
-            "lang": "csharp",
-            "line": "L1617"
-          }
-        ]
-      },
-      "norm_label": ".planardistancetofootprint()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1613"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_resolvegraph",
-      "label": ".ResolveGraph()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "GetRootGameObjects",
-            "receiver_type": "Scene",
-            "lang": "csharp",
-            "line": "L1691"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L1692"
-          }
-        ]
-      },
-      "norm_label": ".resolvegraph()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1689"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_theaimpointstayscontinuousacrossnodechangesontheauthoreddistrict",
-      "label": ".TheAimPointStaysContinuousAcrossNodeChangesOnTheAuthoredDistrict()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
+          "s205"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L1303"
-          },
+            "line": "L58"
+          }
+        ]
+      },
+      "norm_label": ".greyboxplayercarhasdrivercontrolleralongsidestateandrigidbody()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L52"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_greyboxplayercarhashostsimulatedrigidbodyandserverauthoritativenetworktransform",
+      "label": ".GreyboxPlayerCarHasHostSimulatedRigidbodyAndServerAuthoritativeNetworkTransform()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s205"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L45"
+          }
+        ]
+      },
+      "norm_label": ".greyboxplayercarhashostsimulatedrigidbodyandserverauthoritativenetworktransform()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L39"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_loadprefab",
+      "label": ".LoadPrefab()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s205"
+        ],
+        "unresolved_calls": [
           {
             "callee": "LoadAssetAtPath",
             "receiver_type": "AssetDatabase",
             "lang": "csharp",
-            "line": "L1308"
+            "line": "L185"
           },
           {
-            "callee": "GreaterThan",
-            "receiver_type": "Is",
+            "callee": "That",
+            "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L1310"
-          },
-          {
-            "callee": "Distance",
-            "receiver_type": "Vector3",
-            "lang": "csharp",
-            "line": "L1335"
-          },
-          {
-            "callee": "Max",
-            "receiver_type": "Mathf",
-            "lang": "csharp",
-            "line": "L1338"
-          },
-          {
-            "callee": "LessThanOrEqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L1354"
+            "line": "L186"
           }
         ]
       },
-      "norm_label": ".theaimpointstayscontinuousacrossnodechangesontheauthoreddistrict()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1294"
+      "norm_label": ".loadprefab()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L183"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_thegroundplanesitsbelowthedrivingplanesoroadsdonotzfight",
-      "label": ".TheGroundPlaneSitsBelowTheDrivingPlaneSoRoadsDoNotZFight()",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_mvprunanddevvehiclesandboxmaincamerashavecinemachinebrain",
+      "label": ".MvpRunAndDevVehicleSandboxMainCamerasHaveCinemachineBrain()",
       "_callable": true,
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s351"
+          "s205"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L935"
+            "line": "L145"
           },
           {
-            "callee": "LessThan",
-            "receiver_type": "Is",
+            "callee": "Exists",
+            "receiver_type": "File",
             "lang": "csharp",
-            "line": "L938"
+            "line": "L145"
           },
           {
-            "callee": "GreaterThan",
-            "receiver_type": "Is",
+            "callee": "ReadAllText",
+            "receiver_type": "File",
             "lang": "csharp",
-            "line": "L940"
+            "line": "L148"
+          },
+          {
+            "callee": "Contain",
+            "receiver_type": "Does",
+            "lang": "csharp",
+            "line": "L149"
           }
         ]
       },
-      "norm_label": ".thegroundplanesitsbelowthedrivingplanesoroadsdonotzfight()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L928"
+      "norm_label": ".mvprunanddevvehiclesandboxmaincamerashavecinemachinebrain()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L142"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_themapcentrecarriesafourbranchcrossroadswithauthoredturnratios",
-      "label": ".TheMapCentreCarriesAFourBranchCrossroadsWithAuthoredTurnRatios()",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_networkedvehiclestatedeclaresdriverclaimsentinelandhelper",
+      "label": ".NetworkedVehicleStateDeclaresDriverClaimSentinelAndHelper()",
       "_callable": true,
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
       "metadata": {
         "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s351"
+          "s205"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "ReadAllText",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L32"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L34"
+          },
+          {
+            "callee": "Contain",
+            "receiver_type": "Does",
+            "lang": "csharp",
+            "line": "L34"
+          }
+        ]
+      },
+      "norm_label": ".networkedvehiclestatedeclaresdriverclaimsentinelandhelper()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L29"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_thesteerinputisnolongerinvertedinreversethetiregeometrydoesit",
+      "label": ".TheSteerInputIsNoLongerInvertedInReverseTheTireGeometryDoesIt()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s205"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "ReadAllText",
+            "receiver_type": "File",
+            "lang": "csharp",
+            "line": "L99"
+          },
+          {
+            "callee": "That",
+            "receiver_type": "Assert",
+            "lang": "csharp",
+            "line": "L101"
+          },
+          {
+            "callee": "Contain",
+            "receiver_type": "Does",
+            "lang": "csharp",
+            "line": "L104"
+          }
+        ]
+      },
+      "norm_label": ".thesteerinputisnolongerinvertedinreversethetiregeometrydoesit()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L90"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_vehiclesassemblyreferencesinputandcinemachinebutnootherfeatureslice",
+      "label": ".VehiclesAssemblyReferencesInputAndCinemachineButNoOtherFeatureSlice()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s205"
         ],
         "unresolved_calls": [
           {
             "callee": "That",
             "receiver_type": "Assert",
             "lang": "csharp",
-            "line": "L418"
+            "line": "L170"
           },
           {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
+            "callee": "Exists",
+            "receiver_type": "File",
             "lang": "csharp",
-            "line": "L418"
+            "line": "L170"
           },
           {
-            "callee": "ProjectOnPlane",
-            "receiver_type": "Vector3",
+            "callee": "FromJson",
+            "receiver_type": "JsonUtility",
             "lang": "csharp",
-            "line": "L421"
+            "line": "L172"
           },
           {
-            "callee": "LessThan",
-            "receiver_type": "Is",
+            "callee": "ReadAllText",
+            "receiver_type": "File",
             "lang": "csharp",
-            "line": "L421"
+            "line": "L172"
           },
           {
-            "callee": "SignedAngle",
-            "receiver_type": "Vector3",
+            "callee": "Contain",
+            "receiver_type": "Does",
             "lang": "csharp",
-            "line": "L443"
-          },
-          {
-            "callee": "Range",
-            "receiver_type": "Enumerable",
-            "lang": "csharp",
-            "line": "L446"
-          },
-          {
-            "callee": "Abs",
-            "receiver_type": "Mathf",
-            "lang": "csharp",
-            "line": "L446"
-          },
-          {
-            "callee": "GreaterThan",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L453"
+            "line": "L173"
           }
         ]
       },
-      "norm_label": ".themapcentrecarriesafourbranchcrossroadswithauthoredturnratios()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L404"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_twovehiclesenteringthesamemvprunportaltakedifferentroutes",
-      "label": ".TwoVehiclesEnteringTheSameMvpRunPortalTakeDifferentRoutes()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "Add",
-            "receiver_type": "List",
-            "lang": "csharp",
-            "line": "L474"
-          },
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L475"
-          },
-          {
-            "callee": "Distinct",
-            "receiver_type": "List",
-            "lang": "csharp",
-            "line": "L479"
-          },
-          {
-            "callee": "GreaterThan",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L479"
-          }
-        ]
-      },
-      "norm_label": ".twovehiclesenteringthesamemvprunportaltakedifferentroutes()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L462"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_withmvprun",
-      "label": ".WithMvpRun()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s351"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "GetSceneByPath",
-            "receiver_type": "SceneManager",
-            "lang": "csharp",
-            "line": "L1701"
-          },
-          {
-            "callee": "OpenScene",
-            "receiver_type": "EditorSceneManager",
-            "lang": "csharp",
-            "line": "L1703"
-          },
-          {
-            "callee": "CloseScene",
-            "receiver_type": "EditorSceneManager",
-            "lang": "csharp",
-            "line": "L1713"
-          }
-        ]
-      },
-      "norm_label": ".withmvprun()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story510LaneGraphAndRoutedTrafficTests.cs",
-      "source_location": "L1699"
+      "norm_label": ".vehiclesassemblyreferencesinputandcinemachinebutnootherfeatureslice()",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story32DriverControlAndLocalCameraTests.cs",
+      "source_location": "L167"
     },
     {
       "id": "assets_roadrage_app_lobby_lobbyflowcontroller_roadrage_app_lobby_lobbyflowcontroller_handlereadytogglerequested",
@@ -79215,494 +79545,164 @@
       "source_location": "L20"
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_compileauthoredmodelmenu",
-      "label": ".CompileAuthoredModelMenu()",
+      "id": "assets_roadrage_app_lobby_lobbyflowcontroller_roadrage_app_lobby_lobbyflowcontroller_handlecloseroomrequested",
+      "label": ".HandleCloseRoomRequested()",
       "_callable": true,
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "namespace": "RoadRage.App.Lobby",
         "scope_chain": [
-          "s249"
+          "s434"
         ],
         "unresolved_calls": [
-          {
-            "callee": "LogError",
-            "receiver_type": "Debug",
-            "lang": "csharp",
-            "line": "L2290"
-          },
-          {
-            "callee": "ImportAsset",
-            "receiver_type": "AssetDatabase",
-            "lang": "csharp",
-            "line": "L2294"
-          },
           {
             "callee": "Log",
             "receiver_type": "Debug",
             "lang": "csharp",
-            "line": "L2295"
+            "line": "L835"
           }
         ]
       },
-      "norm_label": ".compileauthoredmodelmenu()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L2281"
+      "norm_label": ".handlecloseroomrequested()",
+      "source_file": "Assets/RoadRage/App/Lobby/LobbyFlowController.cs",
+      "source_location": "L828"
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_fullpath",
-      "label": ".FullPath()",
+      "id": "assets_roadrage_features_online_isteamlobbyplatform_roadrage_features_online_isteamlobbyplatform_leavecurrentlobby",
+      "label": ".LeaveCurrentLobby()",
       "_callable": true,
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "namespace": "RoadRage.Features.Online",
         "scope_chain": [
-          "s249"
+          "s61"
+        ]
+      },
+      "norm_label": ".leavecurrentlobby()",
+      "source_file": "Assets/RoadRage/Features/Online/ISteamLobbyPlatform.cs",
+      "source_location": "L29"
+    },
+    {
+      "id": "assets_roadrage_features_online_isteamlobbyplatform_roadrage_features_online_isteamlobbyplatform_setlobbyjoincode",
+      "label": ".SetLobbyJoinCode()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 72,
+      "community_name": "LobbyRoomService",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s61"
+        ]
+      },
+      "norm_label": ".setlobbyjoincode()",
+      "source_file": "Assets/RoadRage/Features/Online/ISteamLobbyPlatform.cs",
+      "source_location": "L16"
+    },
+    {
+      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_closeroom",
+      "label": ".CloseRoom()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 72,
+      "community_name": "LobbyRoomService",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s81"
+        ]
+      },
+      "norm_label": ".closeroom()",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L91"
+    },
+    {
+      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_createdisplayjoincode",
+      "label": ".CreateDisplayJoinCode()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 72,
+      "community_name": "LobbyRoomService",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s81"
         ],
         "unresolved_calls": [
           {
-            "callee": "Combine",
-            "receiver_type": "Path",
+            "callee": "GetInt32",
+            "receiver_type": "RandomNumberGenerator",
             "lang": "csharp",
-            "line": "L192"
-          },
-          {
-            "callee": "GetParent",
-            "receiver_type": "Directory",
-            "lang": "csharp",
-            "line": "L192"
+            "line": "L110"
           }
         ]
       },
-      "norm_label": ".fullpath()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L190"
+      "norm_label": ".createdisplayjoincode()",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L104"
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_generatereviewdiffmenu",
-      "label": ".GenerateReviewDiffMenu()",
+      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_createroomasync",
+      "label": ".CreateRoomAsync()",
       "_callable": true,
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "namespace": "RoadRage.Features.Online",
         "scope_chain": [
-          "s249"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "LogError",
-            "receiver_type": "Debug",
-            "lang": "csharp",
-            "line": "L2240"
-          },
-          {
-            "callee": "Log",
-            "receiver_type": "Debug",
-            "lang": "csharp",
-            "line": "L2244"
-          }
+          "s81"
         ]
       },
-      "norm_label": ".generatereviewdiffmenu()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L2223"
+      "norm_label": ".createroomasync()",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L52"
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_proposedecisionsmenu",
-      "label": ".ProposeDecisionsMenu()",
+      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_raisestatuschanged",
+      "label": ".RaiseStatusChanged()",
       "_callable": true,
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "namespace": "RoadRage.Features.Online",
         "scope_chain": [
-          "s249"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "LogError",
-            "receiver_type": "Debug",
-            "lang": "csharp",
-            "line": "L2262"
-          },
-          {
-            "callee": "ImportAsset",
-            "receiver_type": "AssetDatabase",
-            "lang": "csharp",
-            "line": "L2276"
-          },
-          {
-            "callee": "Log",
-            "receiver_type": "Debug",
-            "lang": "csharp",
-            "line": "L2277"
-          }
+          "s81"
         ]
       },
-      "norm_label": ".proposedecisionsmenu()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L2256"
+      "norm_label": ".raisestatuschanged()",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L123"
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_proposerefusal",
-      "label": ".ProposeRefusal()",
+      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_setstatus",
+      "label": ".SetStatus()",
       "_callable": true,
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
+        "namespace": "RoadRage.Features.Online",
         "scope_chain": [
-          "s249"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "Exists",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L2251"
-          }
+          "s81"
         ]
       },
-      "norm_label": ".proposerefusal()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L2249"
-    },
-    {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_proposetext",
-      "label": ".ProposeText()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 72,
-      "community_name": ".FullPath",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
-        "scope_chain": [
-          "s249"
-        ]
-      },
-      "norm_label": ".proposetext()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L2143"
-    },
-    {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_readifexists",
-      "label": ".ReadIfExists()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 72,
-      "community_name": ".FullPath",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
-        "scope_chain": [
-          "s249"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "Exists",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L2376"
-          },
-          {
-            "callee": "ReadAllText",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L2376"
-          }
-        ]
-      },
-      "norm_label": ".readifexists()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L2374"
-    },
-    {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_trywrite",
-      "label": ".TryWrite()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 72,
-      "community_name": ".FullPath",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
-        "scope_chain": [
-          "s249"
-        ]
-      },
-      "norm_label": ".trywrite()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L2305"
-    },
-    {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_trywriteall",
-      "label": ".TryWriteAll()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 72,
-      "community_name": ".FullPath",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
-        "scope_chain": [
-          "s249"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "Combine",
-            "receiver_type": "Path",
-            "lang": "csharp",
-            "line": "L2324"
-          },
-          {
-            "callee": "GetParent",
-            "receiver_type": "Directory",
-            "lang": "csharp",
-            "line": "L2324"
-          },
-          {
-            "callee": "CreateDirectory",
-            "receiver_type": "Directory",
-            "lang": "csharp",
-            "line": "L2325"
-          },
-          {
-            "callee": "Add",
-            "receiver_type": "List",
-            "lang": "csharp",
-            "line": "L2332"
-          },
-          {
-            "callee": "WriteAllText",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L2333"
-          },
-          {
-            "callee": "GetDirectoryName",
-            "receiver_type": "Path",
-            "lang": "csharp",
-            "line": "L2338"
-          },
-          {
-            "callee": "Exists",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L2339"
-          },
-          {
-            "callee": "Replace",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L2341"
-          },
-          {
-            "callee": "Move",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L2345"
-          },
-          {
-            "callee": "Delete",
-            "receiver_type": "File",
-            "lang": "csharp",
-            "line": "L2365"
-          }
-        ]
-      },
-      "norm_label": ".trywriteall()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L2321"
-    },
-    {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_roadrage_features_vehicles_traffic_migration_authoredroadmodel_withmvprun",
-      "label": ".WithMvpRun()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 72,
-      "community_name": ".FullPath",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
-        "scope_chain": [
-          "s249"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "GetSceneByPath",
-            "receiver_type": "SceneManager",
-            "lang": "csharp",
-            "line": "L2382"
-          },
-          {
-            "callee": "LogError",
-            "receiver_type": "Debug",
-            "lang": "csharp",
-            "line": "L2388"
-          },
-          {
-            "callee": "OpenScene",
-            "receiver_type": "EditorSceneManager",
-            "lang": "csharp",
-            "line": "L2392"
-          },
-          {
-            "callee": "CloseScene",
-            "receiver_type": "EditorSceneManager",
-            "lang": "csharp",
-            "line": "L2407"
-          }
-        ]
-      },
-      "norm_label": ".withmvprun()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs",
-      "source_location": "L2380"
-    },
-    {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_migrationreport_roadrage_features_vehicles_traffic_migration_migrationreport_refusalreason",
-      "label": ".RefusalReason()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 72,
-      "community_name": ".FullPath",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
-        "scope_chain": [
-          "s210"
-        ]
-      },
-      "norm_label": ".refusalreason()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/MigrationReport.cs",
-      "source_location": "L1257"
-    },
-    {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_pairreviewwindow_roadrage_features_vehicles_traffic_migration_pairreviewwindow_load",
-      "label": ".Load()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 72,
-      "community_name": ".FullPath",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
-        "scope_chain": [
-          "s146"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "GetSceneByPath",
-            "receiver_type": "SceneManager",
-            "lang": "csharp",
-            "line": "L426"
-          },
-          {
-            "callee": "RepaintAll",
-            "receiver_type": "SceneView",
-            "lang": "csharp",
-            "line": "L455"
-          }
-        ]
-      },
-      "norm_label": ".load()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/PairReviewWindow.cs",
-      "source_location": "L422"
-    },
-    {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_pairreviewwindow_roadrage_features_vehicles_traffic_migration_pairreviewwindow_write",
-      "label": ".Write()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 72,
-      "community_name": ".FullPath",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Vehicles.Traffic.Migration",
-        "scope_chain": [
-          "s146"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "LogError",
-            "receiver_type": "Debug",
-            "lang": "csharp",
-            "line": "L404"
-          },
-          {
-            "callee": "ImportAsset",
-            "receiver_type": "AssetDatabase",
-            "lang": "csharp",
-            "line": "L415"
-          },
-          {
-            "callee": "Log",
-            "receiver_type": "Debug",
-            "lang": "csharp",
-            "line": "L416"
-          }
-        ]
-      },
-      "norm_label": ".write()",
-      "source_file": "Assets/RoadRage/Features/Vehicles/Traffic/Migration/PairReviewWindow.cs",
-      "source_location": "L394"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story528authoringandgateatests_roadrage_tests_editmode_story528authoringandgateatests_thecommittedsignoffispresentandboundtothecommittedartifacts",
-      "label": ".TheCommittedSignoffIsPresentAndBoundToTheCommittedArtifacts()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 72,
-      "community_name": ".FullPath",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s388"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "That",
-            "receiver_type": "Assert",
-            "lang": "csharp",
-            "line": "L941"
-          },
-          {
-            "callee": "FromJson",
-            "receiver_type": "JsonUtility",
-            "lang": "csharp",
-            "line": "L944"
-          },
-          {
-            "callee": "EqualTo",
-            "receiver_type": "Is",
-            "lang": "csharp",
-            "line": "L946"
-          },
-          {
-            "callee": "Match",
-            "receiver_type": "Regex",
-            "lang": "csharp",
-            "line": "L965"
-          }
-        ]
-      },
-      "norm_label": ".thecommittedsignoffispresentandboundtothecommittedartifacts()",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story528AuthoringAndGateATests.cs",
-      "source_location": "L927"
+      "norm_label": ".setstatus()",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L117"
     },
     {
       "id": "assets_roadrage_features_rage_networkedragestate_roadrage_features_rage_networkedragestate_applyfeardelta",
@@ -94498,110 +94498,81 @@
       "source_location": "L13"
     },
     {
-      "id": "approvalresult",
-      "label": "ApprovalResult",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_cs_action",
+      "label": "Action",
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
-      "norm_label": "approvalresult",
+      "norm_label": "action",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_features_players_networkplayerconnectionpayload",
-      "label": "NetworkPlayerConnectionPayload.cs",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_cs_keyvaluepair",
+      "label": "KeyValuePair",
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
-      "norm_label": "networkplayerconnectionpayload.cs",
-      "source_file": "Assets/RoadRage/Features/Players/NetworkPlayerConnectionPayload.cs",
-      "source_location": "L1"
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_cs_gameobject",
-      "label": "GameObject",
-      "_origin": "ast",
-      "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
-      "file_type": "code",
-      "norm_label": "gameobject",
+      "norm_label": "keyvaluepair",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_cs_networkobject",
-      "label": "NetworkObject",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_cs_menuitem",
+      "label": "MenuItem",
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
-      "norm_label": "networkobject",
+      "norm_label": "menuitem",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_cs_test",
-      "label": "Test",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_cs_scene",
+      "label": "Scene",
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
-      "norm_label": "test",
+      "norm_label": "scene",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_approvalresult_approved",
-      "label": "Approved",
+      "id": "assets_roadrage_features_vehicles_traffic_migration_pairreviewwindow_cs_func",
+      "label": "Func",
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s352"
-        ]
-      },
-      "norm_label": "approved",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L200"
+      "norm_label": "func",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_approvalresult_profile",
-      "label": "Profile",
+      "id": "category",
+      "label": "Category",
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s352"
-        ]
-      },
-      "norm_label": "profile",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L202"
+      "norm_label": "category",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_approvalresult_reason",
-      "label": "Reason",
+      "id": "committedsignoff",
+      "label": "CommittedSignoff",
       "_origin": "ast",
       "community": 104,
-      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "community_name": ".FullPath",
       "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Tests.EditMode",
-        "scope_chain": [
-          "s352"
-        ]
-      },
-      "norm_label": "reason",
-      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
-      "source_location": "L204"
+      "norm_label": "committedsignoff",
+      "source_file": "",
+      "source_location": ""
     },
     {
       "id": "assets_roadrage_features_vehicles_traffic_roadmodelrecords_cs_vector3",
@@ -100088,35 +100059,68 @@
       "source_location": "L71"
     },
     {
-      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_cs_collider",
-      "label": "Collider",
+      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration",
+      "label": "ThirdPersonCameraConfiguration.cs",
       "_origin": "ast",
       "community": 139,
-      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
+      "community_name": ".Configure",
       "file_type": "code",
-      "norm_label": "collider",
+      "norm_label": "thirdpersoncameraconfiguration.cs",
+      "source_file": "Assets/RoadRage/Shared/Presentation/ThirdPersonCameraConfiguration.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_cs_cinemachinecamera",
+      "label": "CinemachineCamera",
+      "_origin": "ast",
+      "community": 139,
+      "community_name": ".Configure",
+      "file_type": "code",
+      "norm_label": "cinemachinecamera",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_cs_renderer",
-      "label": "Renderer",
+      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_cs_cinemachinedeoccluder",
+      "label": "CinemachineDeoccluder",
       "_origin": "ast",
       "community": 139,
-      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
+      "community_name": ".Configure",
       "file_type": "code",
-      "norm_label": "renderer",
+      "norm_label": "cinemachinedeoccluder",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_cs_type",
-      "label": "Type",
+      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_cs_cinemachineorbitalfollow",
+      "label": "CinemachineOrbitalFollow",
       "_origin": "ast",
       "community": 139,
-      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
+      "community_name": ".Configure",
       "file_type": "code",
-      "norm_label": "type",
+      "norm_label": "cinemachineorbitalfollow",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_cs_transform",
+      "label": "Transform",
+      "_origin": "ast",
+      "community": 139,
+      "community_name": ".Configure",
+      "file_type": "code",
+      "norm_label": "transform",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "cinemachinerotationcomposer",
+      "label": "CinemachineRotationComposer",
+      "_origin": "ast",
+      "community": 139,
+      "community_name": ".Configure",
+      "file_type": "code",
+      "norm_label": "cinemachinerotationcomposer",
       "source_file": "",
       "source_location": ""
     },
@@ -100275,68 +100279,35 @@
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration",
-      "label": "ThirdPersonCameraConfiguration.cs",
+      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_cs_collider",
+      "label": "Collider",
       "_origin": "ast",
       "community": 141,
-      "community_name": ".Configure",
+      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
       "file_type": "code",
-      "norm_label": "thirdpersoncameraconfiguration.cs",
-      "source_file": "Assets/RoadRage/Shared/Presentation/ThirdPersonCameraConfiguration.cs",
-      "source_location": "L1"
-    },
-    {
-      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_cs_cinemachinecamera",
-      "label": "CinemachineCamera",
-      "_origin": "ast",
-      "community": 141,
-      "community_name": ".Configure",
-      "file_type": "code",
-      "norm_label": "cinemachinecamera",
+      "norm_label": "collider",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_cs_cinemachinedeoccluder",
-      "label": "CinemachineDeoccluder",
+      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_cs_renderer",
+      "label": "Renderer",
       "_origin": "ast",
       "community": 141,
-      "community_name": ".Configure",
+      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
       "file_type": "code",
-      "norm_label": "cinemachinedeoccluder",
+      "norm_label": "renderer",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_cs_cinemachineorbitalfollow",
-      "label": "CinemachineOrbitalFollow",
+      "id": "assets_roadrage_tests_editmode_story25networkedplayerspawntests_cs_type",
+      "label": "Type",
       "_origin": "ast",
       "community": 141,
-      "community_name": ".Configure",
+      "community_name": ".NetworkedPlayerPresentationCreatesGreyboxVisualFromCharacterId",
       "file_type": "code",
-      "norm_label": "cinemachineorbitalfollow",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "assets_roadrage_shared_presentation_thirdpersoncameraconfiguration_cs_transform",
-      "label": "Transform",
-      "_origin": "ast",
-      "community": 141,
-      "community_name": ".Configure",
-      "file_type": "code",
-      "norm_label": "transform",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "cinemachinerotationcomposer",
-      "label": "CinemachineRotationComposer",
-      "_origin": "ast",
-      "community": 141,
-      "community_name": ".Configure",
-      "file_type": "code",
-      "norm_label": "cinemachinerotationcomposer",
+      "norm_label": "type",
       "source_file": "",
       "source_location": ""
     },
@@ -102045,6 +102016,17 @@
       "source_location": ""
     },
     {
+      "id": "assets_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_cs_test",
+      "label": "Test",
+      "_origin": "ast",
+      "community": 156,
+      "community_name": "Story515CredibleCollisionsAndDamageIntegrationTests",
+      "file_type": "code",
+      "norm_label": "test",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
       "id": "assets_roadrage_features_vehicles_traffic_migration_pairreviewwindow_roadrage_features_vehicles_traffic_migration_statusfilter_inchangees",
       "label": "Inchangees",
       "_origin": "ast",
@@ -102553,17 +102535,6 @@
       "community_name": "LocalOnFootController",
       "file_type": "code",
       "norm_label": "cinemachinebrain",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story515crediblecollisionsanddamageintegrationtests_cs_test",
-      "label": "Test",
-      "_origin": "ast",
-      "community": 160,
-      "community_name": "Story515CredibleCollisionsAndDamageIntegrationTests",
-      "file_type": "code",
-      "norm_label": "test",
       "source_file": "",
       "source_location": ""
     },
@@ -110547,101 +110518,79 @@
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_assemblydefinition",
-      "label": "AssemblyDefinition",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_action",
+      "label": "Action",
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
-      "norm_label": "assemblydefinition",
+      "norm_label": "action",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_boxcollider",
-      "label": "BoxCollider",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_bounds",
+      "label": "Bounds",
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
-      "norm_label": "boxcollider",
+      "norm_label": "bounds",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_cinemachinecamera",
-      "label": "CinemachineCamera",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_list",
+      "label": "List",
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
-      "norm_label": "cinemachinecamera",
+      "norm_label": "list",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_gameobject",
-      "label": "GameObject",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_renderer",
+      "label": "Renderer",
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
-      "norm_label": "gameobject",
+      "norm_label": "renderer",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_networkbehaviour",
-      "label": "NetworkBehaviour",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_scene",
+      "label": "Scene",
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
-      "norm_label": "networkbehaviour",
+      "norm_label": "scene",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_networktransform",
-      "label": "NetworkTransform",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
-      "file_type": "code",
-      "norm_label": "networktransform",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_rigidbody",
-      "label": "Rigidbody",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
-      "file_type": "code",
-      "norm_label": "rigidbody",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_test",
-      "label": "Test",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
-      "file_type": "code",
-      "norm_label": "test",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_transform",
+      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_transform",
       "label": "Transform",
       "_origin": "ast",
       "community": 50,
-      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "community_name": "List",
       "file_type": "code",
       "norm_label": "transform",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "curbtrafficmeasurement",
+      "label": "CurbTrafficMeasurement",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "List",
+      "file_type": "code",
+      "norm_label": "curbtrafficmeasurement",
       "source_file": "",
       "source_location": ""
     },
@@ -111902,173 +111851,110 @@
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomservice",
-      "label": "LobbyRoomService.cs",
+      "id": "approvalresult",
+      "label": "ApprovalResult",
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
-      "norm_label": "lobbyroomservice.cs",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
-      "source_location": "L1"
-    },
-    {
-      "id": "assets_roadrage_features_online_lobbyroomservice_cs_task",
-      "label": "Task",
-      "_origin": "ast",
-      "community": 59,
-      "community_name": "LobbyRoomService",
-      "file_type": "code",
-      "norm_label": "task",
+      "norm_label": "approvalresult",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_displayjoincode",
-      "label": "DisplayJoinCode",
+      "id": "assets_roadrage_features_players_networkplayerconnectionpayload",
+      "label": "NetworkPlayerConnectionPayload.cs",
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Online",
-        "scope_chain": [
-          "s81"
-        ]
-      },
-      "norm_label": "displayjoincode",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
-      "source_location": "L43"
-    },
-    {
-      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_joincode",
-      "label": "JoinCode",
-      "_origin": "ast",
-      "community": 59,
-      "community_name": "LobbyRoomService",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Online",
-        "scope_chain": [
-          "s81"
-        ]
-      },
-      "norm_label": "joincode",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
-      "source_location": "L40"
-    },
-    {
-      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_status",
-      "label": "Status",
-      "_origin": "ast",
-      "community": 59,
-      "community_name": "LobbyRoomService",
-      "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Online",
-        "scope_chain": [
-          "s81"
-        ]
-      },
-      "norm_label": "status",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
-      "source_location": "L38"
-    },
-    {
-      "id": "assets_roadrage_features_online_lobbyroomstatus",
-      "label": "LobbyRoomStatus.cs",
-      "_origin": "ast",
-      "community": 59,
-      "community_name": "LobbyRoomService",
-      "file_type": "code",
-      "norm_label": "lobbyroomstatus.cs",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
+      "norm_label": "networkplayerconnectionpayload.cs",
+      "source_file": "Assets/RoadRage/Features/Players/NetworkPlayerConnectionPayload.cs",
       "source_location": "L1"
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_closed",
-      "label": "Closed",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_cs_gameobject",
+      "label": "GameObject",
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Online",
-        "scope_chain": [
-          "s0"
-        ]
-      },
-      "norm_label": "closed",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
-      "source_location": "L11"
+      "norm_label": "gameobject",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_creating",
-      "label": "Creating",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_cs_networkobject",
+      "label": "NetworkObject",
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Online",
-        "scope_chain": [
-          "s0"
-        ]
-      },
-      "norm_label": "creating",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
-      "source_location": "L14"
+      "norm_label": "networkobject",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_creationfailed",
-      "label": "CreationFailed",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_cs_test",
+      "label": "Test",
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
-      "metadata": {
-        "namespace": "RoadRage.Features.Online",
-        "scope_chain": [
-          "s0"
-        ]
-      },
-      "norm_label": "creationfailed",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
-      "source_location": "L23"
+      "norm_label": "test",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_open",
-      "label": "Open",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_approvalresult_approved",
+      "label": "Approved",
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Online",
+        "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s0"
+          "s352"
         ]
       },
-      "norm_label": "open",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
-      "source_location": "L17"
+      "norm_label": "approved",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L200"
     },
     {
-      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_servicesunavailable",
-      "label": "ServicesUnavailable",
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_approvalresult_profile",
+      "label": "Profile",
       "_origin": "ast",
       "community": 59,
-      "community_name": "LobbyRoomService",
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
       "file_type": "code",
       "metadata": {
-        "namespace": "RoadRage.Features.Online",
+        "namespace": "RoadRage.Tests.EditMode",
         "scope_chain": [
-          "s0"
+          "s352"
         ]
       },
-      "norm_label": "servicesunavailable",
-      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
-      "source_location": "L20"
+      "norm_label": "profile",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L202"
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story28epic2onlineplayablecheckpointtests_roadrage_tests_editmode_approvalresult_reason",
+      "label": "Reason",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "Story28Epic2OnlinePlayableCheckpointTests",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Tests.EditMode",
+        "scope_chain": [
+          "s352"
+        ]
+      },
+      "norm_label": "reason",
+      "source_file": "Assets/RoadRage/Tests/EditMode/Story28Epic2OnlinePlayableCheckpointTests.cs",
+      "source_location": "L204"
     },
     {
       "id": "assets_roadrage_features_vehicles_networkedvehiclestate_cs_func",
@@ -113095,79 +112981,101 @@
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_action",
-      "label": "Action",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_assemblydefinition",
+      "label": "AssemblyDefinition",
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
-      "norm_label": "action",
+      "norm_label": "assemblydefinition",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_bounds",
-      "label": "Bounds",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_boxcollider",
+      "label": "BoxCollider",
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
-      "norm_label": "bounds",
+      "norm_label": "boxcollider",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_list",
-      "label": "List",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_cinemachinecamera",
+      "label": "CinemachineCamera",
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
-      "norm_label": "list",
+      "norm_label": "cinemachinecamera",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_renderer",
-      "label": "Renderer",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_gameobject",
+      "label": "GameObject",
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
-      "norm_label": "renderer",
+      "norm_label": "gameobject",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_scene",
-      "label": "Scene",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_networkbehaviour",
+      "label": "NetworkBehaviour",
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
-      "norm_label": "scene",
+      "norm_label": "networkbehaviour",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_tests_editmode_story510lanegraphandroutedtraffictests_cs_transform",
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_networktransform",
+      "label": "NetworkTransform",
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "file_type": "code",
+      "norm_label": "networktransform",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_rigidbody",
+      "label": "Rigidbody",
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "file_type": "code",
+      "norm_label": "rigidbody",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_test",
+      "label": "Test",
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "Story32DriverControlAndLocalCameraTests",
+      "file_type": "code",
+      "norm_label": "test",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "assets_roadrage_tests_editmode_story32drivercontrolandlocalcameratests_cs_transform",
       "label": "Transform",
       "_origin": "ast",
       "community": 66,
-      "community_name": "List",
+      "community_name": "Story32DriverControlAndLocalCameraTests",
       "file_type": "code",
       "norm_label": "transform",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "curbtrafficmeasurement",
-      "label": "CurbTrafficMeasurement",
-      "_origin": "ast",
-      "community": 66,
-      "community_name": "List",
-      "file_type": "code",
-      "norm_label": "curbtrafficmeasurement",
       "source_file": "",
       "source_location": ""
     },
@@ -114315,81 +114223,173 @@
       "source_location": "L20"
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_cs_action",
-      "label": "Action",
+      "id": "assets_roadrage_features_online_lobbyroomservice",
+      "label": "LobbyRoomService.cs",
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
-      "norm_label": "action",
+      "norm_label": "lobbyroomservice.cs",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "assets_roadrage_features_online_lobbyroomservice_cs_task",
+      "label": "Task",
+      "_origin": "ast",
+      "community": 72,
+      "community_name": "LobbyRoomService",
+      "file_type": "code",
+      "norm_label": "task",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_cs_keyvaluepair",
-      "label": "KeyValuePair",
+      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_displayjoincode",
+      "label": "DisplayJoinCode",
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
-      "norm_label": "keyvaluepair",
-      "source_file": "",
-      "source_location": ""
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s81"
+        ]
+      },
+      "norm_label": "displayjoincode",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L43"
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_cs_menuitem",
-      "label": "MenuItem",
+      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_joincode",
+      "label": "JoinCode",
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
-      "norm_label": "menuitem",
-      "source_file": "",
-      "source_location": ""
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s81"
+        ]
+      },
+      "norm_label": "joincode",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L40"
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_authoredroadmodel_cs_scene",
-      "label": "Scene",
+      "id": "assets_roadrage_features_online_lobbyroomservice_roadrage_features_online_lobbyroomservice_status",
+      "label": "Status",
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
-      "norm_label": "scene",
-      "source_file": "",
-      "source_location": ""
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s81"
+        ]
+      },
+      "norm_label": "status",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomService.cs",
+      "source_location": "L38"
     },
     {
-      "id": "assets_roadrage_features_vehicles_traffic_migration_pairreviewwindow_cs_func",
-      "label": "Func",
+      "id": "assets_roadrage_features_online_lobbyroomstatus",
+      "label": "LobbyRoomStatus.cs",
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
-      "norm_label": "func",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "lobbyroomstatus.cs",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
+      "source_location": "L1"
     },
     {
-      "id": "category",
-      "label": "Category",
+      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_closed",
+      "label": "Closed",
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
-      "norm_label": "category",
-      "source_file": "",
-      "source_location": ""
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s0"
+        ]
+      },
+      "norm_label": "closed",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
+      "source_location": "L11"
     },
     {
-      "id": "committedsignoff",
-      "label": "CommittedSignoff",
+      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_creating",
+      "label": "Creating",
       "_origin": "ast",
       "community": 72,
-      "community_name": ".FullPath",
+      "community_name": "LobbyRoomService",
       "file_type": "code",
-      "norm_label": "committedsignoff",
-      "source_file": "",
-      "source_location": ""
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s0"
+        ]
+      },
+      "norm_label": "creating",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
+      "source_location": "L14"
+    },
+    {
+      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_creationfailed",
+      "label": "CreationFailed",
+      "_origin": "ast",
+      "community": 72,
+      "community_name": "LobbyRoomService",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s0"
+        ]
+      },
+      "norm_label": "creationfailed",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
+      "source_location": "L23"
+    },
+    {
+      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_open",
+      "label": "Open",
+      "_origin": "ast",
+      "community": 72,
+      "community_name": "LobbyRoomService",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s0"
+        ]
+      },
+      "norm_label": "open",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
+      "source_location": "L17"
+    },
+    {
+      "id": "assets_roadrage_features_online_lobbyroomstatus_roadrage_features_online_lobbyroomstatus_servicesunavailable",
+      "label": "ServicesUnavailable",
+      "_origin": "ast",
+      "community": 72,
+      "community_name": "LobbyRoomService",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "RoadRage.Features.Online",
+        "scope_chain": [
+          "s0"
+        ]
+      },
+      "norm_label": "servicesunavailable",
+      "source_file": "Assets/RoadRage/Features/Online/LobbyRoomStatus.cs",
+      "source_location": "L20"
     },
     {
       "id": "assets_roadrage_features_rage_ragetuningcatalog",
@@ -301535,5 +301535,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "e1e9996cc7c0573bf5236c8f7217d3ab67df4e45"
+  "built_at_commit": "b1cca8792375349c98ec73777d2f3f4413e3a511"
 }
