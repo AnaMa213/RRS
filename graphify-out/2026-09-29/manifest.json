@@ -1243,8 +1243,8 @@
   },
   "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json": {
     "mtime": 1790610405.8733563,
-    "seen": 1790674999.03451,
-    "ast_hash": "37b732fb17251675d0d8f511ca50244b",
+    "seen": 1790679458.3127453,
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story550CompatibilityGolden.cs": {
@@ -1359,6 +1359,66 @@
     "mtime": 1789421949.696407,
     "seen": 1790629168.0122676,
     "ast_hash": "3c2b9b3bd1bbb67c3502883332352510",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs": {
+    "mtime": 1790680938.5790155,
+    "seen": 1790682496.7647243,
+    "ast_hash": "dcb97d9fa5afc83e0e1690dd79b39726",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Frame/TrafficFrame.cs": {
+    "mtime": 1790680954.8807864,
+    "seen": 1790682496.764726,
+    "ast_hash": "25564d5714167420f6615151df7ff9be",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Perception/AgentObservation.cs": {
+    "mtime": 1790680918.9881318,
+    "seen": 1790682496.7659254,
+    "ast_hash": "62e107d2c7171dc6e13a097fe82b9c07",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/PlanningSpine.cs": {
+    "mtime": 1790676381.2964027,
+    "seen": 1790678289.6000826,
+    "ast_hash": "43ae92928d8e96e51a570db175c37b38",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Planning/GateAEvidenceBinding.cs": {
+    "mtime": 1790680918.9781013,
+    "seen": 1790682496.7660098,
+    "ast_hash": "9d06bc9943a24aa4c9e716d23cb75729",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionPlan.cs": {
+    "mtime": 1790680938.5496843,
+    "seen": 1790682496.7660105,
+    "ast_hash": "4686138e3815cfae2610788e0d819ff7",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Planning/PathHorizon.cs": {
+    "mtime": 1790678598.4372957,
+    "seen": 1790678708.2510538,
+    "ast_hash": "ae749565e4ba43ee3116dca599ae5191",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Features/Vehicles/Traffic/Planning/PlanningTolerances.cs": {
+    "mtime": 1790680938.5140283,
+    "seen": 1790682496.766097,
+    "ast_hash": "0440ffb751a4bf6395769e36f870fcfd",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story530PlanningReplayTests.cs": {
+    "mtime": 1790681339.3306942,
+    "seen": 1790682496.7729406,
+    "ast_hash": "511816f343573cf727b9d2b03af7a1de",
+    "semantic_hash": ""
+  },
+  "Assets/RoadRage/Tests/EditMode/Story530PlanningSpineTests.cs": {
+    "mtime": 1790681713.1800983,
+    "seen": 1790682496.7729416,
+    "ast_hash": "a60be98d2c76480960036087e5bca636",
     "semantic_hash": ""
   }
 }
