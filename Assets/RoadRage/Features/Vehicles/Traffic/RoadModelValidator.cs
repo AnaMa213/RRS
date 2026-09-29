@@ -405,6 +405,13 @@ namespace RoadRage.Features.Vehicles.Traffic
                 ResolveReference(issues, kindById, movement.ToCorridorId, RoadRecordKind.Corridor, movement.Id, "JunctionMovement.ToCorridorId");
                 CheckFinite(issues, movement.LengthMeters, movement.Id, "JunctionMovement.LengthMeters");
                 CheckFinite(issues, movement.RoutePreferenceWeight, movement.Id, "JunctionMovement.RoutePreferenceWeight");
+                if (IsFinite(movement.RoutePreferenceWeight) && movement.RoutePreferenceWeight < 0f)
+                {
+                    issues.Add(new RoadModelValidationIssue(
+                        RoadModelValidationCode.NumericValueOutOfRange,
+                        movement.Id,
+                        "JunctionMovement.RoutePreferenceWeight doit etre positif ou nul."));
+                }
                 CheckSamples(issues, movement.Samples, movement.Id, "JunctionMovement");
             }
 
