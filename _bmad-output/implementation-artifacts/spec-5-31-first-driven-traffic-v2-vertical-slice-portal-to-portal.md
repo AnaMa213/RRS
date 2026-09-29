@@ -1,11 +1,12 @@
 ---
-title: 'Story 5.31 -- Premiere tranche verticale Traffic V2 conduite, de portail a portail'
+title: 'Story 5.31 -- Premiere tranche verticale Traffic V2 conduite, de portail a portail (run de mesure)'
 type: 'feature'
 created: '2026-09-29'
 status: 'draft'
 review_loop_iteration: 0
 context:
   - '_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
+  - '_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-29.md'
   - '_bmad-output/implementation-artifacts/spec-5-30-traffic-v2-planning-and-runtime-spine-foundation.md'
 ---
 
@@ -13,231 +14,246 @@ context:
 
 ## Intent
 
-**Problem:** La chaine 5.30 produit route, horizon et plan geometrique, mais aucun vehicule ne conduit sous V2. Il manque la vitesse planifiee, l'intention unique et le cycle de vie de portail. La Gate B exige un vehicule IA conduit par V2 de bout en bout dans `MVP_Run`, sans casser V1.
+**Problem:** La chaine 5.30 produit route, horizon et plan geometrique, mais aucun vehicule ne conduit sous V2 : il n'y a ni vitesse planifiee, ni intention unique, ni cycle de vie de portail. Par ailleurs, la preuve Gate A signee (a_e = 0) ne couvre aucun vehicule physique, puisque a_e n'entre dans aucun calcul (correct-course du 2026-09-29).
 
 **Approach:** Ajouter cote hote, derriere la chaine 5.30 :
 - un plan de vitesse a contraintes nommees, verifie par le verificateur 5.30 ;
 - une commande de suivi de la reference compilee ;
-- le composeur unique d'intention, avec garde de finitude et fenetre de validite ;
-- un cycle de vie V2 lie aux portails, choisi par composition dans le spawner existant.
+- le composeur unique, avec garde de finitude, fenetre de validite et freinage de repli V2 ;
+- un cycle de vie de portail, choisi par composition dans le spawner existant.
 
-ε_t est declare puis mesure en local. Hors runs de mesure, aucun vehicule ne conduit une trajectoire que la preuve Gate A signee ne couvre pas. La regeneration Gate A avec allocation et la re-signature sont hors de cette story (A1).
+La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis declare par le proprietaire, puis verifie. Hors mesure, le refus est prouve. La Gate B n'est pas revendiquee : elle se ferme apres la Story 5.52.
 
 ## Boundaries & Constraints
 
 **Always:**
 
+- **Prealable.** Le correct-course du 2026-09-29 doit etre approuve avant que cette spec passe `ready-for-dev`.
 - **Admission.**
   - Modele : `RoadModelDocument.Load` puis `Compile`.
-  - Preuve : `GateAEvidenceBinding.Bind` sur les trois textes commites, lus seulement dans l'Editeur (`UNITY_EDITOR`), avec le resultat mis en cache par modele.
-  - Un build joueur, un texte absent ou une preuve perimee → aucun vehicule V2 ne conduit (`GateAEvidenceMissing` / `GateAEvidenceStale`). Un modele non declare → aucun vehicule V2 (`UndeclaredDrivabilityProfile`).
+  - Preuve : `GateAEvidenceBinding.Bind` sur les trois textes commites, lus seulement dans l'Editeur, avec le resultat mis en cache par modele.
+  - Un build joueur, une preuve absente ou perimee, ou un modele non declare → aucun vehicule V2, avec un code nomme.
 - **Composition (A4).**
-  - Choix par session, `V1` (defaut de `MVP_Run`) ou `V2Slice`.
+  - Choix par session, `V1` (defaut de `MVP_Run`, comportement inchange) ou `V2Slice`.
   - Il est lu une fois, avant la premiere insertion, puis fige. Tout changement ulterieur est ignore avec un diagnostic.
-  - En `V2Slice` : aucun vehicule V1, au plus un vehicule V2 vivant (`V2SliceMaxPopulation = 1`), reinsertion permise apres une sortie.
-  - La branche V1 du spawner garde un comportement identique.
-  - Le vehicule V2 est un prefab distinct, sans controleur ni etat V1.
+  - En `V2Slice` : aucun vehicule IA V1, au plus un vehicule V2 vivant (`V2SliceMaxPopulation = 1`), insertions successives permises.
+  - Pas de commande dans le lobby. Le vehicule V2 est un prefab distinct, sans aucun type V1.
+- **Jeton `MeasurementRun`.**
+  - Il n'est construit que par les tests PlayMode de cette story. Une assertion structurelle refuse toute construction hors de `Tests/`.
+  - Il porte la campagne : couples entree → sortie impose et graine.
+  - Sans lui, un vehicule V2 ne s'insere que si sa couverture vehicule est etablie, ce qui est impossible avec a_e = 0.
 - **Cycle de vie.**
-  - Insertion a un portail d'entree libre : point de reference au s du portail, cap tangent, vitesse nulle. Elle n'a lieu que si la premiere decision est conduisible (route planifiee, horizon conforme, plan geometriquement faisable, couverture autorisee).
-  - Identite trafic `RoadId(high, low)` derivee de (graine de session, compteur d'insertion). `RouteSeed` vient de `NetworkedRunState.SessionSeed`, qui n'est jamais ecrit aujourd'hui : il vaut 0 et reste deterministe.
+  - Insertion a un portail d'entree libre : point de reference au s du portail, cap tangent, vitesse nulle. Elle n'a lieu que si la premiere decision est conduisible.
+  - Identite `RoadId(high, low)` derivee de (graine de session, compteur d'insertion). `RouteSeed` vient de `NetworkedRunState.SessionSeed`, qui n'est jamais ecrit aujourd'hui (0).
   - Retrait seulement quand le point de reference est localise sur le corridor du portail de sortie, avec s ≥ `Portal.SMeters`.
-  - Tout echec en route laisse le vehicule en place, en `Idle`, avec un diagnostic. Jamais de retrait, teleportation ou reinsertion en route.
+  - Tout echec en route : le vehicule reste present, recoit le freinage de repli, et un diagnostic est publie. Jamais de retrait, teleportation ou realignement force.
 - **Cycle de decision, a chaque pas physique (cadence 1).**
-  - Chaine : `TrafficFrame` (`FrameId` = compteur de pas physique, acteurs V2 seulement) → `PlanningSpine.Evaluate` → `SpeedPlan` → `MotionCommand` → composeur → un seul `ApplyDriveIntent`.
-  - La commande porte `SourceFrameId` et une validite [p, p] en pas physiques (`PlanValiditySteps = 1`).
-  - L'epoque de decision (`FrameId`) et l'epoque physique (pas) sont publiees separement.
-- **Plan de vitesse (route libre).**
-  - Contraintes nommees par point :
-    - `DesiredSpeed` (`DriverProfile.DesiredSpeed`) ;
-    - `RoadLimit` : `Deferred` (champ reporte a 5.33, `AuthoringDecisions.cs:487`), A3 ;
-    - `CurveLimit` : `Deferred` (adherence 5.33, C:190), A3 ;
-    - `SteeringCeiling` v*(s) : au raccord, le min des deux cotes ; `Unbounded` n'est jamais lu comme une vitesse.
+  - Chaine : `TrafficFrame` (`FrameId` = compteur de pas, acteurs V2 seulement) → `PlanningSpine.Evaluate` → `SpeedPlan` → `MotionCommand` → composeur → un seul `ApplyDriveIntent` par pas.
+  - La commande porte `SourceFrameId` et une validite [p, p] (`PlanValiditySteps = 1`).
+  - Les epoques de decision et physique sont publiees separement.
+- **Plan de vitesse (A3).**
+  - Contraintes appliquees : `DesiredSpeed` (`DriverProfile.DesiredSpeed`), `SteeringCeiling` v*(s) (min des deux cotes au raccord, `Unbounded` jamais lu comme une vitesse), bornes longitudinales.
+  - Contraintes nommees mais **non appliquees** : `RoadLimit` et `CurveLimit` (adherence), a l'etat `DeferredUnauthored`, ou `DeferredAuthored(valeur)` si une valeur non nulle est authoree. Une valeur authoree n'est jamais presentee comme une absence de limite.
   - Construction :
-    - passe arriere a la borne `ComfortableDeceleration`, passe avant a `MaxAcceleration` ;
-    - la contrainte liante est nommee en chaque point, et les alternatives rejetees sont conservees ;
+    - passe arriere a `ComfortableDeceleration`, passe avant a `MaxAcceleration` ;
+    - la contrainte liante est nommee en chaque point, les alternatives rejetees sont conservees ;
     - l'horizon couvre toute la route restante. S'il est tronque (`LookAheadLimit`), la vitesse terminale vaut 0.
-  - Tout profil genere passe `MotionPlan.VerifySpeedProfile` avec les memes bornes. Un echec → rien n'est applique, `Idle` et diagnostic.
-  - Si v* est inatteignable depuis l'etat courant, la contrainte liante est `SteeringCeilingUnreachable`, avec freinage a `SafeBrakingLimit` et publication.
-  - L'acceleration visee vaut min(`DriverModel.ComputeAcceleration(profil, v, 0, NoLeaderGap)`, acceleration de suivi du plan). L'enveloppe IDM 5.9 est inchangee.
+  - Tout profil passe `MotionPlan.VerifySpeedProfile` avec les memes bornes. Un echec → freinage de repli et diagnostic.
+  - Si v* est inatteignable depuis l'etat courant, la contrainte liante est `SteeringCeilingUnreachable`, avec freinage a `SafeBrakingLimit`.
+  - L'acceleration visee vaut min(`DriverModel.ComputeAcceleration(profil, v, 0, NoLeaderGap)`, suivi du plan). L'enveloppe IDM 5.9 est inchangee.
 - **Commande de suivi.**
   - Acceleration visee plus angle de roue vise.
-  - L'angle combine une anticipation de κ au point de reference, par la geometrie du profil de conduisibilite, et une correction d'ecart lateral et de cap issus de la localisation.
+  - L'angle combine une anticipation de κ au point de reference, par la geometrie `DrivabilityProfile`, et une correction de l'ecart lateral et de cap.
   - Elle lit uniquement la reference compilee.
 - **Composeur unique** (`Intent/`).
-  - A chaque pas, il produit exactement un `VehicleDriveIntent` et trois scalaires d'autorite finis (`maxForwardSpeed`, `steerRateDegreesPerSecond`, `brakeTorque`, issus du `VehicleProfile`).
-  - Un axe ou un scalaire non fini, ou une commande absente ou hors fenetre → `VehicleDriveIntent.Idle` avec des scalaires neutres finis (A5) et un diagnostic.
-  - `ApplyDriveIntent` persiste d'un pas a l'autre : le cycle de vie resoumet a chaque pas, y compris `Idle` a la desactivation.
-- **Couverture a deux niveaux.**
+  - A chaque pas, il produit exactement un `VehicleDriveIntent` et trois scalaires d'autorite (`maxForwardSpeed`, `steerRateDegreesPerSecond`, `brakeTorque`, issus du `VehicleProfile`), tous finis.
+- **Freinage de repli V2 (A5).**
+  - Il est emis par ce seul composeur quand il n'y a pas de commande valide : absente, hors fenetre, profil refuse, axe ou scalaire non fini. Il vaut un seul pas et est reevalue au pas suivant.
+  - Contenu :
+    - au-dessus de `MinimumDirectionSpeed` : gaz 0, volant 0, frein de service egal a la deceleration `SafeBrakingLimit` convertie par la capacite de frein, borne [0, 1], frein a main 0 ;
+    - a `MinimumDirectionSpeed` ou en dessous : aucune entree de frein, puisque `BrakeReverse` y engagerait la marche arriere. Le frein moteur `coastTorque` retient le vehicule.
+  - Un scalaire de profil non fini rend le vehicule inerte, avec un diagnostic.
+  - `VehicleDriveIntent.Idle` et sa semantique V1 sont inchanges. Ce repli n'est pas le `SafetyFilter` (5.37).
+- **Couverture.**
   - Reference : regle 5.30.
-  - Vehicule :
-    - exige un ε_t declare (constante unique). Tant qu'il n'est pas declare, pas de conduite (`TrackingToleranceUndeclared`). La regle 5.30 « compte 0 » ne vaut jamais autorisation de conduite ;
-    - couvert ⇔ max|o| + ε_t ≤ a_e. Avec a_e = 0 et ε_t > 0, `NotCoveredByGateA` → aucune insertion ;
-    - seule exception : une autorisation `MeasurementRun` construite uniquement par les tests PlayMode. Chaque decision prise sous elle est etiquetee dans la projection.
-  - `LateralClearanceMarginMeters` n'entre jamais dans ce calcul.
-- **Mesure (A2).** A chaque pas, publier :
-  - le point de reference, s*, l'ecart lateral et l'ecart de cap ;
-  - d = max, sur les 4 coins du gabarit max (`MaxVehicleHalfWidthMeters`, `MaxVehicleLengthMeters`, centre sur le point de reference, comme en 5.50), de |coin reel − coin nominal(s*)| ;
-  - la vitesse observee face a v*(s*).
-  - Un d max > ε_t, ou toute vitesse > v*, fait echouer le run.
+  - Vehicule : il faut un ε_t declare (constante unique). Tant qu'il n'est pas declare, pas de conduite hors mesure (`TrackingToleranceUndeclared`). La regle 5.30 « compte 0 » ne vaut jamais autorisation.
+  - Couvert ⇔ max|o| + ε_t ≤ a_e de la preuve valide. Le verdict est publie.
+  - Ni `LateralClearanceMarginMeters` ni un residu 5.51 n'entrent dans ce calcul, et la 5.31 ne regenere ni ne signe rien.
+- **Mesure (A2).**
+  - Gabarit max : `MaxVehicleHalfWidthMeters` × `MaxVehicleLengthMeters`, centre sur le point de reference (1,55 m devant l'essieu arriere, comme la preuve 5.50/5.51). s* est la projection du point de reference reel sur la reference compilee de l'element courant ; la pose nominale est la pose de reference en s*.
+  - Grandeurs :
+    - d_k = max sur les 4 coins de |coin reel − coin nominal| au pas k ;
+    - entre deux pas : d ≤ max(d_k, d_k+1) + δ_k/2, avec δ_k = |Δp| + ρ|Δθ| et ρ = √((L/2)² + W²), sous l'hypothese |Δθ| < 90° par pas (echec ferme sinon) ;
+    - publies aussi : ecart lateral, ecart de cap, vitesse observee face a v*(s*).
+  - Toute vitesse > v*, ou un d borne > ε_t declare, fait echouer le run d'acceptation.
+  - Campagne deterministe : un ensemble de couples entree → sortie et de graines qui couvre **chaque mouvement et chaque raccord d'anneau au moins une fois**. Le taux de couverture est publie ; un mouvement non parcouru rend la campagne incomplete.
+  - Conditions consignees : pas physique 0,02 s, Editeur en hote, profils par defaut, commit.
+  - Sequence : (1) run exploratoire, qui ne vaut pas acceptation ; (2) declaration de ε_t par le proprietaire ; (3) runs d'acceptation.
 - **Projection.** Etendre `TrafficDecisionProjection` avec :
-  - les contraintes et la liante, les epoques, `SourceFrameId` ;
-  - l'intention finale en quatre flottants, plus `Idle` et la raison de garde, sans nommer le type (garde 5.30) ;
+  - les contraintes (appliquees et reportees) et la liante ;
+  - les epoques et `SourceFrameId` ;
+  - l'intention finale en quatre flottants, plus l'indicateur de repli et la raison, sans nommer le type (garde 5.30) ;
   - la couverture vehicule et l'etiquette de mesure.
-  - Hote seul : aucune `NetworkVariable`, RPC ni `OnValueChanged` ajoutes. Les clients recoivent le mouvement par `NetworkTransform` seul.
+  - Hote seul : aucune `NetworkVariable`, RPC ni `OnValueChanged` ajoutes ; les clients recoivent le mouvement par `NetworkTransform` seul.
 - **Cout de base.** Temps par etape (frame, localisation, route, plan, composition) par vehicule, publies dans la sortie PlayMode, a titre d'observation seulement.
 
 **Ask First:**
-- Valeur de ε_t (decision proprietaire apres le run exploratoire).
-- Tout artefact ou outillage Gate A (modele, sign-off, rapport, `Traffic/Migration/**`), et la geometrie.
-- Types V1 retenus (`NetworkedAIVehicleDriverController`, `NetworkedAIVehicleState`, `VehiclePhysicsBody`, `VehicleDriveIntent`, `DriverModel`).
-- Gardes et tests 5.7 / 5.30, `scripts/validation-profiles.ps1`.
-- Ajouter `NetworkVariable`, RPC, asmdef ou package.
-- Exposer la composition dans le lobby.
+- La valeur de ε_t (etape 2 du protocole).
+- Tout artefact ou outillage Gate A, et la geometrie.
+- Types V1 retenus : `NetworkedAIVehicleDriverController`, `NetworkedAIVehicleState`, `VehiclePhysicsBody`, `VehicleDriveIntent`, `VehicleTireModel`, `DriverModel`.
+- Gardes et tests 5.7 / 5.30, `validation-profiles.ps1`.
+- `NetworkVariable`, RPC, asmdef ou package.
+- Une commande dans le lobby.
 
 **Never:**
-- Un second composeur. Perception, routage, planification ou cycle de vie qui ecrivent une commande.
+- Revendiquer la Gate B.
+- Regenerer ou signer une preuve Gate A.
+- Allouer la marge ou un residu a ε_t.
+- Un second composeur. Toute ecriture de commande hors composeur.
 - Toute ecriture V2 de position, rotation, vitesse, `MoveRotation` ou `Teleport`.
-- Hors perimetre : `SafetyFilter` (5.37), suivi de leader, evitement, grants, Rage/Fear, recuperation, gridlock, LOD.
-- Reprendre `RecoverAtWaypoint`, `WaypointIndex`, `arrivalRadius`, l'integration en boucle ouverte ou le rappel de point vise.
-- Re-ajuster la reference compilee.
-- Utiliser la marge comme tolerance de suivi.
-- Regenerer ou re-signer la Gate A.
+- Emettre `BrakeReverse > 0` a `MinimumDirectionSpeed` ou en dessous.
+- Hors perimetre : `SafetyFilter`, suivi de leader, evitement, grants, Rage/Fear, recuperation, gridlock, LOD.
+- Reprendre `RecoverAtWaypoint`, `WaypointIndex`, `arrivalRadius`, la boucle ouverte ou le rappel de point vise.
+- Re-ajuster la reference.
 - Presenter un resultat physique ou reseau sans execution Unity.
 
 ## I/O & Edge-Case Matrix
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
 |----------|--------------|---------------------------|----------------|
-| Run de mesure nominal | `V2Slice`, ε_t declare, `MeasurementRun` | Insertion a une entree, conduite, retrait a la sortie. Mesures d et v publiees | d > ε_t ou v > v* : echec |
-| Hors mesure | `V2Slice`, ε_t > 0, a_e = 0 | Aucune insertion | `NotCoveredByGateA` |
-| ε_t non declare | `V2Slice` | Aucune insertion | `TrackingToleranceUndeclared` |
+| Campagne de mesure | `V2Slice`, `MeasurementRun`, ε_t declare | Insertions successives, conduite, retrait aux sorties ; d, v, v* et couverture publies | d > ε_t, v > v*, campagne incomplete : echec |
+| Run exploratoire | `MeasurementRun`, ε_t non declare | Mesures publiees, aucune acceptation | N/A |
+| Hors mesure | `V2Slice`, a_e = 0 | Aucune insertion | `NotCoveredByGateA` / `TrackingToleranceUndeclared` |
+| Jeton hors tests | Construction dans le code de production | Echec d'assertion structurelle | N/A |
 | Preuve / modele | Build joueur, preuve perimee, modele non declare | Aucune insertion | Code nomme |
-| Commande invalide | Axe ou scalaire NaN/∞, `SourceFrameId` perime, pas de plan | `Idle` avec scalaires finis | Diagnostic de garde |
-| Plafond | Courbe plus serree devant, v* inatteignable | Freinage anticipe a la borne ; sinon liante `SteeringCeilingUnreachable` et freinage a `SafeBrakingLimit` | Profil refuse par le verificateur → `Idle` |
-| Raccord d'anneau | Saut de v* | v ≤ min des deux cotes | Idem |
-| Echec en route | `NoRoute`, horizon non conforme | Vehicule en place, `Idle` | Aucun retrait |
-| Profil conducteur absent | `DriverProfileDef` nul | Vehicule inerte | Diagnostic unique, sans repli code |
+| Commande invalide, v > seuil | NaN/∞, fenetre perimee, profil refuse | Repli : frein de service borne, un pas | Diagnostic |
+| Commande invalide, v ≤ 0,25 m/s | Idem | Aucune entree de frein (frein moteur), jamais de marche arriere | Diagnostic |
+| Plafond | Courbe plus serree, v* inatteignable | Freinage anticipe ; sinon `SteeringCeilingUnreachable` et frein a `SafeBrakingLimit` | Refus du verificateur → repli |
+| Limites reportees | 0 authore ; valeur non nulle synthetique | `DeferredUnauthored` ; `DeferredAuthored(v)`, jamais appliquee | N/A |
+| Echec en route | `NoRoute`, horizon non conforme | Vehicule present, repli | Aucun retrait |
+| Profil conducteur absent | `DriverProfileDef` nul | Inerte | Diagnostic unique, sans repli code |
 | Composition | V1 par defaut ; V2 change apres insertion | V1 inchange ; choix fige | Diagnostic |
 
 </frozen-after-approval>
 
 ## Code Map
 
-- `Assets/RoadRage/Features/Vehicles/Traffic/PlanningSpine.cs:12,27,43,61` -- `PlanningRequest` (textes de preuve, `TrackingTolerance`, `LongitudinalBounds`, profil candidat), `Evaluate`, `PlanningDecision`. Exceptions pour une trame ou une requete invalide, codes souples sinon.
-- `Assets/RoadRage/Features/Vehicles/Traffic/Frame/TrafficFrame.cs:14,51,78` -- `TrafficActorInput`, construction triee, localisation unique, `TryGetActor`.
-- `Assets/RoadRage/Features/Vehicles/Traffic/Planning/PathHorizon.cs:11,29,50,77,108` -- `PathPoint` (v* en +∞ float, `Unbounded`), `PathInterval.Points`, `PathSeam.MinimumCeilingMetersPerSecond`, `SignedRingSeams` (code en dur, differe). Aucune API d'echantillonnage : iterer `Points`.
-- `Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionPlan.cs:16,24,37,71,107` -- `TrackingTolerance`, `LongitudinalBounds`, `SpeedProfilePoint`, couverture, `VerifySpeedProfile`. Les helpers prives `SpeedAt` / `CeilingAt` sont a :186-219.
-- `Assets/RoadRage/Features/Vehicles/Traffic/Planning/GateAEvidenceBinding.cs:33` -- `Bind` sur les trois textes. a_e est lu dans le bloc hache.
-- `Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs:33,76` -- constructeur interne et `ToText`. Aucun point d'extension : modifier sur place.
-- `Assets/RoadRage/Tests/EditMode/Story530PlanningSpineTests.cs:253-263` -- garde : `Frame/`, `Perception/`, `Planning/` et `Debug/` ne nomment jamais `VehicleDriveIntent`, `VehiclePhysicsBody`, `ApplyDriveIntent`.
-- `Assets/RoadRage/Features/Vehicles/VehiclePhysicsBody.cs:231-249,295` -- `ApplyDriveIntent(intent, maxForwardSpeed, steerRate, brakeTorque)` ne fait que memoriser les valeurs, qui persistent jusqu'au prochain appel. Aucune garde de finitude. Pas de garde hote : c'est l'appelant qui pose `isKinematic = !IsServer`. Telemetrie : `TrySampleTelemetry` :762.
-- `Assets/RoadRage/Features/Vehicles/VehicleDriveIntent.cs:16-24` -- `Idle` = (0,0,0,0), qui roule en roue libre sans frein. Les bornes laissent passer NaN.
-- `Assets/RoadRage/Features/Vehicles/VehicleSteeringModel.cs:39` -- angle vise = f(`Steer`, vitesse, verrou 40°→16°). Doit etre coherent avec `DrivabilityProfile`.
-- `Assets/RoadRage/Features/Vehicles/DriverModel.cs:19,61` -- `NoLeaderGap`, `ComputeAcceleration`. Profil par defaut : v0 = 8, a = 1,5, b = 2, `SafeBrakingLimit` = 4.
-- `Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs:251,307,724-798,1092-1109` -- precedents V1 a lire seulement : kinematique client, garde `IsServer`, conversion pedale et capacite, soumission. Ne pas le modifier.
-- `Assets/RoadRage/App/Run/PortalTrafficSpawner.cs:36,40,90,171,256-357` -- population, insertion, retrait. Le controleur V1 y est code en dur a :269 et :335.
-- `Assets/RoadRage/Prefabs/Greybox_AIVehicle.prefab` -- modele des composants (NetworkObject, NetworkTransform serveur avec interpolation, Rigidbody 1200 kg, `VehiclePhysicsBody` + `VehicleProfileDef_Default`). Il est enregistre dans `DefaultNetworkPrefabs.asset:28`.
-- `Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoringDecisions.cs:63,487` -- limite de vitesse reportee a la 5.33, d'ou toutes les limites a 0 dans le modele.
-- `Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweep.cs:234-236` et `JunctionClearance.cs:110,115` -- gonflement = marge + δ_c. a_e n'y entre pas (voir Design Notes).
-- `Assets/RoadRage/Tests/PlayMode/Story510RoutedTrafficPlayModeTests.cs:104-307,384-406` -- gabarit du jalon (bootstrap → lobby → `MVP_Run`, `Inconclusive`, premiere apparition et disparition).
-- `Assets/RoadRage/Tests/EditMode/Story57AiTrafficClientPresentationTests.cs:47,91-139,158-172,225-282` -- NetworkVariables IA figees, aucun `OnValueChanged`, cablage du spawner.
-- `Assets/RoadRage/Tests/EditMode/Story59ParameterizedDriverModelTests.cs:46-67` et `Story514AiDrivesByIntentTests.cs:55,104-147` -- enveloppe IDM, meme couche physique et meme profil.
-- `_bmad-output/implementation-artifacts/v1-regression-5-51/after-playmode-results.json` -- reference PlayMode (45 tests, 39 reussis, 6 echecs connus).
+- `Assets/RoadRage/Features/Vehicles/Traffic/PlanningSpine.cs:12,27,43,61` -- `PlanningRequest`, `Evaluate`, `PlanningDecision`. Exceptions pour une requete invalide, codes souples sinon.
+- `Assets/RoadRage/Features/Vehicles/Traffic/Frame/TrafficFrame.cs:14,51,78` -- `TrafficActorInput`, tri, localisation unique, `TryGetActor`.
+- `Assets/RoadRage/Features/Vehicles/Traffic/Planning/PathHorizon.cs:11,29,50,77,108` -- `PathPoint` (v* en +∞ float, `Unbounded`), `Points`, `PathSeam.MinimumCeilingMetersPerSecond`, `SignedRingSeams`. Pas d'API d'echantillonnage.
+- `Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionPlan.cs:16,24,37,71,107` -- `TrackingTolerance`, `LongitudinalBounds`, `SpeedProfilePoint`, couverture, `VerifySpeedProfile`.
+- `Assets/RoadRage/Features/Vehicles/Traffic/Planning/GateAEvidenceBinding.cs:33` -- `Bind`. a_e est lu dans le bloc hache.
+- `Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs:33,76` -- a etendre sur place.
+- `Assets/RoadRage/Tests/EditMode/Story530PlanningSpineTests.cs:253-263` -- `Frame/`, `Perception/`, `Planning/` et `Debug/` ne nomment jamais `VehicleDriveIntent`, `VehiclePhysicsBody`, `ApplyDriveIntent`.
+- `Assets/RoadRage/Features/Vehicles/VehiclePhysicsBody.cs:231-249,295,762` -- l'intent persiste d'un pas a l'autre, sans garde de finitude ni garde hote (l'appelant pose `isKinematic = !IsServer`). `TrySampleTelemetry`.
+- `Assets/RoadRage/Features/Vehicles/VehicleTireModel.cs` (`ResolveWheelDriveTorque`, `ResolveWheelBrakeTorque`) -- `BrakeReverse` freine au-dessus de `minimumDirectionSpeed` (0,25) et recule en dessous. Sans entree, `coastTorque` s'applique.
+- `Assets/RoadRage/Features/Vehicles/VehicleDriveIntent.cs:16-24` -- `Idle` = (0,0,0,0), inchange.
+- `Assets/RoadRage/Features/Vehicles/VehicleSteeringModel.cs:39` -- angle vise = f(`Steer`, vitesse, verrou 40°→16°).
+- `Assets/RoadRage/Features/Vehicles/DriverModel.cs:19,61` -- `NoLeaderGap`, `ComputeAcceleration`. Par defaut : v0 = 8, a = 1,5, b = 2, `SafeBrakingLimit` = 4.
+- `Assets/RoadRage/Features/Vehicles/NetworkedAIVehicleDriverController.cs:251,307,724-798,1092-1109` -- precedents V1 a lire seulement : kinematique client, `IsServer`, pedale et capacite, soumission.
+- `Assets/RoadRage/App/Run/PortalTrafficSpawner.cs:36,40,90,171,256-357` -- population et portails. Le controleur V1 y est code en dur a :269 et :335.
+- `Assets/RoadRage/Prefabs/Greybox_AIVehicle.prefab`, `DefaultNetworkPrefabs.asset:28` -- modele des composants du prefab V2.
+- `Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoringDecisions.cs:63,487` -- limite de vitesse reportee a la 5.33.
+- `Assets/RoadRage/Tests/PlayMode/Story510RoutedTrafficPlayModeTests.cs:104-307,384-406` -- gabarit bootstrap → lobby → `MVP_Run`.
+- `Assets/RoadRage/Tests/EditMode/Story57AiTrafficClientPresentationTests.cs:47,91-139,158-172,225-282`, `Story59ParameterizedDriverModelTests.cs:46-67`, `Story514AiDrivesByIntentTests.cs:55,104-147` -- gardes a garder verts.
+- `_bmad-output/implementation-artifacts/v1-regression-5-51/after-playmode-results.json` -- reference PlayMode : 45 tests, 39 reussis, 6 echecs connus.
 
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/SpeedPlan.cs` -- contraintes nommees, passes arriere et avant, liante et rejetees, verification 5.30.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionCommand.cs` -- acceleration et angle vises, `SourceFrameId`, validite, sans nommer les types physiques.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Intent/VehicleDriveIntentComposer.cs` -- composeur unique, garde de finitude et de fenetre, `Idle`.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs` -- composition, population, ε_t declare, jeton `MeasurementRun`, fournisseur de preuve Editeur mis en cache.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs` -- `NetworkBehaviour` hote seul (kinematique cote client) : cycle par pas, retrait, enregistreur de mesure, chronometres.
+- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/SpeedPlan.cs` -- contraintes appliquees et reportees, passes, liante, verification 5.30.
+- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionCommand.cs` -- acceleration et angle vises, `SourceFrameId`, validite.
+- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Intent/VehicleDriveIntentComposer.cs` -- composeur unique, garde, repli V2.
+- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs` -- composition, population, ε_t declare, jeton `MeasurementRun` (campagne), fournisseur de preuve Editeur mis en cache.
+- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs` -- `NetworkBehaviour` hote seul : cycle, retrait, enregistreur de mesure (regle d'intervalle), chronometres.
 - [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs` -- lignes ajoutees.
 - [ ] `Assets/RoadRage/App/Run/PortalTrafficSpawner.cs` -- branche `V2Slice`. Branche V1 intacte.
-- [ ] `Assets/RoadRage/Prefabs/Greybox_AIVehicle_V2.prefab`, `DefaultNetworkPrefabs.asset`, `MVP_Run.unity` -- prefab V2 reference par le spawner, composition V1 par defaut. En local, avec la double garde AD-6.
+- [ ] `Assets/RoadRage/Prefabs/Greybox_AIVehicle_V2.prefab`, `DefaultNetworkPrefabs.asset`, `MVP_Run.unity` -- en local, avec la double garde AD-6. V1 reste le defaut.
 - [ ] `Assets/RoadRage/Tests/EditMode/Story531SpeedPlanAndComposerTests.cs` `[Category("Core")]` -- couvrir :
   - la matrice ;
   - un intent par pas ;
-  - `Idle` sur chaque axe et chaque scalaire NaN/∞ et sur une fenetre perimee ;
-  - la verification 5.30 sur chaque profil genere ;
-  - la contrainte liante et les rejetees ;
+  - le repli pour chaque axe et chaque scalaire NaN/∞, et pour une fenetre perimee ;
+  - l'absence de `BrakeReverse > 0` a v ≤ 0,25 ;
+  - la validite d'un pas ;
+  - `Idle` V1 inchange ;
+  - la verification 5.30 sur chaque profil ;
+  - les etats `DeferredUnauthored` / `DeferredAuthored` ;
   - `SteeringCeilingUnreachable` ;
   - les raccords d'anneau ;
   - l'enveloppe IDM.
 - [ ] `Assets/RoadRage/Tests/EditMode/Story531LifecycleAndCompositionTests.cs` `[Category("Core")]` -- couvrir :
-  - les refus (couverture, ε_t non declare, preuve, modele) ;
+  - les refus (couverture, ε_t, preuve, modele) ;
   - identite et graine deterministes ;
   - retrait uniquement a s ≥ portail ;
-  - scans : seul le composeur construit l'intent ; seul le driver V2 appelle `ApplyDriveIntent` ; aucune ecriture Rigidbody ou `Teleport` en V2 ; aucun jeton `MeasurementRun` hors tests ; prefab V2 sans type V1 ; gardes 5.7 et 5.30 intacts.
-- [ ] `Assets/RoadRage/Tests/EditMode/Story531DrivenReplayTests.cs` `[Category("Geometry")]` -- rejeu cinematique de toute la chaine (plan de vitesse et composeur compris) de chaque entree vers une sortie de `MVP_Run`, v ≤ v* partout.
-- [ ] `Assets/RoadRage/Tests/PlayMode/Story531V2VerticalSlicePlayModeTests.cs` -- trois tests :
-  - jalon 1 sous `MeasurementRun`, sortie brute et mesures publiees ;
-  - refus hors mesure ;
-  - modele non declare.
-- [ ] `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml` -- statut, resolution des reports 5.30 traites. Puis `graphify update .`.
+  - la regle d'intervalle de mesure sur des trajectoires synthetiques ;
+  - des scans : seul le composeur construit l'intent ; seul le driver V2 appelle `ApplyDriveIntent` ; aucune ecriture Rigidbody ou `Teleport` ; jeton `MeasurementRun` absent hors `Tests/` ; prefab V2 sans type V1 ; gardes 5.7 et 5.30 verts.
+- [ ] `Assets/RoadRage/Tests/EditMode/Story531DrivenReplayTests.cs` `[Category("Geometry")]` -- couvrir :
+  - le rejeu cinematique de toute la chaine sur `MVP_Run`, v ≤ v* partout ;
+  - l'ensemble de campagne couvrant les 72 mouvements et les 24 raccords d'anneau.
+- [ ] `Assets/RoadRage/Tests/PlayMode/Story531V2VerticalSlicePlayModeTests.cs` -- couvrir :
+  - la campagne exploratoire (non acceptante) ;
+  - la campagne d'acceptation, qui exige ε_t declare ;
+  - le refus hors mesure ;
+  - le modele non declare.
+  Sortie brute consignee.
+- [ ] `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml` -- reports 5.30 traites (cache de liaison, transport Editeur, consommation de `Unbounded`) ; raccords d'anneau renvoyes a la 5.52. Puis `graphify update .`.
 
 **Acceptance Criteria:**
-- Given `V2Slice`, ε_t declare et `MeasurementRun`, when le jalon PlayMode s'execute dans `MVP_Run`, then un seul vehicule V2 s'insere a une entree, conduit sa route et se retire a une sortie, sans apparition, disparition ni teleportation en route, sans controleur V1, avec d ≤ ε_t et v ≤ v*(s) a chaque pas publie.
-- Given la composition `V1` par defaut, when la suite PlayMode complete s'execute, then les resultats V1 sont identiques a la reference (6 echecs connus, aucun nouveau).
-- Given a_e = 0 signe, when un vehicule V2 est demande hors `MeasurementRun`, then aucune insertion n'a lieu et la raison est publiee.
-- Given un pas physique, when la chaine s'execute, then exactement un intent fini (ou `Idle`) est soumis, et aucun autre composant n'ecrit de commande ni de mouvement.
-- Given une decision, when sa projection est inspectee, then elle porte les contraintes, la liante, les epoques, l'intent final, la couverture vehicule et l'etiquette de mesure. Les clients n'ont aucun chemin de synchronisation supplementaire.
+- Given une campagne d'acceptation sous `MeasurementRun` avec ε_t declare, when elle s'execute dans `MVP_Run`, then chaque vehicule V2 s'insere a une entree et se retire a une sortie, sans evenement en route ni controleur V1, et chaque pas publie d ≤ ε_t (regle d'intervalle comprise) et v ≤ v*(s). Chaque mouvement et chaque raccord d'anneau est parcouru.
+- Given a_e = 0 signe, when un vehicule V2 est demande hors `MeasurementRun`, then aucune insertion n'a lieu, la raison est publiee et aucune preuve n'est ecrite.
+- Given une commande invalide en route, when le composeur emet, then un freinage de repli fini et borne vaut un seul pas, jamais une marche arriere, et le vehicule reste present.
+- Given la composition `V1` par defaut, when la suite PlayMode complete s'execute, then les resultats V1 egalent la reference (6 echecs connus, aucun nouveau).
+- Given une decision, when sa projection est inspectee, then elle distingue contraintes appliquees et reportees et porte la liante, les epoques, l'intent final, la couverture et l'etiquette de mesure, sans nouveau chemin de synchronisation client.
 
 ## Spec Change Log
+
+- **2026-09-29 -- arbitrages proprietaire A1 = a, A2 = a, A3 = a, A4 = a, A5 = b** (planification, avant approbation) :
+  - La Gate B est retiree de la story ; integration de ε_t et re-signature en 5.52.
+  - ε_t sur le deplacement du gabarit, avec regle d'intervalle.
+  - Limites de route et d'adherence reportees et identifiables.
+  - Composition par session, jeton reserve aux tests.
+  - Freinage de repli V2 borne, valable un pas, sans marche arriere.
+  - Correction d'un constat anterieur : `Idle` applique `coastTorque`, ce n'est pas une roue libre pure.
 
 ## Design Notes
 
 **Couverture de la reference ≠ erreur de suivi.**
-- *Faits verifies.*
-  - La preuve signee couvre la reference compilee, gonflee de marge + δ_c, avec a_e = 0 lie par `ClearanceHash`.
-  - a_e n'entre dans aucun calcul de degagement : il n'apparait que dans le texte du rapport (`AuthoredRoadModel.cs:1313,1397`).
-  - La marge de 0,25 m est reservee (C:415).
-- *Consequence.* Un vehicule physique a ε_t > 0 n'est pas couvert. Le contrat (C:417-419, E:2698-2700) exige alors :
-  - d'ajouter l'allocation au gonflement de l'outillage Gate A ;
-  - de regenerer candidats et degagements (physique et Sidewalk) ;
-  - la decision du proprietaire sur chaque paire ;
-  - une re-signature, l'ancien enregistrement etant conserve.
-  Rien de cela n'existe dans le code. La 5.31, telle qu'`epics.md` l'ecrit, ne peut donc pas atteindre la Gate B sans ce chantier (A1).
-- *Estimation non verifiee.* Residu signe minimal ≈ 0,1127 m. Un ε_t proche ou au-dela rendrait probablement un residu non positif, donc un echec geometrique et non un simple re-signe.
+- *Faits.* La preuve couvre la reference compilee, gonflee de marge + δ_c. a_e = 0 est lie par `ClearanceHash`, mais n'est qu'un texte (`AuthoredRoadModel.cs:1313,1397`). La marge est reservee (C:415).
+- Un ε_t > 0 n'est donc couvert par rien tant que la 5.52 n'a pas fait entrer l'allocation dans chaque preuve et obtenu ta re-signature.
+- *Estimation non verifiee :* residu minimal ≈ 0,1127 m. Si l'ε_t mesure en approche, la 5.52 echouera sur la geometrie, pas sur la signature.
 
-**Pourquoi mesurer d aux coins et non l'ecart lateral seul.** La preuve balaie un gabarit rigide centre sur le point de reference. Un ecart de cap Δψ deplace les coins d'environ (L/2)·|sin Δψ| meme quand l'ecart lateral est nul. Seul un ε_t qui borne le deplacement de chaque point du gabarit rend le gonflement de Minkowski valide.
+**Pourquoi aux coins.** Un ecart de cap deplace les coins d'environ (L/2)·|sin Δψ| a ecart lateral nul. Seule une borne sur chaque point du gabarit rend valide le gonflement de Minkowski de la preuve. La regle d'intervalle reprend le lemme de balayage 5.50 (δ/2) : entre deux pas, la position est supposee lineaire et le cap monotone.
 
 **Etudie dans le code (Cloud, 2026-09-29) :**
-- API 5.29 / 5.30 finales ;
-- semantique de persistance de `ApplyDriveIntent` ;
-- absence de garde de finitude ;
-- `Idle` = roue libre ;
-- limites de vitesse reportees ;
+- API finales 5.29 / 5.30 ;
+- persistance de l'intent et absence de garde de finitude ;
+- semantique frein / marche arriere / `coastTorque` ;
+- limites reportees ;
 - `SessionSeed` jamais ecrit ;
 - couplage V1 du spawner ;
 - gardes 5.7 et 5.30 ;
 - 6 echecs PlayMode connus.
 
-**A mesurer en local, sans resultat invente ici :**
-- ε_t observe ;
-- d et v face a v* ;
+**A mesurer en local, rien n'a ete execute ici :**
+- ε_t ;
+- d, v face a v* ;
 - comportement aux 24 raccords d'anneau (saut de κ, taux de braquage de 300°/s) ;
+- efficacite reelle du repli ;
 - temps par etape ;
-- non-regression PlayMode V1.
-
-**Protocole de mesure local :**
-1. Run exploratoire sous `MeasurementRun`, qui ne vaut pas acceptation.
-2. Le proprietaire declare ε_t, avec la valeur observee et la justification (Ask First).
-3. Runs d'acceptation du jalon 1.
-4. Verdict de couverture publie. Avec a_e = 0 : non couvert → Gate B ouverte, en attente de la story de re-signature (A1).
+- non-regression V1 ;
+- duree de la campagne. *Estimation :* plusieurs minutes de PlayMode pour couvrir 72 mouvements.
 
 **Choix de conception (contestables).**
-- Borne de planification `ComfortableDeceleration`, borne d'infaisabilite `SafeBrakingLimit`.
+- `ComfortableDeceleration` pour planifier, `SafeBrakingLimit` pour l'infaisabilite et le repli.
 - Cadence et validite d'un pas.
-- Preuve lue dans l'Editeur seulement, le build restant ferme.
+- Preuve lue dans l'Editeur seulement.
 - Composition figee avant la premiere insertion.
-- Report 5.30 des raccords d'anneau codes en dur maintenu jusqu'a la re-signature.
 
 ## Verification
 
-Aucune de ces commandes n'a ete executee dans le Cloud (pas d'Unity, de PowerShell ni de Test Runner).
+Rien n'a ete execute dans le Cloud (pas d'Unity, de PowerShell ni de Test Runner).
 
 **Commands:**
 - `.\scripts\validate.ps1 -TestMode EditMode -TestFilter "RoadRage.Tests.EditMode.Story531SpeedPlanAndComposerTests"` -- expected: vert, 0 erreur Console.
 - `.\scripts\validate.ps1 -Profile Full` -- expected: EditMode complet vert.
-- `.\scripts\validate.ps1 -TestMode PlayMode` -- expected: suite complete. Les tests 5.31 sont verts ; les 6 echecs connus sont identiques, aucun nouveau. La sortie brute est consignee.
+- `.\scripts\validate.ps1 -TestMode PlayMode` -- expected: suite complete. Tests 5.31 verts (l'acceptation exige ε_t declare), 6 echecs connus identiques, aucun nouveau. Sortie brute et mesures consignees.
