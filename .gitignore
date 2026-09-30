@@ -135,6 +135,15 @@ __pycache__/
 /graphify-out/.graphify_*
 /graphify-out/graph.html
 /graphify-out/manifest.json
+/graphify-out/.graph.*
+/graphify-out/.vocab.txt
+# Dated snapshots: same rule, only graph.json and GRAPH_REPORT.md are versioned.
+/graphify-out/*/.graphify_*
+/graphify-out/*/manifest.json
+
+# Traffic V2 campaign raw per-step output: exploratory runs stay local (5-10 MB each);
+# acceptance runs are committed as closing evidence.
+/_bmad-output/implementation-artifacts/traffic-v2-*-measurements/exploratory-*-steps.tsv
 
 # Third-party paid asset packs. Synty EULA / Unity Asset Store Extension Asset licence forbids
 # redistribution, and this repository is public, so the raw pack must never be committed.

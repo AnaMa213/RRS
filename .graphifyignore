@@ -1,145 +1,51 @@
-# Perimetre du graphe Graphify : code applicatif RoadRage uniquement.
-
+# Perimetre du graphe Graphify : code applicatif RoadRage uniquement (Assets/RoadRage/).
+# Syntaxe gitignore, fusionnee APRES .gitignore : ne peut qu'exclure davantage
+# (une negation "!" ne re-inclut pas un chemin deja exclu par .gitignore).
 #
-
-# Syntaxe gitignore. Fusionne APRES .gitignore et ne peut qu'exclure davantage
-
-# (une negation "!" ne peut pas re-inclure un chemin deja exclu par .gitignore).
-
+# Motif : avant tout rescope, 997 fichiers etaient indexes dont 156 de code projet,
+# soit 12 011 noeuds contre une limite utile de 5 000. Mesures et etat verifie :
+# AGENTS.md, section "Perimetre et usage de Graphify".
 #
+# Le manifeste est cumulatif : `graphify update` n'elague pas un fichier deja present
+# dans graphify-out/manifest.json. Apres tout changement de ce fichier, retirer les
+# entrees concernees du manifeste, lancer `graphify update . --force`, puis verifier
+# le manifeste (pas seulement ce fichier).
+# Residu connu : graphify-out/memory/, ecrit par `graphify save-result`, echappe a la
+# regle graphify-out/ (un fichier, 5 noeuds).
+#
+# Motifs ecrits sans echappement (`_bmad/`, jamais `\_bmad/`) : seule forme lue de la
+# meme facon par git et par Graphify.
 
-# Motif : avant cette exclusion, 997 fichiers etaient indexes dont seulement
-
-# 156 (15,6 %) de code projet ; le graphe atteignait 12 011 noeuds contre une
-
-# limite utile interne de 5 000, ce qui degradait graph.html en vue agregee,
-
-# produisait ~896 communautes parasites et alimentait des reponses plausibles
-
-# mais fausses sur des symboles inexistants.
-
-# --- Outillage agents : skills BMAD / Unity, dupliquees entre clients ---
-
-# Les dossiers eux-memes restent en place : .agents/skills est consomme par
-
-# Codex et la convention AGENTS.md. Seule leur indexation posait probleme.
-
+# --- Outillage agents et scripts ---
 .agents/
 .claude/
 .codex/
+AgentScripts/
+scripts/
 
-# --- BMAD : moteur et artefacts de planification ---
-
-# Les specs et le sprint-status restent la source de verite, mais ils sont
-
-# lus directement par BMAD, pas via le graphe de code.
-
-# Motifs ecrits sans echappement. La premiere redaction les ecrivait `\_bmad/`
-# et `\_bmad-output/` ; mesure du 2026-09-18 : 121 entrees `_bmad*` etaient
-# restees dans le manifeste et pesaient 1 214 noeuds, soit 30 % du graphe. Une
-# forme non echappee est celle que git et Graphify lisent de la meme facon. Git, lui, lit les deux formes de la meme facon.
-
+# --- BMAD : moteur et artefacts, lus directement par BMAD ---
 _bmad/
 _bmad-output/
 
-# --- Sortie de Graphify lui-meme ---
-
+# --- Sortie de Graphify ---
 graphify-out/
 
-# --- Assets tiers : decor uniquement, aucun code applicatif ---
+# --- Documentation, lue directement ---
+docs/
 
-# Deja couvert par .gitignore aujourd'hui ; repete ici pour que le perimetre
-
-# du graphe ne depende pas d'une decision de versionnement.
-
-Assets/Synty/
-Assets/Awbmecreations/
-Assets/TutorialInfo/
-
-# --- Troisieme passage (2026-09-29) : outillage editeur et scripts d'agent,
-# mesures hors perimetre applicatif lors de la mise a jour du graphe de la 5.29 ---
-
-Assets/Editor/
-AgentScripts/
-
-# --- Second passage (2026-09-18) : fuites mesurees apres le premier rescope ---
-
-#
-
-# Mesure du 2026-09-18 apres rebuild : 235 fichiers / 4 098 noeuds indexes, dont
-
-# environ 1 170 noeuds (28,5 %) hors code applicatif, alors que AD-2 dispose
-
-# « Graphify n'indexe que le code applicatif » :
-
-# Packages/packages-lock.json 433 noeuds
-
-# Assets/TextMesh Pro/Examples & Extras/\*.cs ~270 noeuds
-
-# docs/setup/\*.md (27 fichiers) ~265 noeuds
-
-# Packages/manifest.json 112 noeuds
-
-# Packages/com.community...facepunch/\*.cs 45 noeuds
-
-# AGENTS.md, .mcp.json, scripts/validate.ps1… 45 noeuds
-
-# Le premier rescope n'avait traite que l'outillage agent et les assets Synty ;
-
-# les manifestes Unity, la documentation et le contenu livre par Unity restaient
-
-# dans le corpus, avec le meme effet mecanique qu'AD-2 cherchait a supprimer.
-
-# --- Resolution (2026-09-18) : le manifeste est cumulatif ---
-#
-# Ajouter ou corriger un motif ne suffit pas : `graphify update` n'elague pas un
-# fichier deja present dans `graphify-out/manifest.json`, il garde ses noeuds
-# jusqu'a ce qu'il en soit retire. `--force` ne corrige pas cela non plus — ce
-# drapeau autorise seulement un rebuild qui perd des noeuds.
-#
-# Reparation appliquee : suppression des 122 entrees `_bmad*` et
-# `graphify-out/` du manifeste, puis `graphify update . --force`, qui a purge
-# 1 214 noeuds issus de 107 fichiers.
-#
-# Resultat verifie : 159 fichiers / 2 820 noeuds / 6 762 liens / 120
-# communautes, 156/156 `.cs` de `Assets/RoadRage` conserves, aucune occurrence
-# `_bmad` dans `graph.json`, et les 12 noeuds les plus connectes sont tous du
-# code RoadRage.
-#
-# Residu connu : `graphify-out/memory/` est ecrit par `graphify save-result` et
-# echappe a la regle `graphify-out/` ; le fichier present porte 5 noeuds.
-#
-# Regle pour la suite : apres tout changement de perimetre, verifier le
-# manifeste, pas seulement ce fichier.
-
-# --- Manifestes et configuration Unity : listes de packages, pas du code ---
-
+# --- Manifestes et configuration Unity ---
 Packages/
 ProjectSettings/
 
-# --- Documentation : lue directement, jamais via le graphe de code ---
-
-# Meme raisonnement que pour \_bmad-output/ : la source de verite reste le
-
-# fichier markdown lui-meme.
-
-docs/
-
-# --- Outillage agent executable ---
-
-scripts/
-
-# --- Contenu livre par Unity : exemples TextMesh Pro et scaffolding de projet ---
-
-# Aucun code projet n'y vit ; ce sont des samples Unity, deja presents a
-
-# l'import d'un projet vide.
-
+# --- Assets tiers, samples Unity et outillage editeur ---
+# Repetes meme quand .gitignore les couvre : le perimetre du graphe ne depend pas
+# d'une decision de versionnement.
+Assets/Synty/
+Assets/Awbmecreations/
 Assets/TextMesh Pro/
-Assets/TutorialInfo/
+Assets/Editor/
 
-# --- Fichiers de regles et de configuration agent a la racine ---
-
+# --- Regles et configuration a la racine ---
 AGENTS.md
 CLAUDE.md
 .github/
