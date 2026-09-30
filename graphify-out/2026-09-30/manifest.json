@@ -96,9 +96,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/PortalTrafficSpawner.cs": {
-    "mtime": 1790699546.5207362,
-    "seen": 1790699590.9308777,
-    "ast_hash": "bdbc7b046a99e6d17ba10edbcb1ddb92",
+    "mtime": 1790720098.8837318,
+    "seen": 1790753545.3971303,
+    "ast_hash": "9a96287f5d8aa9cf55c608455a56f5ff",
     "semantic_hash": ""
   },
   "Assets/RoadRage/App/Run/RageRoadEventFlowController.cs": {
@@ -1128,9 +1128,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadCurve.cs": {
-    "mtime": 1790112127.5483758,
-    "seen": 1790112950.4987884,
-    "ast_hash": "eba7901b54e265d00682f1434618e1d0",
+    "mtime": 1790771450.162292,
+    "seen": 1790771789.3938737,
+    "ast_hash": "a5095e78b0b710b552ecfeee94fd745d",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadCurveBuilder.cs": {
@@ -1146,9 +1146,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/RoadLocalization.cs": {
-    "mtime": 1790160839.3132842,
-    "seen": 1790162272.589219,
-    "ast_hash": "52a2b6d59d13c805166f14541f3c568a",
+    "mtime": 1790780472.8043067,
+    "seen": 1790780670.8895679,
+    "ast_hash": "a163cc814d888dcac2eadce2457ed39d",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story526GeometryAndLocalizationTests.cs": {
@@ -1338,9 +1338,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Routing/RoutePlanner.cs": {
-    "mtime": 1790708903.5666714,
-    "seen": 1790717489.1673408,
-    "ast_hash": "5a3fd8299ba6393357e28a6cb06f2cd7",
+    "mtime": 1790770208.6547458,
+    "seen": 1790771789.3947096,
+    "ast_hash": "8e1f0ca902227380c9efa5cca251dca8",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story529RoutePlanTests.cs": {
@@ -1368,9 +1368,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Frame/TrafficFrame.cs": {
-    "mtime": 1790688203.2559094,
-    "seen": 1790699590.9377306,
-    "ast_hash": "603f7e9872397c7f1cef7484de68c55d",
+    "mtime": 1790770180.964528,
+    "seen": 1790771789.3918643,
+    "ast_hash": "fec3f098c823a2240563c179545d064e",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Perception/AgentObservation.cs": {
@@ -1380,9 +1380,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/PlanningSpine.cs": {
-    "mtime": 1790699512.8122003,
-    "seen": 1790699590.9393215,
-    "ast_hash": "cceaba46d1d46442cd40562e5e80cbbc",
+    "mtime": 1790769888.029284,
+    "seen": 1790771789.3934972,
+    "ast_hash": "75a243747f31507ee7759e3836d10c13",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Planning/GateAEvidenceBinding.cs": {
@@ -1398,9 +1398,9 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Planning/PathHorizon.cs": {
-    "mtime": 1790678598.4372957,
-    "seen": 1790678708.2510538,
-    "ast_hash": "ae749565e4ba43ee3116dca599ae5191",
+    "mtime": 1790769875.3811574,
+    "seen": 1790771789.393781,
+    "ast_hash": "9c11c35c9e5300f543983ebc74d841d2",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Planning/PlanningTolerances.cs": {
@@ -1428,21 +1428,21 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrackingMeasurement.cs": {
-    "mtime": 1790698058.7586036,
-    "seen": 1790699590.937733,
-    "ast_hash": "407aa48e0f8cd22f900646689db05886",
+    "mtime": 1790786730.4575267,
+    "seen": 1790786803.5461917,
+    "ast_hash": "91f430a1255247128b261078359515d3",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs": {
-    "mtime": 1790709440.6532192,
-    "seen": 1790717489.1595104,
-    "ast_hash": "392d613a79eae8874cfca76fb496d603",
+    "mtime": 1790780548.3852565,
+    "seen": 1790780670.8873956,
+    "ast_hash": "52fcbb212ecf713cf9de86d5ab5438a1",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs": {
-    "mtime": 1790711321.7540472,
-    "seen": 1790717489.1595144,
-    "ast_hash": "886cac17b26cc856982a45594f0adc2f",
+    "mtime": 1790780495.4407587,
+    "seen": 1790780670.887397,
+    "ast_hash": "e1d33fe132f13160b661069ad8a379b4",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionCommand.cs": {
@@ -1452,27 +1452,27 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Features/Vehicles/Traffic/Planning/SpeedPlan.cs": {
-    "mtime": 1790691260.3114142,
-    "seen": 1790699590.939498,
-    "ast_hash": "9e60f75a78105ab95df69c56d416bfd0",
+    "mtime": 1790769981.4858768,
+    "seen": 1790771789.3938725,
+    "ast_hash": "b3e28fcd2e33d7d1825b96c6739729c4",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story531DrivenReplayTests.cs": {
-    "mtime": 1790714279.8576598,
-    "seen": 1790717489.1876185,
-    "ast_hash": "1acbfe60ef55c272eb8eb3c32b1bc7f4",
+    "mtime": 1790770524.8755646,
+    "seen": 1790771789.401506,
+    "ast_hash": "8313b9690f8222f78fc38b180dfde054",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story531LifecycleAndCompositionTests.cs": {
-    "mtime": 1790699493.8382473,
-    "seen": 1790699590.9468095,
-    "ast_hash": "0add7cefd7b04fdde40a0a020b1c011b",
+    "mtime": 1790780909.3039975,
+    "seen": 1790786803.5554008,
+    "ast_hash": "d34a59594291d69e4cbdbabbc40854ad",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story531SpeedPlanAndComposerTests.cs": {
-    "mtime": 1790699493.8372445,
-    "seen": 1790699590.9468107,
-    "ast_hash": "a5b2533df187d67dbc2000193fac067f",
+    "mtime": 1790770381.332208,
+    "seen": 1790771789.4015083,
+    "ast_hash": "66f1e038840d56b0d542e120549f91b4",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story531FallbackLowSpeedPlayModeTests.cs": {
@@ -1482,21 +1482,21 @@
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story531MeasurementCampaignPlayModeTests.cs": {
-    "mtime": 1790714265.0969977,
-    "seen": 1790717489.1999867,
-    "ast_hash": "ebfd58924784c674a943a6ab68fb72d0",
+    "mtime": 1790786701.0483153,
+    "seen": 1790786803.5588412,
+    "ast_hash": "87a8fbbe39d042cf894cb5e8aad5cb1b",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/PlayMode/Story531V2VerticalSlicePlayModeTests.cs": {
-    "mtime": 1790698207.2440312,
-    "seen": 1790699590.9502351,
-    "ast_hash": "20bc41fe080a8b95a80fceaa673679e9",
+    "mtime": 1790780551.4919012,
+    "seen": 1790780670.8996923,
+    "ast_hash": "8ec8508ea910bf4b5ab21fcb4dd7de7f",
     "semantic_hash": ""
   },
   "Assets/RoadRage/Tests/EditMode/Story531ViaObjectiveRoutingTests.cs": {
-    "mtime": 1790699709.3172529,
-    "seen": 1790717489.1881618,
-    "ast_hash": "5a29f01bc0f2e1a2facbb9474e51cc3e",
+    "mtime": 1790770453.7003622,
+    "seen": 1790771789.4015093,
+    "ast_hash": "c401675b65db67d44aa3d66a995df2d4",
     "semantic_hash": ""
   }
 }
