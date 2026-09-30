@@ -2,12 +2,14 @@
 title: 'Story 5.31 -- Premiere tranche verticale Traffic V2 conduite, de portail a portail (run de mesure)'
 type: 'feature'
 created: '2026-09-29'
-status: 'in-progress'
+status: 'done'
 baseline_commit: 'e970735a19faa78a720ebde45b781e2fdb5f7cb8'
 review_loop_iteration: 0
 context:
   - '_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
   - '_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-29.md'
+  - '_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-29-kinematic-pose.md'
+  - '_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-30.md'
   - '_bmad-output/implementation-artifacts/spec-5-30-traffic-v2-planning-and-runtime-spine-foundation.md'
 ---
 
@@ -53,8 +55,10 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - La commande porte `SourceFrameId` et une validite [p, p] (`PlanValiditySteps = 1`).
   - Les epoques de decision et physique sont publiees separement.
 - **Plan de vitesse (A3).**
-  - Contraintes appliquees : `DesiredSpeed` (`DriverProfile.DesiredSpeed`), `SteeringCeiling` v*(s) (min des deux cotes au raccord, `Unbounded` jamais lu comme une vitesse), bornes longitudinales.
-  - Contraintes nommees mais **non appliquees** : `RoadLimit` et `CurveLimit` (adherence), a l'etat `DeferredUnauthored`, ou `DeferredAuthored(valeur)` si une valeur non nulle est authoree. Une valeur authoree n'est jamais presentee comme une absence de limite.
+  - Contraintes appliquees : `DesiredSpeed` (`DriverProfile.DesiredSpeed`), `SteeringCeiling` v*(s) (min des deux cotes au raccord, `Unbounded` jamais lu comme une vitesse), `CurveLimit`, bornes longitudinales.
+  - v*(s) (2026-09-30) : plafond de la pose nominale cinematique de la route, plus grande vitesse ou le braquage disponible couvre tan delta = (L/a) tan e ; le plafond de regime etabli du compilateur reste celui de la validation et de Gate A.
+  - `CurveLimit` (2026-09-30, avancee de la 5.33) : v <= racine(a_lat / |kappa|), a_lat = min(`ComfortableDeceleration`, adherence laterale du vehicule).
+  - Contrainte nommee mais **non appliquee** : `RoadLimit`, a l'etat `DeferredUnauthored`, ou `DeferredAuthored(valeur)` si une valeur non nulle est authoree. Une valeur authoree n'est jamais presentee comme une absence de limite.
   - Construction :
     - passe arriere a `ComfortableDeceleration`, passe avant a `MaxAcceleration` ;
     - la contrainte liante est nommee en chaque point, les alternatives rejetees sont conservees ;
@@ -387,6 +391,31 @@ La conduite n'a lieu qu'en **run de mesure explicite**. ε_t est mesure, puis de
   - regle de contact : caisse seulement, relief reconnu et chaussee observes sous criteres de consequence, runs exploratoires et d'acceptation distingues ;
   - la campagne exploratoire `20260929-141746` devient historique.
   Statut conserve `in-progress`. Aucune tache ni aucun critere coche. Objectif immediat du proprietaire : trajet V2 de portail a portail en Play Mode mesure, avec ses diagnostics ; preuves globales et re-signature en 5.52.
+- **2026-09-30 -- diagnostic des giratoires, decisions proprietaire A / B / C** (analyse `traffic-v2-5-31-measurements/analysis-20260930-giratoires-ralentissement.md`). Aucune geometrie, aucun epsilon_t, aucune preuve ni signature Gate A modifies. Bloc fige renegocie :
+  - *Constat A (rampe a 0,25 m/s aux 24 entrees/sorties d'anneau).* Leur pic de courbure est sature au rayon d'admission (4,03 m) par `BuildSmoothCurve`. v*(s) du compilateur exige le braquage de regime etabli (39,77 deg), disponible sous 0,25 m/s seulement, ce qui coincide avec `MinimumDirectionSpeed` : 74 % des pas de rampe ont la direction inactive. La pose nominale suivie n'exige que 32,7 deg (7,9 m/s). *Decision A* : v*(s) du plan, du verificateur (via les points d'horizon) et du moniteur devient le plafond de la pose nominale de la route (`PathHorizon.NominalSteeringCeilingMetersPerSecond`, meme condition que `NominalPoseInfeasible`), le plafond du compilateur restant celui de la validation et de Gate A ; la limite de courbe est avancee de la 5.33 et appliquee : v <= racine(a_lat/|kappa|), a_lat = min(`ComfortableDeceleration`, adherence x g). Seule la limite de route reste reportee.
+  - *Constat B (pics d = 0,82-0,88 m, freinage au split d'anneau).* Le cap de la localisation comparait la caisse a la tangente ; sur l'anneau (R = 6 m) la caisse est tournee de 15 deg, la branche de sortie gagnait (marge -0,004 m pour un vehicule ideal), d'ou replan, repli et pose nominale heritee de la mauvaise branche. *Decision B* : cap contre l'orientation nominale du candidat (e transporte depuis les ancres de la reference du vehicule, bande morte bornee asin(a/R_admission) sans ancre) et bonus de route = `ScoreBandMeters` (mesure : la regle nominale seule laissait -0,011 m pour l'ecart reel au split). Sans ancres (fixtures Gate A, appelants 5.26), comportement inchange.
+  - *Constat C (d = 6,54 m, `exploratory-20260930-093040` run 1).* Meme bascule, puis `TryReuse` sautait a une visite ulterieure de l'anneau dans le plan de sortie, sans nouvelle reference de mesure : d mesure contre la branche de sortie et anticipation de braquage prise sur elle (ecart lateral physique 0,92 m). *Decision C* : la progression n'avance que d'une occurrence contigue ; une visite ulterieure non parcourue rend le plan perime.
+  Statut conserve `in-progress` ; epsilon_t reste non declare.
+  Porte dans le contrat, `epics.md` et la spine par `sprint-change-proposal-2026-09-30.md` (approuvee le 2026-09-30).
+- **2026-09-30 -- arbitrage des tourne-a-droite serres : choix 1 (accepter en l'etat pour la 5.31)**. La regression mesuree sur les tourne-a-droite R = 4,21 m (d 0,187 -> 0,328 m, ecart lateral 0,085 -> 0,186 m) est acceptee comme limitation connue de la physique actuelle : le vehicule reste dans sa voie (marge ~0,78 m), atteint sa sortie, sans repli. Ces virages saturaient deja avant la decision A ; la cause probable est la direction parallele sans Ackermann. Refuse : une reserve empirique de braquage dans v* (la saturation resterait, la cause serait masquee), toute modification de la geometrie des virages, d'epsilon_t ou de Gate A pour reduire ce d. Suite : defer explicite sur la physique de direction (`deferred-work.md`). Conditions avant de tenir A / B / C pour stabilises : mesure PlayMode du cout par etape apres redemarrage de l'Editeur (route+horizon revenu au niveau d'avant A / B / C) et maintien des tests de non-regression sur les virages serres (`Story531Roundabout`, run 2 via `4dc4e81b` ; rejeu EditMode `Story531DrivenReplayTests`). Puis campagne exploratoire complete sur le code corrige.
+- **2026-09-30 -- declaration d'epsilon_t (etape 2 du protocole) et criteres de contact.**
+  - **epsilon_t = 0,34 m**, declare par le proprietaire (`TrafficV2Settings.DeclaredTrackingTolerance`).
+    - Maximum mesure sur le code corrige, 38 runs : 0,3306 m entre deux pas et 0,3296 m au pas (`133627`, `135653`) ; ecart de rejeu a rejeu ≤ 0,1 mm.
+    - Hors mesure, le refus devient `NotCoveredByGateA` / `PoseModelMismatch` (preuve a pose tangente, a_e = 0) jusqu'a la 5.52. Les tests de refus sont mis a jour et prouvent toujours l'absence d'insertion.
+    - Risque connu, porte a la 5.52 : a_e = max|o| + 0,34 m depasse le residu minimal estime (≈ 0,113 m, non verifie). Un echec geometrique y sera remonte, sans marge ni seuil touches.
+  - **Criteres de contact** (`sprint-change-proposal-2026-09-30.md`, addendum 4.12) :
+    - sortie de route = enveloppe de largeur seulement, et non le depassement longitudinal a une couture ou au portail de sortie ;
+    - le repli terminal `ExitPortalReached` n'est pas une perte de controle ;
+    - criteres evalues du premier contact a la fin du run, comme le dit le contrat (le test utilisait la fenetre de ±50 pas).
+    - `RoadLocation` expose les deux causes de `OutsideEnvelope`, dont le drapeau reste inchange.
+  - Suite : campagne d'acceptation (`Story531Campaign`, test `AcceptanceCampaignVerifiesTheDeclaredTolerance`).
+  - Resultats :
+    - EditMode `Story531` 50/50 et PlayMode `Story531` 13/13, 0 erreur Console.
+    - Campagne d'acceptation `acceptance-20260930-151217` : 1/1, 11/11 sorties, 164/164 `Measured`, d max 0,3294 m au pas et 0,3304 m entre deux pas (≤ 0,34), 0 pas v > v*, 0 `ModelNotVerified`, 0 `NominalPoseInfeasible`, 10 contacts sans conséquence bloquante.
+    - Cette campagne ne publiait pas le verdict de couverture exige par les preuves d'achevement. La ligne a ete ajoutee au resume.
+    - **Campagne d'acceptation de reference : `acceptance-20260930-153614`** (Editeur redemarre) : 1/1, 0 erreur Console, 11/11 sorties, 164/164 `Measured`, d max 0,3296 m au pas et 0,3305 m entre deux pas (≤ 0,34), 0 pas v > v*, 0 `ModelNotVerified`, 0 `NominalPoseInfeasible`, 0 couple de repli negatif, 10 contacts sans conséquence bloquante.
+    - Verdict de couverture publie : `PoseModelMismatch` (max|o| = 0 m, a_e = 0 m, preuve `TangentAligned`). Il est attendu : l'integration d'epsilon_t dans Gate A et la re-signature relevent de la 5.52. Hors mesure, aucune insertion (`NotCoveredByGateA`).
+    - Aucune tache ni aucun critere n'est coche avant la revue. Statut passe a `review` le 2026-09-30 sur demande du proprietaire ; la revue sera menee par un autre LLM.
 
 ## Design Notes
 
@@ -464,6 +493,47 @@ Pendant la boucle et au checkpoint, executer les fixtures de la story seulement 
 
 - `.\scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode EditMode` -- tests Core et Geometry `Story531`, dont le rejeu et le constructeur de campagne ; compte attendu = compte execute, 0 erreur Console.
 - `.\scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode PlayMode` -- tests courts `Story531` et banc de repli. Redemarrer l'Editeur avant cette commande si le runner PlayMode a deja servi dans la session.
-- `.\scripts\validate.ps1 -TestMode PlayMode -TestFilter Story531Campaign -TestFilterType category` -- campagne `[Explicit]` distincte, selon ses conditions d'acceptation et avec rapports bruts. Elle ne fait pas partie du profil Story.
+- `.\scripts\validate.ps1 -TestMode PlayMode -TestFilter Story531Campaign -TestFilterType category -IncludeExplicit` -- campagne `[Explicit]` distincte, selon ses conditions d'acceptation et avec rapports bruts. Elle ne fait pas partie du profil Story.
 
 Les suites completes EditMode et PlayMode et la comparaison aux 6 echecs PlayMode connus relevent de la procedure de fin d'epic dans `docs/setup/build-workflow-rules.md`.
+
+## Revue et mesures du 2026-09-30
+
+- Revue BMAD `blind-hunter`, `edge-case-hunter` et `verification-gap` effectuee ; corrections appliquees aux refus de spawn, aux bornes de campagne, a la conservation des traces apres despawn et au controle des resultats `[Explicit]`. Aucune nouvelle frontiere de confiance reseau.
+- Dernier checkpoint cible : EditMode `Story531` 46/46 ; PlayMode court `Story531` 13/13 ; zero erreur Console dans leurs fenetres.
+- Campagne exploratoire `exploratory-20260930-081217` : 11/11 sorties, 53 347 pas, 161/164 elements `Measured`, 3 mouvements `NotMeasured`, 0 intervalle `ModelNotVerified`, d maximal au pas 0,8806 m et borne entre pas 0,9086 m ; 0 pas au-dessus de v*, 0 couple de repli negatif, 4 contacts de relief avec critere `OutOfBounds`. Rapport brut dans `traffic-v2-5-31-measurements/`.
+- Selection `[Explicit]` effective : 2 tests, 1 passe et 1 inconclusif (`epsilon_t` non declare) ; `validate.ps1` sort en echec. Le filtre sans correspondance sort egalement en echec avec « Aucun test execute ».
+- Revue non close : les 3 mouvements manquants, les 4 consequences de contact et l'allocation d'`epsilon_t` dans une preuve Gate A valide empechent l'acceptation. Statut conserve `in-progress` ; aucun critere coche.
+
+### Challenge de la candidate epsilon_t = 0,92 m (2026-09-30)
+
+- Rejeu `[Explicit]` cible `Story531Targeted` (`exploratory-20260930-093040`) : 9/9 sorties, 0 intervalle `ModelNotVerified` ; test en echec car `4aa676c5e3857524d5a9b386be4bdb90` reste `NotMeasured`. Les deux autres mouvements anciennement manquants deviennent `Measured` : `431a11dff650b4115fa5bf99118b9b8a` (4 passages, 2 runs, borne 1,71732 m) et `4d54e6de5a6bbf4d1eb20f8ed5a40cb2` (1 passage, borne 0,362599 m).
+- Les six repetitions ciblees des triplets 9 et 10 utilisent les memes entree, sortie, via et graine, avec de nouvelles identites de trafic : trois bornes de 0,90908 m pour le mouvement `4030253e182e3ed1b7d2aeea7a73feb6`, trois de 0,882353 m pour `453f130c460dc35e052c30714bec6c8e`. Cela montre une stabilite sur ces variantes, pas un rejeu a identite identique du maximum initial 0,908622 m.
+- Le run cible du mouvement `4aa676c5e3857524d5a9b386be4bdb90` a replanifie 3 fois et n'a pas traverse l'objectif. Il a atteint 6,542675 m au pas et 6,62456 m entre pas sur la sortie d'anneau `4ac98ed2e41d83c91f0714135aa67ba7`, avec 72 pas au-dessus de v*. Au maximum : point de reference 4,206011 m de la pose nominale, cap -58,45073 deg et composante de rotation du coin critique 2,418919 m. C'est une derive de trajectoire majeure, non un simple effet de rotation du gabarit. La cause exacte de la replanification et de l'objectif evite reste a etablir ; aucun controleur, seuil ou marge n'a ete retouche pour obtenir cette mesure. La candidate 0,92 m est donc invalidee pour le comportement actuel.
+- Rejeu de contact `[Explicit]` `Story531Contact` (`exploratory-20260930-095445`) : 1/1 test passe, 7/7 sorties, 0 `ModelNotVerified`. Les quatre lignes `OutOfBounds` historiques sont deux paires de contacts sur `Rampe_Ouest` / `Rampe_Est` : run 3, pas 1751-1755, et run 6, pas 3551-3556. Leur seule cause dans la fenetre de consequence est `OutsideEnvelope` : un pas 1767 au run 3 et un pas 3572 au run 6, sur l'element suivant. Aucun `WrongWay`, aucune comparaison a epsilon_t non declare. Le lien causal avec le contact n'est pas demontre par cette fenetre de 50 pas.
+- Revue BMAD ciblee de l'instrumentation : les repetitions changent l'identite de trafic ; l'assertion de contact ne verifie que le nombre de contacts (les lignes ont ete comparees manuellement) ; la decomposition de pas utilise une seule pose nominale au raccord exact alors que `StepDisplacement` en considere deux. Les maxima detailles ici sont avant raccord, mais les composantes des pas exactement au raccord ne valent pas preuve sans calcul bilateral. La Story reste `in-progress` et epsilon_t reste non declare.
+- Un dernier test `[Explicit]` `Story531Missing` est prepare : autre paire entree/sortie avec le mouvement `4aa676c5e3857524d5a9b386be4bdb90` comme objectif proche, plan excluant la sortie d'anneau ou le run precedent a derive ; il publie aussi les composantes laterale et longitudinale du point de reference sur les deux anciens trajets maximaux. Derniere validation EditMode sur ce code : 46/46, 0 nouvelle erreur Console. La passe PlayMode attend un redemarrage de l'Editeur selon la limite connue du runner ; aucun resultat physique de ce test n'est encore cite.
+- Giratoires, decisions A / B / C du 2026-09-30 (Spec Change Log) :
+  - Checkpoint : EditMode `Story531` 49/49 et PlayMode `Story531` 13/13, zero erreur Console dans leurs fenetres.
+  - Rejeu `[Explicit]` cible `Story531Roundabout` (`exploratory-20260930-122303`, triplets 5, 7, 9 et 10 de `081217`) : 1/1, 4/4 sorties, 0 replan, 0 repli en route, 0 pas au-dessus de v*, 0 `ModelNotVerified`, 0 `NominalPoseInfeasible`.
+  - Passage des entrees d'anneau : v min 0,24 -> 2,68 m/s, 6,6 -> 2,0 s, d 0,39-0,44 -> 0,164 m.
+  - Pics d'anneau 0,82-0,88 -> 0,17-0,20 m. d max des routes : 0,88 -> 0,328 m.
+  - Regression mesuree sur les tourne-a-droite R = 4,21 m (d 0,187 -> 0,328 m, direction deja saturee avant) : acceptee en l'etat (choix 1, Spec Change Log), physique de direction differee (`deferred-work.md`).
+  - Analyse complete : `analysis-20260930-giratoires-ralentissement.md`. epsilon_t reste non declare ; Story `in-progress`.
+  - Cout par etape re-mesure apres redemarrage de l'Editeur (`Story531Roundabout`, `exploratory-20260930-131613`, 1/1, conduite identique a `122303`) : route+horizon 1,06 / 1,52 / 1,43 / 1,67 ms par pas (AVANT 0,77-1,10 ms, avant correctif 3,55-5,79 ms), cout total par trajet en baisse de 4 a 12 %. Le seuil de 1,66 ms est depasse de 0,011 ms sur le triplet 10 ; le proprietaire accepte ce cout et lance la campagne exploratoire complete.
+  - Campagne exploratoire complete sur le code corrige (`exploratory-20260930-133627`, categorie `Story531Campaign`, 5/6 passes + acceptation Inconclusive car epsilon_t non declare, 0 erreur Console) :
+    - 11/11 sorties, 164/164 elements `Measured` (AVANT 161/164 : le run 4 passe desormais par son objectif `40ca7f10`), 0 replan (AVANT 21), 11 pas en repli, tous `ExitPortalReached` (AVANT 299) ;
+    - d max au pas 0,3296 m (AVANT 0,8806 m) ; 0 pas v > v*, 0 `ModelNotVerified`, 0 `NominalPoseInfeasible`, 0 couple de repli negatif ;
+    - seuls les tourne-a-droite serres restent degrades (choix 1).
+    - Cout route+horizon : 1,09 a 2,28 ms par pas (1,4 a 1,9 fois AVANT, 6 runs sur 11 au-dessus de 1,66 ms), total de la campagne +5 % : le rejeu cible sous-estimait le surcout.
+    - Contacts : memes 4 lignes `OutOfBounds` sur le dos-d'ane qu'AVANT, et un choc dur sur la marche basse (run 6, 7,52 -> 0,57 m/s, sans critere) ; ce choc preexistait (`073623` run 7) et ne depend pas de la direction.
+    - Detail : `analysis-20260930-giratoires-ralentissement.md`.
+  - Cout route+horizon accepte par le proprietaire (2026-09-30), sans optimisation dans la 5.31. Ce n'est pas un critere d'acceptation : le cout du spine est une baseline observationnelle (epics.md, Completion evidence de la 5.31). Dette consignee dans `deferred-work.md`, a solder avant plusieurs vehicules V2 simultanes. Baseline de reference : `133627` et `131613`.
+
+### Review Findings
+
+- [x] [Review][Patch] A Story profile can pass with an inconclusive PlayMode behavior test [scripts/validate.ps1:635]
+- [x] [Review][Patch] Seam trace rows omit per-step passes, displacement, and speed-ratio values [Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrackingMeasurement.cs:553]
+- [x] [Review][Patch] Contact evidence validation does not compare the recorded scene dependency hash [Assets/RoadRage/Tests/PlayMode/Story531MeasurementCampaignPlayModeTests.cs:605]
+- [x] [Review][Patch] Malformed campaign portal IDs silently become default triplet IDs [Assets/RoadRage/Tests/PlayMode/Story531MeasurementCampaignPlayModeTests.cs:350]
+- [x] [Review][Patch] The blanket no-uncovered-drive rule conflicts with authorized measurement-only runs [ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md:469]

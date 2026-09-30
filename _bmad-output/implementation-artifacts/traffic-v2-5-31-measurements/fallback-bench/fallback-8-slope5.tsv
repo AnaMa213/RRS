@@ -1,0 +1,213 @@
+step	v	throttle	brake_reverse	handbrake	min_drive_torque	terminal	diagnostics	y
+1	8.2138	0	0.198	0	0	None	Fallback	0.1493
+2	8.1801	0	0.198	0	0	None	Fallback	0.1487
+3	8.0784	0	0.198	0	0	None	Fallback	0.1476
+4	7.9775	0	0.198	0	0	None	Fallback	0.1461
+5	7.8774	0	0.198	0	0	None	Fallback	0.1444
+6	7.7779	0	0.198	0	0	None	Fallback	0.1426
+7	7.6789	0	0.198	0	0	None	Fallback	0.1407
+8	7.5803	0	0.198	0	0	None	Fallback	0.1388
+9	7.4821	0	0.198	0	0	None	Fallback	0.137
+10	7.3843	0	0.198	0	0	None	Fallback	0.1354
+11	7.2868	0	0.198	0	0	None	Fallback	0.134
+12	7.1897	0	0.198	0	0	None	Fallback	0.1328
+13	7.093	0	0.198	0	0	None	Fallback	0.132
+14	6.9967	0	0.198	0	0	None	Fallback	0.1313
+15	6.9007	0	0.198	0	0	None	Fallback	0.131
+16	6.8052	0	0.198	0	0	None	Fallback	0.1309
+17	6.7101	0	0.198	0	0	None	Fallback	0.1309
+18	6.6154	0	0.198	0	0	None	Fallback	0.1312
+19	6.5212	0	0.198	0	0	None	Fallback	0.1316
+20	6.4273	0	0.198	0	0	None	Fallback	0.1321
+21	6.3339	0	0.198	0	0	None	Fallback	0.1327
+22	6.2409	0	0.198	0	0	None	Fallback	0.1334
+23	6.1484	0	0.198	0	0	None	Fallback	0.134
+24	6.0563	0	0.198	0	0	None	Fallback	0.1346
+25	5.9646	0	0.198	0	0	None	Fallback	0.1352
+26	5.8734	0	0.198	0	0	None	Fallback	0.1357
+27	5.7827	0	0.198	0	0	None	Fallback	0.1361
+28	5.6924	0	0.198	0	0	None	Fallback	0.1365
+29	5.6027	0	0.198	0	0	None	Fallback	0.1367
+30	5.5134	0	0.198	0	0	None	Fallback	0.1369
+31	5.4246	0	0.198	0	0	None	Fallback	0.137
+32	5.3364	0	0.198	0	0	None	Fallback	0.137
+33	5.2487	0	0.198	0	0	None	Fallback	0.1369
+34	5.1615	0	0.198	0	0	None	Fallback	0.1368
+35	5.0748	0	0.198	0	0	None	Fallback	0.1366
+36	4.9886	0	0.198	0	0	None	Fallback	0.1365
+37	4.903	0	0.198	0	0	None	Fallback	0.1362
+38	4.8178	0	0.198	0	0	None	Fallback	0.136
+39	4.7332	0	0.198	0	0	None	Fallback	0.1358
+40	4.6491	0	0.198	0	0	None	Fallback	0.1356
+41	4.5654	0	0.198	0	0	None	Fallback	0.1354
+42	4.4822	0	0.198	0	0	None	Fallback	0.1353
+43	4.3996	0	0.198	0	0	None	Fallback	0.1351
+44	4.3173	0	0.198	0	0	None	Fallback	0.135
+45	4.2355	0	0.198	0	0	None	Fallback	0.135
+46	4.1542	0	0.198	0	0	None	Fallback	0.1349
+47	4.0733	0	0.198	0	0	None	Fallback	0.1349
+48	3.9929	0	0.198	0	0	None	Fallback	0.1349
+49	3.9128	0	0.198	0	0	None	Fallback	0.1349
+50	3.8332	0	0.198	0	0	None	Fallback	0.135
+51	3.7541	0	0.198	0	0	None	Fallback	0.135
+52	3.6753	0	0.198	0	0	None	Fallback	0.1351
+53	3.597	0	0.198	0	0	None	Fallback	0.1352
+54	3.5191	0	0.198	0	0	None	Fallback	0.1352
+55	3.4416	0	0.198	0	0	None	Fallback	0.1353
+56	3.3645	0	0.198	0	0	None	Fallback	0.1354
+57	3.2878	0	0.198	0	0	None	Fallback	0.1354
+58	3.2116	0	0.198	0	0	None	Fallback	0.1355
+59	3.1357	0	0.198	0	0	None	Fallback	0.1355
+60	3.0603	0	0.198	0	0	None	Fallback	0.1355
+61	2.9853	0	0.198	0	0	None	Fallback	0.1355
+62	2.9107	0	0.198	0	0	None	Fallback	0.1356
+63	2.8366	0	0.198	0	0	None	Fallback	0.1356
+64	2.7628	0	0.198	0	0	None	Fallback	0.1355
+65	2.6894	0	0.198	0	0	None	Fallback	0.1355
+66	2.6165	0	0.198	0	0	None	Fallback	0.1355
+67	2.544	0	0.198	0	0	None	Fallback	0.1355
+68	2.4718	0	0.198	0	0	None	Fallback	0.1355
+69	2.4001	0	0.198	0	0	None	Fallback	0.1354
+70	2.3287	0	0.198	0	0	None	Fallback	0.1354
+71	2.2578	0	0.198	0	0	None	Fallback	0.1354
+72	2.1873	0	0.198	0	0	None	Fallback	0.1354
+73	2.1171	0	0.198	0	0	None	Fallback	0.1354
+74	2.0473	0	0.198	0	0	None	Fallback	0.1353
+75	1.978	0	0.198	0	0	None	Fallback	0.1353
+76	1.909	0	0.198	0	0	None	Fallback	0.1353
+77	1.8403	0	0.198	0	0	None	Fallback	0.1353
+78	1.7721	0	0.198	0	0	None	Fallback	0.1353
+79	1.7042	0	0.198	0	0	None	Fallback	0.1353
+80	1.6367	0	0.198	0	0	None	Fallback	0.1353
+81	1.5696	0	0.198	0	0	None	Fallback	0.1353
+82	1.5028	0	0.198	0	0	None	Fallback	0.1353
+83	1.4364	0	0.198	0	0	None	Fallback	0.1353
+84	1.3704	0	0.198	0	0	None	Fallback	0.1353
+85	1.3047	0	0.198	0	0	None	Fallback	0.1353
+86	1.2394	0	0.198	0	0	None	Fallback	0.1353
+87	1.1745	0	0.198	0	0	None	Fallback	0.1353
+88	1.1099	0	0.198	0	0	None	Fallback	0.1353
+89	1.0456	0	0.198	0	0	None	Fallback	0.1354
+90	0.9818	0	0.198	0	0	None	Fallback	0.1354
+91	0.9182	0	0.198	0	0	None	Fallback	0.1354
+92	0.855	0	0.198	0	0	None	Fallback	0.1354
+93	0.7922	0	0.198	0	0	None	Fallback	0.1354
+94	0.7297	0	0.198	0	0	None	Fallback	0.1354
+95	0.6676	0	0.198	0	0	None	Fallback	0.1354
+96	0.6058	0	0.198	0	0	None	Fallback	0.1354
+97	0.5443	0	0.198	0	0	None	Fallback	0.1354
+98	0.4832	0	0.198	0	0	None	Fallback	0.1354
+99	0.4225	0	0.198	0	0	None	Fallback	0.1353
+100	0.3621	0	0	1	0	None	Fallback	0.1353
+101	0.1716	0	0	1	0	None	Fallback	0.1351
+102	0.0878	0	0	1	0	None	Fallback	0.1349
+103	0.042	0	0	1	0	None	Fallback	0.1347
+104	0.0194	0	0	1	0	None	Fallback	0.1347
+105	0.0165	0	0	1	0	None	Fallback	0.1347
+106	0.0141	0	0	1	0	None	Fallback	0.1349
+107	0.0125	0	0	1	0	None	Fallback	0.1352
+108	0.0115	0	0	1	0	None	Fallback	0.1356
+109	0.011	0	0	1	0	None	Fallback	0.136
+110	0.0109	0	0	1	0	None	Fallback	0.1364
+111	0.0111	0	0	1	0	None	Fallback	0.1368
+112	0.0115	0	0	1	0	Held	Fallback, FallbackHeld	0.1372
+113	0.012	0	0	1	0	Held	Fallback, FallbackHeld	0.1376
+114	0.0126	0	0	1	0	Held	Fallback, FallbackHeld	0.1379
+115	0.0132	0	0	1	0	Held	Fallback, FallbackHeld	0.1382
+116	0.0138	0	0	1	0	Held	Fallback, FallbackHeld	0.1384
+117	0.0143	0	0	1	0	Held	Fallback, FallbackHeld	0.1386
+118	0.0148	0	0	1	0	Held	Fallback, FallbackHeld	0.1387
+119	0.0152	0	0	1	0	Held	Fallback, FallbackHeld	0.1388
+120	0.0155	0	0	1	0	Held	Fallback, FallbackHeld	0.1388
+121	0.0158	0	0	1	0	Held	Fallback, FallbackHeld	0.1387
+122	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1386
+123	0.0161	0	0	1	0	Held	Fallback, FallbackHeld	0.1385
+124	0.0162	0	0	1	0	Held	Fallback, FallbackHeld	0.1384
+125	0.0163	0	0	1	0	Held	Fallback, FallbackHeld	0.1383
+126	0.0163	0	0	1	0	Held	Fallback, FallbackHeld	0.1381
+127	0.0163	0	0	1	0	Held	Fallback, FallbackHeld	0.138
+128	0.0163	0	0	1	0	Held	Fallback, FallbackHeld	0.1379
+129	0.0163	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+130	0.0163	0	0	1	0	Held	Fallback, FallbackHeld	0.1376
+131	0.0162	0	0	1	0	Held	Fallback, FallbackHeld	0.1375
+132	0.0162	0	0	1	0	Held	Fallback, FallbackHeld	0.1375
+133	0.0162	0	0	1	0	Held	Fallback, FallbackHeld	0.1374
+134	0.0161	0	0	1	0	Held	Fallback, FallbackHeld	0.1374
+135	0.0161	0	0	1	0	Held	Fallback, FallbackHeld	0.1374
+136	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1374
+137	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1374
+138	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1374
+139	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1375
+140	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1375
+141	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1376
+142	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1376
+143	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1376
+144	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+145	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+146	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+147	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+148	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+149	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+150	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+151	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+152	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+153	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+154	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+155	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+156	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+157	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+158	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1378
+159	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+160	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+161	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+162	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+163	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+164	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+165	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+166	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+167	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+168	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+169	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+170	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+171	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+172	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+173	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+174	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+175	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+176	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+177	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+178	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+179	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+180	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+181	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+182	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+183	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+184	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+185	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+186	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+187	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+188	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+189	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+190	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+191	0.016	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+192	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+193	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+194	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+195	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+196	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+197	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+198	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+199	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+200	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+201	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+202	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+203	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+204	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+205	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+206	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+207	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+208	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+209	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+210	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+211	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
+212	0.0159	0	0	1	0	Held	Fallback, FallbackHeld	0.1377
