@@ -2222,6 +2222,7 @@ So that the conflict zones, the Gate A review and every later planning layer are
 - The compiler derives everything else: available lock δ(v); radius R(δ) = √((L / tan δ)² + a²); required lock for a curvature κ; steering speed ceiling v*(κ), or "none" when the required lock is 16° or less.
 - **Single admission rule:** an element is admitted only if v*(κ) ≥ 0.25 m/s everywhere, which is equivalent to a radius of at least **R_adm = 4.0344 m**. The zero-speed radius, 4.0064 m, is refused (ceiling 0.032 m/s). A radius at or below 1.55 m is refused without producing a non-numeric value.
 - The ceiling is a kinematic steering-authority limit and ignores grip and slip. The grip-based curve speed remains 5.33's.
+- *2026-09-30 (sprint-change-proposal-2026-09-30.md):* this ceiling is the steady-state ceiling v*_ss(κ). It keeps the admission rule. Driving uses the nominal-pose ceiling of each route (contract §8), and the grip-based curve limit is applied from Story 5.31.
 - The canonical block is written only when declared, so undeclared payloads and the 5.25/5.26 fixture versions are byte-identical. `CompilerSchemaVersion` is unchanged.
 - The document format goes from 1 to 2. An older reader refuses a new document at the format check, at canonical re-serialization and at the integrity hash.
 - `RoadModelDocument.Load` refuses an undeclared model.
@@ -2639,6 +2640,7 @@ So that the planning boundaries are proven on their own instead of being debugge
 **And** the compiled reference — the canonical `RoadCurve` evaluation of the compiled samples — is the single authoritative trajectory; every containment proof is inflated by the compiled-curve gate δ_c; no layer produces an alternative reference by re-fitting, re-smoothing or re-sampling it into a different curve
 **And** `LateralClearanceMarginMeters` is reserved clearance, never consumed by tracking or planning; a planned trajectory is covered by the valid Gate A evidence only if max |o(s)| + ε_t ≤ the tracking allowance a_e recorded with that evidence (ε_t counts as 0 until the driving story declares it); a plan that is not covered is infeasible until the evidence is regenerated and Gate A re-signed under the lifecycle defined in the Road World Model contract (§8)
 **And** the path and motion contracts carry the steering speed ceiling v*(s) along the reference, and a motion plan whose speed profile exceeds it anywhere is infeasible
+*2026-09-30 (sprint-change-proposal-2026-09-30.md):* when the route's offset solution is known, the path points carry the nominal-pose ceiling (contract §8), and the verifier judges the plan against it. A caller without a declared drivability geometry keeps the steady-state ceiling, as delivered.
 
 **Given** this story's implementation
 **When** it is reviewed
@@ -2651,6 +2653,7 @@ So that the planning boundaries are proven on their own instead of being debugge
 
 **Type:** VERTICAL BEHAVIOR · **Boundary:** Spine, end to end · **Complexity:** L
 **Implements:** FR6, FR24, FR25, FR27, AD-37, AD-39, BC-1, BC-2, BC-4, BC-8, NFR4, NFR5, NFR6
+*Amended 2026-09-30 (sprint-change-proposal-2026-09-30.md): the driving steering speed ceiling is the route's nominal-pose ceiling, and the grip-based curve limit is applied here instead of in 5.33 (roundabout diagnosis, owner decision A).*
 
 As a player,
 I want to watch an AI vehicle enter the district, drive its route and leave through an exit tunnel under the new traffic system,
@@ -2668,7 +2671,7 @@ So that the V2 architecture is proven to work end to end before any advanced tra
 
 **Must NOT be copied:** `ApplyMovement`-style writes to `linearVelocity`, `MoveRotation`, position or rotation; `RecoverAtWaypoint`; open-loop longitudinal integration; `WaypointIndex` as progress; point-to-point seeking with `arrivalRadius`.
 
-**Artifacts:** `Planning/SpeedPlan` (free-road constraints: desired speed and steering speed ceiling applied with declared longitudinal bounds; road limit and grip curve limit named, reported as deferred to 5.33 and never applied; binding constraint named); `Intent/` (the single composer and its finite-input guard); `Lifecycle/` (V2 vehicle lifecycle and portal binding); extension of the 5.30 debug projection with speed constraints, binding constraint and final intent; `Routing/` extension: the optional intermediate movement objective of the Route Planner contract (§4), set only by the measurement lifecycle path.
+**Artifacts:** `Planning/SpeedPlan` (free-road constraints: desired speed, the nominal-pose steering speed ceiling and the grip-based curve limit applied with declared longitudinal bounds; road limit named, reported as deferred to 5.33 and never applied; binding constraint named); `Intent/` (the single composer and its finite-input guard); `Lifecycle/` (V2 vehicle lifecycle and portal binding); extension of the 5.30 debug projection with speed constraints, binding constraint and final intent; `Routing/` extension: the optional intermediate movement objective of the Route Planner contract (§4), set only by the measurement lifecycle path.
 
 **EditMode verification:** exactly one composer emits at most one finite intent per vehicle per physics step, or the V2 fallback command when no valid plan exists; a non-finite intent or authority scalar is diagnosed and replaced by the V2 fallback command before physics — **this is the mandatory contract test the retained V1 types do not currently prove**; an accepted plan carries `SourceFrameId` and a validity window in host decision and physics epochs, so plan hold and expiry are explicit rather than implicit; the speed plan names its binding constraint and retains its rejected alternatives; the free-road IDM envelope from Story 5.9 is preserved; a kinematic replay over the migrated `MVP_Run` model reaches an exit from every entry.
 
@@ -2691,7 +2694,7 @@ So that the V2 architecture is proven to work end to end before any advanced tra
 **Given** the first driven V2 slice
 **When** a vehicle is spawned on the V2 path
 **Then** its road model was admitted through `RoadModelDocument.Load` with a declared drivability profile, and a PlayMode test proves an undeclared model drives no vehicle
-**And** the planned speed profile respects the steering speed ceiling locally: v(s) ≤ v*(s) at every point of the planned trajectory, reached with deceleration within the speed planner's declared deceleration bound, starting early enough before each tighter curve — not a single cap equal to the lowest ceiling anywhere in the look-ahead
+**And** the planned speed profile respects the steering speed ceiling locally: v(s) ≤ v*(s), the route's nominal-pose steering speed ceiling (contract §8; the model-published steady-state ceiling serves admission only), at every point of the planned trajectory, reached with deceleration within the speed planner's declared deceleration bound, starting early enough before each tighter curve — not a single cap equal to the lowest ceiling anywhere in the look-ahead
 **And** when the ceiling cannot be met from the current state, the plan declares that infeasibility as its binding constraint and brakes at the declared bound
 **And** the observed speed at each traversed position is published against v*(s), and any exceedance fails the test
 **And** ε_t bounds the maximum displacement, projected on the road plane, of the eight corners of the maximum-gauge box (maximum footprint extruded to the vehicle's collider height, centred on the reference point), relative to the **kinematic nominal pose** (Road World Model contract §8) at matched progress. The nominal heading comes from the route's own offset solution, which starts at 0 at insertion at the entry portal's effective progress and is never reset elsewhere. ε_t is evaluated exactly at every simulated physics step, so roll, pitch, the residual heading error and translation are all included
@@ -2720,7 +2723,7 @@ So that the V2 architecture is proven to work end to end before any advanced tra
 
 **Given** the free-road speed plan
 **When** it is produced
-**Then** it applies desired speed, the steering speed ceiling and the declared longitudinal bounds as named constraints and identifies the binding one; road limit and the grip-based curve limit are named, reported as deferred to Story 5.33 and not applied; an authored non-zero road limit is reported as authored-but-not-applied, never as the absence of a limit
+**Then** it applies desired speed, the nominal-pose steering speed ceiling, the grip-based curve limit (contract §8) and the declared longitudinal bounds as named constraints and identifies the binding one; the road limit is named, reported as deferred to Story 5.33 and not applied; an authored non-zero road limit is reported as authored-but-not-applied, never as the absence of a limit
 **And** the Story 5.9 IDM envelope is preserved unchanged
 
 ---
@@ -2767,7 +2770,7 @@ So that V2 vehicles drive outside measurement runs only on trajectories the sign
 - the fingerprint changes when the pose-model version changes;
 - the coverage verdict rejects tangent-aligned evidence.
 
-**PlayMode verification — MILESTONE 1 rerun:** in `MVP_Run`, outside any measurement run, V2 vehicles spawn at entry portals, drive covered trajectories within ε_t (per-step bound and model-M inter-step bound) and v ≤ v*(s), and despawn at exit portals, without contact with non-road colliders.
+**PlayMode verification — MILESTONE 1 rerun:** in `MVP_Run`, outside any measurement run, V2 vehicles spawn at entry portals, drive covered trajectories within ε_t (per-step bound and model-M inter-step bound) and v ≤ v*(s), the route's nominal-pose steering speed ceiling, and despawn at exit portals, without contact with non-road colliders.
 
 **Completion evidence:** **Gate B** — EditMode green, regenerated evidence and diff published, owner re-signature recorded, PlayMode milestone 1 rerun with raw output, within the proof scope stated in the gate table.
 
@@ -2871,7 +2874,7 @@ So that the road reads as traffic rather than as independent vehicles that happe
 
 **Must NOT be copied:** the controller's longitudinal branch writing a speed target; a single collapsed wait reason; low speed used as a proxy for blockage.
 
-**Artifacts:** `Features/Traffic/Planning/SpeedPlan` — the named-constraint set (desired speed, road limit, curve limit, leader following, obstacle) with binding-constraint selection; `Features/Traffic/Blockers/` — the `Blocker` record (id, source, kind, blocking actor or rule, legitimacy, expected-to-clear, recoverability, since-frame). This story reopens the deferred authored speed-limit field (Story 5.28 authoring decisions, `AuthoringDecisions`) and applies the road limit and the grip-based curve limit that Story 5.31 publishes as deferred.
+**Artifacts:** `Features/Traffic/Planning/SpeedPlan` — the named-constraint set (desired speed, road limit, curve limit, leader following, obstacle) with binding-constraint selection; `Features/Traffic/Blockers/` — the `Blocker` record (id, source, kind, blocking actor or rule, legitimacy, expected-to-clear, recoverability, since-frame). This story reopens the deferred authored speed-limit field (Story 5.28 authoring decisions, `AuthoringDecisions`) and applies the road limit that Story 5.31 publishes as deferred. The grip-based curve limit is applied since Story 5.31 (2026-09-30); this story keeps it among the named constraints and may replace its comfort bound by a dedicated lateral comfort parameter.
 
 **EditMode verification:** free-road acceleration is finite and fades to zero at desired speed; a stopped leader produces firm finite braking, including at a zero or collapsed gap, with no NaN or infinity; following settles near the authored minimum gap measured bumper to bumper; response smoothing is finite, bounded and deterministic for the same inputs, including near-instant and zero-or-negative reaction times; the plan names its binding constraint and retains its rejected alternatives; several blockers coexist without collapsing — a leader and a future red signal are two records, not whichever branch ran last; a deliberate stop behind a leader is a **legitimate** blocker.
 
