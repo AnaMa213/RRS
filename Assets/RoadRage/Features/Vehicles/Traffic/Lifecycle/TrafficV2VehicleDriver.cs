@@ -190,6 +190,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private bool warnedMissingPhysicsProfile;
         private GaugeBox gauge;
         private TrackingTolerance declared;
+        private readonly TrackingToleranceResponse toleranceResponse = new TrackingToleranceResponse();
+
+        /// <summary>Reponse 2a (Story 5.52) : verrouillee hors mesure au premier depassement d'epsilon_t.</summary>
+        public TrackingToleranceResponse ToleranceResponse { get { return toleranceResponse; } }
 
         public DriverProfileDef DriverProfileDefinition { get { return driverProfile; } }
         public bool IsBound { get { return insertion != null; } }
@@ -418,6 +422,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                         model.DrivabilityProfile, curve, first.StartSMeters, pose.Position, pose.Forward, speed, dt,
                         nominalHeading);
             }
+            if (toleranceResponse.Latched)
+            {
+                // Decision 2a (Story 5.52) : hors mesure, la borne depassee retire toute commande ; repli V2 jusqu'a
+                // l'arret maintenu, sans recuperation (5.39), vehicule present et physiquement libre.
+                command = null;
+                refusal = V2FallbackReason.TrackingToleranceExceeded;
+            }
+
             var composed = composer.Compose(frameId, command, refusal, speed, body.linearDamping);
             // Seul point d'application V2 : un intent par pas physique.
             physicsBody.ApplyDriveIntent(composed.Intent, composed.MaxForwardSpeed, composed.SteerRateDegreesPerSecond,
@@ -441,12 +453,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             float distance = stepDistance;
             float displacement = TrackingMeasurement.StepDisplacement(state, track, distance, gauge);
             MaxStepDisplacementMeters = Math.Max(MaxStepDisplacementMeters, displacement);
-            if (declared.Declared && displacement > declared.Meters)
+            if (TrackingToleranceResponse.Exceeds(declared, displacement))
             {
                 ToleranceExceededCount++;
                 if (ToleranceExceededCount == 1)
                     UnityEngine.Debug.LogWarning("[Traffic V2] TrackingToleranceExceeded : " + name + " d = "
                         + displacement.ToString("0.####", CultureInfo.InvariantCulture) + " m au pas " + step + ".", this);
+                if (toleranceResponse.Observe(step, MeasurementLabel != null, declared, displacement))
+                    UnityEngine.Debug.LogWarning("[Traffic V2] TrackingToleranceExceeded hors mesure : " + name
+                        + " passe en repli V2 jusqu'a l'arret maintenu (Story 5.52, decision 2a).", this);
             }
             var trackPiece = track.Pieces[piece];
             var drivability = admission.Model.DrivabilityProfile;
@@ -473,15 +488,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             // Faisabilite de la pose nominale (contrat §8) : tan delta = (L/a) tan e, dans le braquage disponible
             // a la vitesse mesuree ; taux v |d delta / ds| dans le taux de braquage declare du vehicule.
             float e = track.OffsetRadians(piece, distance);
-            float ratio = drivability.WheelbaseMeters / Math.Max(1e-3f, drivability.ReferencePointAheadRearAxleMeters);
-            float nominalSteer = Mathf.Atan(ratio * Mathf.Tan(e)) * Mathf.Rad2Deg;
-            float offsetRate = curvature - Mathf.Sin(e) / Math.Max(1e-3f, drivability.ReferencePointAheadRearAxleMeters);
-            float tan = Mathf.Tan(e);
-            float steerRate = Math.Abs(speed) * Math.Abs(ratio / (Mathf.Cos(e) * Mathf.Cos(e) * (1f + ratio * ratio * tan * tan))
-                * offsetRate) * Mathf.Rad2Deg;
-            bool feasible = !track.HasKinematicPose
-                || (Math.Abs(nominalSteer) <= RoadModelCompiler.AvailableLockDegrees(drivability, speed) + 1e-3f
-                    && steerRate <= vehicle.SteerRateDegreesPerSecond + 1e-3f);
+            float nominalSteer;
+            float steerRate;
+            bool feasible = NominalPoseFeasibility.FeasibleAtSpeed(drivability, e, curvature, speed,
+                vehicle.SteerRateDegreesPerSecond, out nominalSteer, out steerRate) || !track.HasKinematicPose;
             if (!feasible)
             {
                 NominalPoseInfeasibleSteps++;

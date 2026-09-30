@@ -17,7 +17,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
         HorizonNonConforming = 7,
         PlanInfeasible = 8,
         /// <summary>Portail de sortie atteint : horizon de longueur nulle, retrait en attente.</summary>
-        ExitPortalReached = 9
+        ExitPortalReached = 9,
+        /// <summary>
+        /// Story 5.52 (decision 2a) : borne de suivi depassee en fonctionnement normal ; repli jusqu'a l'arret
+        /// maintenu, vehicule present et libre, sans recuperation (5.39).
+        /// </summary>
+        TrackingToleranceExceeded = 10
     }
 
     /// <summary>Etat terminal du repli, diagnostique et publie ; le vehicule reste present.</summary>

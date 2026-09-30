@@ -36,6 +36,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public float PhysicalOuterRadius;
         public float PhysicalResidual;
+
+        /// <summary>Story 5.52 : allocation a_e ajoutee a la marge de chaque cote, et pire |e| de l'anneau (gabarit tourne).</summary>
+        public float AllowanceMeters;
+        public float OffsetMaxRadians;
     }
 
     public static class RoundaboutClearance
@@ -62,9 +66,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// colliders mesures. Un residu non positif est un echec : HALT pour decision du proprietaire.
         /// </summary>
         public static JunctionClearanceResult Sweep(UnityEngine.SceneManagement.Scene scene, V1ImportResult import, CompiledRoadModel model,
-            IReadOnlyList<JunctionClearanceSurface> sidewalks)
+            IReadOnlyList<JunctionClearanceSurface> sidewalks, GateAEvidenceParameters parameters = null, KinematicOffsetBounds bounds = null)
         {
-            return JunctionClearance.Measure(scene, import, model, sidewalks, JunctionClearance.DefaultStepMeters, true);
+            return JunctionClearance.Measure(scene, import, model, sidewalks, JunctionClearance.DefaultStepMeters, true, parameters, bounds);
         }
 
         /// <summary>Residu a deux gabarits (formule en tete de fichier), entrees du seul profil versionne.</summary>
@@ -81,12 +85,71 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         }
 
         /// <summary>
+        /// Residu a deux gabarits tournes (Story 5.52) : chaque gabarit fait l'angle <paramref name="offsetRadians"/>
+        /// avec la tangente, et la marge de chaque cote vaut m + a_e. Le point le plus interieur est la distance du
+        /// centre de l'anneau au rectangle tourne (bord, ou coin si le pied sort du bord), le plus exterieur le coin
+        /// sqrt(R^2 + W^2 + (L/2)^2 + 2R(W cos e + (L/2)|sin e|)). Les deux croissent avec |e| pour |e| &lt; 65 deg :
+        /// le pire ecart de l'anneau donne le residu, exact et sans grille. e = 0 et a_e = 0 : formule historique.
+        /// </summary>
+        public static float Residual(float innerRadius, float outerRadius, RoadModelValidationProfile profile,
+            float trackingAllowanceMeters, float offsetRadians)
+        {
+            if (trackingAllowanceMeters == 0f && offsetRadians == 0f)
+            {
+                return Residual(innerRadius, outerRadius, profile);
+            }
+
+            double halfWidth = profile.MaxVehicleHalfWidthMeters;
+            double halfLength = 0.5d * profile.MaxVehicleLengthMeters;
+            double margin = profile.LateralClearanceMarginMeters + (double)trackingAllowanceMeters;
+            double e = Math.Abs((double)offsetRadians);
+            double innerCentre = CentreForInnermost(innerRadius + margin, e, halfLength, halfWidth);
+            double innerCorner = OutermostCorner(innerCentre, e, halfLength, halfWidth);
+            double outerCentre = CentreForInnermost(innerCorner + 2d * margin, e, halfLength, halfWidth);
+            double outerCorner = OutermostCorner(outerCentre, e, halfLength, halfWidth);
+            return (float)((outerRadius - margin) - outerCorner);
+        }
+
+        /// <summary>Plus petit rayon de centre dont le rectangle tourne de e reste a <paramref name="clearRadius"/> du centre de l'anneau.</summary>
+        public static double CentreForInnermost(double clearRadius, double offsetRadians, double halfLength, double halfWidth)
+        {
+            double cos = Math.Cos(offsetRadians);
+            double sin = Math.Abs(Math.Sin(offsetRadians));
+            double edge = (clearRadius + halfWidth) / cos;
+            if (edge * sin <= halfLength)
+            {
+                return edge;
+            }
+
+            // Le pied de la perpendiculaire sort du bord : le coin interieur est le plus proche.
+            double p = halfLength * sin + halfWidth * cos;
+            return p + Math.Sqrt(p * p - halfLength * halfLength - halfWidth * halfWidth + clearRadius * clearRadius);
+        }
+
+        /// <summary>Distance au centre de l'anneau du coin exterieur le plus eloigne d'un rectangle de centre R tourne de e.</summary>
+        public static double OutermostCorner(double centreRadius, double offsetRadians, double halfLength, double halfWidth)
+        {
+            double cos = Math.Cos(offsetRadians);
+            double sin = Math.Abs(Math.Sin(offsetRadians));
+            return Math.Sqrt(centreRadius * centreRadius + halfWidth * halfWidth + halfLength * halfLength
+                + 2d * centreRadius * (halfWidth * cos + halfLength * sin));
+        }
+
+        /// <summary>
         /// Mesure de chaque giratoire de l'import : enveloppe V2 appliquee (corridors d'anneau et
         /// continuations du module, lus sur le modele compile) puis anneau physique (colliders de la
         /// scene du module). Un collider non supporte a portee du pave est un echec dur.
         /// </summary>
-        public static List<RoundaboutMeasurement> Measure(V1ImportResult import, CompiledRoadModel model, List<string> failures)
+        public static List<RoundaboutMeasurement> Measure(V1ImportResult import, CompiledRoadModel model, List<string> failures,
+            GateAEvidenceParameters parameters = null, KinematicOffsetBounds bounds = null)
         {
+            parameters = parameters ?? GateAEvidenceParameters.Legacy;
+            if (parameters.Kinematic && (bounds == null || !bounds.Closed))
+            {
+                failures.Add("Residus d'anneau cinematiques sans bornes d'ecart fermees (" + KinematicOffsetBounds.NotClosedCode + ").");
+                return new List<RoundaboutMeasurement>();
+            }
+
             var measurements = new List<RoundaboutMeasurement>();
             foreach (var module in import.SourceSet.Modules)
             {
@@ -103,10 +166,30 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                 var measurement = new RoundaboutMeasurement();
                 measurement.Module = module;
+                measurement.AllowanceMeters = parameters.TrackingAllowanceMeters;
                 if (!MeasureEnvelope(import, model, module, measurement))
                 {
                     failures.Add("Giratoire '" + module.Label + "' : aucun corridor d'anneau ni continuation dans le modele compile, enveloppe V2 vide.");
                     continue;
+                }
+
+                if (parameters.Kinematic)
+                {
+                    float offset;
+                    string failure = RingOffsetMax(import, model, module, bounds, out offset);
+                    if (failure != null)
+                    {
+                        failures.Add("Giratoire '" + module.Label + "' : " + failure);
+                        continue;
+                    }
+
+                    measurement.OffsetMaxRadians = offset;
+                }
+
+                if (!parameters.IsLegacy)
+                {
+                    measurement.EnvelopeResidual = Residual(measurement.EnvelopeInnerRadius, measurement.EnvelopeOuterRadius,
+                        model.ValidationProfile, measurement.AllowanceMeters, measurement.OffsetMaxRadians);
                 }
 
                 if (MeasurePhysical(module, measurement, failures))
@@ -114,13 +197,50 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     measurement.PhysicalOuterRadius = measurement.NearestObstacle == null
                         ? measurement.PavedRadius
                         : Mathf.Min(measurement.PavedRadius, measurement.NearestObstacleRadius);
-                    measurement.PhysicalResidual = Residual(measurement.IslandRadius, measurement.PhysicalOuterRadius, model.ValidationProfile);
+                    measurement.PhysicalResidual = Residual(measurement.IslandRadius, measurement.PhysicalOuterRadius, model.ValidationProfile,
+                        measurement.AllowanceMeters, measurement.OffsetMaxRadians);
                 }
 
                 measurements.Add(measurement);
             }
 
             return measurements;
+        }
+
+        /// <summary>Pire |e| atteignable sur les corridors d'anneau et les continuations du module (enveloppe entiere de chaque element).</summary>
+        private static string RingOffsetMax(V1ImportResult import, CompiledRoadModel model, V1Module module, KinematicOffsetBounds bounds,
+            out float offset)
+        {
+            offset = 0f;
+            bool any = false;
+            foreach (var corridor in import.Corridors)
+            {
+                if (!corridor.IsRing || corridor.Module != module) continue;
+                string failure = Widen(bounds, import.IdOf(corridor.Key), ref offset, ref any);
+                if (failure != null) return failure;
+            }
+
+            foreach (var movement in import.Movements)
+            {
+                if (movement.Role != MovementRole.RoundaboutContinuation || movement.Module != module) continue;
+                string failure = Widen(bounds, import.IdOf(movement.Key), ref offset, ref any);
+                if (failure != null) return failure;
+            }
+
+            return any ? null : "aucun element d'anneau dans les bornes d'ecart.";
+        }
+
+        private static string Widen(KinematicOffsetBounds bounds, RoadId id, ref float offset, ref bool any)
+        {
+            ElementOffsets offsets;
+            if (!bounds.Elements.TryGetValue(id, out offsets)) return "element d'anneau " + id + " absent des bornes d'ecart.";
+            double lo;
+            double hi;
+            if (!bounds.TryHull(id, offsets.Element.StartS, offsets.Element.EndS, out lo, out hi))
+                return "element d'anneau " + id + " inatteignable.";
+            offset = Mathf.Max(offset, (float)Math.Max(Math.Abs(lo), Math.Abs(hi)));
+            any = true;
+            return null;
         }
 
         // ------------------------------------------------------------------ enveloppe V2

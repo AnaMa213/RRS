@@ -28,6 +28,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     {
         public const int DecisionPolicyVersion = 1;
         public const int ManifestFormatVersion = 1;
+        public const int KinematicDecisionPolicyVersion = 2;
+        public const int KinematicManifestFormatVersion = 2;
         public const float ProofToleranceMeters = 0.0001f;
         public const int MaxSubdivisionDepth = 20;
         public const string ApprovalId = "5.50-AUTO-DECISIONS-v1";
@@ -41,6 +43,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             IDictionary<string, RoadId> allocatedIds = null)
         {
             RequireRun(run);
+            GateAEvidenceParameters parameters = run.EvidenceParameters;
+            bool legacy = parameters.IsLegacy;
+            int policyVersion = legacy ? DecisionPolicyVersion : KinematicDecisionPolicyVersion;
+            int sweepVersion = ConflictSweep.AlgorithmVersionFor(parameters);
+            int fingerprintVersion = PairGeometryFingerprint.SchemaVersionFor(parameters);
+            string parametersHash = legacy ? string.Empty : Hash(parameters.CanonicalText);
             AutomatedPairDecisionManifest previous = ParseManifest(existingManifestText, false);
             var keys = AuthoringDecisions.KeysById(run.Import);
             var old = new Dictionary<string, ConflictDecision>(StringComparer.Ordinal);
@@ -54,24 +62,28 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             string lineageHash = V1SourceSet.Sha256Hex(run.LineageText);
             string freshDiffHash = DiffHash(run.PairSweeps, keys);
             string profileHash = ProfileHash(run.CandidateModel.ValidationProfile);
-            string inputDecisionsHash = previous != null && SameInputs(previous, modelVersion, sourceHash, lineageHash, freshDiffHash, profileHash)
+            bool sameInputs = previous != null && SameInputs(previous, modelVersion, sourceHash, lineageHash, freshDiffHash,
+                profileHash, parametersHash, policyVersion, sweepVersion, fingerprintVersion);
+            string inputDecisionsHash = sameInputs
                 ? previous.InputDecisionsHash
                 : V1SourceSet.Sha256Hex(run.DecisionsText);
+            string supersededManifest = previous == null ? string.Empty
+                : sameInputs ? previous.SupersededManifestText ?? string.Empty : existingManifestText;
             string engineCommit = GitCommit();
-            string runId = Hash(string.Join("\n", new[]
+            string runIdentity = string.Join("\n", new[]
             {
                 ApprovalId, ApprovalSha256, engineCommit, modelVersion, sourceHash, lineageHash, profileHash,
                 inputDecisionsHash, freshDiffHash, V1RoadModelImporter.ImporterVersion.ToString(CultureInfo.InvariantCulture),
                 AuthoredRoadModel.PipelineVersion.ToString(CultureInfo.InvariantCulture),
                 RoadModelCompiler.CompilerSchemaVersion.ToString(CultureInfo.InvariantCulture),
-                PairGeometryFingerprint.FingerprintSchemaVersion.ToString(CultureInfo.InvariantCulture),
-                ConflictSweep.AlgorithmVersion.ToString(CultureInfo.InvariantCulture),
-                DecisionPolicyVersion.ToString(CultureInfo.InvariantCulture)
-            }));
+                fingerprintVersion.ToString(CultureInfo.InvariantCulture), sweepVersion.ToString(CultureInfo.InvariantCulture),
+                policyVersion.ToString(CultureInfo.InvariantCulture)
+            });
+            string runId = Hash(legacy ? runIdentity : runIdentity + "\n" + parametersHash);
 
             var manifest = new AutomatedPairDecisionManifest
             {
-                Format = ManifestFormatVersion,
+                Format = legacy ? ManifestFormatVersion : KinematicManifestFormatVersion,
                 ApprovalId = ApprovalId,
                 ApprovalSha256 = ApprovalSha256,
                 EngineCommit = engineCommit,
@@ -85,9 +97,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 ImporterVersion = V1RoadModelImporter.ImporterVersion,
                 PipelineVersion = AuthoredRoadModel.PipelineVersion,
                 CompilerSchemaVersion = RoadModelCompiler.CompilerSchemaVersion,
-                FingerprintSchemaVersion = PairGeometryFingerprint.FingerprintSchemaVersion,
-                ConflictSweepAlgorithmVersion = ConflictSweep.AlgorithmVersion,
-                DecisionPolicyVersion = DecisionPolicyVersion,
+                FingerprintSchemaVersion = fingerprintVersion,
+                ConflictSweepAlgorithmVersion = sweepVersion,
+                DecisionPolicyVersion = policyVersion,
+                EvidenceParametersCanonical = legacy ? string.Empty : parameters.CanonicalText,
+                EvidenceParametersHash = parametersHash,
+                SupersededManifestText = supersededManifest,
+                SupersededManifestHash = string.IsNullOrEmpty(supersededManifest) ? string.Empty : Hash(supersededManifest),
                 ProofToleranceMeters = ProofToleranceMeters,
                 MaxSubdivisionDepth = MaxSubdivisionDepth,
                 SubdivisionOrder = "dyadic-a-then-b",
@@ -108,7 +124,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                 ConflictDecision prior;
                 old.TryGetValue(pair, out prior);
-                AutomatedPairDecisionRecord record = Classify(run, sweep, pair, keys, runId, modelVersion, prior);
+                AutomatedPairDecisionRecord record = Classify(run, sweep, pair, keys, runId, modelVersion, prior, policyVersion);
                 manifest.Records[i] = record;
                 if (!record.Active)
                 {
@@ -135,7 +151,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     record.RoadId = id.ToString();
                 }
 
-                output.Conflicts.Add(ToDecision(record, id, pair));
+                output.Conflicts.Add(ToDecision(record, id, pair, fingerprintVersion, sweepVersion, policyVersion));
             }
 
             foreach (var pair in old.Keys)
@@ -297,7 +313,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 previous = record.PairKey;
                 if (record.EvidenceHash != Hash(record.EvidenceCanonical)
                     || record.DecisionRevisionId != Revision(record.PairKey, record.GeometryFingerprint, record.Decision,
-                        record.Classification, record.EvidenceHash))
+                        record.Classification, record.EvidenceHash, manifest.DecisionPolicyVersion))
                 {
                     throw new InvalidOperationException("Politique 5.50 : preuve ou revision alteree pour " + Display(record.PairKey) + ".");
                 }
@@ -340,6 +356,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             try
             {
                 ValidatePlan(plan, expectedPairs);
+                RequireCleanPinnedCommit(plan);
             }
             catch (Exception exception)
             {
@@ -354,20 +371,50 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }, out error);
         }
 
-        [MenuItem("RoadRage/Traffic V2/Appliquer les decisions automatisees 5.50")]
+        private static void RequireCleanPinnedCommit(AutomatedPairDecisionPlan plan)
+        {
+            AutomatedPairDecisionManifest manifest = ParseManifest(plan.ManifestText, true);
+            if (string.IsNullOrEmpty(manifest.EngineCommit) || manifest.EngineCommit == "unavailable"
+                || !string.Equals(manifest.EngineCommit, GitCommit(), StringComparison.Ordinal))
+                throw new InvalidOperationException("Politique 5.50 : commit du moteur absent ou different du plan.");
+
+            var start = new System.Diagnostics.ProcessStartInfo("git", "status --porcelain --untracked-files=all")
+            {
+                WorkingDirectory = Directory.GetParent(Application.dataPath).FullName,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            using (var process = System.Diagnostics.Process.Start(start))
+            {
+                string status = process.StandardOutput.ReadToEnd();
+                string diagnostic = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+                if (process.ExitCode != 0 || status.Length > 0)
+                    throw new InvalidOperationException("Politique 5.50 : arbre Git non propre ou statut indisponible : " + diagnostic);
+            }
+        }
+
+        [MenuItem("RoadRage/Traffic V2/Appliquer les decisions automatisees 5.52")]
         public static void ApplyMenu()
         {
             Scene scene = SceneManager.GetActiveScene();
             if (!scene.IsValid() || scene.path != MigrationReport.ScenePath || scene.isDirty)
             {
-                Debug.LogError("[Traffic V2] Application 5.50 refusee : MVP_Run doit etre la scene active, chargee et propre.");
+                Debug.LogError("[Traffic V2] Application 5.52 refusee : MVP_Run doit etre la scene active, chargee et propre.");
                 return;
             }
 
             string decisionsText = AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath));
-            var run = AuthoredRoadModel.Run(scene, AuthoredRoadModel.ReadIfExists(MigrationReport.LineageFullPath), decisionsText);
             try
             {
+                var regenerated = GateAEvidenceRegeneration.Regenerate(scene,
+                    AuthoredRoadModel.ReadIfExists(MigrationReport.LineageFullPath), decisionsText, GateAEvidenceParameters.Declared());
+                if (!regenerated.Covered)
+                    throw new InvalidOperationException("regeneration cinematique non couverte : "
+                        + string.Join(" ; ", regenerated.Failures) + " ; " + string.Join(" ; ", regenerated.Deficits));
+                AuthoredRun run = regenerated.Run;
                 var first = CreatePlan(run, AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(ManifestPath)));
                 var second = CreatePlan(run, AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(ManifestPath)), first.AllocatedIds);
                 if (first.DecisionsText != second.DecisionsText || first.ManifestText != second.ManifestText)
@@ -382,11 +429,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 }
 
                 AssetDatabase.ImportAsset(AuthoredRoadModel.DecisionsPath);
-                Debug.Log("[Traffic V2] Decisions automatisees 5.50 appliquees transactionnellement (run " + first.DecisionRunId + "). Gate A reste fermee et non signee.");
+                Debug.Log("[Traffic V2] Decisions automatisees 5.52 appliquees transactionnellement (run " + first.DecisionRunId + "). Gate A reste fermee et non signee.");
             }
             catch (Exception exception)
             {
-                Debug.LogError("[Traffic V2] Application 5.50 refusee, rien n'est ecrit : " + exception.Message);
+                Debug.LogError("[Traffic V2] Application 5.52 refusee, rien n'est ecrit : " + exception.Message);
             }
         }
 
@@ -397,7 +444,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             Dictionary<RoadId, string> keys,
             string runId,
             string modelVersion,
-            ConflictDecision prior)
+            ConflictDecision prior,
+            int policyVersion)
         {
             CompiledJunctionMovement a;
             CompiledJunctionMovement b;
@@ -406,8 +454,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 throw new InvalidOperationException("Politique 5.50 : mouvement introuvable pour " + Display(pair) + ".");
             }
 
-            string geometry = PairGeometryFingerprint.Compute(keys[sweep.MovementA], a.Samples, keys[sweep.MovementB], b.Samples,
-                sweep.HasVolume ? sweep.Volume : default(RoadBoundsBox));
+            string geometry = AuthoredRoadModel.CandidateFingerprint(run, keys, a, b, sweep.HasVolume ? sweep.Volume : default(RoadBoundsBox));
             string movementAHash = PairGeometryFingerprint.ComputeMovement(keys[sweep.MovementA], a.Samples);
             string movementBHash = PairGeometryFingerprint.ComputeMovement(keys[sweep.MovementB], b.Samples);
             AutomatedPairClassification classification;
@@ -473,7 +520,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             string priorRevision = PreviousRevision(prior, pair);
             string evidence = Evidence(pair, sweep, classification, reasonCode, separation, movementAHash, movementBHash);
             string evidenceHash = Hash(evidence);
-            string revision = Revision(pair, geometry, decision, classification.ToString(), evidenceHash);
+            string revision = Revision(pair, geometry, decision, classification.ToString(), evidenceHash, policyVersion);
             string supersedes = prior.DecisionRevisionId;
             if (string.IsNullOrEmpty(supersedes) && (!string.IsNullOrEmpty(prior.MovementKeyA)))
             {
@@ -516,10 +563,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         private static bool ContactWitness(PairSweep sweep, RoadModelValidationProfile profile)
         {
+            // Gonflement du balayage lui-meme (a_e compris, restes exclus : le temoin est une paire de poses reelles).
+            float inflation = sweep.BaseInflationMeters > 0f ? sweep.BaseInflationMeters : ConflictSweep.Inflation(profile);
             return sweep.HasWitness && !sweep.WitnessA.Degenerate && !sweep.WitnessB.Degenerate
                 && ConflictSweep.RectangleDistance(sweep.WitnessA, sweep.WitnessB,
                     ConflictSweep.HalfLength(profile), profile.MaxVehicleHalfWidthMeters)
-                    <= 2f * ConflictSweep.Inflation(profile) + ProofToleranceMeters;
+                    <= 2f * inflation + ProofToleranceMeters;
         }
 
         private static string Evidence(string pair, PairSweep sweep, AutomatedPairClassification classification, string reasonCode,
@@ -536,7 +585,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             });
         }
 
-        private static ConflictDecision ToDecision(AutomatedPairDecisionRecord record, RoadId id, string pair)
+        private static ConflictDecision ToDecision(AutomatedPairDecisionRecord record, RoadId id, string pair,
+            int fingerprintVersion, int sweepVersion, int policyVersion)
         {
             string[] keys = pair.Split('\n');
             return new ConflictDecision
@@ -556,9 +606,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 ImporterVersion = V1RoadModelImporter.ImporterVersion,
                 PipelineVersion = AuthoredRoadModel.PipelineVersion,
                 CompilerSchemaVersion = RoadModelCompiler.CompilerSchemaVersion,
-                FingerprintSchemaVersion = PairGeometryFingerprint.FingerprintSchemaVersion,
-                ConflictSweepAlgorithmVersion = ConflictSweep.AlgorithmVersion,
-                DecisionPolicyVersion = DecisionPolicyVersion
+                FingerprintSchemaVersion = fingerprintVersion,
+                ConflictSweepAlgorithmVersion = sweepVersion,
+                DecisionPolicyVersion = policyVersion
             };
         }
 
@@ -572,10 +622,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return copy;
         }
 
-        private static string Revision(string pair, string geometry, string decision, string classification, string evidenceHash)
+        private static string Revision(string pair, string geometry, string decision, string classification,
+            string evidenceHash, int policyVersion)
         {
             return Hash(pair + "\n" + geometry + "\n" + decision + "\n" + classification + "\n"
-                + DecisionPolicyVersion.ToString(CultureInfo.InvariantCulture) + "\n" + evidenceHash);
+                + policyVersion.ToString(CultureInfo.InvariantCulture) + "\n" + evidenceHash);
         }
 
         private static string PreviousRevision(ConflictDecision decision, string pair)
@@ -612,12 +663,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         }
 
         private static bool SameInputs(AutomatedPairDecisionManifest manifest, string modelVersion, string sourceHash,
-            string lineageHash, string diffHash, string profileHash)
+            string lineageHash, string diffHash, string profileHash, string parametersHash,
+            int policyVersion, int sweepVersion, int fingerprintVersion)
         {
             return manifest.ModelVersion == modelVersion && manifest.SourceHash == sourceHash && manifest.LineageHash == lineageHash
                 && manifest.FreshDifferentialHash == diffHash && manifest.ProfileHash == profileHash
-                && manifest.ApprovalSha256 == ApprovalSha256 && manifest.DecisionPolicyVersion == DecisionPolicyVersion
-                && manifest.ConflictSweepAlgorithmVersion == ConflictSweep.AlgorithmVersion;
+                && manifest.ApprovalSha256 == ApprovalSha256 && manifest.DecisionPolicyVersion == policyVersion
+                && manifest.ConflictSweepAlgorithmVersion == sweepVersion && manifest.FingerprintSchemaVersion == fingerprintVersion
+                && (manifest.EvidenceParametersHash ?? string.Empty) == parametersHash;
         }
 
         private static void RequireRun(AuthoredRun run)
@@ -650,12 +703,28 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 throw new InvalidOperationException("Politique 5.50 : manifeste illisible : " + exception.Message);
             }
 
-            if (manifest == null || manifest.Format != ManifestFormatVersion || manifest.ApprovalId != ApprovalId
-                || manifest.ApprovalSha256 != ApprovalSha256 || manifest.DecisionPolicyVersion != DecisionPolicyVersion
-                || manifest.ConflictSweepAlgorithmVersion != ConflictSweep.AlgorithmVersion)
+            if (manifest == null || manifest.ApprovalId != ApprovalId || manifest.ApprovalSha256 != ApprovalSha256)
             {
                 throw new InvalidOperationException("Politique 5.50 : manifeste ou versions incompatibles.");
             }
+
+            bool legacy = manifest.Format == ManifestFormatVersion
+                && manifest.DecisionPolicyVersion == DecisionPolicyVersion
+                && manifest.FingerprintSchemaVersion == PairGeometryFingerprint.FingerprintSchemaVersion
+                && manifest.ConflictSweepAlgorithmVersion == ConflictSweep.AlgorithmVersion;
+            bool kinematic = manifest.Format == KinematicManifestFormatVersion
+                && manifest.DecisionPolicyVersion == KinematicDecisionPolicyVersion
+                && manifest.FingerprintSchemaVersion == PairGeometryFingerprint.EvidenceFingerprintSchemaVersion
+                && manifest.ConflictSweepAlgorithmVersion == ConflictSweep.KinematicAlgorithmVersion
+                && !string.IsNullOrEmpty(manifest.EvidenceParametersCanonical)
+                && manifest.EvidenceParametersHash == Hash(manifest.EvidenceParametersCanonical);
+            if (!legacy && !kinematic)
+                throw new InvalidOperationException("Politique 5.50 : manifeste ou versions incompatibles.");
+
+            if (string.IsNullOrEmpty(manifest.SupersededManifestText)
+                ? !string.IsNullOrEmpty(manifest.SupersededManifestHash)
+                : manifest.SupersededManifestHash != Hash(manifest.SupersededManifestText))
+                throw new InvalidOperationException("Politique 5.50 : archive du manifeste historique alteree.");
 
             return manifest;
         }
@@ -723,6 +792,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public int FingerprintSchemaVersion;
         public int ConflictSweepAlgorithmVersion;
         public int DecisionPolicyVersion;
+        public string EvidenceParametersCanonical;
+        public string EvidenceParametersHash;
+        public string SupersededManifestText;
+        public string SupersededManifestHash;
         public float ProofToleranceMeters;
         public int MaxSubdivisionDepth;
         public string SubdivisionOrder;

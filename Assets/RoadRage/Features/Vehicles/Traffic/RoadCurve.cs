@@ -263,6 +263,15 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// </summary>
         public double AdvanceKinematicOffset(float s0, float s1, double e, float a)
         {
+            return AdvanceKinematicOffset(s0, s1, e, a, null);
+        }
+
+        /// <summary>
+        /// Meme transport, qui publie chaque noeud d'integration (s, e) apres son pas : les bornes de preuve
+        /// Gate A (Story 5.52) encadrent ainsi la solution entre noeuds sans refaire une autre integration.
+        /// </summary>
+        public double AdvanceKinematicOffset(float s0, float s1, double e, float a, Action<double, double> node)
+        {
             s0 = Mathf.Clamp(s0, StartS, Length);
             s1 = Mathf.Clamp(s1, StartS, Length);
             if (!(a > 0f) || !(s1 > s0)) return e;
@@ -287,6 +296,7 @@ namespace RoadRage.Features.Vehicles.Traffic
                     double r3 = k0 + slope * (x + 0.5 * h) - Math.Sin(e + 0.5 * h * r2) / a;
                     double r4 = k0 + slope * (x + h) - Math.Sin(e + h * r3) / a;
                     e += h / 6.0 * (r1 + 2.0 * r2 + 2.0 * r3 + r4);
+                    if (node != null) node(x0 + h * (n + 1), e);
                 }
             }
             return e;

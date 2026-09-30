@@ -34,6 +34,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public bool Seam;
         public float IntervalDelta;
         public float LargestDelta;
+
+        // Pose cinematique (Story 5.52) : element et abscisse du temoin, enveloppe des ecarts de sa grille, reste de grille.
+        public RoadId ElementId;
+        public float SMeters;
+        public float OffsetLoRadians;
+        public float OffsetHiRadians;
+        public float GridRemainder;
     }
 
     public sealed class JunctionClearanceRow
@@ -76,6 +83,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public readonly List<JunctionClearanceRow> Rows = new List<JunctionClearanceRow>();
         public readonly List<string> Failures = new List<string>();
 
+        /// <summary>Sous-ensemble de <see cref="Failures"/> : residus non positifs (verdict), distincts des mesures impossibles.</summary>
+        public readonly List<string> ResidualFailures = new List<string>();
+
         public bool Passed { get { return Failures.Count == 0 && Rows.Count > 0 && Rows.All(r => r.Physical.Residual > 0f && (r.Semantic == null || r.Semantic.Residual > 0f)); } }
     }
 
@@ -113,6 +123,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public static float HalfWidth(RoadModelValidationProfile profile)
         {
             return profile.MaxVehicleHalfWidthMeters + profile.LateralClearanceMarginMeters + V1RoadModelImporter.ChordToleranceMeters;
+        }
+
+        /// <summary>Demi-longueur gonflee aussi de l'allocation de suivi a_e (Story 5.52), gonflement integre au rectangle.</summary>
+        public static float HalfLength(RoadModelValidationProfile profile, float trackingAllowanceMeters)
+        {
+            return HalfLength(profile) + trackingAllowanceMeters;
+        }
+
+        public static float HalfWidth(RoadModelValidationProfile profile, float trackingAllowanceMeters)
+        {
+            return HalfWidth(profile) + trackingAllowanceMeters;
         }
 
         /// <summary>Genere toutes les poses, y compris les echantillons compiles et les deux cotes de chaque couture.</summary>
@@ -173,11 +194,39 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                     pose.ElementId = a.ElementId;
                     pose.SMeters = s;
+                    pose.Up = point.Up;
                     dense.Add(pose);
                 }
             }
 
             return dense;
+        }
+
+        /// <summary>
+        /// Distance signee de deux polygones convexes (Story 5.52) : la distance exacte s'ils sont separes, sinon
+        /// moins la profondeur de penetration (plus petit recouvrement sur les normales d'aretes, SAT). Un deficit
+        /// est ainsi chiffre au lieu de plafonner a zero ; la valeur positive est celle de <see cref="Distance"/>.
+        /// </summary>
+        public static float SignedDistance(IReadOnlyList<Vector2> a, IReadOnlyList<Vector2> b)
+        {
+            float distance = Distance(a, b);
+            if (distance > 0f) return distance;
+            float depth = float.PositiveInfinity;
+            foreach (var owner in new[] { a, b })
+            {
+                for (int i = 0; i < owner.Count; i++)
+                {
+                    Vector2 edge = owner[(i + 1) % owner.Count] - owner[i];
+                    if (edge.sqrMagnitude <= 0f) continue;
+                    Vector2 axis = new Vector2(-edge.y, edge.x).normalized;
+                    float aMin = float.PositiveInfinity, aMax = float.NegativeInfinity, bMin = float.PositiveInfinity, bMax = float.NegativeInfinity;
+                    foreach (Vector2 point in a) { float d = Vector2.Dot(point, axis); aMin = Mathf.Min(aMin, d); aMax = Mathf.Max(aMax, d); }
+                    foreach (Vector2 point in b) { float d = Vector2.Dot(point, axis); bMin = Mathf.Min(bMin, d); bMax = Mathf.Max(bMax, d); }
+                    depth = Mathf.Min(depth, Mathf.Min(aMax - bMin, bMax - aMin));
+                }
+            }
+
+            return float.IsInfinity(depth) ? 0f : -Mathf.Max(0f, depth);
         }
 
         /// <summary>Distance exacte de deux polygones convexes du plan, zero en contact.</summary>
@@ -210,19 +259,27 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public static JunctionClearanceWitness MeasurePath(IReadOnlyList<SweepPose> poses, IReadOnlyList<Vector2[]> obstacles,
             RoadModelValidationProfile profile, string obstacleName = null)
         {
+            return MeasurePath(poses, obstacles, HalfLength(profile), HalfWidth(profile), obstacleName);
+        }
+
+        /// <summary>Meme residu pour un rectangle gonfle donne (a pose tangente, a_e compris : Story 5.52).</summary>
+        public static JunctionClearanceWitness MeasurePath(IReadOnlyList<SweepPose> poses, IReadOnlyList<Vector2[]> obstacles,
+            float halfLength, float halfWidth, string obstacleName = null, bool signedDistance = false)
+        {
+            Func<IReadOnlyList<Vector2>, IReadOnlyList<Vector2>, float> measure = signedDistance
+                ? (Func<IReadOnlyList<Vector2>, IReadOnlyList<Vector2>, float>)SignedDistance
+                : Distance;
             var witness = new JunctionClearanceWitness { Obstacle = obstacleName };
             if (poses == null || poses.Count == 0 || obstacles == null || obstacles.Count == 0)
             {
                 return witness;
             }
 
-            float halfLength = HalfLength(profile);
-            float halfWidth = HalfWidth(profile);
             float rho = Mathf.Sqrt(halfLength * halfLength + halfWidth * halfWidth);
             foreach (Vector2[] obstacle in obstacles)
             {
                 var previous = ConflictSweep.Corners(poses[0], halfLength, halfWidth);
-                float d0 = Distance(previous, obstacle);
+                float d0 = measure(previous, obstacle);
                 if (poses.Count == 1 && d0 < witness.Residual)
                 {
                     witness.Residual = d0;
@@ -232,16 +289,19 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 for (int i = 1; i < poses.Count; i++)
                 {
                     var current = ConflictSweep.Corners(poses[i], halfLength, halfWidth);
-                    float d1 = Distance(current, obstacle);
+                    float d1 = measure(current, obstacle);
                     float delta = ConflictSweep.Delta(poses[i - 1], poses[i], rho);
                     witness.LargestDelta = Mathf.Max(witness.LargestDelta, delta);
                     float residual = Mathf.Min(d0, d1) - 0.5f * delta;
                     if (residual < witness.Residual)
                     {
+                        var closer = d0 <= d1 ? poses[i - 1] : poses[i];
                         witness.Residual = residual;
-                        witness.Position = d0 <= d1 ? poses[i - 1].Position : poses[i].Position;
+                        witness.Position = closer.Position;
                         witness.Seam = poses[i - 1].ElementId != poses[i].ElementId;
                         witness.IntervalDelta = delta;
+                        witness.ElementId = closer.ElementId;
+                        witness.SMeters = closer.SMeters;
                     }
 
                     previous = current;
@@ -250,6 +310,123 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             return witness;
+        }
+
+        /// <summary>
+        /// Residu sur l'ensemble de poses nominales cinematiques (Story 5.52, contrat §8) :
+        /// min(d_a, d_b) - (|Delta p| + rho . rotation de caisse)/2 - rho . h_e/2, d etant la distance minimale des
+        /// rectangles de la grille de caps de chaque pose. La distance exacte n'est calculee que la ou la borne
+        /// du disque (distance au point de reference - rho) peut encore atteindre le minimum : minimum et temoin
+        /// restent exacts, les autres poses gardent leur minorant.
+        /// </summary>
+        public static JunctionClearanceWitness MeasurePathKinematic(IReadOnlyList<SweepPose> poses, PoseGrid[] grids, float[] rotations,
+            IReadOnlyList<Vector2[]> obstacles, float halfLength, float halfWidth, float gridStep, string obstacleName = null)
+        {
+            var witness = new JunctionClearanceWitness { Obstacle = obstacleName };
+            if (poses == null || poses.Count == 0 || obstacles == null || obstacles.Count == 0)
+            {
+                return witness;
+            }
+
+            int count = poses.Count;
+            float rho = Mathf.Sqrt(halfLength * halfLength + halfWidth * halfWidth);
+            float remainder = rho * gridStep * 0.5f;
+            witness.GridRemainder = remainder;
+            var deltas = new float[Math.Max(0, count - 1)];
+            for (int i = 1; i < count; i++)
+            {
+                deltas[i - 1] = (poses[i].Plan - poses[i - 1].Plan).magnitude + rho * rotations[i - 1];
+                witness.LargestDelta = Mathf.Max(witness.LargestDelta, deltas[i - 1]);
+            }
+
+            foreach (Vector2[] obstacle in obstacles)
+            {
+                var upperBound = new float[count];
+                var lowerBound = new float[count];
+                for (int i = 0; i < count; i++)
+                {
+                    // Distance signee : le minorant du disque ne vaut que si le rectangle est surement separe (> 0).
+                    upperBound[i] = PointPolygonDistance(poses[i].Plan, obstacle);
+                    lowerBound[i] = upperBound[i] - rho;
+                }
+
+                float upper = count == 1 ? upperBound[0] - remainder : float.PositiveInfinity;
+                for (int i = 1; i < count; i++)
+                {
+                    upper = Mathf.Min(upper, Mathf.Min(upperBound[i - 1], upperBound[i]) - 0.5f * deltas[i - 1] - remainder);
+                }
+
+                var distance = new float[count];
+                for (int i = 0; i < count; i++)
+                {
+                    float adjacent = Mathf.Max(i > 0 ? deltas[i - 1] : 0f, i + 1 < count ? deltas[i] : 0f);
+                    distance[i] = lowerBound[i] <= 0f || lowerBound[i] - 0.5f * adjacent - remainder <= upper
+                        ? GridDistance(poses[i], grids[i], obstacle, halfLength, halfWidth)
+                        : lowerBound[i];
+                }
+
+                if (count == 1)
+                {
+                    Keep(witness, distance[0] - remainder, poses[0], grids[0], false, 0f);
+                    continue;
+                }
+
+                for (int i = 1; i < count; i++)
+                {
+                    float residual = Mathf.Min(distance[i - 1], distance[i]) - 0.5f * deltas[i - 1] - remainder;
+                    int closer = distance[i - 1] <= distance[i] ? i - 1 : i;
+                    Keep(witness, residual, poses[closer], grids[closer], poses[i - 1].ElementId != poses[i].ElementId, deltas[i - 1]);
+                }
+            }
+
+            return witness;
+        }
+
+        private static void Keep(JunctionClearanceWitness witness, float residual, SweepPose pose, PoseGrid grid, bool seam, float delta)
+        {
+            if (!(residual < witness.Residual))
+            {
+                return;
+            }
+
+            witness.Residual = residual;
+            witness.Position = pose.Position;
+            witness.Seam = seam;
+            witness.IntervalDelta = delta;
+            witness.ElementId = pose.ElementId;
+            witness.SMeters = pose.SMeters;
+            witness.OffsetLoRadians = (float)grid.OffsetLo;
+            witness.OffsetHiRadians = (float)grid.OffsetHi;
+        }
+
+        private static float GridDistance(SweepPose pose, PoseGrid grid, Vector2[] obstacle, float halfLength, float halfWidth)
+        {
+            float best = float.PositiveInfinity;
+            foreach (Vector2 heading in grid.Headings)
+            {
+                best = Mathf.Min(best, SignedDistance(ConflictSweep.Corners(KinematicPoseSet.WithHeading(pose, heading), halfLength, halfWidth), obstacle));
+            }
+
+            return best;
+        }
+
+        /// <summary>Distance d'un point a un polygone convexe (0 a l'interieur), sans hypothese d'orientation.</summary>
+        private static float PointPolygonDistance(Vector2 point, Vector2[] polygon)
+        {
+            bool positive = false;
+            bool negative = false;
+            float best = float.PositiveInfinity;
+            for (int i = 0; i < polygon.Length; i++)
+            {
+                Vector2 a = polygon[i];
+                Vector2 b = polygon[(i + 1) % polygon.Length];
+                float cross = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x);
+                positive |= cross > 0f;
+                negative |= cross < 0f;
+                best = Mathf.Min(best, PointEdge(point, a, b));
+            }
+
+            return positive && negative ? best : 0f;
         }
 
         /// <param name="sidewalks">Surfaces Sidewalk de toute la scene, lues par l'adaptateur Editor de la classification V1.</param>
@@ -266,14 +443,27 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// d'anneau entier ; empreinte physique propre, versionnee par <see cref="RoundaboutSweepVersion"/>.
         /// </summary>
         internal static JunctionClearanceResult Measure(Scene scene, V1ImportResult import, CompiledRoadModel model,
-            IReadOnlyList<JunctionClearanceSurface> sidewalks, float h, bool roundabouts)
+            IReadOnlyList<JunctionClearanceSurface> sidewalks, float h, bool roundabouts,
+            GateAEvidenceParameters parameters = null, KinematicOffsetBounds bounds = null)
         {
+            parameters = parameters ?? GateAEvidenceParameters.Legacy;
             var result = new JunctionClearanceResult { StepMeters = h };
             if (!scene.IsValid() || !scene.isLoaded || import == null || model == null || !(h > 0f))
             {
                 result.Failures.Add("Scene, import, modele ou pas h invalide.");
                 return result;
             }
+
+            if (parameters.Kinematic && (bounds == null || !bounds.Closed))
+            {
+                result.Failures.Add("Preuve cinematique sans bornes d'ecart fermees (" + KinematicOffsetBounds.NotClosedCode + ").");
+                return result;
+            }
+
+            // Gonflement integre au rectangle, a_e compris (Story 5.52) ; historique : a_e = 0 au bit pres.
+            float halfLength = HalfLength(model.ValidationProfile, parameters.TrackingAllowanceMeters);
+            float halfWidth = HalfWidth(model.ValidationProfile, parameters.TrackingAllowanceMeters);
+            string evidenceInputs = parameters.IsLegacy ? string.Empty : "|" + parameters.CanonicalText;
 
             if (sidewalks == null || sidewalks.Count == 0)
             {
@@ -305,6 +495,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 reliefInputs = "relief:" + result.ReliefClearanceMeters.ToString("R", CultureInfo.InvariantCulture) + "|"
                     + GlobalObjectId.GetGlobalObjectIdSlow(profileDef) + "|" + JsonUtility.ToJson(profileDef);
             }
+
+            reliefInputs += evidenceInputs;
 
             Physics.SyncTransforms();
             var graph = SweepGraph.FromModel(model);
@@ -348,7 +540,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     }
                     else
                     {
-                        paths = ConflictSweep.Paths(graph, import.IdOf(movement.Key), HalfLength(model.ValidationProfile), out pathFailure);
+                        paths = ConflictSweep.Paths(graph, import.IdOf(movement.Key), halfLength, out pathFailure);
                     }
 
                     if (pathFailure != null)
@@ -367,8 +559,19 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         catch (ArgumentException error) { result.Failures.Add(module.Label + "/" + movement.Label + " : " + error.Message); continue; }
 
                         swept += poses.Count;
+                        PoseGrid[] grids = null;
+                        float[] rotations = null;
+                        if (parameters.Kinematic)
+                        {
+                            string gridFailure = KinematicPoseSet.Build(poses, bounds, parameters.OffsetGridStepRadians, out grids, out rotations);
+                            if (gridFailure != null)
+                            {
+                                result.Failures.Add(module.Label + "/" + movement.Label + " : " + gridFailure);
+                                continue;
+                            }
+                        }
 
-                        var nearby = Nearby(allColliders, poses, model.ValidationProfile);
+                        var nearby = Nearby(allColliders, poses, halfLength, halfWidth);
                         foreach (Collider collider in nearby)
                         {
                             physicalInputs.Add(collider); // participation et geometrie, y compris inactif
@@ -392,11 +595,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                                 continue;
                             }
 
-                            var measured = MeasurePath(poses, new[] { polygon }, model.ValidationProfile, Describe(collider));
+                            var measured = parameters.Kinematic
+                                ? MeasurePathKinematic(poses, grids, rotations, new[] { polygon }, halfLength, halfWidth,
+                                    parameters.OffsetGridStepRadians, Describe(collider))
+                                : MeasurePath(poses, new[] { polygon }, halfLength, halfWidth, Describe(collider), !parameters.IsLegacy);
                             Merge(physical, measured);
                         }
 
-                        float reach = Mathf.Sqrt(Mathf.Pow(HalfLength(model.ValidationProfile), 2f) + Mathf.Pow(HalfWidth(model.ValidationProfile), 2f));
+                        float reach = Mathf.Sqrt(Mathf.Pow(halfLength, 2f) + Mathf.Pow(halfWidth, 2f));
                         foreach (Surface surface in roundabouts ? Enumerable.Empty<Surface>() : surfaces)
                         {
                             if (!surface.Polygons.Any(polygon => Near(polygon, poses, reach))) continue;
@@ -407,7 +613,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                                 foreach (Collider collider in surface.Colliders) semanticInputs.Add(collider);
                             }
 
-                            Merge(witness, MeasurePath(poses, surface.Polygons, model.ValidationProfile, surface.Name));
+                            Merge(witness, parameters.Kinematic
+                                ? MeasurePathKinematic(poses, grids, rotations, surface.Polygons, halfLength, halfWidth,
+                                    parameters.OffsetGridStepRadians, surface.Name)
+                                : MeasurePath(poses, surface.Polygons, halfLength, halfWidth, surface.Name, !parameters.IsLegacy));
                         }
                     }
 
@@ -422,8 +631,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         result.Rows.Add(new JunctionClearanceRow { Junction = module.Label, Movement = movement.Label, Physical = physical });
                         if (!(physical.Residual > 0f))
                         {
-                            result.Failures.Add(module.Label + "/" + movement.Label + " : residu physique non positif ("
-                                + physical.Residual.ToString("R", CultureInfo.InvariantCulture) + ", " + physical.Obstacle + ").");
+                            string failure = module.Label + "/" + movement.Label + " : residu physique non positif ("
+                                + physical.Residual.ToString("R", CultureInfo.InvariantCulture) + ", " + physical.Obstacle + ").";
+                            result.Failures.Add(failure);
+                            result.ResidualFailures.Add(failure);
                         }
 
                         continue;
@@ -447,9 +658,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         result.Rows.Add(row);
                         if (!(row.Physical.Residual > 0f) || !(row.Semantic.Residual > 0f))
                         {
-                            result.Failures.Add(module.Label + "/" + movement.Label + "/" + surface.Name + " : residu non positif (physique "
+                            string failure = module.Label + "/" + movement.Label + "/" + surface.Name + " : residu non positif (physique "
                                 + row.Physical.Residual.ToString("R", CultureInfo.InvariantCulture) + ", Sidewalk "
-                                + row.Semantic.Residual.ToString("R", CultureInfo.InvariantCulture) + ").");
+                                + row.Semantic.Residual.ToString("R", CultureInfo.InvariantCulture) + ").";
+                            result.Failures.Add(failure);
+                            result.ResidualFailures.Add(failure);
                         }
                     }
                 }
@@ -478,6 +691,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 declarations.Append(GlobalObjectId.GetGlobalObjectIdSlow(surface.Input.Declaration)).Append('|')
                     .Append(surface.Input.DeclarationSignature).Append('|').Append(surface.Colliders.Count).Append('\n');
             }
+
+            declarations.Append(evidenceInputs);
 
             result.SemanticFingerprint = FingerprintWithInputs(semanticInputs.Cast<Component>().Concat(semanticVisuals.Cast<Component>()), declarations.ToString(), ai.layer, result.SemanticInputs);
             return result;
@@ -719,10 +934,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return !(positive && negative);
         }
 
-        private static List<Collider> Nearby(IEnumerable<Collider> colliders, IReadOnlyList<SweepPose> poses, RoadModelValidationProfile profile)
+        private static List<Collider> Nearby(IEnumerable<Collider> colliders, IReadOnlyList<SweepPose> poses, float halfLength, float halfWidth)
         {
             // + 1 m : un obstacle juste hors portee pourrait encore rendre negatif le residu entre poses.
-            float reach = Mathf.Sqrt(Mathf.Pow(HalfLength(profile), 2f) + Mathf.Pow(HalfWidth(profile), 2f)) + 1f;
+            // La portee rho est invariante par rotation : elle couvre aussi toute grille de caps (Story 5.52).
+            float reach = Mathf.Sqrt(Mathf.Pow(halfLength, 2f) + Mathf.Pow(halfWidth, 2f)) + 1f;
             float minX = poses.Min(p => p.Position.x) - reach;
             float maxX = poses.Max(p => p.Position.x) + reach;
             float minZ = poses.Min(p => p.Position.z) - reach;
@@ -949,12 +1165,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         private static void Merge(JunctionClearanceWitness into, JunctionClearanceWitness candidate)
         {
             into.LargestDelta = Mathf.Max(into.LargestDelta, candidate.LargestDelta);
+            into.GridRemainder = Mathf.Max(into.GridRemainder, candidate.GridRemainder);
             if (candidate.Residual >= into.Residual) return;
             into.Residual = candidate.Residual;
             into.Position = candidate.Position;
             into.Obstacle = candidate.Obstacle;
             into.Seam = candidate.Seam;
             into.IntervalDelta = candidate.IntervalDelta;
+            into.ElementId = candidate.ElementId;
+            into.SMeters = candidate.SMeters;
+            into.OffsetLoRadians = candidate.OffsetLoRadians;
+            into.OffsetHiRadians = candidate.OffsetHiRadians;
         }
 
         /// <summary>
