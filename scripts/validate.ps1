@@ -30,6 +30,8 @@ Usage :
   scripts\validate.ps1 -TestFilter "RoadRage.Tests.EditMode.RoadRageScaffoldTests"
   scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode EditMode  # tests de la story
   scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode PlayMode  # tests de la story
+  scripts\validate.ps1 -TestMode PlayMode -TestFilter Story531Campaign -TestFilterType category -IncludeExplicit
+                                                              # campagne [Explicit] ciblee
   scripts\validate.ps1 -Profile Fast                       # EditMode hors geometrie (developpement)
   scripts\validate.ps1 -Profile Geometry                   # preuves geometriques seules
   scripts\validate.ps1 -Profile Auto                       # selection selon les fichiers modifies
@@ -56,6 +58,8 @@ param(
 
     [ValidateSet('testName', 'assembly', 'category')]
     [string]$TestFilterType = 'testName',
+
+    [switch]$IncludeExplicit,
 
     [ValidateSet('Full', 'Fast', 'Geometry', 'FullSansGeometry', 'Auto', 'Story')]
     [string]$Profile = 'Full',
@@ -265,6 +269,9 @@ if ($Profile -ne 'Full' -and $Profile -ne 'Story' -and $TestMode -ne 'EditMode')
 }
 if ($Profile -ne 'Full' -and $PSBoundParameters.ContainsKey('TestFilter')) {
     Fail "-Profile $Profile et -TestFilter sont exclusifs : le filtrage par categorie et le filtrage par nom sont deux selections differentes (une seule passe par le CLI). Utiliser l'un ou l'autre."
+}
+if ($IncludeExplicit -and [string]::IsNullOrWhiteSpace($TestFilter)) {
+    Fail "-IncludeExplicit exige -TestFilter non vide : aucune suite [Explicit] complete ne peut etre lancee par erreur."
 }
 if ($Profile -eq 'Story' -and $Story -cnotmatch '^\d+\.\d+$') {
     Fail "-Profile Story exige -Story au format X.Y (exemple : 5.31)."
@@ -544,8 +551,19 @@ if ($Profile -eq 'Story') {
 # --- Etape 8 : tests cibles (AD-9) ---
 $modes = if ($TestMode -eq 'Both') { @('EditMode', 'PlayMode') } else { @($TestMode) }
 foreach ($mode in $modes) {
+    $explicitExpected = @()
+    if ($IncludeExplicit -and $TestFilterType -eq 'category') {
+        $listMode = if ($mode -eq 'EditMode') { 'editor' } else { 'playmode' }
+        Write-Step "unity cmd list_tests --mode $listMode (selection [Explicit] ciblee)"
+        $listed = @( (Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'list_tests', '--mode', $listMode))).tests )
+        $explicitExpected = @($listed | Where-Object { $_.categories -contains $TestFilter } | ForEach-Object { $_.fullName } | Sort-Object)
+        if ($explicitExpected.Count -eq 0) { Fail "Aucun test $mode ne porte la categorie '$TestFilter' (AD-8)." }
+        Write-Host "  $($explicitExpected.Count) test(s) attendus (categorie $TestFilter)" -ForegroundColor DarkGray
+        $script:Summary['Selection explicite'] = "$($explicitExpected.Count) test(s) attendus (categorie $TestFilter, $mode)"
+    }
     Write-Step "unity cmd run_tests --mode $mode"
     $runArgs = @('cmd', 'run_tests', '--mode', $mode, '--async_tests', 'true')
+    if ($IncludeExplicit) { $runArgs += @('--include_explicit', 'true') }
     if ($TestFilter) {
         $runArgs += @('--filter', $TestFilter, '--filter_type', $TestFilterType)
     }
@@ -572,6 +590,13 @@ foreach ($mode in $modes) {
     if (-not $testStatus.summary -or $testStatus.summary.total -eq 0) {
         $activeFilter = if ($Profile -eq 'Story') { $script:ProfileCategoryFilter } else { $TestFilter }
         Fail "Aucun test execute en $mode (filtre '$activeFilter' sans correspondance ?). Une absence de resultat n'est jamais un succes (AD-8)."
+    }
+    if ($IncludeExplicit -and $TestFilterType -eq 'category') {
+        $actualNames = @($testStatus.results | ForEach-Object { $_.FullName } | Sort-Object)
+        $nameDiff = @(Compare-Object -ReferenceObject $explicitExpected -DifferenceObject $actualNames)
+        if ($testStatus.summary.total -ne $explicitExpected.Count -or $actualNames.Count -ne $explicitExpected.Count -or $nameDiff.Count -gt 0) {
+            Fail "Selection [Explicit] divergente : $($testStatus.summary.total) resultat(s), $($explicitExpected.Count) attendu(s) pour '$TestFilter' (AD-8)."
+        }
     }
     if ($Profile -eq 'Story') {
         $script:ExecutedStoryTests += [int]$testStatus.summary.total
@@ -607,6 +632,12 @@ foreach ($mode in $modes) {
     }
     $script:Summary["Tests $mode"] = "$($testStatus.summary.passed)/$($testStatus.summary.total) passes"
     $script:Summary["Ignores $mode"] = "$skipped skipped, $inconclusive inconclusive (reels, dans l'execution)"
+    if ($IncludeExplicit -and ($skipped -gt 0 -or $inconclusive -gt 0)) {
+        Fail "Campagne [Explicit] incomplete : $skipped skipped, $inconclusive inconclusive (AD-8)."
+    }
+    if ($Profile -eq 'Story' -and ($skipped -gt 0 -or $inconclusive -gt 0)) {
+        Fail "Validation Story incomplete : $skipped skipped, $inconclusive inconclusive (AD-8)."
+    }
     if ($script:ProfileCategoryFilter -and $mode -eq 'EditMode') {
         $script:Summary['Non executes (selection)'] = "$($script:NonExecutedBySelection) test(s) de la suite EditMode, hors profil $Profile"
     }
