@@ -110,6 +110,89 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
         }
 
+        /// <summary>Schema de la preuve 5.52 : parametres de gonflement, version du modele de pose et intervalles d'entree.</summary>
+        public const int EvidenceFingerprintSchemaVersion = 2;
+
+        private const double RadianStep = 1e-6d;
+
+        public static int SchemaVersionFor(GateAEvidenceParameters parameters)
+        {
+            return parameters == null || parameters.IsLegacy ? FingerprintSchemaVersion : EvidenceFingerprintSchemaVersion;
+        }
+
+        /// <summary>
+        /// Empreinte d'une paire sous des parametres de preuve. Historiques : schema v1 inchange. Sinon schema v2 :
+        /// marge, delta_c, a_e, modele et version de pose, h_e, eta, et intervalle d'entree de chaque mouvement, de
+        /// sorte qu'aucune decision ne survive a un changement d'enveloppe.
+        /// </summary>
+        public static string Compute(
+            string keyA,
+            RoadId idA,
+            IReadOnlyList<RoadCurveSample> samplesA,
+            string keyB,
+            RoadId idB,
+            IReadOnlyList<RoadCurveSample> samplesB,
+            RoadBoundsBox volume,
+            GateAEvidenceParameters parameters,
+            RoadModelValidationProfile profile,
+            KinematicOffsetBounds bounds)
+        {
+            if (parameters == null || parameters.IsLegacy)
+            {
+                return Compute(keyA, samplesA, keyB, samplesB, volume);
+            }
+
+            if (string.CompareOrdinal(keyA, keyB) > 0)
+            {
+                string key = keyA;
+                keyA = keyB;
+                keyB = key;
+                RoadId id = idA;
+                idA = idB;
+                idB = id;
+                IReadOnlyList<RoadCurveSample> samples = samplesA;
+                samplesA = samplesB;
+                samplesB = samples;
+            }
+
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream, Encoding.UTF8, true))
+            {
+                writer.Write(PairTag);
+                writer.Write(EvidenceFingerprintSchemaVersion);
+                writer.Write(keyA);
+                writer.Write(keyB);
+                WriteSamples(writer, samplesA);
+                WriteSamples(writer, samplesB);
+                WriteVolume(writer, volume);
+                writer.Write(Quantize(profile.LateralClearanceMarginMeters, RoadModelCanonicalWriter.MeterStep));
+                writer.Write(Quantize(V1RoadModelImporter.ChordToleranceMeters, RoadModelCanonicalWriter.MeterStep));
+                writer.Write(Quantize(parameters.TrackingAllowanceMeters, RoadModelCanonicalWriter.MeterStep));
+                writer.Write((int)parameters.PoseModel);
+                writer.Write(parameters.PoseModelVersion);
+                writer.Write(Quantize(parameters.OffsetGridStepRadians, RadianStep));
+                writer.Write(Quantize(parameters.OffsetToleranceRadians, RadianStep));
+                WriteEntry(writer, bounds, idA);
+                WriteEntry(writer, bounds, idB);
+                writer.Flush();
+                return Sha256Hex(stream.ToArray());
+            }
+        }
+
+        private static void WriteEntry(BinaryWriter writer, KinematicOffsetBounds bounds, RoadId id)
+        {
+            ElementOffsets offsets;
+            if (bounds == null || !bounds.Elements.TryGetValue(id, out offsets) || !offsets.HasEntry)
+            {
+                writer.Write(false);
+                return;
+            }
+
+            writer.Write(true);
+            writer.Write((long)Math.Round(offsets.EntryLo / RadianStep, MidpointRounding.AwayFromZero));
+            writer.Write((long)Math.Round(offsets.EntryHi / RadianStep, MidpointRounding.AwayFromZero));
+        }
+
         public static string ComputeMovement(string key, IReadOnlyList<RoadCurveSample> samples)
         {
             using (var stream = new MemoryStream())

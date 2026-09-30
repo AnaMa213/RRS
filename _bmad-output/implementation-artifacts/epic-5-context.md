@@ -8,6 +8,11 @@
      Les faits normatifs retires par cette passe ont ete restaures et les deux formulations de 5.47
      harmonisees sur epics.md (5.46 decide, 5.47 conditionnel non specifie). -->
 
+<!-- Recompile 2026-09-30 (ouverture de la 5.52) : integre sprint-change-proposal-2026-09-29.md
+     (insertion 5.52, Gate B deplacee), sprint-change-proposal-2026-09-29-kinematic-pose.md (pose
+     nominale cinematique, objectif de mouvement intermediaire, regle de contact) et
+     sprint-change-proposal-2026-09-30.md (deux plafonds de braquage, limite de courbe des la 5.31). -->
+
 ## Goal
 
 Establish host-authoritative vehicle physics and configurable NPC Rage/Fear responses, then build credible routed city traffic on the shared driving stack. The greybox district in `MVP_Run` is the integration and acceptance ground, not the finished Level 1 city or a new run/checkpoint contract. Traffic V1 supplies the behavioral baseline while Traffic V2 is built and validated before V1 retirement.
@@ -48,6 +53,7 @@ Establish host-authoritative vehicle physics and configurable NPC Rage/Fear resp
 - Story 5.29: Deterministic Strategic `RoutePlan`
 - Story 5.30: Traffic V2 Planning and Runtime Spine Foundation
 - Story 5.31: First Driven Traffic V2 Vertical Slice — Portal to Portal
+- Story 5.52: Tracking-Error Coverage and Kinematic Nominal Pose in Gate A Evidence, and Owner Re-Signature
 - Story 5.32: Perception Boundary — Occupancy Index, Leader and Hazard Observations
 - Story 5.33: Vehicle Following Through Named Speed Constraints
 - Story 5.34: Junction Coordination Core — Grants, Conflicts, Blocked Exit, Committed Traversal
@@ -73,6 +79,9 @@ Establish host-authoritative vehicle physics and configurable NPC Rage/Fear resp
 - Traffic V1 remains a frozen oracle. V2 must account for each oracle scenario and pass host/client integration in `MVP_Run` before V1 retirement. Physical-only changes to the district keep V1 authored traffic data and lineage intact, but require a before/after V1 behavioral regression; an unchanged hash alone proves no behavioral equivalence.
 - Stories 5.17–5.23 are superseded requirements evidence, not executable backlog. Traffic V2 begins at 5.24; conditional 5.47 exists only if Story 5.46 records AD-42's performance trigger met (if the budget is satisfied, 5.46 leads straight to 5.48).
 - `MVP_Run` is the acceptance map. Its nine junctions need reviewed road semantics and drivable clearances. For the five conventional junctions, the inflated compiled-reference footprint must pass two independent, strictly positive conservative gates: separation from obstacle volumes within vehicle height, and planar separation from authored `Sidewalk` surfaces regardless of collider height or activation. The semantic proof includes the disabled north T-junction corners and checks that declarations match visible sidewalks. Drivable carriageway relief is excluded from the obstacle gate only when its complete projection is supported by road, avoids sidewalks, and fits below the vehicle's profile-derived body clearance. Each gate publishes its own per-corner/per-movement results and canonical input fingerprint. Gate A binds both proofs and refreshed roundabout evidence; any relevant input change invalidates the proof.
+- Gate A evidence covers a physical vehicle only if the tracking allocation a_e = max |o(s)| + ε_t actually enters every proof's inflation, beside the reserved margin and δ_c; an allowance recorded only as text covers nothing. ε_t bounds the road-plane displacement of the eight corners of the maximum-gauge box against the kinematic nominal pose: exact at every physics step, between steps only under the per-step-verified integration model M, never a continuous physical guarantee. The reserved margin and residual clearances are never converted into allowance, and no threshold, margin, remainder or geometry is changed to obtain a favorable verdict; a failing proof is escalated to the owner through a separate course correction.
+- Evidence computed with the tangent-aligned gauge pose (everything signed before 2026-09-29) is superseded history and never closes Gate B. V2 vehicles drive outside an explicit measurement run only on trajectories covered by valid kinematic-pose evidence including ε_t. Gate A is re-signed only by the owner, on a new record; previous records stay as superseded history. Gate B closes after that re-signature and a PlayMode milestone 1 rerun, within the stated per-step/model-M proof scope.
+- When an inflated envelope changes, no prior conflict-pair decision is reused without re-evaluation; the approved `5.50-AUTO-DECISIONS-v1` mechanism applies to Story 5.52 under all its conditions but never authorizes review or Gate A signature.
 
 ## Technical Decisions
 
@@ -80,6 +89,9 @@ Establish host-authoritative vehicle physics and configurable NPC Rage/Fear resp
 - V2 uses a one-way imported, semantically validated Road World Model with stable opaque IDs and deterministic versioning. Directed 3D arc-length corridors, authored lateral order, width envelopes, explicit junction movements, one control binding per movement, conflicts, signals, and portals are road facts. V1's graph is never a second V2 road authority; NavMesh is not its route authority.
 - One immutable host `TrafficFrame` feeds observation, route, rules/coordination, tactical choice, local plans, a narrow `SafetyFilter`, one intent composer, and shared physics. Route, path, and timed motion are distinct. Versioned decisions expose stable debug reasons; grants become effective in the next frame.
 - Traffic rules may admit explicit policy exceptions, but simulation invariants, compatible junction grants, finite controls, and single intent ownership remain mandatory. Collision and recovery supervisors request tactical work; they do not teleport, actuate, or despawn traffic. Fidelity scaling is conditional on measured cost.
+- The nominal pose of the vehicle gauge is the kinematic pose of the declared drivability geometry (reference point a ahead of a non-steered rear axle, wheelbase L), not the tangent-aligned pose: the body lags the tangent by e with de/ds = κ − sin(e)/a, e = 0 only at insertion at the entry portal's effective progress, and e jumps by the seam tangent jump. The pose model is versioned and recorded by every Gate A evidence. Proof-side, per-element entry offset intervals over the transition graph are accepted only by an inductiveness check (else `HeadingOffsetBoundNotClosed`); proofs cover the union over offsets, adding declared offset-grid and between-sample remainders; lock and steer-rate feasibility is checked on the whole pose set (else `NominalPoseInfeasible`).
+- Two steering ceilings stay distinct: the model-published steady-state ceiling v*_ss(κ) serves admission and evidence review only; the driving ceiling v*(s) is the route's nominal-pose ceiling. The grip-based curve limit √(a_lat/|κ|) is applied from Story 5.31; the road limit stays deferred to 5.33. No Gate A proof uses either ceiling.
+- Invalid or missing plans produce the V2 fallback command (service brake above v_dir + 2·b·Δt, handbrake hold at or below it), not `VehicleDriveIntent.Idle`, whose V1 meaning is unchanged. The Route Planner's optional intermediate movement objective is set only by the measurement lifecycle path. During driven campaigns, body contacts with a recognized drivable relief of the valid 5.51 evidence or with the carriageway are published observations under consequence criteria; any other body contact fails acceptance.
 
 ## UX & Interaction Patterns
 
@@ -88,4 +100,5 @@ Establish host-authoritative vehicle physics and configurable NPC Rage/Fear resp
 ## Cross-Story Dependencies
 
 - The V1 oracle bench precedes V2 migration and replacement. Road records, geometry, importer, dual clearance proofs, junction semantics, roundabout widening, corrected movements and corner clearance feed the resumed 5.28 overlay review. Gate A binds the model, both clearance proofs, refreshed roundabout evidence, and owner sign-off before routing and the driven V2 slice. Story 5.51 follows final movement geometry from 5.50; its first corner must pass physical shape, semantic region, visible rendering, save/reload, and scene-only diff together before the other cuts. It unlocks the resumed 5.28 overlay review but does not sign Gate A.
+- Story 5.31 delivers the driven slice under an explicit measurement run, the campaigns, the owner-declared ε_t and the refusal outside measurement; it never regenerates or signs Gate A evidence. Story 5.52 then regenerates all four Gate A proofs (`ConflictSweep`, `JunctionClearance` physical and `Sidewalk`, `RoundaboutClearance`) on the kinematic pose set with a_e, re-evaluates changed pairs, moves the signed roundabout seam list into signed data, and prepares the owner re-signature; Gate B follows. A new ε_t reruns 5.52. Every later story builds on that proven spine without re-proving it; 5.33 keeps the road limit, following and obstacles.
 - Story 5.46 decides whether conditional 5.47 exists. Story 5.48 follows the V2 parity and integration gate.

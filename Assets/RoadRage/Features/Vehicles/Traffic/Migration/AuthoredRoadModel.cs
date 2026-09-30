@@ -132,6 +132,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Balayage de toutes les paires (candidats, suivi, selection englobante seule, sans contact).</summary>
         public List<PairSweep> PairSweeps;
 
+        /// <summary>Parametres de la preuve Gate A de ce passage ; historiques par defaut (Story 5.52).</summary>
+        public GateAEvidenceParameters EvidenceParameters = GateAEvidenceParameters.Legacy;
+
+        /// <summary>Bornes d'ecart de la pose cinematique, calculees sur <see cref="CandidateModel"/> ; nul a pose tangente.</summary>
+        public KinematicOffsetBounds OffsetBounds;
+
         public RoadModelSource Source;
         public CompiledRoadModel Compiled;
         public readonly List<LocalizationFixture> Fixtures = new List<LocalizationFixture>();
@@ -201,7 +207,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public static AuthoredRun Run(V1SourceSet set, string lineageText, string decisionsText)
         {
+            return Run(set, lineageText, decisionsText, GateAEvidenceParameters.Legacy);
+        }
+
+        /// <summary>
+        /// Pipeline sous des parametres de preuve (Story 5.52). Hors parametres historiques, les empreintes v2
+        /// ne concordent avec aucune decision signee : le passage s'arrete au rapprochement, candidats, balayages
+        /// et bornes d'ecart conserves pour la regeneration.
+        /// </summary>
+        public static AuthoredRun Run(V1SourceSet set, string lineageText, string decisionsText, GateAEvidenceParameters parameters)
+        {
             var run = new AuthoredRun();
+            run.EvidenceParameters = parameters ?? GateAEvidenceParameters.Legacy;
             run.LineageText = lineageText;
             run.DecisionsText = decisionsText;
             if (lineageText == null)
@@ -255,7 +272,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             run.CandidateModel = withoutZones;
-            run.PairSweeps = ConflictSweep.Analyze(withoutZones);
+            if (run.EvidenceParameters.Kinematic)
+            {
+                run.OffsetBounds = KinematicOffsetBounds.Compute(withoutZones, SweepGraph.FromModel(withoutZones), run.EvidenceParameters);
+                if (!run.OffsetBounds.Closed)
+                {
+                    run.Failures.AddRange(run.OffsetBounds.Failures);
+                    return run;
+                }
+            }
+
+            run.PairSweeps = ConflictSweep.Analyze(withoutZones, run.EvidenceParameters, run.OffsetBounds);
             run.Candidates = ConflictSweep.ToCandidates(run.PairSweeps);
             PopulateCandidateFingerprints(run, withoutZones);
             var zones = MatchConflicts(run);
@@ -278,13 +305,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return run;
             }
 
-            run.Roundabouts.AddRange(RoundaboutClearance.Measure(run.Import, run.Compiled, run.Failures));
+            run.Roundabouts.AddRange(RoundaboutClearance.Measure(run.Import, run.Compiled, run.Failures, run.EvidenceParameters, run.OffsetBounds));
             if (run.Failures.Count > 0)
             {
                 return run;
             }
 
             MeasureEvidence(run, set);
+            if (!run.EvidenceParameters.IsLegacy)
+            {
+                // Le bloc signe (a_e, modele de pose, restes, raccords signes) est la phase C de la Story 5.52.
+                run.Failures.Add("Rapport Gate A sous parametres " + run.EvidenceParameters.PoseModelLabel
+                    + " non rendu : bascule du pipeline reservee a la phase C de la Story 5.52.");
+                return run;
+            }
 
             var provenance = new RoadModelProvenance();
             provenance.SourceHash = set.SourceHash;
@@ -894,12 +928,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     continue;
                 }
 
-                candidate.GeometryFingerprint = PairGeometryFingerprint.Compute(
-                    keys[candidate.MovementA], a.Samples,
-                    keys[candidate.MovementB], b.Samples,
-                    candidate.Volume);
+                candidate.GeometryFingerprint = CandidateFingerprint(run, keys, a, b, candidate.Volume);
                 run.Candidates[i] = candidate;
             }
+        }
+
+        /// <summary>Empreinte d'une paire sous les parametres de preuve du passage : v1 historique, v2 sinon (Story 5.52).</summary>
+        public static string CandidateFingerprint(AuthoredRun run, Dictionary<RoadId, string> keys, CompiledJunctionMovement a,
+            CompiledJunctionMovement b, RoadBoundsBox volume)
+        {
+            return PairGeometryFingerprint.Compute(keys[a.Id], a.Id, a.Samples, keys[b.Id], b.Id, b.Samples, volume,
+                run.EvidenceParameters, run.CandidateModel.ValidationProfile, run.OffsetBounds);
         }
 
         /// <summary>Rayon balaye : demi-gabarit max plus marge laterale du profil versionne.</summary>
@@ -1329,10 +1368,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             var scene = owner.Root.gameObject.scene;
             var sidewalks = SidewalkDeclarations.Read(scene, run.EvidenceFailures);
-            run.JunctionEvidence = JunctionClearance.Measure(scene, run.Import, run.Compiled, sidewalks);
-            run.RoundaboutEvidence = RoundaboutClearance.Sweep(scene, run.Import, run.Compiled, sidewalks);
+            run.JunctionEvidence = JunctionClearance.Measure(scene, run.Import, run.Compiled, sidewalks,
+                JunctionClearance.DefaultStepMeters, false, run.EvidenceParameters, run.OffsetBounds);
+            run.RoundaboutEvidence = RoundaboutClearance.Sweep(scene, run.Import, run.Compiled, sidewalks, run.EvidenceParameters, run.OffsetBounds);
             run.EvidenceFailures.AddRange(run.JunctionEvidence.Failures);
             run.EvidenceFailures.AddRange(run.RoundaboutEvidence.Failures);
+            if (run.OffsetBounds != null)
+            {
+                run.EvidenceFailures.AddRange(run.OffsetBounds.Infeasible);
+            }
             if (run.JunctionEvidence.Rows.Count == 0 || run.RoundaboutEvidence.Rows.Count == 0)
             {
                 run.EvidenceFailures.Add("Preuve physique vide (carrefours classiques " + run.JunctionEvidence.Rows.Count + " ligne(s), giratoires "

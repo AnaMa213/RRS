@@ -20,6 +20,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public RoadId ElementId;
         public float SMeters;
 
+        // Tangente 3D et road-up de la courbe compilee : la pose cinematique (Story 5.52) tourne la tangente
+        // de -e autour de road-up. Ignores par les balayages a pose tangente.
+        public Vector3 Tangent;
+        public Vector3 Up;
+
         public Vector2 Plan
         {
             get { return new Vector2(Position.x, Position.z); }
@@ -29,6 +34,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         {
             var pose = new SweepPose();
             pose.Position = position;
+            pose.Tangent = tangent;
             var horizontal = new Vector2(tangent.x, tangent.z);
             float length = horizontal.magnitude;
             pose.Degenerate = !(length > ConflictSweep.DegenerateHeadingEpsilon);
@@ -90,6 +96,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public int PathsA;
         public int PathsB;
+
+        /// <summary>Gonflement de chaque empreinte hors restes : marge + delta_c + a_e (Story 5.52).</summary>
+        public float BaseInflationMeters;
+
+        /// <summary>Reste de grille des ecarts rho . h_e / 2 ajoute au gonflement (pose cinematique ; 0 sinon).</summary>
+        public float OffsetGridRemainderMeters;
 
         public bool IsCandidate
         {
@@ -213,6 +225,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     public static class ConflictSweep
     {
         public const int AlgorithmVersion = 1;
+
+        /// <summary>Balayage sur l'ensemble de poses nominales cinematiques (Story 5.52).</summary>
+        public const int KinematicAlgorithmVersion = 2;
+
+        public static int AlgorithmVersionFor(GateAEvidenceParameters parameters)
+        {
+            return parameters != null && parameters.Kinematic ? KinematicAlgorithmVersion : AlgorithmVersion;
+        }
         public const float DegenerateHeadingEpsilon = 1e-6f;
         public const float FailClosedHeadingRadians = 0.5f * Mathf.PI;
 
@@ -236,6 +256,22 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return profile.LateralClearanceMarginMeters + V1RoadModelImporter.ChordToleranceMeters;
         }
 
+        /// <summary>
+        /// Gonflement d'une preuve (Story 5.52) : marge + delta_c + a_e, plus le reste de grille rho . h_e / 2 en
+        /// pose cinematique. Parametres historiques : exactement <see cref="Inflation(RoadModelValidationProfile)"/>.
+        /// </summary>
+        public static float EvidenceInflation(RoadModelValidationProfile profile, GateAEvidenceParameters parameters)
+        {
+            float inflation = Inflation(profile) + parameters.TrackingAllowanceMeters;
+            return parameters.Kinematic ? inflation + OffsetGridRemainder(profile, parameters) : inflation;
+        }
+
+        /// <summary>Reste de la grille des ecarts : tout cap intermediaire est a h_e/2 d'un cap de grille, donc a rho h_e / 2.</summary>
+        public static float OffsetGridRemainder(RoadModelValidationProfile profile, GateAEvidenceParameters parameters)
+        {
+            return parameters.Kinematic ? Rho(profile) * parameters.OffsetGridStepRadians * 0.5f : 0f;
+        }
+
         /// <summary>Portee du point de reference au-dela de chaque extremite de mouvement.</summary>
         public static float Reach(RoadModelValidationProfile profile)
         {
@@ -244,9 +280,19 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         // ============================================================ modele
 
-        /// <summary>Balayage de toutes les paires de chaque carrefour, dans l'ordre des candidats.</summary>
-        public static List<PairSweep> Analyze(CompiledRoadModel model)
+        /// <summary>
+        /// Balayage de toutes les paires de chaque carrefour, dans l'ordre des candidats. Sans parametres :
+        /// preuve signee (pose tangente, a_e = 0). Pose cinematique : <paramref name="bounds"/> obligatoire.
+        /// </summary>
+        public static List<PairSweep> Analyze(CompiledRoadModel model, GateAEvidenceParameters parameters = null,
+            KinematicOffsetBounds bounds = null)
         {
+            parameters = parameters ?? GateAEvidenceParameters.Legacy;
+            if (parameters.Kinematic && (bounds == null || !bounds.Closed))
+            {
+                throw new ArgumentException("Balayage cinematique : bornes d'ecart fermees requises.", "bounds");
+            }
+
             var graph = SweepGraph.FromModel(model);
             var profile = model.ValidationProfile;
             var results = new List<PairSweep>();
@@ -292,12 +338,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                             sweep.FailClosedReason = failureA ?? failureB;
                             sweep.PathsA = pathsA == null ? 0 : pathsA.Count;
                             sweep.PathsB = pathsB == null ? 0 : pathsB.Count;
-                            FailClosedVolume(sweep, pathsA, pathsB, profile);
+                            FailClosedVolume(sweep, pathsA, pathsB, profile, EvidenceInflation(profile, parameters));
                             results.Add(sweep);
                             continue;
                         }
 
-                        Evaluate(pathsA, pathsB, profile, sweep);
+                        if (parameters.Kinematic)
+                        {
+                            EvaluateKinematic(pathsA, pathsB, profile, parameters, bounds, sweep);
+                        }
+                        else
+                        {
+                            Evaluate(pathsA, pathsB, profile, sweep, parameters.TrackingAllowanceMeters);
+                        }
+
                         results.Add(sweep);
                     }
                 }
@@ -590,6 +644,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             var pose = SweepPose.From(point.Position, point.Tangent);
             pose.ElementId = element.Id;
             pose.SMeters = s;
+            pose.Up = point.Up;
             return pose;
         }
 
@@ -599,6 +654,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             var pose = SweepPose.From(sample.Position, sample.Tangent);
             pose.ElementId = element.Id;
             pose.SMeters = sample.SMeters;
+            pose.Up = sample.Up;
             return pose;
         }
 
@@ -638,6 +694,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             RoadModelValidationProfile profile,
             PairSweep into = null)
         {
+            return Evaluate(pathsA, pathsB, profile, into, 0f);
+        }
+
+        /// <summary>Meme balayage a pose tangente, chaque empreinte gonflee en plus de l'allocation a_e (Story 5.52).</summary>
+        public static PairSweep Evaluate(
+            IList<List<SweepPose>> pathsA,
+            IList<List<SweepPose>> pathsB,
+            RoadModelValidationProfile profile,
+            PairSweep into,
+            float trackingAllowanceMeters)
+        {
             var sweep = into ?? new PairSweep();
             sweep.PathsA = pathsA == null ? 0 : pathsA.Count;
             sweep.PathsB = pathsB == null ? 0 : pathsB.Count;
@@ -650,13 +717,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             float halfLength = HalfLength(profile);
             float halfWidth = profile.MaxVehicleHalfWidthMeters;
             float rho = Rho(profile);
-            float inflation = Inflation(profile);
+            float inflation = Inflation(profile) + trackingAllowanceMeters;
+            sweep.BaseInflationMeters = inflation;
             string failure = HypothesisFailure(pathsA, "A") ?? HypothesisFailure(pathsB, "B");
             if (failure != null)
             {
                 sweep.Relation = PairRelation.FailClosed;
                 sweep.FailClosedReason = failure;
-                FailClosedVolume(sweep, pathsA, pathsB, profile);
+                FailClosedVolume(sweep, pathsA, pathsB, profile, inflation);
                 return sweep;
             }
 
@@ -1042,11 +1110,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         }
 
         /// <summary>Echec ferme : volume = boite de toutes les poses des deux trajectoires, gonflee.</summary>
-        private static void FailClosedVolume(PairSweep sweep, IList<List<SweepPose>> pathsA, IList<List<SweepPose>> pathsB, RoadModelValidationProfile profile)
+        private static void FailClosedVolume(PairSweep sweep, IList<List<SweepPose>> pathsA, IList<List<SweepPose>> pathsB,
+            RoadModelValidationProfile profile, float inflation)
         {
             float halfLength = HalfLength(profile);
             float halfWidth = profile.MaxVehicleHalfWidthMeters;
-            float grow = Rho(profile) + Inflation(profile);
+            float grow = Rho(profile) + inflation;
             var min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
             var max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
             bool any = false;
@@ -1070,7 +1139,257 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             if (any)
             {
-                SetVolume(sweep, min, max, halfWidth + Inflation(profile));
+                SetVolume(sweep, min, max, halfWidth + inflation);
+            }
+        }
+
+        // ============================================================ pose cinematique (Story 5.52)
+
+        /// <summary>
+        /// Balayage sur l'ensemble de poses nominales cinematiques (contrat §8) : a chaque pose, une grille de
+        /// caps couvre l'enveloppe des ecarts atteignables ; entre deux poses, delta = |dp| + rho . rotation de
+        /// caisse max ; chaque empreinte est gonflee de marge + delta_c + a_e + rho . h_e / 2. La distance qui
+        /// decide reste la distance exacte entre rectangles orientes, minimale sur les grilles.
+        /// </summary>
+        public static PairSweep EvaluateKinematic(
+            IList<List<SweepPose>> pathsA,
+            IList<List<SweepPose>> pathsB,
+            RoadModelValidationProfile profile,
+            GateAEvidenceParameters parameters,
+            KinematicOffsetBounds bounds,
+            PairSweep into = null)
+        {
+            if (parameters == null || !parameters.Kinematic || bounds == null)
+            {
+                throw new ArgumentException("Balayage cinematique : parametres cinematiques et bornes requis.");
+            }
+
+            var sweep = into ?? new PairSweep();
+            sweep.PathsA = pathsA == null ? 0 : pathsA.Count;
+            sweep.PathsB = pathsB == null ? 0 : pathsB.Count;
+            if (sweep.PathsA == 0 || sweep.PathsB == 0)
+            {
+                sweep.Relation = PairRelation.NoContact;
+                return sweep;
+            }
+
+            float halfLength = HalfLength(profile);
+            float halfWidth = profile.MaxVehicleHalfWidthMeters;
+            float rho = Rho(profile);
+            sweep.BaseInflationMeters = Inflation(profile) + parameters.TrackingAllowanceMeters;
+            sweep.OffsetGridRemainderMeters = OffsetGridRemainder(profile, parameters);
+            float inflation = sweep.BaseInflationMeters + sweep.OffsetGridRemainderMeters;
+            GridPath[] gridsA = null;
+            GridPath[] gridsB = null;
+            string failure = HypothesisFailure(pathsA, "A") ?? HypothesisFailure(pathsB, "B");
+            if (failure == null)
+            {
+                failure = GridPaths(pathsA, "A", bounds, parameters.OffsetGridStepRadians, halfLength, halfWidth, out gridsA)
+                    ?? GridPaths(pathsB, "B", bounds, parameters.OffsetGridStepRadians, halfLength, halfWidth, out gridsB);
+            }
+
+            if (failure != null)
+            {
+                sweep.Relation = PairRelation.FailClosed;
+                sweep.FailClosedReason = failure;
+                FailClosedVolume(sweep, pathsA, pathsB, profile, inflation);
+                return sweep;
+            }
+
+            var min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+            var max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+            for (int pa = 0; pa < gridsA.Length; pa++)
+            {
+                for (int pb = 0; pb < gridsB.Length; pb++)
+                {
+                    EvaluateGridPaths(gridsA[pa], gridsB[pb], halfWidth, rho, inflation, sweep, ref min, ref max);
+                }
+            }
+
+            if (sweep.ExactProven)
+            {
+                sweep.Relation = PairRelation.Candidate;
+                SetVolume(sweep, min, max, halfWidth + inflation);
+            }
+            else
+            {
+                sweep.Relation = sweep.EnvelopeSelected ? PairRelation.EnvelopeOnly : PairRelation.NoContact;
+            }
+
+            return sweep;
+        }
+
+        /// <summary>Trajectoire et ses grilles : rectangles par cap, AABB de l'union par pose, rotation de caisse par intervalle.</summary>
+        private sealed class GridPath
+        {
+            public List<SweepPose> Poses;
+            public PoseGrid[] Grids;
+            public float[] Rotations;
+            public PoseFrame[][] Frames;
+            public PoseFrame[] Unions;
+        }
+
+        private static string GridPaths(IList<List<SweepPose>> paths, string side, KinematicOffsetBounds bounds, float gridStep,
+            float halfLength, float halfWidth, out GridPath[] grids)
+        {
+            grids = new GridPath[paths.Count];
+            for (int p = 0; p < paths.Count; p++)
+            {
+                PoseGrid[] poseGrids;
+                float[] rotations;
+                string failure = KinematicPoseSet.Build(paths[p], bounds, gridStep, out poseGrids, out rotations);
+                if (failure != null)
+                {
+                    return "trajectoire " + side + " : " + failure;
+                }
+
+                var grid = new GridPath { Poses = paths[p], Grids = poseGrids, Rotations = rotations };
+                grid.Frames = new PoseFrame[poseGrids.Length][];
+                grid.Unions = new PoseFrame[poseGrids.Length];
+                for (int i = 0; i < poseGrids.Length; i++)
+                {
+                    var headings = poseGrids[i].Headings;
+                    var frames = new PoseFrame[headings.Length];
+                    var union = new PoseFrame();
+                    union.Min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+                    union.Max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+                    for (int k = 0; k < headings.Length; k++)
+                    {
+                        frames[k] = Frame(KinematicPoseSet.WithHeading(paths[p][i], headings[k]), halfLength, halfWidth);
+                        union.Min = Vector2.Min(union.Min, frames[k].Min);
+                        union.Max = Vector2.Max(union.Max, frames[k].Max);
+                    }
+
+                    grid.Frames[i] = frames;
+                    grid.Unions[i] = union;
+                }
+
+                grids[p] = grid;
+            }
+
+            return null;
+        }
+
+        private static void EvaluateGridPaths(
+            GridPath a,
+            GridPath b,
+            float halfWidth,
+            float rho,
+            float inflation,
+            PairSweep sweep,
+            ref Vector3 min,
+            ref Vector3 max)
+        {
+            int countA = a.Poses.Count;
+            int countB = b.Poses.Count;
+            int intervalsA = Math.Max(1, countA - 1);
+            int intervalsB = Math.Max(1, countB - 1);
+            var deltaB = new float[intervalsB];
+            for (int ib = 0; ib < intervalsB; ib++)
+            {
+                int ib1 = Math.Min(ib + 1, countB - 1);
+                deltaB[ib] = (b.Poses[ib1].Plan - b.Poses[ib].Plan).magnitude + rho * (countB > 1 ? b.Rotations[ib] : 0f);
+            }
+
+            var lineCur = new float[countB];
+            var lineNext = new float[countB];
+            for (int ib = 0; ib < countB; ib++)
+            {
+                lineCur[ib] = AabbDistance(a.Unions[0], b.Unions[ib]);
+            }
+
+            for (int ia = 0; ia < intervalsA; ia++)
+            {
+                int ia1 = Math.Min(ia + 1, countA - 1);
+                float deltaA = (a.Poses[ia1].Plan - a.Poses[ia].Plan).magnitude + rho * (countA > 1 ? a.Rotations[ia] : 0f);
+                for (int ib = 0; ib < countB; ib++)
+                {
+                    lineNext[ib] = AabbDistance(a.Unions[ia1], b.Unions[ib]);
+                }
+
+                for (int ib = 0; ib < intervalsB; ib++)
+                {
+                    int ib1 = Math.Min(ib + 1, countB - 1);
+                    float bound = 0.5f * deltaA + 0.5f * deltaB[ib] + 2f * inflation;
+                    float envelope = Min4(lineCur[ib], lineCur[ib1], lineNext[ib], lineNext[ib1]);
+                    sweep.EnvelopeSlackMeters = Math.Min(sweep.EnvelopeSlackMeters, envelope - bound);
+                    if (envelope > bound)
+                    {
+                        continue;
+                    }
+
+                    sweep.EnvelopeSelected = true;
+                    float exact = float.PositiveInfinity;
+                    int poseA = ia;
+                    int poseB = ib;
+                    int headingA = 0;
+                    int headingB = 0;
+                    GridClosest(a, ia, b, ib, ref exact, ref poseA, ref headingA, ref poseB, ref headingB);
+                    GridClosest(a, ia, b, ib1, ref exact, ref poseA, ref headingA, ref poseB, ref headingB);
+                    GridClosest(a, ia1, b, ib, ref exact, ref poseA, ref headingA, ref poseB, ref headingB);
+                    GridClosest(a, ia1, b, ib1, ref exact, ref poseA, ref headingA, ref poseB, ref headingB);
+                    float slack = exact - bound;
+                    if (slack < sweep.ExactSlackMeters)
+                    {
+                        sweep.ExactSlackMeters = slack;
+                        sweep.HasWitness = true;
+                        sweep.WitnessA = KinematicPoseSet.WithHeading(a.Poses[poseA], a.Grids[poseA].Headings[headingA]);
+                        sweep.WitnessB = KinematicPoseSet.WithHeading(b.Poses[poseB], b.Grids[poseB].Headings[headingB]);
+                    }
+
+                    if (slack > 0f)
+                    {
+                        continue;
+                    }
+
+                    sweep.ExactProven = true;
+                    Encapsulate(ref min, ref max, a.Unions[ia], a.Poses[ia].Position.y, halfWidth, 0.5f * deltaA + inflation);
+                    Encapsulate(ref min, ref max, a.Unions[ia1], a.Poses[ia1].Position.y, halfWidth, 0.5f * deltaA + inflation);
+                    Encapsulate(ref min, ref max, b.Unions[ib], b.Poses[ib].Position.y, halfWidth, 0.5f * deltaB[ib] + inflation);
+                    Encapsulate(ref min, ref max, b.Unions[ib1], b.Poses[ib1].Position.y, halfWidth, 0.5f * deltaB[ib] + inflation);
+                }
+
+                var swap = lineCur;
+                lineCur = lineNext;
+                lineNext = swap;
+            }
+        }
+
+        /// <summary>Distance exacte minimale entre les grilles de deux poses ; un couple ne remplace le meilleur que strictement plus proche.</summary>
+        private static void GridClosest(GridPath a, int ia, GridPath b, int ib, ref float best,
+            ref int poseA, ref int headingA, ref int poseB, ref int headingB)
+        {
+            if (AabbDistance(a.Unions[ia], b.Unions[ib]) >= best)
+            {
+                return;
+            }
+
+            var framesA = a.Frames[ia];
+            var framesB = b.Frames[ib];
+            for (int ka = 0; ka < framesA.Length; ka++)
+            {
+                if (AabbDistance(framesA[ka], b.Unions[ib]) >= best)
+                {
+                    continue;
+                }
+
+                for (int kb = 0; kb < framesB.Length; kb++)
+                {
+                    if (AabbDistance(framesA[ka], framesB[kb]) >= best)
+                    {
+                        continue;
+                    }
+
+                    float distance = RectangleDistance(framesA[ka], framesB[kb]);
+                    if (distance < best)
+                    {
+                        best = distance;
+                        poseA = ia;
+                        poseB = ib;
+                        headingA = ka;
+                        headingB = kb;
+                    }
+                }
             }
         }
     }

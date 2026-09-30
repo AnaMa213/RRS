@@ -2661,26 +2661,26 @@
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
@@ -2781,50 +2781,50 @@
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         },
         {
             "SubjectKey": "section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077",
-            "HalfWidthLeftMeters": 4.0,
-            "HalfWidthRightMeters": 4.0,
+            "HalfWidthLeftMeters": 4.3,
+            "HalfWidthRightMeters": 4.3,
             "Application": "Uniform"
         }
     ],

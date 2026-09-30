@@ -70,6 +70,38 @@ namespace RoadRage.Tests.EditMode
             Assert.DoesNotThrow(() => AutomatedPairDecisionPolicy.ValidateTrafficScenarios(Run(), Plan()));
         }
 
+        [Test, Explicit, Timeout(600000)]
+        public void KinematicDecisionPlanIsDeterministicAndKeepsHistoricalDecisionsUnchanged()
+        {
+            string decisionsText = File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath));
+            WithMvpRun(scene =>
+            {
+                var run = AuthoredRoadModel.Run(V1SourceSet.Extract(scene),
+                    File.ReadAllText(MigrationReport.LineageFullPath), decisionsText, GateAEvidenceParameters.Declared());
+                Assert.That(run.CandidateModel, Is.Not.Null);
+                Assert.That(run.PairSweeps, Is.Not.Empty);
+                var first = AutomatedPairDecisionPolicy.CreatePlan(run);
+                var second = AutomatedPairDecisionPolicy.CreatePlan(run, null, first.AllocatedIds);
+                Assert.That(second.DecisionRunId, Is.EqualTo(first.DecisionRunId));
+                Assert.That(second.DecisionsText, Is.EqualTo(first.DecisionsText));
+                Assert.That(second.ManifestText, Is.EqualTo(first.ManifestText));
+                Assert.That(first.ManifestText, Does.Contain("\"FingerprintSchemaVersion\": 2"));
+                Assert.That(first.ManifestText, Does.Contain("\"ConflictSweepAlgorithmVersion\": 2"));
+                Assert.That(first.ManifestText, Does.Contain("\"EvidenceParametersHash\""));
+                var unpinned = new AutomatedPairDecisionPlan
+                {
+                    DecisionRunId = first.DecisionRunId,
+                    DecisionsText = first.DecisionsText,
+                    ManifestText = first.ManifestText.Replace("\"EngineCommit\": \"", "\"EngineCommit\": \"bad-")
+                };
+                string error;
+                Assert.That(AutomatedPairDecisionPolicy.TryApply(unpinned, run.PairSweeps.Count, out error), Is.False);
+                Assert.That(error, Does.Contain("commit du moteur"));
+            });
+            Assert.That(File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath)),
+                Is.EqualTo(decisionsText), "Le plan reste en lecture seule avant l'accord sur le commit du moteur.");
+        }
+
         private static string TamperFirstHash(string text, string marker)
         {
             int start = text.IndexOf(marker, StringComparison.Ordinal);
