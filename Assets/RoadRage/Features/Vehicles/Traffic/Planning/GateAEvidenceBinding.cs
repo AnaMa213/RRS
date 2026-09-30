@@ -9,14 +9,24 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
     // GateAEvidenceMissing reste a 0 : un GateAEvidenceResult par defaut ne vaut jamais preuve valide.
     public enum GateAEvidenceStatus { GateAEvidenceMissing, Valid, GateAEvidenceStale }
 
+    /// <summary>
+    /// Modele de pose nominale sur lequel une preuve Gate A a ete calculee (contrat §8, 2026-09-29).
+    /// Toute preuve signee avant la Story 5.52 est TangentAligned : elle ne certifie aucune couverture
+    /// physique sous la pose nominale cinematique.
+    /// </summary>
+    public enum NominalPoseModel { TangentAligned = 0, Kinematic = 1 }
+
     public readonly struct GateAEvidenceResult
     {
         public readonly GateAEvidenceStatus Status;
         public readonly float TrackingAllowanceMeters;
+        /// <summary>Modele de pose enregistre par la preuve ; aucune preuve actuelle n'en porte : TangentAligned.</summary>
+        public readonly NominalPoseModel PoseModel;
         public bool Valid { get { return Status == GateAEvidenceStatus.Valid; } }
 
-        internal GateAEvidenceResult(GateAEvidenceStatus status, float allowance)
-        { Status = status; TrackingAllowanceMeters = allowance; }
+        internal GateAEvidenceResult(GateAEvidenceStatus status, float allowance,
+            NominalPoseModel poseModel = NominalPoseModel.TangentAligned)
+        { Status = status; TrackingAllowanceMeters = allowance; PoseModel = poseModel; }
     }
 
     /// <summary>Documentary binding only; physical Gate A validation stays with its owner.</summary>

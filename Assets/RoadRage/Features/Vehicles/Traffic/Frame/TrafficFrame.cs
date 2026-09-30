@@ -10,14 +10,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
         /// <summary>Vitesse signee le long de l'avant de l'empreinte (negative en marche arriere). Ce n'est pas la vitesse de progression sur la route.</summary>
         public readonly float TangentialSpeedMetersPerSecond;
         public readonly RoadId PreviousElementId;
+        /// <summary>Elements de la route courante (5.31), bonus de classement de la localisation (AD-45) ; nul sans route.</summary>
+        public readonly IReadOnlyList<RoadId> RouteElementIds;
+        /// <summary>Ecarts nominaux connus de la route (contrat §8), orientation attendue des candidats ; nul : pose tangente.</summary>
+        public readonly IReadOnlyList<RoadKinematicAnchor> Kinematics;
 
         public TrafficActorInput(RoadId trafficId, VehicleFootprintPose pose, float tangentialSpeedMetersPerSecond,
-            RoadId previousElementId)
+            RoadId previousElementId, IReadOnlyList<RoadId> routeElementIds = null,
+            IReadOnlyList<RoadKinematicAnchor> kinematics = null)
         {
             TrafficId = trafficId;
             Pose = pose;
             TangentialSpeedMetersPerSecond = tangentialSpeedMetersPerSecond;
             PreviousElementId = previousElementId;
+            RouteElementIds = routeElementIds;
+            Kinematics = kinematics;
         }
     }
 
@@ -70,7 +77,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
                 if (i > 0 && ordered[i].TrafficId == ordered[i - 1].TrafficId)
                     throw new ArgumentException("DuplicateTrafficId", "inputs");
                 actors[i] = new TrafficActor(ordered[i],
-                    RoadLocalizer.Localize(model, ordered[i].Pose, ordered[i].PreviousElementId, null));
+                    RoadLocalizer.Localize(model, ordered[i].Pose, ordered[i].PreviousElementId, ordered[i].RouteElementIds,
+                        ordered[i].Kinematics));
             }
             Actors = Array.AsReadOnly(actors);
         }

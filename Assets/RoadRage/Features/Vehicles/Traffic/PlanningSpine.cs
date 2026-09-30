@@ -23,20 +23,34 @@ namespace RoadRage.Features.Vehicles.Traffic
         public readonly TrackingTolerance Tracking;
         public readonly LongitudinalBounds Bounds;
         public readonly IReadOnlyList<SpeedProfilePoint> CandidateSpeedProfile;
+        /// <summary>Liaison deja evaluee et mise en cache par modele (5.31) ; nulle : liaison sur les trois textes.</summary>
+        public readonly GateAEvidenceResult? Evidence;
+        /// <summary>Objectif de mouvement intermediaire (contrat §4), pose seulement sous run de mesure ; vide sinon.</summary>
+        public readonly RoadId ViaMovementId;
+        /// <summary>
+        /// Ecart nominal e du vehicule (contrat §8) sur sa reference, au debut de l'horizon : plafond de braquage de
+        /// la pose nominale (5.31, 2026-09-30). Nul : plafond de regime etabli du compilateur.
+        /// </summary>
+        public readonly float? NominalOffsetRadians;
 
         public PlanningRequest(TrafficFrame frame, RoadId trafficId, RoutePlan existingRoute,
             RoadId destinationExitId, RouteSeed sessionSeed, float lookAheadMeters,
             string modelText, string signoffText, string reportText, DriverProfile driver,
             TrackingTolerance tracking = default(TrackingTolerance),
             LongitudinalBounds? bounds = null,
-            IReadOnlyList<SpeedProfilePoint> candidateSpeedProfile = null)
+            IReadOnlyList<SpeedProfilePoint> candidateSpeedProfile = null,
+            GateAEvidenceResult? evidence = null, RoadId viaMovementId = default(RoadId),
+            float? nominalOffsetRadians = null)
         {
+            ViaMovementId = viaMovementId;
+            NominalOffsetRadians = nominalOffsetRadians;
             Frame = frame; TrafficId = trafficId; ExistingRoute = existingRoute;
             DestinationExitId = destinationExitId; SessionSeed = sessionSeed;
             LookAheadMeters = lookAheadMeters; ModelText = modelText;
             SignoffText = signoffText; ReportText = reportText; Tracking = tracking;
             Bounds = bounds ?? new LongitudinalBounds(driver.MaxAcceleration, driver.SafeBrakingLimit);
             CandidateSpeedProfile = candidateSpeedProfile;
+            Evidence = evidence;
         }
     }
 
@@ -74,13 +88,14 @@ namespace RoadRage.Features.Vehicles.Traffic
             var observation = new AgentObservation(frame.FrameId, actor);
             var route = RoutePlanner.Plan(new RouteRequest(frame.Model, observation.Location,
                 request.DestinationExitId, request.SessionSeed, request.TrafficId, "route",
-                new DecisionCounter(frame.FrameId), request.ExistingRoute));
-            PathHorizon path = route.Plan == null ? null : PathHorizon.Build(frame.Model, route.Plan, request.LookAheadMeters);
+                new DecisionCounter(frame.FrameId), request.ExistingRoute, false, null, request.ViaMovementId));
+            PathHorizon path = route.Plan == null ? null
+                : PathHorizon.Build(frame.Model, route.Plan, request.LookAheadMeters, request.NominalOffsetRadians);
             MotionPlan motion = null;
             SpeedProfileResult? checkedProfile = null;
             if (path != null)
             {
-                var evidence = GateAEvidenceBinding.Bind(frame.Model, request.ModelText,
+                var evidence = request.Evidence ?? GateAEvidenceBinding.Bind(frame.Model, request.ModelText,
                     request.SignoffText, request.ReportText);
                 motion = new MotionPlan(path, frame.Model.DrivabilityProfile, evidence, request.Tracking);
                 if (request.CandidateSpeedProfile != null)

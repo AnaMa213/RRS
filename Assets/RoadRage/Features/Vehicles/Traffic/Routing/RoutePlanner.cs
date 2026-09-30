@@ -38,6 +38,87 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
         /// </summary>
         public static RouteResult Plan(RouteRequest request)
         {
+            // Objectif intermediaire (contrat §4) : garde jusqu'au franchissement. Sur le mouvement vise lui-meme,
+            // la traversee est en cours : le reste de la route est une route ordinaire vers la sortie.
+            var at = request.Location;
+            bool onObjective = at.Localized && at.ElementKind == RoadElementKind.JunctionMovement
+                && at.ElementId == request.ViaMovementId;
+            if (!request.ViaMovementId.IsEmpty && !onObjective) return PlanThroughMovement(request);
+            ObjectivePhase ignored;
+            return Core(request, RoadId.None, out ignored);
+        }
+
+        /// <summary>Premiere phase d'une route a objectif : occurrences jusqu'au mouvement vise inclus.</summary>
+        private sealed class ObjectivePhase
+        {
+            public List<RouteOccurrence> Occurrences;
+            public double Distance;
+            public double Preference;
+            public RouteDiagnostic Diagnostics;
+        }
+
+        /// <summary>
+        /// Route a objectif intermediaire, semantique par phases du contrat §4 : phase 1 jusqu'au mouvement vise
+        /// (inclus, cout et preference comptes une fois), phase 2 de la fin du mouvement a la sortie, chacune sous
+        /// les regles 5.29 inchangees avec son propre objectif. Les phases ne partagent ni etat ni contrainte et le
+        /// cout est additif : le minimum de chaque phase donne le minimum global (completude).
+        /// </summary>
+        private static RouteResult PlanThroughMovement(RouteRequest request)
+        {
+            var model = request.Model;
+            CompiledJunctionMovement objective;
+            if (model == null || !model.TryGetMovement(request.ViaMovementId, out objective))
+                return new RouteResult(RouteOutcome.InvalidInput, RouteReason.ObjectiveUnknown, null);
+
+            var existing = request.Existing;
+            HashSet<RoadId> closed = null;
+            if (request.ClosedPortalIds != null && request.ClosedPortalIds.Count > 0) closed = new HashSet<RoadId>(request.ClosedPortalIds);
+            bool stale = false;
+            if (existing != null)
+            {
+                RoutePlan reused = null;
+                // Une progression au-dela de l'occurrence visee prouve le franchissement : le plan reste valide.
+                bool reusable = existing.ViaMovementId == request.ViaMovementId && existing.ViaOccurrenceIndex >= 0
+                    && !IsClosed(existing.ExitPortalId, closed)
+                    && TryReuse(existing, model, request.Location, request.DestinationExitId, request.TrafficId, out reused);
+                if (reusable && !request.Replan) return new RouteResult(RouteOutcome.Planned, RouteReason.Requested, reused);
+                stale = !reusable;
+            }
+
+            ObjectivePhase phase;
+            var first = Core(new RouteRequest(model, request.Location, request.DestinationExitId, request.Seed, request.TrafficId,
+                request.DecisionDomain, request.Counter, null, false, request.ClosedPortalIds), request.ViaMovementId, out phase);
+            if (first.Outcome == RouteOutcome.InvalidInput) return first;
+            if (phase == null) return new RouteResult(RouteOutcome.NoRoute, RouteReason.NoRouteToObjective, null);
+
+            var departure = new RoadLocation { ModelId = model.ModelId, ModelVersion = model.Version, Localized = true,
+                ElementKind = RoadElementKind.LaneCorridor, ElementId = objective.ToCorridorId, SMeters = 0f };
+            ObjectivePhase ignored;
+            var second = Core(new RouteRequest(model, departure, request.DestinationExitId, request.Seed, request.TrafficId,
+                request.DecisionDomain, request.Counter, null, false, request.ClosedPortalIds), RoadId.None, out ignored);
+            if (second.Plan == null) return new RouteResult(RouteOutcome.NoRoute, RouteReason.NoRouteAfterObjective, null);
+
+            var occurrences = new List<RouteOccurrence>(phase.Occurrences);
+            int viaIndex = occurrences.Count - 1;
+            occurrences.AddRange(second.Plan.Occurrences);
+            var reason = stale ? RouteReason.StalePlan : RouteReason.Requested;
+            var plan = new RoutePlan(model.ModelId, model.Version, request.TrafficId, second.Plan.ExitPortalId, reason, occurrences,
+                phase.Distance + second.Plan.DistanceMeters, phase.Preference + second.Plan.PreferenceCost,
+                phase.Diagnostics | second.Plan.Diagnostics, request.ViaMovementId, viaIndex);
+            return new RouteResult(existing != null || request.Replan ? RouteOutcome.Replanned : RouteOutcome.Planned, reason, plan);
+        }
+
+        /// <param name="objective">Vide : route vers une sortie. Sinon : phase 1, jusqu'a ce mouvement inclus (sans sortie).</param>
+        private static RouteResult Core(RouteRequest request, RoadId objective, out ObjectivePhase phase)
+        {
+            phase = null;
+            bool toObjective = !objective.IsEmpty;
+            RoadId objectiveFrom = RoadId.None;
+            if (toObjective)
+            {
+                CompiledJunctionMovement target;
+                if (request.Model != null && request.Model.TryGetMovement(objective, out target)) objectiveFrom = target.FromCorridorId;
+            }
             var model = request.Model;
             var location = request.Location;
             var destinationExitId = request.DestinationExitId;
@@ -88,7 +169,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
                     && portal.SMeters <= portalCorridor.LengthMeters)
                     portals.Add(portal);
             }
-            if (portals.Count == 0)
+            if (portals.Count == 0 && !toObjective)
                 return new RouteResult(RouteOutcome.NoRoute, RouteReason.DestinationUnavailable, null);
 
             RoutePlan reused = null;
@@ -118,8 +199,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
                     Kind = RoadElementKind.JunctionMovement, MovementLength = movement.LengthMeters,
                     Weight = movement.RoutePreferenceWeight });
             }
-            for (int i = 0; i < portals.Count; i++)
-                nodes[portals[i].CorridorId].Portals.Add(portals[i]);
+            // Phase 1 d'un objectif : aucune sortie avant le mouvement vise.
+            if (!toObjective)
+                for (int i = 0; i < portals.Count; i++)
+                    nodes[portals[i].CorridorId].Portals.Add(portals[i]);
 
             var ordered = new List<Node>(nodes.Values);
             ordered.Sort((a, b) => a.Id.CompareTo(b.Id));
@@ -137,7 +220,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             {
                 var node = ordered[i];
                 for (int e = 0; e < node.Edges.Count; e++)
-                    node.Edges[e].Feasible = CanReachWithout(nodes, node.Edges[e].To, node.Id);
+                    node.Edges[e].Feasible = (toObjective && node.Edges[e].Id == objective)
+                        || CanReachWithout(nodes, node.Edges[e].To, node.Id, objectiveFrom);
             }
             for (int i = 0; i < ordered.Count; i++)
             {
@@ -178,7 +262,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
                     for (int e = 0; e < node.Edges.Count; e++)
                     {
                         var edge = node.Edges[e];
-                        double cost = node.Length + edge.MovementLength + edge.Preference + nodes[edge.To].Cost;
+                        double cost = node.Length + edge.MovementLength + edge.Preference + Tail(nodes, edge, objective);
                         if (cost < node.Cost)
                         {
                             node.Cost = cost;
@@ -234,7 +318,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             for (int e = 0; e < current.Edges.Count; e++)
             {
                 var edge = current.Edges[e];
-                if (partialStart ? !double.IsInfinity(nodes[edge.To].Cost) : !double.IsInfinity(edge.Preference))
+                if (partialStart ? !double.IsInfinity(Tail(nodes, edge, objective)) : !double.IsInfinity(edge.Preference))
                 {
                     firstFeasible++;
                     firstHasPositive |= edge.Weight > 0f;
@@ -243,14 +327,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             for (int e = 0; e < current.Edges.Count; e++)
             {
                 var edge = current.Edges[e];
-                bool feasibleEdge = partialStart ? !double.IsInfinity(nodes[edge.To].Cost)
+                bool feasibleEdge = partialStart ? !double.IsInfinity(Tail(nodes, edge, objective))
                     : !double.IsInfinity(edge.Preference);
                 if (!feasibleEdge || (firstHasPositive && edge.Weight == 0f)) continue;
                 double edgePreference = partialStart
                     ? (firstFeasible <= 1 ? 0d : -Math.Log(UnitDraw(sessionSeed, trafficId,
                         decisionDomain, decisionCounter, edge.Id)) / (firstHasPositive ? edge.Weight : 1d))
                     : edge.Preference;
-                double cost = current.Length - s + edge.MovementLength + edgePreference + nodes[edge.To].Cost;
+                double cost = current.Length - s + edge.MovementLength + edgePreference + Tail(nodes, edge, objective);
                 if (cost < best)
                 {
                     best = cost;
@@ -288,6 +372,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
                     occurrences.Add(new RouteOccurrence(RoadElementKind.JunctionMovement, selected.Id, 0f, selected.MovementLength));
                     distance += selected.MovementLength;
                 }
+                if (toObjective && selected.Id == objective)
+                {
+                    // Fin de la phase 1 : le mouvement vise est traverse sur toute sa longueur.
+                    phase = new ObjectivePhase { Occurrences = occurrences, Distance = distance, Preference = preference,
+                        Diagnostics = diagnostics };
+                    return new RouteResult(RouteOutcome.Planned, RouteReason.Requested, null);
+                }
                 current = nodes[selected.To];
                 s = 0f;
                 selected = current.Next;
@@ -311,7 +402,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             }
         }
 
-        private static bool CanReachWithout(Dictionary<RoadId, Node> nodes, RoadId start, RoadId forbidden)
+        /// <summary>Cout restant apres une arete ; nul apres le mouvement vise, qui termine la phase 1.</summary>
+        private static double Tail(Dictionary<RoadId, Node> nodes, Edge edge, RoadId objective)
+        {
+            return !objective.IsEmpty && edge.Id == objective ? 0d : nodes[edge.To].Cost;
+        }
+
+        /// <param name="objectiveFrom">Vide : atteindre une sortie ; sinon atteindre ce corridor (d'ou part le mouvement vise).</param>
+        private static bool CanReachWithout(Dictionary<RoadId, Node> nodes, RoadId start, RoadId forbidden, RoadId objectiveFrom)
         {
             var seen = new HashSet<RoadId> { forbidden };
             var stack = new Stack<RoadId>();
@@ -320,6 +418,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             {
                 RoadId id = stack.Pop();
                 if (!seen.Add(id)) continue;
+                if (!objectiveFrom.IsEmpty && id == objectiveFrom) return true;
                 var node = nodes[id];
                 for (int p = 0; p < node.Portals.Count; p++)
                     if (node.Portals[p].SMeters > 0f) return true;
@@ -346,10 +445,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             // l'occurrence courante est la premiere qui contient `s`, en partant de la progression
             // acquise. A progression egale, `s` ne recule jamais ; une occurrence ulterieure du meme
             // element est une nouvelle visite (retour de giratoire), jamais un saut arriere.
+            // La progression n'avance que d'une occurrence contigue (2026-09-30) : une visite ulterieure
+            // non parcourue n'est jamais atteinte par saut, la localisation qui la designe rend le plan perime.
             // `s` et les bornes sont des donnees stockees re-emises telles quelles : l'egalite
             // exacte est le contrat, une valeur quantifiee en amont doit produire un nouveau plan.
             int match = -1;
-            for (int i = plan.ProgressOccurrenceIndex; i < plan.Occurrences.Count; i++)
+            int reachable = Math.Min(plan.Occurrences.Count - 1, plan.ProgressOccurrenceIndex + 1);
+            for (int i = plan.ProgressOccurrenceIndex; i <= reachable; i++)
             {
                 var occurrence = plan.Occurrences[i];
                 if (occurrence.Kind != location.ElementKind || occurrence.Id != location.ElementId) continue;

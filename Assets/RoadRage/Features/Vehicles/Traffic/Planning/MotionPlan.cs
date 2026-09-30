@@ -4,7 +4,12 @@ using System.Collections.Generic;
 namespace RoadRage.Features.Vehicles.Traffic.Planning
 {
     public enum ReferenceCoverage { Covered, NotCoveredByGateA, GateAEvidenceMissing, GateAEvidenceStale }
-    public enum VehicleCoverage { NotEstablished }
+    // 5.31 : valeurs ajoutees en fin. Un MotionPlan reste NotEstablished ; le verdict vehicule vient de
+    // EvaluateVehicleCoverage, qui exige un epsilon_t declare (la regle 5.30 "compte 0" n'autorise rien).
+    // PoseModelMismatch (correct-course 2026-09-29) : la preuve valide n'est pas calculee sur la pose nominale
+    // cinematique ; elle ne rend jamais "couvert" (code d'insertion NotCoveredByGateA).
+    public enum VehicleCoverage { NotEstablished, TrackingToleranceUndeclared, NotCoveredByGateA, Covered,
+        GateAEvidenceMissing, GateAEvidenceStale, PoseModelMismatch }
     public enum MotionIssue { None, HorizonNonConforming, InvalidSteeringCeiling, GateAEvidenceMissing,
         GateAEvidenceStale, NotCoveredByGateA }
     // PlanInfeasible est ajoute en fin : le plan ne permet aucun verdict (la cause exacte est PlanIssue).
@@ -104,6 +109,25 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                     : MotionIssue.NotCoveredByGateA;
         }
 
+        /// <summary>
+        /// Couverture vehicule (5.31) : couvert si et seulement si la preuve est valide, epsilon_t declare et
+        /// max|o| + epsilon_t &lt;= a_e. Ni la marge reservee ni un residu n'entrent dans ce calcul.
+        /// </summary>
+        public static VehicleCoverage EvaluateVehicleCoverage(GateAEvidenceResult evidence, float maximumAbsoluteOffsetMeters,
+            TrackingTolerance declared)
+        {
+            if (evidence.Status == GateAEvidenceStatus.GateAEvidenceMissing) return VehicleCoverage.GateAEvidenceMissing;
+            if (evidence.Status == GateAEvidenceStatus.GateAEvidenceStale) return VehicleCoverage.GateAEvidenceStale;
+            if (!declared.Declared) return VehicleCoverage.TrackingToleranceUndeclared;
+            if (declared.Meters < 0f || float.IsNaN(declared.Meters) || float.IsInfinity(declared.Meters)
+                || float.IsNaN(maximumAbsoluteOffsetMeters) || float.IsInfinity(maximumAbsoluteOffsetMeters))
+                return VehicleCoverage.NotCoveredByGateA;
+            // Une preuve a pose tangente ne certifie aucune couverture physique (contrat §8).
+            if (evidence.PoseModel != NominalPoseModel.Kinematic) return VehicleCoverage.PoseModelMismatch;
+            return Math.Abs(maximumAbsoluteOffsetMeters) + declared.Meters <= evidence.TrackingAllowanceMeters
+                ? VehicleCoverage.Covered : VehicleCoverage.NotCoveredByGateA;
+        }
+
         public SpeedProfileResult VerifySpeedProfile(IReadOnlyList<SpeedProfilePoint> candidate,
             LongitudinalBounds bounds)
         {
@@ -183,38 +207,62 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             return new SpeedProfileResult(SpeedProfileIssue.None, 0f, diagnostics);
         }
 
+        // 5.31 : recherche dichotomique du premier i >= 1 tel que s <= d_i. Les distances sont croissantes,
+        // donc l'indice est exactement celui du parcours lineaire d'origine (meme resultat, cout log).
+        private static int FirstAtOrAfter(IReadOnlyList<SpeedProfilePoint> points, float s)
+        {
+            int low = 1, high = points.Count - 1, found = -1;
+            while (low <= high)
+            {
+                int mid = (low + high) / 2;
+                if (s <= points[mid].DistanceMeters) { found = mid; high = mid - 1; } else low = mid + 1;
+            }
+            return found;
+        }
+
+        private static int FirstAtOrAfter(IReadOnlyList<PathPoint> points, float s)
+        {
+            int low = 1, high = points.Count - 1, found = -1;
+            while (low <= high)
+            {
+                int mid = (low + high) / 2;
+                if (s <= points[mid].DistanceMeters) { found = mid; high = mid - 1; } else low = mid + 1;
+            }
+            return found;
+        }
+
         private static float SpeedAt(IReadOnlyList<SpeedProfilePoint> points, float s)
         {
-            for (int i = 1; i < points.Count; i++)
-                if (s <= points[i].DistanceMeters)
-                {
-                    var a = points[i - 1]; var b = points[i];
-                    double t = (s - a.DistanceMeters) / (b.DistanceMeters - a.DistanceMeters);
-                    double v2 = a.SpeedMetersPerSecond * (double)a.SpeedMetersPerSecond * (1d - t)
-                        + b.SpeedMetersPerSecond * (double)b.SpeedMetersPerSecond * t;
-                    return (float)Math.Sqrt(Math.Max(0d, v2));
-                }
+            int i = FirstAtOrAfter(points, s);
+            if (i > 0)
+            {
+                var a = points[i - 1]; var b = points[i];
+                double t = (s - a.DistanceMeters) / (b.DistanceMeters - a.DistanceMeters);
+                double v2 = a.SpeedMetersPerSecond * (double)a.SpeedMetersPerSecond * (1d - t)
+                    + b.SpeedMetersPerSecond * (double)b.SpeedMetersPerSecond * t;
+                return (float)Math.Sqrt(Math.Max(0d, v2));
+            }
             return points[points.Count - 1].SpeedMetersPerSecond;
         }
 
         private static float CeilingAt(PathInterval interval, float s)
         {
-            for (int i = 1; i < interval.Points.Count; i++)
-                if (s <= interval.Points[i].DistanceMeters)
-                    return Math.Min(interval.Points[i - 1].SteeringCeilingMetersPerSecond,
-                        interval.Points[i].SteeringCeilingMetersPerSecond);
+            int i = FirstAtOrAfter(interval.Points, s);
+            if (i > 0)
+                return Math.Min(interval.Points[i - 1].SteeringCeilingMetersPerSecond,
+                    interval.Points[i].SteeringCeilingMetersPerSecond);
             return interval.Points[interval.Points.Count - 1].SteeringCeilingMetersPerSecond;
         }
 
         private static float CurvatureAt(PathInterval interval, float s)
         {
-            for (int i = 1; i < interval.Points.Count; i++)
-                if (s <= interval.Points[i].DistanceMeters)
-                {
-                    var a = interval.Points[i - 1]; var b = interval.Points[i];
-                    float t = (s - a.DistanceMeters) / (b.DistanceMeters - a.DistanceMeters);
-                    return a.Reference.CurvaturePerMeter + t * (b.Reference.CurvaturePerMeter - a.Reference.CurvaturePerMeter);
-                }
+            int i = FirstAtOrAfter(interval.Points, s);
+            if (i > 0)
+            {
+                var a = interval.Points[i - 1]; var b = interval.Points[i];
+                float t = (s - a.DistanceMeters) / (b.DistanceMeters - a.DistanceMeters);
+                return a.Reference.CurvaturePerMeter + t * (b.Reference.CurvaturePerMeter - a.Reference.CurvaturePerMeter);
+            }
             return interval.Points[interval.Points.Count - 1].Reference.CurvaturePerMeter;
         }
     }

@@ -13,7 +13,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
     /// absente ou d'une autre version du modele.
     /// </summary>
     public enum RouteReason { Requested = 0, StalePlan = 1, InvalidStart = 2, StaleLocalization = 3,
-        DestinationUnavailable = 4, DestinationUnreachable = 5 }
+        DestinationUnavailable = 4, DestinationUnreachable = 5,
+        // Objectif de mouvement intermediaire (contrat Road World Model §4, 2026-09-29) : phase en echec nommee.
+        NoRouteToObjective = 6, NoRouteAfterObjective = 7, ObjectiveUnknown = 8 }
 
     /// <summary>Diagnostics non bloquants ; plusieurs drapeaux peuvent coexister.</summary>
     [Flags]
@@ -72,11 +74,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
         public readonly bool Replan;
         /// <summary>Sorties considerees fermees ; `null` signifie aucune fermeture.</summary>
         public readonly IReadOnlyCollection<RoadId> ClosedPortalIds;
+        /// <summary>
+        /// Objectif de mouvement intermediaire (contrat §4) : mouvement a traverser avant la sortie ; vide sinon.
+        /// Champ ordinaire : seul le chemin de mesure du cycle de vie V2 le pose (garde structurelle 5.31).
+        /// </summary>
+        public readonly RoadId ViaMovementId;
 
         public RouteRequest(CompiledRoadModel model, RoadLocation location, RoadId destinationExitId,
             RouteSeed seed, RoadId trafficId, string decisionDomain, DecisionCounter counter,
-            RoutePlan existing = null, bool replan = false, IReadOnlyCollection<RoadId> closedPortalIds = null)
+            RoutePlan existing = null, bool replan = false, IReadOnlyCollection<RoadId> closedPortalIds = null,
+            RoadId viaMovementId = default(RoadId))
         {
+            ViaMovementId = viaMovementId;
             Model = model;
             Location = location;
             DestinationExitId = destinationExitId;
@@ -126,10 +135,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
         public double PreferenceCost { get; }
         public double TotalCost { get { return DistanceMeters + PreferenceCost; } }
         public RouteDiagnostic Diagnostics { get; }
+        /// <summary>Mouvement vise par l'objectif intermediaire ; vide sans objectif.</summary>
+        public RoadId ViaMovementId { get; }
+        /// <summary>Occurrence du mouvement vise (frontiere des deux phases) ; -1 sans objectif.</summary>
+        public int ViaOccurrenceIndex { get; }
 
         internal RoutePlan(RoadId modelId, RoadModelVersion version, RoadId trafficId, RoadId exitPortalId, RouteReason reason,
-            List<RouteOccurrence> occurrences, double distanceMeters, double preferenceCost, RouteDiagnostic diagnostics)
+            List<RouteOccurrence> occurrences, double distanceMeters, double preferenceCost, RouteDiagnostic diagnostics,
+            RoadId viaMovementId = default(RoadId), int viaOccurrenceIndex = -1)
         {
+            ViaMovementId = viaMovementId;
+            ViaOccurrenceIndex = viaOccurrenceIndex;
             if (occurrences == null || occurrences.Count == 0)
                 throw new ArgumentException("Au moins une occurrence est requise.", "occurrences");
             ModelId = modelId;
@@ -158,6 +174,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             DistanceMeters = source.DistanceMeters;
             PreferenceCost = source.PreferenceCost;
             Diagnostics = source.Diagnostics;
+            ViaMovementId = source.ViaMovementId;
+            ViaOccurrenceIndex = source.ViaOccurrenceIndex;
         }
 
         /// <summary>

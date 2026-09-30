@@ -251,6 +251,61 @@ namespace RoadRage.Features.Vehicles.Traffic
             return bounds;
         }
 
+        /// <summary>Pas RK4 maximal du transport de l'ecart nominal, en metres.</summary>
+        public const float KinematicOffsetStepMeters = 0.1f;
+
+        /// <summary>
+        /// Ecart nominal cinematique e (contrat §8, radians) transporte de <paramref name="s0"/> a
+        /// <paramref name="s1"/> (bornes au domaine ; e inchange si s1 &lt;= s0 ou sans point de reference) :
+        /// de/ds = kappa(s) - sin(e)/a, kappa lineaire entre echantillons comme <see cref="Sample"/>, RK4 par
+        /// segment d'echantillons a pas &lt;= <see cref="KinematicOffsetStepMeters"/>. Le raccord a un autre
+        /// element (saut de tangente) appartient a l'appelant : <see cref="SignedTangentJumpRadians"/>.
+        /// </summary>
+        public double AdvanceKinematicOffset(float s0, float s1, double e, float a)
+        {
+            s0 = Mathf.Clamp(s0, StartS, Length);
+            s1 = Mathf.Clamp(s1, StartS, Length);
+            if (!(a > 0f) || !(s1 > s0)) return e;
+            // Segments couverts seulement : un mouvement porte ~230 echantillons et l'horizon l'appelle point par point.
+            int first;
+            float unused;
+            Locate(s0, out first, out unused);
+            for (int i = first; i + 1 < _samples.Length && _samples[i].SMeters < s1; i++)
+            {
+                double x0 = Math.Max(s0, _samples[i].SMeters), x1 = Math.Min(s1, _samples[i + 1].SMeters);
+                if (!(x1 > x0)) continue;
+                double origin = _samples[i].SMeters;
+                double k0 = _samples[i].CurvaturePerMeter;
+                double slope = (_samples[i + 1].CurvaturePerMeter - k0) / (_samples[i + 1].SMeters - origin);
+                int steps = Math.Max(1, (int)Math.Ceiling((x1 - x0) / KinematicOffsetStepMeters));
+                double h = (x1 - x0) / steps;
+                for (int n = 0; n < steps; n++)
+                {
+                    double x = x0 + h * n - origin;
+                    double r1 = k0 + slope * x - Math.Sin(e) / a;
+                    double r2 = k0 + slope * (x + 0.5 * h) - Math.Sin(e + 0.5 * h * r1) / a;
+                    double r3 = k0 + slope * (x + 0.5 * h) - Math.Sin(e + 0.5 * h * r2) / a;
+                    double r4 = k0 + slope * (x + h) - Math.Sin(e + h * r3) / a;
+                    e += h / 6.0 * (r1 + 2.0 * r2 + 2.0 * r3 + r4);
+                }
+            }
+            return e;
+        }
+
+        /// <summary>
+        /// Saut de tangente signe (radians, positif vers road-right) de <paramref name="left"/> vers
+        /// <paramref name="right"/> autour du road-up de droite : e en saute a un raccord, le cap de caisse
+        /// nominal restant continu (contrat §8).
+        /// </summary>
+        public static double SignedTangentJumpRadians(RoadCurvePoint left, RoadCurvePoint right)
+        {
+            Vector3 up = right.Up.normalized;
+            Vector3 from = Vector3.ProjectOnPlane(left.Tangent, up);
+            Vector3 to = Vector3.ProjectOnPlane(right.Tangent, up);
+            if (from.sqrMagnitude <= 0f || to.sqrMagnitude <= 0f) return 0d;
+            return Vector3.SignedAngle(from, to, up) * Mathf.Deg2Rad;
+        }
+
         // ------------------------------------------------------------------ interne
 
         private void Locate(float s, out int index, out float t)

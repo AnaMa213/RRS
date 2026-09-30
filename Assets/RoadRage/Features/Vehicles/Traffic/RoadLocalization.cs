@@ -98,6 +98,14 @@ namespace RoadRage.Features.Vehicles.Traffic
         public float HeadingErrorDegrees;
         public RoadLocationFlags Flags;
 
+        /// <summary>
+        /// Causes de <see cref="RoadLocationFlags.OutsideEnvelope"/>, qui en est l'union : depassement longitudinal de
+        /// l'element retenu (retention d'hysteresis a une couture, fin du portail de sortie) et debordement de
+        /// l'enveloppe de largeur par la reference ou un coin de l'empreinte (contrat §8, criteres de contact, 2026-09-30).
+        /// </summary>
+        public float LongitudinalOverrunMeters;
+        public bool OutsideWidthEnvelope;
+
         /// <summary>Deterministe dans [0, 1] : 1 sans rival du meme rang, 0 si non localise.</summary>
         public float Confidence;
 
@@ -111,17 +119,40 @@ namespace RoadRage.Features.Vehicles.Traffic
     }
 
     /// <summary>
+    /// Etat cinematique connu d'un vehicule (contrat §8) : l'ecart nominal e (radians) de sa route au debut
+    /// d'un element, a l'abscisse <see cref="SMeters"/>. Le driver V2 les tire de sa reference de mesure.
+    /// </summary>
+    public readonly struct RoadKinematicAnchor
+    {
+        public readonly RoadId ElementId;
+        public readonly float SMeters;
+        public readonly float OffsetRadians;
+
+        public RoadKinematicAnchor(RoadId elementId, float sMeters, float offsetRadians)
+        {
+            ElementId = elementId; SMeters = sMeters; OffsetRadians = offsetRadians;
+        }
+    }
+
+    /// <summary>
     /// Localisation pure (Story 5.26) : fonction de (modele, pose d'empreinte, element precedent,
-    /// elements de route). Aucun etat, aucune ecriture, aucun snap ni avancee de route : une pose a
-    /// contresens ou hors enveloppe reste une localisation observable.
+    /// elements de route, ancres cinematiques). Aucun etat, aucune ecriture, aucun snap ni avancee de
+    /// route : une pose a contresens ou hors enveloppe reste une localisation observable.
     ///
     /// Collecte : balayage lineaire des bornes de chaque element, elargies du voisinage (deux fois
     /// le seuil d'acceptation). Classement a deux rangs puis score en metres :
-    /// <c>|lateral| + |normal| + depassement longitudinal + 2 m x |cap|/180</c>, moins l'hysteresis
-    /// pour l'element precedent, moins la moitie pour un voisin explicite du precedent, moins la
-    /// moitie pour un element de route (bonus cumulables). Le cap ne classe qu'a l'interieur d'un
-    /// rang : il ne fait jamais preferer un element qui ne contient pas la pose a un element qui
-    /// la contient. Le RoadId ne departage que les egalites exactes.
+    /// <c>|lateral| + |normal| + depassement longitudinal + 2 m x |ecart de cap|/180</c>, moins l'hysteresis
+    /// pour l'element precedent, moins la moitie pour un voisin explicite du precedent, moins la bande de
+    /// score pour un element de route (bonus cumulables ; 2026-09-30 : dans la bande d'ambiguite, la route
+    /// decide). Le cap ne classe qu'a l'interieur d'un rang : il ne fait jamais preferer un element qui ne
+    /// contient pas la pose a un element qui la contient. Le RoadId ne departage que les egalites exactes.
+    ///
+    /// Ecart de cap (2026-09-30). Sans ancre : cap de la caisse contre la tangente (pose tangente, e = 0).
+    /// Avec ancres : contre l'orientation nominale du candidat, tangente tournee de -e, e etant transporte
+    /// (de/ds = kappa - sin(e)/a, saut de tangente aux raccords) depuis l'ancre de l'element ou de son
+    /// predecesseur explicite. Candidat sans ancre atteignable : bande morte |cap| - E, E = asin(a/R_admission)
+    /// + tolerance de raccord, borne de |e| sur tout element admis (|kappa| &lt;= 1/R_admission), jamais le
+    /// biais de la tangente.
     ///
     /// Le score additif ci-dessus, le cumul des bonus et le rayon de collecte de deux fois le seuil
     /// d'acceptation sont des CHOIX D'IMPLEMENTATION, pas des invariants d'architecture : le contrat
@@ -138,11 +169,13 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <summary>Poids du cap : une erreur de 180 degres vaut 2 m de score.</summary>
         private const float HeadingWeightMeters = 2f;
 
+        /// <param name="kinematics">Ecarts nominaux connus de la route du vehicule (contrat §8) ; nul : pose tangente.</param>
         public static RoadLocation Localize(
             CompiledRoadModel model,
             VehicleFootprintPose pose,
             RoadId previousElementId,
-            IReadOnlyList<RoadId> routeElementIds)
+            IReadOnlyList<RoadId> routeElementIds,
+            IReadOnlyList<RoadKinematicAnchor> kinematics = null)
         {
             if (model == null)
             {
@@ -167,6 +200,15 @@ namespace RoadRage.Features.Vehicles.Traffic
             query.Forward = forward;
             query.Previous = previousElementId;
             query.Route = routeElementIds;
+            var drivability = model.DrivabilityProfile;
+            if (kinematics != null && drivability.Declared && drivability.ReferencePointAheadRearAxleMeters > 0f)
+            {
+                query.Kinematics = kinematics;
+                query.ReferenceAheadMeters = drivability.ReferencePointAheadRearAxleMeters;
+                query.OffsetBandDegrees = Mathf.Asin(Mathf.Min(1f, drivability.ReferencePointAheadRearAxleMeters
+                    / RoadModelCompiler.AdmissionRadiusMeters(drivability))) * Mathf.Rad2Deg
+                    + model.ValidationProfile.SeamTangentToleranceDegrees;
+            }
 
             var candidates = new List<RoadLocationCandidate>();
             var projections = new Dictionary<RoadId, RoadProjection>();
@@ -249,7 +291,10 @@ namespace RoadRage.Features.Vehicles.Traffic
                 location.Flags |= RoadLocationFlags.WrongWay;
             }
 
-            if (FootprintOutsideEnvelope(pose.Footprint, reference, forward, right, projections[best.ElementId]))
+            var accepted = projections[best.ElementId];
+            location.LongitudinalOverrunMeters = accepted.LongitudinalOverrunMeters;
+            location.OutsideWidthEnvelope = FootprintOutsideWidthEnvelope(pose.Footprint, reference, forward, right, accepted);
+            if (accepted.LongitudinalOverrunMeters > ContainEpsilonMeters || location.OutsideWidthEnvelope)
             {
                 location.Flags |= RoadLocationFlags.OutsideEnvelope;
             }
@@ -267,6 +312,9 @@ namespace RoadRage.Features.Vehicles.Traffic
             public Vector3 Forward;
             public RoadId Previous;
             public IReadOnlyList<RoadId> Route;
+            public IReadOnlyList<RoadKinematicAnchor> Kinematics;
+            public float ReferenceAheadMeters;
+            public float OffsetBandDegrees;
         }
 
         /// <exception cref="ArgumentException">Pose non finie, repere chassis degenere ou extent negatif.</exception>
@@ -340,7 +388,18 @@ namespace RoadRage.Features.Vehicles.Traffic
             float hysteresis = query.Profile.HysteresisMeters;
             float heading = at.SignedHeadingDegrees(query.Forward);
 
-            float score = Mathf.Abs(lateral) + Mathf.Abs(normal) + overrun + HeadingWeightMeters * Mathf.Abs(heading) / 180f;
+            float headingGap = Mathf.Abs(heading);
+            if (query.Kinematics != null)
+            {
+                // Caisse contre l'orientation nominale du candidat (tangente tournee de -e) ; sans ancre atteignable,
+                // bande morte bornant |e| sur tout element admis.
+                double offset;
+                headingGap = TryNominalOffset(query, kind, id, curve, projection.SMeters, out offset)
+                    ? Mathf.Abs(Mathf.DeltaAngle(0f, heading + (float)offset * Mathf.Rad2Deg))
+                    : Mathf.Max(0f, Mathf.Abs(heading) - query.OffsetBandDegrees);
+            }
+
+            float score = Mathf.Abs(lateral) + Mathf.Abs(normal) + overrun + HeadingWeightMeters * headingGap / 180f;
             if (isPrevious)
             {
                 score -= hysteresis;
@@ -353,7 +412,7 @@ namespace RoadRage.Features.Vehicles.Traffic
 
             if (Contains(query.Route, id))
             {
-                score -= 0.5f * hysteresis;
+                score -= query.Profile.ScoreBandMeters;
             }
 
             var candidate = new RoadLocationCandidate();
@@ -401,6 +460,74 @@ namespace RoadRage.Features.Vehicles.Traffic
                 && (previousMovement.FromCorridorId == candidate || previousMovement.ToCorridorId == candidate);
         }
 
+        /// <summary>
+        /// e nominal (radians) du candidat a <paramref name="s"/> : transporte depuis l'ancre de l'element la plus
+        /// proche en amont de s (une ancre en aval donne son e tel quel), sinon depuis l'ancre d'un predecesseur
+        /// explicite, portee jusqu'a sa fin puis au-dela du saut de tangente du raccord. Faux sans ancre atteignable.
+        /// </summary>
+        private static bool TryNominalOffset(Query query, RoadElementKind kind, RoadId id, RoadCurve curve, float s,
+            out double offset)
+        {
+            float a = query.ReferenceAheadMeters;
+            int own = -1;
+            for (int i = 0; i < query.Kinematics.Count; i++)
+            {
+                var anchor = query.Kinematics[i];
+                if (anchor.ElementId != id) continue;
+                if (own < 0) { own = i; continue; }
+                var best = query.Kinematics[own];
+                bool before = anchor.SMeters <= s, bestBefore = best.SMeters <= s;
+                if ((before && (!bestBefore || anchor.SMeters > best.SMeters))
+                    || (!before && !bestBefore && anchor.SMeters < best.SMeters))
+                    own = i;
+            }
+
+            if (own >= 0)
+            {
+                var anchor = query.Kinematics[own];
+                offset = curve.AdvanceKinematicOffset(anchor.SMeters, s, anchor.OffsetRadians, a);
+                return true;
+            }
+
+            for (int i = 0; i < query.Kinematics.Count; i++)
+            {
+                var anchor = query.Kinematics[i];
+                RoadCurve predecessor;
+                if (!IsExplicitSuccessor(query.Model, anchor.ElementId, kind, id, out predecessor)) continue;
+                double end = predecessor.AdvanceKinematicOffset(anchor.SMeters, predecessor.Length, anchor.OffsetRadians, a);
+                end += RoadCurve.SignedTangentJumpRadians(predecessor.Sample(predecessor.Length), curve.Sample(curve.StartS));
+                offset = curve.AdvanceKinematicOffset(curve.StartS, s, end, a);
+                return true;
+            }
+
+            offset = 0d;
+            return false;
+        }
+
+        /// <summary>Vrai si <paramref name="to"/> commence la ou <paramref name="from"/> finit (connexion ou extremite de mouvement).</summary>
+        private static bool IsExplicitSuccessor(CompiledRoadModel model, RoadId from, RoadElementKind toKind, RoadId to,
+            out RoadCurve fromCurve)
+        {
+            EffectiveLaneCorridor corridor;
+            CompiledJunctionMovement movement;
+            if (model.TryGetCorridor(from, out corridor))
+            {
+                fromCurve = corridor.Curve;
+                return toKind == RoadElementKind.JunctionMovement
+                    ? model.TryGetMovement(to, out movement) && movement.FromCorridorId == from
+                    : toKind == RoadElementKind.LaneCorridor && Contains(model.GetSuccessorCorridors(from), to);
+            }
+
+            if (model.TryGetMovement(from, out movement))
+            {
+                fromCurve = movement.Curve;
+                return toKind == RoadElementKind.LaneCorridor && movement.ToCorridorId == to;
+            }
+
+            fromCurve = null;
+            return false;
+        }
+
         private static bool Contains(IReadOnlyList<RoadId> ids, RoadId id)
         {
             if (ids == null)
@@ -438,20 +565,15 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// Coins de l'empreinte et point de reference, lateraux mesures dans le repere de l'element
         /// retenu a l'abscisse du point de reference.
         /// </summary>
-        private static bool FootprintOutsideEnvelope(
+        private static bool FootprintOutsideWidthEnvelope(
             VehicleFootprint footprint,
             Vector3 reference,
             Vector3 forward,
             Vector3 right,
             RoadProjection projection)
         {
-            // Reference au-dela d'une extremite de l'element : hors enveloppe. Les coins ne sont pas
-            // testes longitudinalement, sinon chaque franchissement de couture leverait le drapeau.
-            if (projection.LongitudinalOverrunMeters > ContainEpsilonMeters)
-            {
-                return true;
-            }
-
+            // Largeur seulement : le depassement longitudinal de la reference est l'autre cause du drapeau.
+            // Les coins ne sont pas testes longitudinalement, sinon chaque franchissement de couture leverait le drapeau.
             var at = projection.Point;
             var corners = new[]
             {

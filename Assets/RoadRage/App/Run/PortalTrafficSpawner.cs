@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using RoadRage.Features.Online;
 using RoadRage.Features.Run;
 using RoadRage.Features.Vehicles;
+using RoadRage.Features.Vehicles.Traffic;
+using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Shared.Domain;
 using Unity.Netcode;
 using UnityEngine;
@@ -39,8 +41,22 @@ namespace RoadRage.App.Run
         [Tooltip("Prefab reseau du vehicule de trafic (enregistre dans DefaultNetworkPrefabs). Non assigne : aucune insertion, avertissement une fois.")]
         private GameObject vehiclePrefab;
 
+        [SerializeField]
+        [Tooltip("Story 5.31 : prefab reseau du vehicule Traffic V2 (aucun type V1). Utilise seulement quand la session demande la composition V2Slice.")]
+        private GameObject v2VehiclePrefab;
+
         /// <summary>Vehicules inseres par ce service, host-owned. Jamais partagee, jamais statique.</summary>
         private readonly List<NetworkObject> liveVehicles = new List<NetworkObject>();
+
+        private bool compositionFrozen;
+        private TrafficComposition composition = TrafficComposition.V1;
+        private MeasurementRun measurement;
+        private bool warnedCompositionChange;
+        private bool warnedV2Refusal;
+        private TrafficV2Admission v2Admission;
+        private int v2InsertionCounter;
+        private int v2NextTriplet;
+        private int v2EntryCursor;
 
         private readonly Collider[] clearanceHits = new Collider[32];
 
@@ -65,6 +81,54 @@ namespace RoadRage.App.Run
         {
             get { return liveVehicles.Count; }
         }
+
+        /// <summary>Story 5.31 : composition figee de la session (V1 tant qu'elle n'a pas ete lue).</summary>
+        public TrafficComposition Composition
+        {
+            get { return composition; }
+        }
+
+        /// <summary>Story 5.31 : vrai des que la composition a ete lue et figee.</summary>
+        public bool CompositionFrozen
+        {
+            get { return compositionFrozen; }
+        }
+
+        /// <summary>Story 5.31 : dernier code publie par la branche V2 (Allowed tant qu'aucun refus).</summary>
+        public TrafficV2Code V2LastCode { get; private set; }
+
+        public int LiveV2Population
+        {
+            get { return LiveV2Vehicles.Count; }
+        }
+
+        public int V2Insertions
+        {
+            get { return v2InsertionCounter; }
+        }
+
+        public int V2Removals { get; private set; }
+
+        /// <summary>Vehicules V2 vivants : ils partagent la liste et l'unique chemin de retrait du trafic (lecture seule).</summary>
+        public IReadOnlyList<NetworkObject> LiveV2Vehicles
+        {
+            get
+            {
+                var result = new List<NetworkObject>();
+                foreach (var networkObject in liveVehicles)
+                {
+                    if (networkObject != null && networkObject.GetComponent<TrafficV2VehicleDriver>() != null)
+                    {
+                        result.Add(networkObject);
+                    }
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>Drivers V2 retires a un portail de sortie, conserves pour la trace de mesure.</summary>
+        public readonly List<V2DriveRecord> RetiredV2Runs = new List<V2DriveRecord>();
 
         private void Awake()
         {
@@ -101,6 +165,13 @@ namespace RoadRage.App.Run
             }
 
             ReleaseVehiclesAtExitPortals();
+
+            ResolveCompositionOnce();
+            if (composition == TrafficComposition.V2Slice)
+            {
+                TickV2Slice();
+                return;
+            }
 
             if (laneGraph == null)
             {
@@ -267,12 +338,20 @@ namespace RoadRage.App.Run
                 }
 
                 var controller = networkObject.GetComponent<NetworkedAIVehicleDriverController>();
-                if (controller == null || !controller.HasReachedExitPortal)
+                var v2Driver = controller == null ? networkObject.GetComponent<TrafficV2VehicleDriver>() : null;
+                if ((controller == null || !controller.HasReachedExitPortal) && (v2Driver == null || !v2Driver.HasReachedExitPortal))
                 {
                     continue;
                 }
 
                 liveVehicles.RemoveAt(i);
+
+                // Story 5.31 : un vehicule V2 sort par ce meme et unique chemin, au portail de sortie.
+                if (v2Driver != null)
+                {
+                    RetiredV2Runs.Add(v2Driver.CaptureRecord());
+                    V2Removals++;
+                }
 
                 if (networkObject.IsSpawned)
                 {
@@ -353,6 +432,189 @@ namespace RoadRage.App.Run
             }
 
             liveVehicles.Add(networkObject);
+            return true;
+        }
+
+        /// <summary>
+        /// Story 5.31 (A4) : la composition de la session est lue une fois, avant la premiere insertion,
+        /// puis figee. Un changement ulterieur est ignore avec un diagnostic.
+        /// </summary>
+        private void ResolveCompositionOnce()
+        {
+            if (!compositionFrozen)
+            {
+                composition = TrafficV2Session.Composition;
+                measurement = TrafficV2Session.Measurement;
+                compositionFrozen = true;
+                return;
+            }
+
+            if (TrafficV2Session.Composition != composition || TrafficV2Session.Measurement != measurement)
+            {
+                WarnOnce(ref warnedCompositionChange, "composition de trafic changee apres la premiere lecture : changement ignore, la session reste en "
+                    + composition + ".");
+            }
+        }
+
+        /// <summary>
+        /// Story 5.31 : branche V2Slice. Aucun vehicule V1, au plus un vehicule V2 vivant, insertions
+        /// successives a un portail d'entree libre, retrait uniquement au portail de sortie. Hors run de
+        /// mesure, un vehicule V2 n'entre que si sa couverture est etablie : sinon un code nomme est publie.
+        /// </summary>
+        private void TickV2Slice()
+        {
+            // Le retrait a deja eu lieu dans ReleaseVehiclesAtExitPortals, seul chemin de despawn du trafic.
+            if (LiveV2Population >= TrafficV2Settings.V2SliceMaxPopulation)
+            {
+                return;
+            }
+
+            if (measurement != null && v2NextTriplet >= measurement.Triplets.Count)
+            {
+                V2LastCode = TrafficV2Code.CampaignCompleted;
+                return;
+            }
+
+            if (v2Admission == null)
+            {
+                v2Admission = TrafficV2Lifecycle.AdmitCommittedArtifacts();
+            }
+
+            var verdict = TrafficV2Lifecycle.EvaluateInsertion(v2Admission, measurement, TrafficV2Settings.DeclaredTrackingTolerance);
+            if (!verdict.Allowed)
+            {
+                RefuseV2(verdict.Code);
+                return;
+            }
+
+            var prefabDriver = v2VehiclePrefab != null ? v2VehiclePrefab.GetComponent<TrafficV2VehicleDriver>() : null;
+            if (prefabDriver == null || v2VehiclePrefab.GetComponent<NetworkObject>() == null)
+            {
+                RefuseV2(TrafficV2Code.RoadModelMissing, "aucun prefab V2 reseau avec TrafficV2VehicleDriver : aucun vehicule V2 n'est insere.");
+                return;
+            }
+
+            if (prefabDriver.DriverProfileDefinition == null)
+            {
+                RefuseV2(TrafficV2Code.DriverProfileMissing);
+                return;
+            }
+
+            RoadId entryId;
+            RoadId exitId;
+            ulong seed;
+            // Objectif intermediaire (contrat §4) : pose seulement ici, sous run de mesure, depuis le triplet.
+            RoadId viaMovementId = RoadId.None;
+            if (measurement != null)
+            {
+                var triplet = measurement.Triplets[v2NextTriplet];
+                entryId = triplet.EntryPortalId;
+                exitId = triplet.ExitPortalId;
+                seed = triplet.Seed;
+                viaMovementId = triplet.ViaMovementId;
+            }
+            else
+            {
+                entryId = NextEntryPortal(v2Admission.Model);
+                exitId = RoadId.None;
+                if (runState == null)
+                {
+                    runState = FindAnyObjectByType<NetworkedRunState>();
+                }
+
+                seed = runState != null ? unchecked((ulong)runState.SessionSeed.Value) : 0UL;
+            }
+
+            var prepared = TrafficV2Lifecycle.PrepareInsertion(v2Admission, entryId, exitId, seed,
+                (ulong)(v2InsertionCounter + 1), prefabDriver.DriverProfileDefinition.Profile, Time.fixedDeltaTime,
+                viaMovementId);
+            if (prepared.Code != TrafficV2Code.Allowed)
+            {
+                RefuseV2(prepared.Code);
+                return;
+            }
+
+            var clearance = laneGraph != null && laneGraph.TrafficSettings != null ? laneGraph.TrafficSettings.PortalClearanceRadius : 4f;
+            if (!IsPositionClear(prepared.Position, clearance))
+            {
+                return;
+            }
+
+            var instance = Instantiate(v2VehiclePrefab, prepared.Position, prepared.Rotation);
+
+            // Pose d'insertion, avant tout pas physique et avant le spawn : le chassis a la hauteur de caisse
+            // statique au-dessus du point de reference (meme hauteur que les poses canoniques de la Gate A),
+            // pour ne pas naitre dans la marge de contact de la chaussee. Aucune ecriture apres l'insertion.
+            var insertedBody = instance.GetComponent<VehiclePhysicsBody>();
+            if (insertedBody == null || !insertedBody.HasProfile)
+            {
+                RefuseV2(TrafficV2Code.VehicleProfileMissing);
+                Destroy(instance);
+                return;
+            }
+            var rideHeight = insertedBody.Profile.ResolveStaticRideHeight(Mathf.Abs(Physics.gravity.y));
+            instance.transform.SetPositionAndRotation(prepared.Position + (prepared.Rotation * Vector3.up) * rideHeight, prepared.Rotation);
+
+            v2InsertionCounter++;
+            instance.name = "AI_VehicleV2_Portal_" + v2InsertionCounter.ToString("D3");
+            instance.GetComponent<TrafficV2VehicleDriver>().Bind(v2Admission, prepared, verdict, measurement != null);
+            var spawned = instance.GetComponent<NetworkObject>();
+            if (!spawned.IsSpawned)
+            {
+                spawned.Spawn();
+            }
+
+            liveVehicles.Add(spawned);
+            V2LastCode = TrafficV2Code.Allowed;
+            if (measurement != null)
+            {
+                v2NextTriplet++;
+            }
+        }
+
+        private int NextEntryIndex(int count)
+        {
+            return count == 0 ? -1 : v2EntryCursor++ % count;
+        }
+
+        private RoadId NextEntryPortal(CompiledRoadModel model)
+        {
+            var entries = new List<RoadId>();
+            for (var i = 0; i < model.Portals.Count; i++)
+            {
+                if (model.Portals[i].Role == PortalRole.Entry)
+                {
+                    entries.Add(model.Portals[i].Id);
+                }
+            }
+
+            entries.Sort((a, b) => a.CompareTo(b));
+            var index = NextEntryIndex(entries.Count);
+            return index < 0 ? RoadId.None : entries[index];
+        }
+
+        private void RefuseV2(TrafficV2Code code, string message = null)
+        {
+            V2LastCode = code;
+            WarnOnce(ref warnedV2Refusal, message ?? ("aucun vehicule V2 insere : " + code + "."));
+        }
+
+        private bool IsPositionClear(Vector3 origin, float clearanceRadius)
+        {
+            var found = Physics.OverlapSphereNonAlloc(
+                origin, clearanceRadius, clearanceHits, ~0, QueryTriggerInteraction.Ignore);
+            if (found == clearanceHits.Length) return false;
+
+            for (var i = 0; i < found; i++)
+            {
+                var candidate = clearanceHits[i];
+                if (candidate != null
+                    && (candidate.attachedRigidbody != null || candidate.GetComponentInParent<CharacterController>() != null))
+                {
+                    return false;
+                }
+            }
+
             return true;
         }
 

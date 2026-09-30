@@ -14,15 +14,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         public readonly float ElementSMeters;
         public readonly RoadCurvePoint Reference;
         public readonly float SteeringCeilingMetersPerSecond;
+        /// <summary>Ecart nominal e de la route (radians, contrat §8) ; NaN : plafond de regime etabli du compilateur.</summary>
+        public readonly float NominalOffsetRadians;
         public bool Unbounded { get { return float.IsPositiveInfinity(SteeringCeilingMetersPerSecond); } }
 
         internal PathPoint(float distance, RoadCurvePoint reference, DrivabilityProfile profile)
+            : this(distance, reference, RoadModelCompiler.SteeringSpeedCeilingMetersPerSecond(profile, reference.CurvaturePerMeter),
+                float.NaN) { }
+
+        internal PathPoint(float distance, RoadCurvePoint reference, float ceiling, float nominalOffsetRadians)
         {
             DistanceMeters = distance;
             ElementSMeters = reference.SMeters;
             Reference = reference;
-            SteeringCeilingMetersPerSecond = RoadModelCompiler.SteeringSpeedCeilingMetersPerSecond(
-                profile, reference.CurvaturePerMeter);
+            SteeringCeilingMetersPerSecond = ceiling;
+            NominalOffsetRadians = nominalOffsetRadians;
         }
     }
 
@@ -105,7 +111,30 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             End = end; LengthMeters = length; Issue = issue; IssueDistanceMeters = issueDistance;
         }
 
-        public static PathHorizon Build(CompiledRoadModel model, RoutePlan route, float lookAheadMeters)
+        /// <summary>
+        /// Plafond de braquage de la pose nominale (5.31, decision proprietaire du 2026-09-30) : plus grande vitesse
+        /// dont le braquage disponible couvre l'angle de roue nominal tan delta = (L/a) tan e. C'est la condition de
+        /// faisabilite du contrat §8 (NominalPoseInfeasible) ; le regime etabli asin(a kappa) du compilateur la
+        /// majore sur un pic de courbure plus court que la relaxation de e. +inf sous le braquage haute vitesse.
+        /// </summary>
+        public static float NominalSteeringCeilingMetersPerSecond(DrivabilityProfile profile, float offsetRadians)
+        {
+            if (Math.Abs(offsetRadians) >= Math.PI * 0.5) return 0f;
+            double delta = Math.Abs(Math.Atan(profile.WheelbaseMeters / profile.ReferencePointAheadRearAxleMeters
+                * Math.Tan(offsetRadians))) * 180d / Math.PI;
+            if (delta <= profile.HighSpeedLockDegrees) return float.PositiveInfinity;
+            if (delta > profile.LowSpeedLockDegrees) return 0f;
+            return (float)(profile.FullReductionSpeedMetersPerSecond * (profile.LowSpeedLockDegrees - delta)
+                / (profile.LowSpeedLockDegrees - profile.HighSpeedLockDegrees));
+        }
+
+        /// <param name="nominalOffsetRadians">
+        /// Ecart nominal e de la route au debut de l'horizon (contrat §8). Fourni : chaque point porte e, transporte
+        /// par de/ds = kappa - sin(e)/a et saute du saut de tangente signe aux raccords, et le plafond de la pose
+        /// nominale. Absent : plafond de regime etabli du compilateur (comportement 5.30).
+        /// </param>
+        public static PathHorizon Build(CompiledRoadModel model, RoutePlan route, float lookAheadMeters,
+            float? nominalOffsetRadians = null)
         {
             if (model == null) throw new ArgumentNullException("model");
             if (route == null) throw new ArgumentNullException("route");
@@ -114,6 +143,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             if (route.ModelId != model.ModelId || route.ModelVersion != model.Version)
                 throw new ArgumentException("StalePlan", "route");
 
+            var profile = model.DrivabilityProfile;
+            bool kinematic = nominalOffsetRadians.HasValue && profile.Declared && profile.ReferencePointAheadRearAxleMeters > 0f;
+            double e = kinematic ? nominalOffsetRadians.Value : 0d;
             var intervals = new List<PathInterval>();
             var seams = new List<PathSeam>();
             float travelled = 0f;
@@ -146,6 +178,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                             curve.Sample(samples[j].SMeters), model.DrivabilityProfile));
                 if (s1 > s0)
                     points.Add(new PathPoint(travelled + s1 - s0, curve.Sample(s1), model.DrivabilityProfile));
+
+                if (kinematic)
+                {
+                    if (intervals.Count > 0)
+                    {
+                        var previousPoints = intervals[intervals.Count - 1].Points;
+                        e += RoadCurve.SignedTangentJumpRadians(previousPoints[previousPoints.Count - 1].Reference, points[0].Reference);
+                    }
+                    for (int j = 0; j < points.Count; j++)
+                    {
+                        if (j > 0)
+                            e = curve.AdvanceKinematicOffset(points[j - 1].ElementSMeters, points[j].ElementSMeters, e,
+                                profile.ReferencePointAheadRearAxleMeters);
+                        points[j] = new PathPoint(points[j].DistanceMeters, points[j].Reference,
+                            NominalSteeringCeilingMetersPerSecond(profile, (float)e), (float)e);
+                    }
+                }
 
                 float maxSlope = 0f;
                 for (int j = 1; j < points.Count; j++)
