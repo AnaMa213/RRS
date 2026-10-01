@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using NUnit.Framework;
 using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Frame;
@@ -14,6 +13,7 @@ namespace RoadRage.Tests.EditMode
     [Category("Geometry")]
     public sealed class Story530PlanningReplayTests
     {
+        private const string HistoricalDirectory = "_bmad-output/implementation-artifacts/gate-a-5-52/historical-signed-5-51/";
         private static readonly string[] ExpectedRingDiscontinuities = {
             "401b55e11b401435eb1bdd8dde7caa94:entry", "4030253e182e3ed1b7d2aeea7a73feb6:entry",
             "419d893b269e14c02e84e3509d9bf193:entry", "42480748339bbb6fe6fcbc99604c1aa8:exit",
@@ -40,9 +40,9 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void FourEntriesReplayAcrossCompiledHorizonsToExit()
         {
-            string modelText = File.ReadAllText("Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json");
-            string signoff = File.ReadAllText("Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json");
-            string report = File.ReadAllText("_bmad-output/implementation-artifacts/migration-report-5-28-mvp-run.md");
+            string modelText = File.ReadAllText(HistoricalDirectory + "MVP_Run.road-model.json");
+            string signoff = File.ReadAllText(HistoricalDirectory + "MVP_Run.road-signoff.json");
+            string report = File.ReadAllText(HistoricalDirectory + "migration-report-5-28-mvp-run.md");
             var model = RoadModelCompiler.Compile(RoadModelDocument.Load(modelText));
             int entries = 0;
             var observedRing = new HashSet<string>();
@@ -135,11 +135,8 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void SignedRingSeamSetIsPinnedByMovementAndSide()
         {
-            var allowed = (HashSet<string>)typeof(PathHorizon)
-                .GetField("SignedRingSeams", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
-            Assert.That(allowed.OrderBy(x => x), Is.EqualTo(ExpectedRingDiscontinuities.OrderBy(x => x)));
             var model = RoadModelCompiler.Compile(RoadModelDocument.Load(File.ReadAllText(
-                "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json")));
+                HistoricalDirectory + "MVP_Run.road-model.json")));
             var actual = new List<string>();
             foreach (var movement in model.Movements)
             {

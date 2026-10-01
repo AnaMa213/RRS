@@ -28,6 +28,7 @@ namespace RoadRage.Tests.EditMode
     {
         private const string V2PrefabPath = "Assets/RoadRage/Prefabs/Greybox_AIVehicle_V2.prefab";
         private const string TrafficRoot = "Assets/RoadRage/Features/Vehicles/Traffic";
+        private const string HistoricalSignedDirectory = "_bmad-output/implementation-artifacts/gate-a-5-52/historical-signed-5-51/";
         private const float Dt = 0.02f;
 
         private static string modelText, signoffText, reportText;
@@ -39,9 +40,9 @@ namespace RoadRage.Tests.EditMode
             {
                 if (admission == null)
                 {
-                    modelText = File.ReadAllText(TrafficV2Settings.ModelPath);
-                    signoffText = File.ReadAllText(TrafficV2Settings.SignoffPath);
-                    reportText = File.ReadAllText(TrafficV2Settings.ReportPath);
+                    modelText = File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-model.json");
+                    signoffText = File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-signoff.json");
+                    reportText = File.ReadAllText(HistoricalSignedDirectory + "migration-report-5-28-mvp-run.md");
                     admission = TrafficV2Lifecycle.Admit(modelText, signoffText, reportText);
                 }
                 return admission;
@@ -118,13 +119,13 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void EditorAdmissionIsCachedPerModelAndWritesNoEvidence()
+        public void EditorAdmissionCachesTheSignedCurrentModelAndWritesNoEvidence()
         {
             var before = new[] { TrafficV2Settings.ModelPath, TrafficV2Settings.SignoffPath, TrafficV2Settings.ReportPath }
                 .Select(File.ReadAllBytes).ToArray();
             var first = TrafficV2Lifecycle.AdmitCommittedArtifacts();
             var second = TrafficV2Lifecycle.AdmitCommittedArtifacts();
-            Assert.That(first.Code, Is.EqualTo(TrafficV2Code.Allowed));
+            Assert.That(first.Code, Is.EqualTo(TrafficV2Code.Allowed), "La signature 5.52 lie la preuve courante.");
             Assert.That(second, Is.SameAs(first), "resultat de liaison mis en cache par modele");
             var after = new[] { TrafficV2Settings.ModelPath, TrafficV2Settings.SignoffPath, TrafficV2Settings.ReportPath }
                 .Select(File.ReadAllBytes).ToArray();

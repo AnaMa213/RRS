@@ -81,15 +81,18 @@ namespace RoadRage.Tests.EditMode
         public void KinematicDecisionPlanIsDeterministicAndKeepsHistoricalDecisionsUnchanged()
         {
             string decisionsText = File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath));
-            string historicalManifest = File.ReadAllText(AuthoredRoadModel.FullPath(AutomatedPairDecisionPolicy.ManifestPath));
+            string manifestText = File.ReadAllText(AuthoredRoadModel.FullPath(AutomatedPairDecisionPolicy.ManifestPath));
+            var currentArchive = UnityEngine.JsonUtility.FromJson<ArchivedManifest>(manifestText);
+            string historicalManifest = string.IsNullOrEmpty(currentArchive.SupersededManifestText)
+                ? manifestText : currentArchive.SupersededManifestText;
             WithMvpRun(scene =>
             {
                 var run = AuthoredRoadModel.Run(V1SourceSet.Extract(scene),
                     File.ReadAllText(MigrationReport.LineageFullPath), decisionsText, GateAEvidenceParameters.Declared());
                 Assert.That(run.CandidateModel, Is.Not.Null);
                 Assert.That(run.PairSweeps, Is.Not.Empty);
-                var first = AutomatedPairDecisionPolicy.CreatePlan(run, historicalManifest);
-                var second = AutomatedPairDecisionPolicy.CreatePlan(run, historicalManifest, first.AllocatedIds);
+                var first = AutomatedPairDecisionPolicy.CreatePlan(run, manifestText);
+                var second = AutomatedPairDecisionPolicy.CreatePlan(run, manifestText, first.AllocatedIds);
                 Assert.That(second.DecisionRunId, Is.EqualTo(first.DecisionRunId));
                 Assert.That(second.DecisionsText, Is.EqualTo(first.DecisionsText));
                 Assert.That(second.ManifestText, Is.EqualTo(first.ManifestText));
@@ -99,6 +102,12 @@ namespace RoadRage.Tests.EditMode
                 var archive = UnityEngine.JsonUtility.FromJson<ArchivedManifest>(first.ManifestText);
                 Assert.That(archive.SupersededManifestText, Is.EqualTo(historicalManifest), "Le manifeste 5.50 reste verbatim dans l'audit 5.52.");
                 Assert.That(archive.SupersededManifestHash, Is.EqualTo(V1SourceSet.Sha256Hex(historicalManifest)));
+                Assert.That(archive.SupersededManifestHash, Is.EqualTo("32507cb57f33171bfa2a0e9476b2beff53d70fd3fed0866d886aac9d6e56efb8"));
+                if (!string.IsNullOrEmpty(currentArchive.SupersededManifestText))
+                {
+                    Assert.That(first.DecisionsText, Is.EqualTo(decisionsText), "Second passage : aucune decision nouvelle.");
+                    Assert.That(first.ManifestText, Is.EqualTo(manifestText), "Second passage : aucun changement du manifeste.");
+                }
                 var unpinned = new AutomatedPairDecisionPlan
                 {
                     DecisionRunId = first.DecisionRunId,

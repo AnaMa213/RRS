@@ -20,9 +20,10 @@ namespace RoadRage.Tests.EditMode
     [Category("Core")]
     public sealed class Story530PlanningSpineTests
     {
-        private const string ModelPath = "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json";
-        private const string SignoffPath = "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json";
-        private const string ReportPath = "_bmad-output/implementation-artifacts/migration-report-5-28-mvp-run.md";
+        private const string HistoricalDirectory = "_bmad-output/implementation-artifacts/gate-a-5-52/historical-signed-5-51/";
+        private const string ModelPath = HistoricalDirectory + "MVP_Run.road-model.json";
+        private const string SignoffPath = HistoricalDirectory + "MVP_Run.road-signoff.json";
+        private const string ReportPath = HistoricalDirectory + "migration-report-5-28-mvp-run.md";
 
         private static CompiledRoadModel Load(out string modelText, out string signoffText, out string reportText)
         {
@@ -487,18 +488,25 @@ namespace RoadRage.Tests.EditMode
             Assert.That(first.Projection.NextMovementId, Is.EqualTo(plan.Occurrences[firstMovement].Id));
             Assert.That(firstMovement + 1, Is.LessThan(plan.Occurrences.Count));
 
-            var after = plan.Occurrences[firstMovement + 1];
-            RoadCurve curve;
-            EffectiveLaneCorridor corridor;
-            CompiledJunctionMovement movement;
-            if (after.Kind == RoadElementKind.LaneCorridor)
-            { Assert.That(model.TryGetCorridor(after.Id, out corridor), Is.True); curve = corridor.Curve; }
-            else
-            { Assert.That(model.TryGetMovement(after.Id, out movement), Is.True); curve = movement.Curve; }
-            var frame = new TrafficFrame(2, model, new[] { new TrafficActorInput(id,
-                Pose(curve, (after.StartSMeters + after.EndSMeters) * .5f), 0f, after.Id) });
-            var second = Decide(frame, id, 10000f, modelText, signoff, report, existing: plan);
-            var reused = second.Route.Plan;
+            // Le contrat 5.29 avance d'une occurrence contigue par decision, sans saut direct.
+            var reused = plan;
+            PlanningDecision second = null;
+            for (int i = plan.ProgressOccurrenceIndex + 1; i <= firstMovement + 1; i++)
+            {
+                var next = plan.Occurrences[i];
+                RoadCurve curve;
+                EffectiveLaneCorridor corridor;
+                CompiledJunctionMovement movement;
+                if (next.Kind == RoadElementKind.LaneCorridor)
+                { Assert.That(model.TryGetCorridor(next.Id, out corridor), Is.True); curve = corridor.Curve; }
+                else
+                { Assert.That(model.TryGetMovement(next.Id, out movement), Is.True); curve = movement.Curve; }
+                var frame = new TrafficFrame((ulong)(i + 1), model, new[] { new TrafficActorInput(id,
+                    Pose(curve, (next.StartSMeters + next.EndSMeters) * .5f), 0f, next.Id) });
+                second = Decide(frame, id, 10000f, modelText, signoff, report, existing: reused);
+                reused = second.Route.Plan;
+                Assert.That(reused.ProgressOccurrenceIndex, Is.EqualTo(i), "Progression contigue de la route.");
+            }
             Assert.That(reused.ProgressOccurrenceIndex, Is.GreaterThan(firstMovement));
             RoadId expected = RoadId.None;
             for (int i = reused.ProgressOccurrenceIndex; i < reused.Occurrences.Count && expected.IsEmpty; i++)

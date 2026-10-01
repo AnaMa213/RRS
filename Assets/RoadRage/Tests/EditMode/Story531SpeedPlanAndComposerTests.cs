@@ -28,6 +28,7 @@ namespace RoadRage.Tests.EditMode
     {
         private const string DriverProfilePath = "Assets/RoadRage/ScriptableObjects/Vehicles/DriverProfileDef_Default.asset";
         private const string VehicleProfilePath = "Assets/RoadRage/ScriptableObjects/Vehicles/VehicleProfileDef_Default.asset";
+        private const string HistoricalSignedDirectory = "_bmad-output/implementation-artifacts/gate-a-5-52/historical-signed-5-51/";
         private const float Dt = 0.02f;
 
         private static TrafficV2Admission admission;
@@ -37,8 +38,9 @@ namespace RoadRage.Tests.EditMode
             get
             {
                 if (admission == null)
-                    admission = TrafficV2Lifecycle.Admit(File.ReadAllText(TrafficV2Settings.ModelPath),
-                        File.ReadAllText(TrafficV2Settings.SignoffPath), File.ReadAllText(TrafficV2Settings.ReportPath));
+                    admission = TrafficV2Lifecycle.Admit(File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-model.json"),
+                        File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-signoff.json"),
+                        File.ReadAllText(HistoricalSignedDirectory + "migration-report-5-28-mvp-run.md"));
                 return admission;
             }
         }
@@ -261,7 +263,7 @@ namespace RoadRage.Tests.EditMode
                     "v <= racine(a_lat / |kappa|) au noeud " + point.DistanceMeters);
 
             // Valeur authoree synthetique non nulle : publiee DeferredAuthored(3), jamais appliquee.
-            var source = RoadModelDocument.Load(File.ReadAllText(TrafficV2Settings.ModelPath));
+            var source = RoadModelDocument.Load(File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-model.json"));
             for (int i = 0; i < source.Sections.Length; i++) source.Sections[i].DefaultSpeedLimitMetersPerSecond = 3f;
             var model = RoadModelCompiler.Compile(source);
             const string modelText = "synthetic 5.31 model\n";

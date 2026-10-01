@@ -143,27 +143,27 @@ context:
 **Execution:**
 
 *Phase A -- allocation, empreintes, reponse 2a*
-- [ ] `Traffic/Migration/GateAEvidenceParameters.cs` (nouveau) -- valeur immuable portant les parametres du « Always », avec `Legacy`, `Declared` et un texte canonique hache -- une seule source des parametres.
-- [ ] `ConflictSweep.cs`, `JunctionClearance.cs`, `RoundaboutClearance.cs`, `AutomatedPairDecisionPolicy.cs` (`ContactWitness`) -- recoivent les parametres ; gonflement = marge + δ_c + a_e ; `Legacy` inchange au bit pres, et versions d'algorithme propres a chaque modele de pose -- a_e entre dans chaque preuve.
-- [ ] `PairGeometryFingerprint.cs` -- schema v2 : marge, δ_c, a_e, version du modele de pose, h_e, η et intervalles d'entree des deux mouvements ; v1 conserve pour `Legacy` et pour la table 5.50 -- toute enveloppe changee change d'empreinte.
-- [ ] `Traffic/Migration/GateAEvidenceRegeneration.cs` (nouveau) -- `Run` jusqu'a `CandidateModel` et `PairSweeps` sous des parametres donnes ; preuves de degagement sur `CandidateModel` (meme geometrie, zones sans effet) ; diff des candidats contre les decisions signees (`PairDecisionState`, changements de relation) ; rapport canonique trie ; aucune ecriture signee.
-- [ ] `VehicleDriveIntentComposer.cs` (raison `TrackingToleranceExceeded = 10`), `TrafficV2VehicleDriver.cs` -- verrou 2a hors mesure ; projection et journal ; runs de mesure inchanges.
-- [ ] `Tests/EditMode/Story552EvidenceTests.cs` `[Core][Story552]` -- gonflement exact par famille, sensibilite de l'empreinte v2, identite `Legacy` (empreintes v1, residus), analyse du bloc par la liaison, regle du verrou, scans (aucune contrainte ni ecriture de pose dans le chemin V2).
-- [ ] `Tests/PlayMode/Story552ToleranceResponsePlayModeTests.cs` `[Story552]` -- banc sur le patron 5.31 avec le profil V2 : verrou depuis 8 m/s, puis `FallbackHeld` ; ensuite une impulsion horizontale externe deplace le vehicule. Constraints `None`, `isKinematic` faux, vehicule present, pose finie.
-- [ ] `Tests/EditMode/Story552RegenerationTests.cs` `[Explicit][Geometry][Category("Story552Regeneration")]`, cas A -- diagnostic a_e + pose tangente vers `gate-a-5-52/diagnostic-ae-tangente.md`.
+- [x] `Traffic/Migration/GateAEvidenceParameters.cs` (nouveau) -- valeur immuable portant les parametres du « Always », avec `Legacy`, `Declared` et un texte canonique hache -- une seule source des parametres.
+- [x] `ConflictSweep.cs`, `JunctionClearance.cs`, `RoundaboutClearance.cs`, `AutomatedPairDecisionPolicy.cs` (`ContactWitness`) -- recoivent les parametres ; gonflement = marge + δ_c + a_e ; `Legacy` inchange au bit pres, et versions d'algorithme propres a chaque modele de pose -- a_e entre dans chaque preuve.
+- [x] `PairGeometryFingerprint.cs` -- schema v2 : marge, δ_c, a_e, version du modele de pose, h_e, η et intervalles d'entree des deux mouvements ; v1 conserve pour `Legacy` et pour la table 5.50 -- toute enveloppe changee change d'empreinte.
+- [x] `Traffic/Migration/GateAEvidenceRegeneration.cs` (nouveau) -- `Run` jusqu'a `CandidateModel` et `PairSweeps` sous des parametres donnes ; preuves de degagement sur `CandidateModel` (meme geometrie, zones sans effet) ; diff des candidats contre les decisions signees (`PairDecisionState`, changements de relation) ; rapport canonique trie ; aucune ecriture signee.
+- [x] `VehicleDriveIntentComposer.cs` (raison `TrackingToleranceExceeded = 10`), `TrafficV2VehicleDriver.cs` -- verrou 2a hors mesure ; projection et journal ; runs de mesure inchanges.
+- [x] `Tests/EditMode/Story552EvidenceTests.cs` `[Core][Story552]` -- gonflement exact par famille, sensibilite de l'empreinte v2, identite `Legacy` (empreintes v1, residus), analyse du bloc par la liaison, regle du verrou, scans (aucune contrainte ni ecriture de pose dans le chemin V2).
+- [x] `Tests/PlayMode/Story552ToleranceResponsePlayModeTests.cs` `[Story552]` -- banc sur le patron 5.31 avec le profil V2 : verrou depuis 8 m/s, puis `FallbackHeld` ; ensuite une impulsion horizontale externe deplace le vehicule. Constraints `None`, `isKinematic` faux, vehicule present, pose finie.
+- [x] `Tests/EditMode/Story552RegenerationTests.cs` `[Explicit][Geometry][Category("Story552Regeneration")]`, cas A -- diagnostic a_e + pose tangente vers `gate-a-5-52/diagnostic-ae-tangente.md`.
 
 *Phase B -- pose cinematique et regeneration*
-- [ ] `Traffic/Migration/KinematicOffsetBounds.cs` (nouveau) -- intervalles I_X, amorces de portail, images par `AdvanceKinematicOffset`, sauts, elargissement de η, controle d'inductivite, budget, `HeadingOffsetBoundNotClosed`, elements inatteignables, enveloppes par demi-segment, max|sin e|.
-- [ ] `ConflictSweep.cs`, `JunctionClearance.cs` -- chemin cinematique :
+- [x] `Traffic/Migration/KinematicOffsetBounds.cs` (nouveau) -- intervalles I_X, amorces de portail, images par `AdvanceKinematicOffset`, sauts, elargissement de η, controle d'inductivite, budget, `HeadingOffsetBoundNotClosed`, elements inatteignables, enveloppes par demi-segment, max|sin e|.
+- [x] `ConflictSweep.cs`, `JunctionClearance.cs` -- chemin cinematique :
   - grille de caps par echantillon ;
   - δ calcule sur la rotation de caisse ;
   - reste ρ·h_e/2 ;
   - prefiltre sur l'AABB de l'union ;
   - temoins et volume issus des poses de grille ;
   - residu publie avec restes et intervalle e.
-- [ ] `RoundaboutClearance.cs` -- formule fermee a gabarit tourne du pire |e| des corridors d'anneau et des continuations du module ; marge m + a_e par cote ; reste 0 publie.
-- [ ] `Traffic/Planning/NominalPoseFeasibility.cs` (nouveau, pur) -- braquage et taux (Design Notes), partage avec `TrafficV2VehicleDriver.Monitor` (resultats inchanges) et la preuve.
-- [ ] `Tests/EditMode/Story552KinematicPoseSetTests.cs` `[Geometry][Story552]` -- sur droites, arcs, S, sauts de raccord et cycles :
+- [x] `RoundaboutClearance.cs` -- formule fermee a gabarit tourne du pire |e| des corridors d'anneau et des continuations du module ; marge m + a_e par cote ; reste 0 publie.
+- [x] `Traffic/Planning/NominalPoseFeasibility.cs` (nouveau, pur) -- braquage et taux (Design Notes), partage avec `TrafficV2VehicleDriver.Monitor` (resultats inchanges) et la preuve.
+- [x] `Tests/EditMode/Story552KinematicPoseSetTests.cs` `[Geometry][Story552]` -- sur droites, arcs, S, sauts de raccord et cycles :
   - enumeration exhaustive bornee contenue dans les intervalles ;
   - cas non fermable explicite ;
   - union ≥ maximum d'echantillonnage dense ;
@@ -171,20 +171,20 @@ context:
   - cas de faisabilite.
   
   Sur `MVP_Run` : fermeture ; solutions des routes de la campagne 5.31 contenues a 0,1 m pres.
-- [ ] `Story552RegenerationTests.cs`, cas B -- regeneration cinematique vers `gate-a-5-52/regeneration-cinematique.md` et `gate-a-5-52/diff-candidats.md` ; deux executions identiques ; test de verdict listant chaque deficit. **HALT** si un residu ≤ 0, une borne non fermee ou une pose infaisable.
+- [x] `Story552RegenerationTests.cs`, cas B -- regeneration cinematique vers `gate-a-5-52/regeneration-cinematique.md` et `gate-a-5-52/diff-candidats.md` ; deux executions identiques ; test de verdict listant chaque deficit. **HALT** si un residu ≤ 0, une borne non fermee ou une pose infaisable.
 
 *Phase C -- seulement si tous les residus sont > 0*
-- [ ] `AuthoredRoadModel.cs` -- pipeline par defaut sur `Declared` ; bloc `### Residus` avec a_e, `pose-model = kinematic-v1`, restes, parametres et liste signee des 24 raccords.
-- [ ] `App/Scenes/MVP_Run/MVP_Run.road-authoring.json`, `v1-regression-5-50/automated-pair-decisions.json` -- decisions produites par `AutomatedPairDecisionPolicy` sous la procedure §1.5 de l'amendement 2026-09-27. Le manifeste enregistre le balayage v2, l'empreinte v2 et les parametres. Le commit du moteur exige ton accord (Ask First).
-- [ ] `MVP_Run.road-model.json`, overlay et `migration-report-5-28-mvp-run.md` -- regeneres par les menus existants, jamais edites a la main ; diff et empreintes publies.
-- [ ] Sign-off -- `SignoffFormat` 3, portant a_e, ε_t, max|o|, versions et hash des parametres.
+- [x] `AuthoredRoadModel.cs` -- pipeline par defaut sur `Declared` ; bloc `### Residus` avec a_e, `pose-model = kinematic-v1`, restes, parametres et liste signee des 24 raccords.
+- [x] `App/Scenes/MVP_Run/MVP_Run.road-authoring.json`, `v1-regression-5-50/automated-pair-decisions.json` -- decisions produites par `AutomatedPairDecisionPolicy` sous la procedure §1.5 de l'amendement 2026-09-27. Le manifeste enregistre le balayage v2, l'empreinte v2 et les parametres. Le commit du moteur exige ton accord (Ask First).
+- [x] `MVP_Run.road-model.json`, overlay et `migration-report-5-28-mvp-run.md` -- regeneres par les menus existants, jamais edites a la main ; diff et empreintes publies.
+- [x] Sign-off -- `SignoffFormat` 3, portant a_e, ε_t, max|o|, versions et hash des parametres.
   - `GateAReviewWindow.Sign` ecrit l'enregistrement courant et ajoute l'ancien, verbatim, dans `MVP_Run.road-signoff-history.json`, dans une seule ecriture transactionnelle.
   - `GateAEvidenceBinding` lit le format 3 : `Kinematic`, a_e, raccords signes.
   - `PathHorizon` lit les raccords signes ; la liste codee en dur est supprimee.
   - Adapter `Story530PlanningReplayTests`.
-- [ ] Re-signature par le proprietaire (HALT).
-- [ ] Fixtures liees a la preuve legacy : 5.28, 5.51 et refus 5.31, mis a jour. Soldes dans `deferred-work.md`.
-- [ ] `Tests/PlayMode/Story552MilestonePlayModeTests.cs` `[Story552]` -- jalon 1 hors mesure : portail a portail, d ≤ ε_t au pas et sous le modele M, v ≤ v*, aucun contact hors chaussee ; Gate B consignee.
+- [x] Re-signature par le proprietaire (HALT).
+- [x] Fixtures liees a la preuve legacy : 5.28, 5.51 et refus 5.31, mis a jour. Soldes dans `deferred-work.md`.
+- [x] `Tests/PlayMode/Story552MilestonePlayModeTests.cs` `[Story552]` -- jalon 1 hors mesure : portail a portail, d ≤ ε_t au pas et sous le modele M, v ≤ v*, aucun contact hors chaussee ; Gate B consignee.
 
 **Acceptance Criteria:**
 - Given une allocation synthetique, when chaque famille est calculee, then son gonflement vaut exactement marge + δ_c + a_e plus les restes publies. Given les memes entrees geometriques historiques, when `Legacy` est execute, then la preuve signee est reproduite au bit pres. Given ces entrees absentes et la geometrie actuelle differente, when `Legacy` est execute, then les hashes des artefacts historiques et la coherence interne de leur binding restent verifies, les anciennes empreintes sont explicitement perimees/non reconfirmees et aucune decision historique n'est reutilisee.
@@ -198,6 +198,10 @@ context:
 - Given la nouvelle signature, when le jalon 1 est rejoue hors mesure, then les vehicules V2 roulent de portail a portail dans la portee de preuve, et la Gate B se ferme.
 
 ## Spec Change Log
+
+- 2026-10-01 : Gate A re-signee par Kenan (format 3, `kinematic-v1`, `a_e = 0,34 m`, 24 raccords). L'ancienne signature format 2 est conservee verbatim dans l'historique. Liaison reelle EditMode Story 5.52 : 24/24, 0 erreur Console ; la revue a ajoute la restauration des fichiers deja remplaces si la seconde ecriture de re-signature echoue. Jalon 1 hors mesure dans `MVP_Run` : PlayMode Story 5.52 2/2, 0 skipped, 0 inconclusive, 0 erreur Console ; Gate B fermee pour ce jalon, sous le modele M seulement. Regression PlayMode Story 5.31 : 13/13, 0 erreur Console. Preuve et hashes : `gate-a-5-52/phase-c-post-signature.md`. Story `in-progress` jusqu'a la revue et au commit approuve.
+
+- 2026-10-01 : Phase C avant re-signature preparee. Decisions v2 reevaluees (270 paires, 136 zones actives, second passage sans changement), modele/overlay/rapport regeneres avec preuve `kinematic-v1` couverte et 24 raccords lies au hash. Sign-off format 3 et historique prepares et testes uniquement en memoire ; sign-off format 2 actif conserve verbatim et explicitement `stale`. EditMode Story 5.52 : 22/22, 0 erreur Console. Diff et empreintes : `gate-a-5-52/phase-c-pre-signature.md`. HALT avant revue et re-signature proprietaire ; Story `in-progress`.
 
 - 2026-09-30 : accord proprietaire pour conditionner la reproduction bit a bit de `Legacy` aux memes entrees geometriques historiques. Sur `MVP_Run` corrige, verifier les SHA-256 des artefacts signes conserves et le refus explicite des empreintes historiques ; aucun changement de preuve, de signature ou de geometrie.
 

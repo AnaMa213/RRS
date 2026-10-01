@@ -7,7 +7,7 @@ using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Migration;
 using RoadRage.Features.Vehicles.Traffic.Planning;
-using UnityEditor;
+using RoadRage.Features.Vehicles.Traffic.Routing;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -26,6 +26,7 @@ namespace RoadRage.Tests.EditMode
     public sealed class Story552KinematicPoseSetTests
     {
         private const float A = 1.55f;
+        private const string HistoricalSignedDirectory = "_bmad-output/implementation-artifacts/gate-a-5-52/historical-signed-5-51/";
 
         private static readonly RoadId E = new RoadId(10UL, 1UL);
         private static readonly RoadId M1 = new RoadId(10UL, 2UL);
@@ -483,27 +484,34 @@ namespace RoadRage.Tests.EditMode
         {
             string modelText = File.ReadAllText(TrafficV2Settings.ModelPath);
             var admission = TrafficV2Lifecycle.Admit(modelText, File.ReadAllText(TrafficV2Settings.SignoffPath), File.ReadAllText(TrafficV2Settings.ReportPath));
-            Assert.That(admission.Admitted, Is.True, admission.Code.ToString());
+            Assert.That(admission.Code, Is.EqualTo(TrafficV2Code.Allowed), "La nouvelle signature doit lier la preuve cinematique courante.");
+            Assert.That(admission.Evidence.PoseModel, Is.EqualTo(NominalPoseModel.Kinematic));
+            Assert.That(admission.Evidence.TrackingAllowanceMeters, Is.EqualTo(0.34f));
+            Assert.That(admission.Evidence.SignedRingSeams.Count, Is.EqualTo(24));
             var model = admission.Model;
+            Assert.That(model, Is.Not.Null);
             var bounds = KinematicOffsetBounds.Compute(model, SweepGraph.FromModel(model), GateAEvidenceParameters.Declared());
             Assert.That(bounds.Failures, Is.Empty, "Fermeture des intervalles sur MVP_Run.");
             Assert.That(bounds.Unreachable, Is.Empty, "Chaque element est atteignable depuis un portail d'entree.");
 
-            var driver = AssetDatabase.LoadAssetAtPath<GameObject>(GateAEvidenceParameters.V2PrefabPath)
-                .GetComponent<TrafficV2VehicleDriver>().DriverProfileDefinition.Profile;
             int routes = 0;
             int checks = 0;
             ulong counter = 1UL;
             foreach (var entry in model.Portals)
             {
                 if (entry.Role != PortalRole.Entry) continue;
+                Portal portal; Vector3 position; Quaternion rotation;
+                Assert.That(TrafficV2Lifecycle.TryPortalPose(model, entry.Id, out portal, out position, out rotation), Is.True);
+                var location = RoadLocalizer.Localize(model, new VehicleFootprintPose { Position = position,
+                    Forward = rotation * Vector3.forward, Up = rotation * Vector3.up }, entry.CorridorId, null);
                 foreach (var exit in model.Portals)
                 {
                     if (exit.Role != PortalRole.Exit) continue;
-                    var insertion = TrafficV2Lifecycle.PrepareInsertion(admission, entry.Id, exit.Id, 0UL, counter++, driver, 0.02f);
-                    if (insertion.Code != TrafficV2Code.Allowed) continue;
+                    var route = RoutePlanner.Plan(new RouteRequest(model, location, exit.Id, new RouteSeed(0UL),
+                        TrafficV2Lifecycle.TrafficIdentity(0UL, counter++), "route", new DecisionCounter(0UL))).Plan;
+                    if (route == null) continue;
                     routes++;
-                    var track = ReferenceTrack.FromRoute(model, insertion.Route.Occurrences, 0f);
+                    var track = ReferenceTrack.FromRoute(model, route.Occurrences, 0f);
                     for (int p = 0; p < track.Pieces.Count; p++)
                     {
                         var piece = track.Pieces[p];
@@ -536,12 +544,12 @@ namespace RoadRage.Tests.EditMode
         public void HistoricalEvidenceRemainsIntactAndLegacyRejectsChangedGeometry()
         {
             // SHA-256 des octets de la baseline signee 5845dc54f70818097b302935e1f4669df7b38414.
-            Assert.That(HistoricalSha256(AuthoredRoadModel.ModelPath), Is.EqualTo("6525a2366641aeb6c28595259a2762abb4e881ff1c32b2e2f8de16e5e88c1ebb"));
-            Assert.That(HistoricalSha256(AuthoredRoadModel.OverlayPath), Is.EqualTo("20cd1d1f262f812d6fd035119a465a20dcbd4b39c18a58410f481f71d00a0abe"));
-            Assert.That(HistoricalSha256(AuthoredRoadModel.ReportPath), Is.EqualTo("7b97335902b6e6cfcb59c201bef73e92ecc0c5900b3b4dcd30f498eb909fdbad"));
-            Assert.That(HistoricalSha256(AuthoredRoadModel.SignoffPath), Is.EqualTo("e2d77b994d6e7e28aefb86ca0fff3d3d35d2eccf7cc15dff2e3097d3f5a2973e"));
+            Assert.That(HistoricalSha256(HistoricalSignedDirectory + "MVP_Run.road-model.json"), Is.EqualTo("6525a2366641aeb6c28595259a2762abb4e881ff1c32b2e2f8de16e5e88c1ebb"));
+            Assert.That(HistoricalSha256(HistoricalSignedDirectory + "overlay-5-28-mvp-run.txt"), Is.EqualTo("20cd1d1f262f812d6fd035119a465a20dcbd4b39c18a58410f481f71d00a0abe"));
+            Assert.That(HistoricalSha256(HistoricalSignedDirectory + "migration-report-5-28-mvp-run.md"), Is.EqualTo("7b97335902b6e6cfcb59c201bef73e92ecc0c5900b3b4dcd30f498eb909fdbad"));
+            Assert.That(HistoricalSha256(HistoricalSignedDirectory + "MVP_Run.road-signoff.json"), Is.EqualTo("e2d77b994d6e7e28aefb86ca0fff3d3d35d2eccf7cc15dff2e3097d3f5a2973e"));
 
-            var signed = JsonUtility.FromJson<SignedHashes>(File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffPath)));
+            var signed = JsonUtility.FromJson<SignedHashes>(File.ReadAllText(AuthoredRoadModel.FullPath(HistoricalSignedDirectory + "MVP_Run.road-signoff.json")));
             string decisionsText = File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath));
             Assert.That(V1SourceSet.Sha256Hex(decisionsText), Is.Not.EqualTo(signed.DecisionsHash),
                 "La largeur des anneaux a change depuis la signature historique.");
@@ -550,8 +558,8 @@ namespace RoadRage.Tests.EditMode
             // historique de la scene, des prefabs ou de l'authoring.
             WithMvpRun(scene =>
             {
-                var run = AuthoredRoadModel.Run(scene, File.ReadAllText(MigrationReport.LineageFullPath),
-                    decisionsText);
+                var run = AuthoredRoadModel.Run(V1SourceSet.Extract(scene), File.ReadAllText(MigrationReport.LineageFullPath),
+                    decisionsText, GateAEvidenceParameters.Legacy);
                 Assert.That(run.EvidenceParameters.IsLegacy, Is.True);
                 Assert.That(run.CandidateModel, Is.Not.Null, "Les candidats restent reconstructibles.");
                 Assert.That(run.Candidates, Is.Not.Empty);

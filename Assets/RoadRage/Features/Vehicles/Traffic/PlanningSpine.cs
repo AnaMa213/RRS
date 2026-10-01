@@ -89,14 +89,15 @@ namespace RoadRage.Features.Vehicles.Traffic
             var route = RoutePlanner.Plan(new RouteRequest(frame.Model, observation.Location,
                 request.DestinationExitId, request.SessionSeed, request.TrafficId, "route",
                 new DecisionCounter(frame.FrameId), request.ExistingRoute, false, null, request.ViaMovementId));
+            var evidence = request.Evidence ?? GateAEvidenceBinding.Bind(frame.Model, request.ModelText,
+                request.SignoffText, request.ReportText);
             PathHorizon path = route.Plan == null ? null
-                : PathHorizon.Build(frame.Model, route.Plan, request.LookAheadMeters, request.NominalOffsetRadians);
+                : PathHorizon.Build(frame.Model, route.Plan, request.LookAheadMeters, request.NominalOffsetRadians,
+                    evidence.Valid && evidence.PoseModel == NominalPoseModel.Kinematic ? evidence.SignedRingSeams : null);
             MotionPlan motion = null;
             SpeedProfileResult? checkedProfile = null;
             if (path != null)
             {
-                var evidence = request.Evidence ?? GateAEvidenceBinding.Bind(frame.Model, request.ModelText,
-                    request.SignoffText, request.ReportText);
                 motion = new MotionPlan(path, frame.Model.DrivabilityProfile, evidence, request.Tracking);
                 if (request.CandidateSpeedProfile != null)
                     checkedProfile = motion.VerifySpeedProfile(request.CandidateSpeedProfile, request.Bounds);

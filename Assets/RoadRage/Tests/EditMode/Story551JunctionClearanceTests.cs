@@ -449,7 +449,7 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(row.Semantic.Residual, Is.GreaterThan(0f), row.Movement);
             }
 
-            Assert.That(rows.Min(r => r.Semantic.Residual), Is.EqualTo(0.1127f).Within(0.001f), "Virage a droite FromSouth -> East, coupe de 1,00 m.");
+            Assert.That(rows.Min(r => r.Semantic.Residual), Is.EqualTo(0.9239f).Within(0.001f), "Virage a droite sur la geometrie corrigee 5.52.");
             Assert.That(result.Failures.Where(f => f.Contains("TJunction_South/Collision/Col_Sidewalk_Corner_SE") || f.StartsWith("Visuel Sidewalk discordant TJunction_South", StringComparison.Ordinal)), Is.Empty);
         }
 
@@ -490,11 +490,11 @@ namespace RoadRage.Tests.EditMode
             // Le virage a droite longe la bordure reculee : elle reste le temoin physique, a la meme marge que le trottoir.
             var turn = rows.Single(r => r.Movement.Contains(rightTurn));
             Assert.That(turn.Physical.Obstacle, Does.EndWith("/" + curbName));
-            Assert.That(turn.Physical.Residual, Is.EqualTo(0.1127f).Within(0.001f));
-            Assert.That(turn.Semantic.Residual, Is.EqualTo(0.1127f).Within(0.001f));
+            Assert.That(turn.Physical.Residual, Is.EqualTo(0.9239f).Within(0.001f));
+            Assert.That(turn.Semantic.Residual, Is.EqualTo(0.9239f).Within(0.001f));
             Assert.That(result.Failures.Where(f => f.Contains(surface) || f.StartsWith("Visuel Sidewalk discordant Intersection_Center_Crossroads", StringComparison.Ordinal)), Is.Empty);
 
-            // Role physique de la bordure conserve : meme nom, active, pleine, 0,12 m, reculee de 1,00 m jusqu'au sommet du chanfrein.
+            // Role physique conserve : meme bordure active et pleine, sommet du chanfrein corrige a 5,60 m.
             WithMvpRun(scene =>
             {
                 var curb = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<BoxCollider>(true))
@@ -504,7 +504,7 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(b.size.y, Is.EqualTo(0.12f).Within(1e-4f));
                 Assert.That(b.size.z, Is.EqualTo(0.3f).Within(1e-4f));
                 Assert.That(b.size.x, Is.EqualTo(3f).Within(1e-3f));
-                Assert.That(Mathf.Min(Mathf.Abs(b.min.x), Mathf.Abs(b.max.x)), Is.EqualTo(5f).Within(1e-3f), "Extremite au sommet du chanfrein (4 + 1,00 m).");
+                Assert.That(Mathf.Min(Mathf.Abs(b.min.x), Mathf.Abs(b.max.x)), Is.EqualTo(5.6f).Within(1e-3f), "Extremite au sommet du chanfrein corrige 5.52.");
             });
         }
 

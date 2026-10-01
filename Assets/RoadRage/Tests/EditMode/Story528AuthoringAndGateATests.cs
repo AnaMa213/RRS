@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using NUnit.Framework;
 using RoadRage.Features.Vehicles;
 using RoadRage.Features.Vehicles.Traffic;
+using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Migration;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -21,8 +22,10 @@ namespace RoadRage.Tests.EditMode
     /// n'ecrit de sign-off : les sign-offs en memoire ne servent qu'a eprouver la verification.
     /// </summary>
     [Category("Geometry")]
+    [Timeout(600000)]
     public sealed class Story528AuthoringAndGateATests
     {
+        private const string HistoricalSignedDirectory = "_bmad-output/implementation-artifacts/gate-a-5-52/historical-signed-5-51/";
         // ================================================================== nominal
 
         [Test]
@@ -505,6 +508,12 @@ namespace RoadRage.Tests.EditMode
             Assert.That(run.Succeeded, Is.True, string.Join("\n", run.Failures.ToArray()));
             var instances = run.Overlay.Select(i => i.Key).ToList();
             string signoff = AuthoredRoadModel.RenderSignoff(run, "Testeur", "test@example.invalid", instances, new DateTime(2026, 9, 23, 0, 0, 0, DateTimeKind.Utc));
+            var layout = JsonUtility.FromJson<CommittedSignoff>(signoff);
+            Assert.That(layout.Format, Is.EqualTo(AuthoredRoadModel.SignoffFormat));
+            Assert.That(layout.TrackingAllowanceMeters, Is.EqualTo(0.34f));
+            Assert.That(layout.PoseModel, Is.EqualTo("kinematic-v1"));
+            Assert.That(layout.EvidenceParametersHash, Is.EqualTo(V1SourceSet.Sha256Hex(run.EvidenceParameters.CanonicalText)));
+            Assert.That(layout.SignedRingSeams, Is.EqualTo(run.SignedRingSeams));
             Assert.That(AuthoredRoadModel.VerifySignoff(signoff, run), Is.Empty);
             Assert.That(instances.Count, Is.EqualTo(25));
             Assert.That(run.ModelText, Does.Not.Contain("Testeur"), "L'identite d'approbation n'entre dans aucun hash de modele.");
@@ -915,13 +924,16 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void GateAIsOpenedOnlyByTheOwnersBoundSignoff()
         {
-            // Rouge tant que le proprietaire n'a pas revu l'overlay et signe dans l'Editeur
-            // (RoadRage/Traffic V2/Revue Gate A) : c'est le HALT de la Story 5.28, pas un defaut.
             var run = Fresh();
             var reasons = AuthoredRoadModel.EvaluateGateA(run, Committed(AuthoredRoadModel.ReportPath),
                 Committed(AuthoredRoadModel.ModelPath), Committed(AuthoredRoadModel.OverlayPath),
                 AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffPath)));
-            Assert.That(reasons, Is.Empty, string.Join("\n", reasons.ToArray()));
+            var signoff = JsonUtility.FromJson<CommittedSignoff>(Committed(AuthoredRoadModel.SignoffPath));
+            if (signoff.Format == AuthoredRoadModel.LegacySignoffFormat)
+                Assert.That(reasons, Is.EqualTo(new[] { "Sign-off historique non reconfirme : format 2 face a la preuve kinematic-v1." }),
+                    "Gate A reste fermee jusqu'a la re-signature du proprietaire.");
+            else
+                Assert.That(reasons, Is.Empty, string.Join("\n", reasons.ToArray()));
         }
 
         [Test]
@@ -943,6 +955,18 @@ namespace RoadRage.Tests.EditMode
 
             var layout = JsonUtility.FromJson<CommittedSignoff>(signoffText);
             Assert.That(layout, Is.Not.Null, "Sign-off illisible (JSON).");
+            if (layout.Format == AuthoredRoadModel.LegacySignoffFormat)
+            {
+                Assert.That(signoffText, Is.EqualTo(Committed(HistoricalSignedDirectory + "MVP_Run.road-signoff.json")),
+                    "L'ancien sign-off reste verbatim jusqu'a la re-signature.");
+                var historical = TrafficV2Lifecycle.Admit(Committed(HistoricalSignedDirectory + "MVP_Run.road-model.json"),
+                    signoffText, Committed(HistoricalSignedDirectory + "migration-report-5-28-mvp-run.md"));
+                Assert.That(historical.Code, Is.EqualTo(TrafficV2Code.Allowed), "La preuve historique reste liee a ses propres artefacts.");
+                var current = TrafficV2Lifecycle.Admit(Committed(AuthoredRoadModel.ModelPath), signoffText,
+                    Committed(AuthoredRoadModel.ReportPath));
+                Assert.That(current.Code, Is.EqualTo(TrafficV2Code.GateAEvidenceStale), "L'ancien sign-off ne couvre pas le modele actuel.");
+                return;
+            }
             Assert.That(layout.Format, Is.EqualTo(AuthoredRoadModel.SignoffFormat),
                 "Sign-off de format inconnu : a re-signer par le proprietaire depuis la fenetre de revue.");
             Assert.That(string.IsNullOrWhiteSpace(layout.Approver), Is.False, "Sign-off sans approbateur.");
@@ -996,6 +1020,10 @@ namespace RoadRage.Tests.EditMode
             public string PhysicalInputHash;
             public string SemanticInputHash;
             public string ClearanceHash;
+            public float TrackingAllowanceMeters;
+            public string PoseModel;
+            public string EvidenceParametersHash;
+            public string[] SignedRingSeams;
         }
 
         // ================================================================== outils

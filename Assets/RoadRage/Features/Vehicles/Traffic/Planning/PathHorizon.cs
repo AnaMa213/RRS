@@ -79,23 +79,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
     /// <summary>Geometry read from compiled route occurrences; its lateral offset is identically zero.</summary>
     public sealed class PathHorizon
     {
-        // Les 24 raccords tangents de l'anneau couverts par la signature Gate A.
-        private static readonly HashSet<string> SignedRingSeams = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "401b55e11b401435eb1bdd8dde7caa94:entry", "4030253e182e3ed1b7d2aeea7a73feb6:entry",
-            "419d893b269e14c02e84e3509d9bf193:entry", "42480748339bbb6fe6fcbc99604c1aa8:exit",
-            "4357c472225591a18683e67ea2dd5f92:exit", "43605e569eb08d6ffe62fa7470d59fa0:exit",
-            "4439e11d9c47c1d09aad97b8f5dd1cbe:exit", "4469169721b83714f20e63d9fcfff484:exit",
-            "452ee31e83feea5ebc05406c271424a9:exit", "453f130c460dc35e052c30714bec6c8e:entry",
-            "45607ec286d32b63e09ca677f22031ba:entry", "45d560a7a864362a2f19600802713fac:entry",
-            "46077471fe6db9c5bfc3327df0b647af:entry", "464127b42987ee35c9def93cb72dae8c:exit",
-            "470e78565e75b89add119d1f7bf3d8b3:exit", "4a5a12c19e62b4f853f928a3d4fb4c96:exit",
-            "4a6aa7e11135c1ecb2cb26715ca8cab4:entry", "4a772fed8c8aaeab952d011659612ea7:entry",
-            "4ac98ed2e41d83c91f0714135aa67ba7:entry", "4b517add680eba2b77f4e15e9033e180:entry",
-            "4cec0461fb9fd74541d5772b2264b88f:exit", "4d6ca77eae0d45e72a542a1478a2aa84:exit",
-            "4edce9aa0d470704d0479247d72ff2be:entry", "4f47e1a8140c798681fef66fa633b3b5:exit"
-        };
-
         public IReadOnlyList<PathInterval> Intervals { get; }
         public IReadOnlyList<PathSeam> Seams { get; }
         public HorizonEnd End { get; }
@@ -134,7 +117,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         /// nominale. Absent : plafond de regime etabli du compilateur (comportement 5.30).
         /// </param>
         public static PathHorizon Build(CompiledRoadModel model, RoutePlan route, float lookAheadMeters,
-            float? nominalOffsetRadians = null)
+            float? nominalOffsetRadians = null, IReadOnlyList<string> signedRingSeams = null)
         {
             if (model == null) throw new ArgumentNullException("model");
             if (route == null) throw new ArgumentNullException("route");
@@ -211,7 +194,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                     var previous = intervals[intervals.Count - 1];
                     var left = previous.Points[previous.Points.Count - 1];
                     var right = points[0];
-                    bool ring = IsRoundaboutSeam(model, previous, occurrence)
+                    bool ring = IsRoundaboutSeam(model, previous, occurrence, signedRingSeams)
                         && Math.Abs(Math.Abs(right.Reference.CurvaturePerMeter - left.Reference.CurvaturePerMeter)
                             - PlanningTolerances.RoundaboutCurvaturePerMeter) <= PlanningTolerances.SeamCurvatureJumpPerMeter;
                     var seam = new PathSeam(left, right, ring);
@@ -233,17 +216,22 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             return new PathHorizon(intervals, seams, end, travelled, issue, issueAt);
         }
 
-        private static bool IsRoundaboutSeam(CompiledRoadModel model, PathInterval previous, RouteOccurrence next)
+        private static bool IsRoundaboutSeam(CompiledRoadModel model, PathInterval previous, RouteOccurrence next,
+            IReadOnlyList<string> signedRingSeams)
         {
             RoadId movementId = previous.Kind == RoadElementKind.JunctionMovement ? previous.Id
                 : next.Kind == RoadElementKind.JunctionMovement ? next.Id : RoadId.None;
             string side = previous.Kind == RoadElementKind.JunctionMovement ? ":exit" : ":entry";
             CompiledJunctionMovement movement;
             Junction junction;
-            return !movementId.IsEmpty && SignedRingSeams.Contains(movementId.ToString() + side)
-                && model.TryGetMovement(movementId, out movement)
-                && model.TryGetJunction(movement.JunctionId, out junction)
-                && junction.Feature == JunctionFeature.Roundabout;
+            if (movementId.IsEmpty || !model.TryGetMovement(movementId, out movement)
+                || !model.TryGetJunction(movement.JunctionId, out junction)
+                || junction.Feature != JunctionFeature.Roundabout) return false;
+            if (signedRingSeams == null) return true; // Legacy : la geometrie signee porte deja la couture.
+            string key = movementId + side;
+            for (int i = 0; i < signedRingSeams.Count; i++)
+                if (signedRingSeams[i] == key) return true;
+            return false;
         }
     }
 }

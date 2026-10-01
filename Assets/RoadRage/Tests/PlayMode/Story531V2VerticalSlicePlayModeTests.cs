@@ -27,8 +27,8 @@ namespace RoadRage.Tests.PlayMode
 {
     /// <summary>
     /// Story 5.31 : tranche verticale Traffic V2 dans MVP_Run (bootstrap -> lobby -> MVP_Run, patron
-    /// Story 5.10). Tests courts de la suite par defaut : refus hors run de mesure (a_e = 0, epsilon_t non
-    /// declare), refus d'un modele non declare, et un run de mesure court sur une route, de portail a
+    /// Story 5.10). Tests courts de la suite par defaut : admission hors run de mesure sous la preuve 5.52,
+    /// refus d'un modele non declare, et un run de mesure court sur une route, de portail a
     /// portail. Aucune acceptation n'est revendiquee ici : les mesures sont publiees dans la sortie.
     /// </summary>
     [Category("Story531")]
@@ -83,7 +83,7 @@ namespace RoadRage.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator OutsideAMeasurementRunNoV2VehicleIsInsertedAndTheReasonIsPublished()
+        public IEnumerator OutsideAMeasurementRunTheSignedV2VehicleIsInserted()
         {
             var signed = SignedArtifactBytes();
             TrafficV2Session.Request(TrafficComposition.V2Slice, null);
@@ -102,12 +102,12 @@ namespace RoadRage.Tests.PlayMode
 
             Assert.That(spawner.CompositionFrozen, Is.True);
             Assert.That(spawner.Composition, Is.EqualTo(TrafficComposition.V2Slice));
-            Assert.That(spawner.V2Insertions, Is.EqualTo(0), "epsilon_t declare mais preuve a pose tangente, a_e = 0 : aucune insertion hors mesure");
-            Assert.That(spawner.LiveV2Population, Is.EqualTo(0));
-            Assert.That(spawner.V2LastCode, Is.EqualTo(TrafficV2Code.NotCoveredByGateA), "raison publiee");
+            Assert.That(spawner.V2Insertions, Is.GreaterThan(0), "la preuve cinematique signee admet le V2 hors mesure");
+            Assert.That(spawner.LiveV2Population, Is.GreaterThan(0));
+            Assert.That(spawner.V2LastCode, Is.EqualTo(TrafficV2Code.Allowed));
             Assert.That(Object.FindObjectsByType<NetworkedAIVehicleDriverController>(FindObjectsInactive.Include).Length, Is.EqualTo(0),
                 "V2Slice : aucun vehicule IA V1");
-            Assert.That(Object.FindObjectsByType<TrafficV2VehicleDriver>(FindObjectsInactive.Include).Length, Is.EqualTo(0));
+            Assert.That(Object.FindObjectsByType<TrafficV2VehicleDriver>(FindObjectsInactive.Include).Length, Is.GreaterThan(0));
             var after = SignedArtifactBytes();
             for (var i = 0; i < signed.Length; i++)
             {

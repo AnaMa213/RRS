@@ -18,6 +18,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     /// </summary>
     public sealed class GateAReviewWindow : EditorWindow
     {
+        [Serializable]
+        private sealed class SignoffHistory
+        {
+            public int Format = 1;
+            public string[] Superseded;
+        }
         private AuthoredRun _run;
         private readonly List<string> _blocking = new List<string>();
         private readonly HashSet<string> _reviewed = new HashSet<string>(StringComparer.Ordinal);
@@ -176,15 +182,60 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             var instances = new List<string>(_reviewed);
             string text = AuthoredRoadModel.RenderSignoff(_run, _approver, _approverEmail, instances, DateTime.UtcNow);
+            string previous = AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffPath));
+            if (string.IsNullOrEmpty(previous))
+            {
+                Debug.LogError("[Traffic V2] Sign-off historique absent : re-signature refusee.");
+                return;
+            }
+
+            string existingHistory = AuthoredRoadModel.ReadIfExists(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffHistoryPath));
+            string historyText;
+            try
+            {
+                historyText = RenderSignoffHistory(previous, existingHistory);
+            }
+            catch (FormatException exception)
+            {
+                Debug.LogError("[Traffic V2] " + exception.Message);
+                return;
+            }
             string error;
-            if (!AuthoredRoadModel.TryWriteAll(new[] { new KeyValuePair<string, string>(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffPath), text) }, out error))
+            if (!AuthoredRoadModel.TryWriteAll(new[]
+                {
+                    new KeyValuePair<string, string>(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffHistoryPath), historyText),
+                    new KeyValuePair<string, string>(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffPath), text)
+                }, out error))
             {
                 Debug.LogError("[Traffic V2] Sign-off non ecrit : " + error);
                 return;
             }
 
+            AssetDatabase.ImportAsset(AuthoredRoadModel.SignoffHistoryPath);
             AssetDatabase.ImportAsset(AuthoredRoadModel.SignoffPath);
             Debug.Log("[Traffic V2] Sign-off Gate A ecrit : " + AuthoredRoadModel.SignoffPath + ".");
+        }
+
+        /// <summary>Prepare l'historique en memoire ; seul Sign l'ecrit apres la revue du proprietaire.</summary>
+        public static string RenderSignoffHistory(string previous, string existingHistory)
+        {
+            SignoffHistory history;
+            try
+            {
+                history = string.IsNullOrEmpty(existingHistory) ? new SignoffHistory { Superseded = new string[0] }
+                    : JsonUtility.FromJson<SignoffHistory>(existingHistory);
+            }
+            catch (ArgumentException exception)
+            {
+                throw new FormatException("Historique des sign-offs illisible : " + exception.Message, exception);
+            }
+            if (history == null || history.Format != 1 || history.Superseded == null)
+                throw new FormatException("Historique des sign-offs invalide : re-signature refusee.");
+
+            var superseded = new List<string>(history.Superseded);
+            if (!superseded.Contains(previous)) superseded.Add(previous);
+            history.Superseded = superseded.ToArray();
+            return JsonUtility.ToJson(history, true).Replace("\r\n", "\n") + "\n";
         }
 
         private void Draw(SceneView view)

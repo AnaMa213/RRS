@@ -19,7 +19,32 @@ namespace RoadRage.Tests.EditMode
     [Category("Story552")]
     public sealed class Story552EvidenceTests
     {
+        private const string HistoricalSignedDirectory = "_bmad-output/implementation-artifacts/gate-a-5-52/historical-signed-5-51/";
         private const float Allowance = 0.34f;
+
+        [Serializable]
+        private sealed class InMemoryFormat3Signoff
+        {
+            public int Format = 3;
+            public string RoadModelVersion;
+            public string ModelHash;
+            public string ClearanceHash;
+            public float TrackingAllowanceMeters = Allowance;
+            public float TrackingToleranceMeters = Allowance;
+            public float MaximumAbsolutePlanningOffsetMeters;
+            public string PoseModel = "kinematic-v1";
+            public string EvidenceParametersHash;
+            public int ConflictSweepAlgorithmVersion = 2;
+            public int FingerprintSchemaVersion = 2;
+            public string[] SignedRingSeams;
+        }
+
+        [Serializable]
+        private sealed class InMemorySignoffHistory
+        {
+            public int Format;
+            public string[] Superseded;
+        }
 
         private static RoadModelValidationProfile Profile()
         {
@@ -270,8 +295,9 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void TheSignedTangentEvidenceNeverYieldsCoverage()
         {
-            var admission = TrafficV2Lifecycle.Admit(File.ReadAllText(TrafficV2Settings.ModelPath), File.ReadAllText(TrafficV2Settings.SignoffPath),
-                File.ReadAllText(TrafficV2Settings.ReportPath));
+            var admission = TrafficV2Lifecycle.Admit(File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-model.json"),
+                File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-signoff.json"),
+                File.ReadAllText(HistoricalSignedDirectory + "migration-report-5-28-mvp-run.md"));
             Assert.That(admission.Admitted, Is.True, admission.Code.ToString());
             Assert.That(admission.Evidence.PoseModel, Is.EqualTo(NominalPoseModel.TangentAligned));
             Assert.That(admission.Evidence.TrackingAllowanceMeters, Is.EqualTo(0f));
@@ -282,9 +308,9 @@ namespace RoadRage.Tests.EditMode
         [Test]
         public void AStaleResidualBlockClosesTheBinding()
         {
-            string modelText = File.ReadAllText(TrafficV2Settings.ModelPath);
-            string signoff = File.ReadAllText(TrafficV2Settings.SignoffPath);
-            string report = File.ReadAllText(TrafficV2Settings.ReportPath);
+            string modelText = File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-model.json");
+            string signoff = File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-signoff.json");
+            string report = File.ReadAllText(HistoricalSignedDirectory + "migration-report-5-28-mvp-run.md");
             var model = RoadModelCompiler.Compile(RoadModelDocument.Load(modelText));
             Assert.That(GateAEvidenceBinding.Bind(model, modelText, signoff, report).Status, Is.EqualTo(GateAEvidenceStatus.Valid));
 
@@ -294,6 +320,105 @@ namespace RoadRage.Tests.EditMode
             string stale = report.Substring(0, row) + "| degagement |  " + report.Substring(row + "| degagement | ".Length);
             Assert.That(GateAEvidenceBinding.Bind(model, modelText, signoff, stale).Status, Is.EqualTo(GateAEvidenceStatus.GateAEvidenceStale),
                 "Un residu different de celui signe ferme la preuve.");
+        }
+
+        [Test]
+        public void TheFormat3BindingReadsTheCurrentKinematicProofAndItsSignedSeams()
+        {
+            string modelText = File.ReadAllText(TrafficV2Settings.ModelPath);
+            string report = File.ReadAllText(TrafficV2Settings.ReportPath);
+            var model = RoadModelCompiler.Compile(RoadModelDocument.Load(modelText));
+            var seams = new List<string>();
+            foreach (Match match in Regex.Matches(report, "^raccord-signe = (.+)$", RegexOptions.Multiline))
+                seams.Add(match.Groups[1].Value);
+            Assert.That(seams.Count, Is.EqualTo(24));
+            var signoff = new InMemoryFormat3Signoff
+            {
+                RoadModelVersion = model.Version.ToString(),
+                ModelHash = V1SourceSet.Sha256Hex(modelText),
+                ClearanceHash = Regex.Match(report, "^clearance-hash: ([0-9a-f]{64})$", RegexOptions.Multiline).Groups[1].Value,
+                EvidenceParametersHash = Regex.Match(report, "parametres-hash = ([0-9a-f]{64})").Groups[1].Value,
+                SignedRingSeams = seams.ToArray()
+            };
+            // Fixture en memoire seulement : seule la revue du proprietaire peut signer sur disque.
+            var evidence = GateAEvidenceBinding.Bind(model, modelText, JsonUtility.ToJson(signoff), report);
+            Assert.That(evidence.Status, Is.EqualTo(GateAEvidenceStatus.Valid));
+            Assert.That(evidence.PoseModel, Is.EqualTo(NominalPoseModel.Kinematic));
+            Assert.That(evidence.TrackingAllowanceMeters, Is.EqualTo(Allowance));
+            Assert.That(evidence.SignedRingSeams, Is.EqualTo(seams));
+            Assert.That(MotionPlan.EvaluateVehicleCoverage(evidence, 0f, TrafficV2Settings.DeclaredTrackingTolerance),
+                Is.EqualTo(VehicleCoverage.Covered));
+
+            signoff.SignedRingSeams[0] = "raccord-inconnu:entry";
+            Assert.That(GateAEvidenceBinding.Bind(model, modelText, JsonUtility.ToJson(signoff), report).Status,
+                Is.EqualTo(GateAEvidenceStatus.GateAEvidenceStale));
+            signoff.SignedRingSeams[0] = seams[0];
+            signoff.MaximumAbsolutePlanningOffsetMeters = 0.04f;
+            signoff.TrackingToleranceMeters = 0.30f;
+            Assert.That(GateAEvidenceBinding.Bind(model, modelText, JsonUtility.ToJson(signoff), report).Status,
+                Is.EqualTo(GateAEvidenceStatus.GateAEvidenceStale), "La somme a_e inchangee ne suffit pas si ses termes divergent du bloc signe.");
+        }
+
+        [Test]
+        public void ReSignatureHistoryKeepsThePreviousSignoffVerbatimInMemory()
+        {
+            string previous = File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-signoff.json");
+            string historyText = GateAReviewWindow.RenderSignoffHistory(previous, null);
+            var history = JsonUtility.FromJson<InMemorySignoffHistory>(historyText);
+            Assert.That(history.Format, Is.EqualTo(1));
+            Assert.That(history.Superseded, Is.EqualTo(new[] { previous }));
+            Assert.That(GateAReviewWindow.RenderSignoffHistory(previous, historyText), Is.EqualTo(historyText),
+                "Le meme sign-off ne doit pas etre archive deux fois.");
+            Assert.Throws<FormatException>(() => GateAReviewWindow.RenderSignoffHistory(previous, "{\"Format\":0}"));
+        }
+
+        [Test]
+        public void TheOwnerSignatureBindsTheCurrentProofAndPreservesThePreviousOne()
+        {
+            string modelText = File.ReadAllText(TrafficV2Settings.ModelPath);
+            string report = File.ReadAllText(TrafficV2Settings.ReportPath);
+            string signoff = File.ReadAllText(TrafficV2Settings.SignoffPath);
+            var model = RoadModelCompiler.Compile(RoadModelDocument.Load(modelText));
+            var evidence = GateAEvidenceBinding.Bind(model, modelText, signoff, report);
+            Assert.That(evidence.Status, Is.EqualTo(GateAEvidenceStatus.Valid));
+            Assert.That(evidence.PoseModel, Is.EqualTo(NominalPoseModel.Kinematic));
+            Assert.That(evidence.TrackingAllowanceMeters, Is.EqualTo(Allowance));
+            Assert.That(evidence.SignedRingSeams.Count, Is.EqualTo(24));
+
+            var history = JsonUtility.FromJson<InMemorySignoffHistory>(File.ReadAllText(AuthoredRoadModel.SignoffHistoryPath));
+            Assert.That(history.Format, Is.EqualTo(1));
+            Assert.That(history.Superseded, Is.EqualTo(new[] { File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-signoff.json") }),
+                "L'ancienne signature est archivee verbatim.");
+        }
+
+        [Test]
+        public void AFailedSecondSignoffWriteRestoresThePreviousHistoryBytes()
+        {
+            string folder = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Temp",
+                "rrs-story552-write-" + Guid.NewGuid().ToString("N"));
+            string history = Path.Combine(folder, "history.json");
+            string blockedSignoff = Path.Combine(folder, "blocked-signoff.json");
+            Directory.CreateDirectory(folder);
+            Directory.CreateDirectory(blockedSignoff);
+            byte[] original = { 0x48, 0x69, 0x73, 0x74, 0x6f, 0x72, 0x79, 0x0a };
+            File.WriteAllBytes(history, original);
+            try
+            {
+                string error;
+                bool written = AuthoredRoadModel.TryWriteAll(new[]
+                {
+                    new KeyValuePair<string, string>(history, "new history"),
+                    new KeyValuePair<string, string>(blockedSignoff, "new signoff")
+                }, out error);
+                Assert.That(written, Is.False);
+                StringAssert.Contains("etat precedent restaure", error);
+                Assert.That(File.ReadAllBytes(history), Is.EqualTo(original), "l'historique ne doit pas avancer seul");
+                Assert.That(Directory.Exists(blockedSignoff), Is.True);
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
         }
 
         [Test]

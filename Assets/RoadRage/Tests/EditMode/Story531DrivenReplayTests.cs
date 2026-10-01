@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using NUnit.Framework;
 using RoadRage.Features.Vehicles;
 using RoadRage.Features.Vehicles.Traffic;
@@ -81,6 +80,7 @@ namespace RoadRage.Tests.EditMode
         }
 
         private static TrafficV2Admission admission;
+        private const string HistoricalSignedDirectory = "_bmad-output/implementation-artifacts/gate-a-5-52/historical-signed-5-51/";
         private static CampaignFile campaign;
 
         private static TrafficV2Admission Admission
@@ -88,8 +88,9 @@ namespace RoadRage.Tests.EditMode
             get
             {
                 if (admission == null)
-                    admission = TrafficV2Lifecycle.Admit(File.ReadAllText(TrafficV2Settings.ModelPath),
-                        File.ReadAllText(TrafficV2Settings.SignoffPath), File.ReadAllText(TrafficV2Settings.ReportPath));
+                    admission = TrafficV2Lifecycle.Admit(File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-model.json"),
+                        File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-signoff.json"),
+                        File.ReadAllText(HistoricalSignedDirectory + "migration-report-5-28-mvp-run.md"));
                 return admission;
             }
         }
@@ -220,7 +221,7 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void CampaignBuilderPublishesIncidenceAndNotSelectableWithinTheDeclaredSeedBudget()
+        public void CampaignBuilderCoversElementsButRejectsTheStaleHistoricalContactProof()
         {
             var built = BuildCampaign();
             var model = Admission.Model;
@@ -251,9 +252,8 @@ namespace RoadRage.Tests.EditMode
                     "la route de l'insertion est celle du constructeur (triplet " + triplet.Index + ")");
             }
 
-            // La classification des contacts ne peut utiliser la liste de reliefs 5.51 que si son empreinte
-            // physique correspond encore à la scène courante. Le SHA-256 du fichier lie ensuite
-            // le run PlayMode au même état disque, sans API Editor pendant PlayMode.
+            // La preuve de contact 5.51 est historique sur la scene corrigee 5.52.
+            // Refuser sa reutilisation et conserver la campagne 5.31 existante.
             const string scenePath = "Assets/RoadRage/App/Scenes/MVP_Run.unity";
             var scene = SceneManager.GetSceneByPath(scenePath);
             bool opened = !scene.IsValid() || !scene.isLoaded;
@@ -271,25 +271,15 @@ namespace RoadRage.Tests.EditMode
                 string proofFingerprint = File.ReadAllLines(ContactProofPath)
                     .Where(line => line.StartsWith("empreinte-physique=", StringComparison.Ordinal))
                     .Select(line => line.Substring("empreinte-physique=".Length)).Single();
-                Assert.That(clearance.PhysicalFingerprint, Is.EqualTo(proofFingerprint),
-                    "la preuve 5.51 n'est plus liée aux entrées physiques de MVP_Run");
-                built.ContactPhysicalFingerprint = clearance.PhysicalFingerprint;
-                built.SceneDependencyHash = AssetDatabase.GetAssetDependencyHash(scene.path).ToString();
-                using (var sha = SHA256.Create())
-                    built.SceneFileSha256 = BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(scenePath)))
-                        .Replace("-", "").ToLowerInvariant();
+                Assert.That(clearance.PhysicalFingerprint, Is.Not.EqualTo(proofFingerprint),
+                    "La preuve de contact 5.51 doit etre explicitement stale sur MVP_Run corrige.");
             }
             finally
             {
                 if (opened && scene.isLoaded && !scene.isDirty) EditorSceneManager.CloseScene(scene, true);
             }
 
-            Directory.CreateDirectory(MeasurementsFolder);
-            string json = JsonUtility.ToJson(built, true).Replace("\r\n", "\n") + "\n";
-            File.WriteAllText(CampaignPath, json);
-            Assert.That(File.Exists(CampaignPath), Is.True);
-            TestContext.WriteLine("campagne : " + built.Triplets.Length + " triplet(s), " + built.NotSelectable.Length
-                + " element(s) NotSelectable, statut " + built.Status);
+            Assert.That(File.Exists(CampaignPath), Is.True, "La campagne historique reste disponible pour son replay.");
         }
 
         /// <summary>

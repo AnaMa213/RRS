@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -20,13 +21,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
     {
         public readonly GateAEvidenceStatus Status;
         public readonly float TrackingAllowanceMeters;
-        /// <summary>Modele de pose enregistre par la preuve ; aucune preuve actuelle n'en porte : TangentAligned.</summary>
+        /// <summary>Modele de pose enregistre par la preuve.</summary>
         public readonly NominalPoseModel PoseModel;
+        public readonly IReadOnlyList<string> SignedRingSeams;
         public bool Valid { get { return Status == GateAEvidenceStatus.Valid; } }
 
         internal GateAEvidenceResult(GateAEvidenceStatus status, float allowance,
-            NominalPoseModel poseModel = NominalPoseModel.TangentAligned)
-        { Status = status; TrackingAllowanceMeters = allowance; PoseModel = poseModel; }
+            NominalPoseModel poseModel = NominalPoseModel.TangentAligned, string[] signedRingSeams = null)
+        {
+            Status = status; TrackingAllowanceMeters = allowance; PoseModel = poseModel;
+            SignedRingSeams = Array.AsReadOnly(signedRingSeams ?? new string[0]);
+        }
     }
 
     /// <summary>Documentary binding only; physical Gate A validation stays with its owner.</summary>
@@ -35,9 +40,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         [Serializable]
         private sealed class Signoff
         {
+            public int Format;
             public string RoadModelVersion;
             public string ModelHash;
             public string ClearanceHash;
+            public float TrackingAllowanceMeters;
+            public float TrackingToleranceMeters;
+            public float MaximumAbsolutePlanningOffsetMeters;
+            public string PoseModel;
+            public string EvidenceParametersHash;
+            public int ConflictSweepAlgorithmVersion;
+            public int FingerprintSchemaVersion;
+            public string[] SignedRingSeams;
         }
 
         public static GateAEvidenceResult Bind(CompiledRoadModel model, string modelText,
@@ -78,7 +92,31 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                 || !string.Equals(signoff.ModelHash, Hash(modelText), StringComparison.OrdinalIgnoreCase)
                 || !string.Equals(signoff.ClearanceHash, Hash(block), StringComparison.OrdinalIgnoreCase))
                 return new GateAEvidenceResult(GateAEvidenceStatus.GateAEvidenceStale, allowance);
-            return new GateAEvidenceResult(GateAEvidenceStatus.Valid, allowance);
+            if (signoff.Format == 3)
+            {
+                if (signoff.PoseModel != "kinematic-v1" || signoff.TrackingAllowanceMeters != allowance
+                    || signoff.TrackingToleranceMeters + signoff.MaximumAbsolutePlanningOffsetMeters != allowance
+                    || string.IsNullOrEmpty(signoff.EvidenceParametersHash)
+                    || !block.Contains("pose-model = " + signoff.PoseModel + " ; ")
+                    || !block.Contains("max|o| = " + signoff.MaximumAbsolutePlanningOffsetMeters.ToString("R", CultureInfo.InvariantCulture)
+                        + " m ; epsilon_t = " + signoff.TrackingToleranceMeters.ToString("R", CultureInfo.InvariantCulture) + " m\n")
+                    || !block.Contains("parametres-hash = " + signoff.EvidenceParametersHash + "\n")
+                    || signoff.ConflictSweepAlgorithmVersion != 2 || signoff.FingerprintSchemaVersion != 2
+                    || signoff.SignedRingSeams == null || signoff.SignedRingSeams.Length != 24
+                    || !block.Contains("raccords-signes = 24\n"))
+                    return new GateAEvidenceResult(GateAEvidenceStatus.GateAEvidenceStale, allowance);
+                var unique = new HashSet<string>(StringComparer.Ordinal);
+                foreach (string seam in signoff.SignedRingSeams)
+                    if (string.IsNullOrEmpty(seam) || !unique.Add(seam)
+                        || !block.Contains("raccord-signe = " + seam + "\n"))
+                        return new GateAEvidenceResult(GateAEvidenceStatus.GateAEvidenceStale, allowance);
+                return new GateAEvidenceResult(GateAEvidenceStatus.Valid, allowance,
+                    NominalPoseModel.Kinematic, signoff.SignedRingSeams);
+            }
+
+            return signoff.Format == 0 || signoff.Format == 2
+                ? new GateAEvidenceResult(GateAEvidenceStatus.Valid, allowance)
+                : new GateAEvidenceResult(GateAEvidenceStatus.GateAEvidenceStale, allowance);
         }
 
         private static string Hash(string text)

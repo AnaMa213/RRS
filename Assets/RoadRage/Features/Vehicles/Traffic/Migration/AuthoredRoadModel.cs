@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using RoadRage.Features.Vehicles.Traffic.Planning;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -132,7 +133,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Balayage de toutes les paires (candidats, suivi, selection englobante seule, sans contact).</summary>
         public List<PairSweep> PairSweeps;
 
-        /// <summary>Parametres de la preuve Gate A de ce passage ; historiques par defaut (Story 5.52).</summary>
+        /// <summary>Parametres de la preuve Gate A de ce passage ; Declared par defaut (Story 5.52).</summary>
         public GateAEvidenceParameters EvidenceParameters = GateAEvidenceParameters.Legacy;
 
         /// <summary>Bornes d'ecart de la pose cinematique, calculees sur <see cref="CandidateModel"/> ; nul a pose tangente.</summary>
@@ -147,6 +148,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         /// <summary>Mesure de chaque giratoire (5.49) : enveloppe V2 appliquee et anneau physique.</summary>
         public readonly List<RoundaboutMeasurement> Roundabouts = new List<RoundaboutMeasurement>();
+
+        /// <summary>Raccords de l'anneau couverts par la preuve courante, tries et lies au sign-off format 3.</summary>
+        public readonly List<string> SignedRingSeams = new List<string>();
 
         /// <summary>Preuve physique Gate A : angles des 5 carrefours classiques (5.51, deux gates) et balayage des 4 giratoires.</summary>
         public JunctionClearanceResult JunctionEvidence;
@@ -187,6 +191,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public const string DecisionsPath = "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json";
         public const string ModelPath = "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json";
         public const string SignoffPath = "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json";
+        public const string SignoffHistoryPath = "Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff-history.json";
         public const string OverlayPath = "_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt";
         public const string ReportPath = "_bmad-output/implementation-artifacts/migration-report-5-28-mvp-run.md";
         public const string ReviewDiffPath = "_bmad-output/implementation-artifacts/review-5-50-diff.md";
@@ -202,18 +207,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public static AuthoredRun Run(Scene scene, string lineageText, string decisionsText)
         {
-            return Run(V1SourceSet.Extract(scene), lineageText, decisionsText);
+            return Run(V1SourceSet.Extract(scene), lineageText, decisionsText, GateAEvidenceParameters.Declared());
         }
 
         public static AuthoredRun Run(V1SourceSet set, string lineageText, string decisionsText)
         {
-            return Run(set, lineageText, decisionsText, GateAEvidenceParameters.Legacy);
+            return Run(set, lineageText, decisionsText, GateAEvidenceParameters.Declared());
         }
 
         /// <summary>
-        /// Pipeline sous des parametres de preuve (Story 5.52). Hors parametres historiques, les empreintes v2
-        /// ne concordent avec aucune decision signee : le passage s'arrete au rapprochement, candidats, balayages
-        /// et bornes d'ecart conserves pour la regeneration.
+        /// Pipeline sous des parametres de preuve (Story 5.52). Le rapprochement refuse toute decision
+        /// dont l'empreinte ne concorde plus ; seuls les candidats et les balayages restent disponibles.
         /// </summary>
         public static AuthoredRun Run(V1SourceSet set, string lineageText, string decisionsText, GateAEvidenceParameters parameters)
         {
@@ -312,13 +316,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             MeasureEvidence(run, set);
-            if (!run.EvidenceParameters.IsLegacy)
-            {
-                // Le bloc signe (a_e, modele de pose, restes, raccords signes) est la phase C de la Story 5.52.
-                run.Failures.Add("Rapport Gate A sous parametres " + run.EvidenceParameters.PoseModelLabel
-                    + " non rendu : bascule du pipeline reservee a la phase C de la Story 5.52.");
-                return run;
-            }
 
             var provenance = new RoadModelProvenance();
             provenance.SourceHash = set.SourceHash;
@@ -342,7 +339,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             binding.ModelHash = V1SourceSet.Sha256Hex(run.ModelText);
             binding.RoadModelVersion = run.Compiled.Version.ToString();
             binding.OverlayHash = V1SourceSet.Sha256Hex(run.OverlayText);
-            binding.PhysicalInputHash = V1SourceSet.Sha256Hex("gate-a-physical-inputs-v1\ncarrefours " + (run.JunctionEvidence == null ? "absente" : run.JunctionEvidence.PhysicalFingerprint)
+            binding.PhysicalInputHash = V1SourceSet.Sha256Hex((run.EvidenceParameters.IsLegacy ? "gate-a-physical-inputs-v1" : "gate-a-physical-inputs-v2")
+                + "\ncarrefours " + (run.JunctionEvidence == null ? "absente" : run.JunctionEvidence.PhysicalFingerprint)
                 + "\ngiratoires " + (run.RoundaboutEvidence == null ? "absente" : run.RoundaboutEvidence.PhysicalFingerprint) + "\n");
             binding.SemanticInputHash = run.JunctionEvidence == null || run.JunctionEvidence.SemanticFingerprint == null ? "absente" : run.JunctionEvidence.SemanticFingerprint;
             run.ClearanceText = RenderClearance(run);
@@ -1402,6 +1400,36 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         + R(ring.EnvelopeResidual) + ", physique " + R(ring.PhysicalResidual) + ") : HALT, decision du proprietaire.");
                 }
             }
+
+            if (!run.EvidenceParameters.IsLegacy)
+            {
+                foreach (var movement in run.Compiled.Movements)
+                {
+                    Junction junction;
+                    if (!run.Compiled.TryGetJunction(movement.JunctionId, out junction)
+                        || junction.Feature != JunctionFeature.Roundabout) continue;
+                    EffectiveLaneCorridor from, to;
+                    if (!run.Compiled.TryGetCorridor(movement.FromCorridorId, out from)
+                        || !run.Compiled.TryGetCorridor(movement.ToCorridorId, out to))
+                    {
+                        run.EvidenceFailures.Add("Raccord d'anneau sans corridor pour " + movement.Id + ".");
+                        continue;
+                    }
+
+                    float entry = movement.Curve.Sample(0f).CurvaturePerMeter
+                        - from.Curve.Sample(from.LengthMeters).CurvaturePerMeter;
+                    float exit = to.Curve.Sample(0f).CurvaturePerMeter
+                        - movement.Curve.Sample(movement.LengthMeters).CurvaturePerMeter;
+                    if (Math.Abs(entry) > PlanningTolerances.SeamCurvatureJumpPerMeter)
+                        run.SignedRingSeams.Add(movement.Id + ":entry");
+                    if (Math.Abs(exit) > PlanningTolerances.SeamCurvatureJumpPerMeter)
+                        run.SignedRingSeams.Add(movement.Id + ":exit");
+                }
+
+                run.SignedRingSeams.Sort(StringComparer.Ordinal);
+                if (run.SignedRingSeams.Count != 24)
+                    run.EvidenceFailures.Add("Raccords signes de l'anneau : 24 attendus, " + run.SignedRingSeams.Count + " mesures.");
+            }
         }
 
         /// <summary>
@@ -1438,8 +1466,30 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             lines.Sort(StringComparer.Ordinal);
             var text = new StringBuilder();
-            text.Append("a_e = ").Append(R(TrackingAllowanceMeters)).Append(" m ; h = ")
-                .Append(R(run.JunctionEvidence == null ? JunctionClearance.DefaultStepMeters : run.JunctionEvidence.StepMeters)).Append(" m\n\n");
+            text.Append("a_e = ").Append(R(run.EvidenceParameters.IsLegacy ? TrackingAllowanceMeters : run.EvidenceParameters.TrackingAllowanceMeters))
+                .Append(" m ; h = ")
+                .Append(R(run.JunctionEvidence == null ? JunctionClearance.DefaultStepMeters : run.JunctionEvidence.StepMeters)).Append(" m\n");
+            if (!run.EvidenceParameters.IsLegacy)
+            {
+                var parameters = run.EvidenceParameters;
+                var profile = run.Compiled.ValidationProfile;
+                float clearanceRho = Mathf.Sqrt(Mathf.Pow(JunctionClearance.HalfLength(profile, parameters.TrackingAllowanceMeters), 2f)
+                    + Mathf.Pow(JunctionClearance.HalfWidth(profile, parameters.TrackingAllowanceMeters), 2f));
+                text.Append("pose-model = ").Append(parameters.PoseModelLabel).Append(" ; max|o| = ")
+                    .Append(R(GateAEvidenceParameters.MaximumAbsolutePlanningOffsetMeters)).Append(" m ; epsilon_t = ")
+                    .Append(R(parameters.TrackingAllowanceMeters - GateAEvidenceParameters.MaximumAbsolutePlanningOffsetMeters)).Append(" m\n")
+                    .Append("marge = ").Append(R(profile.LateralClearanceMarginMeters)).Append(" m ; delta_c = ")
+                    .Append(R(V1RoadModelImporter.ChordToleranceMeters)).Append(" m ; h_e = ")
+                    .Append(R(parameters.OffsetGridStepRadians)).Append(" rad ; eta = ")
+                    .Append(R(parameters.OffsetToleranceRadians)).Append(" rad\n")
+                    .Append("reste-candidats = ").Append(R(ConflictSweep.OffsetGridRemainder(profile, parameters)))
+                    .Append(" m ; reste-degagement = ").Append(R(clearanceRho * parameters.OffsetGridStepRadians * 0.5f))
+                    .Append(" m ; parametres-hash = ").Append(V1SourceSet.Sha256Hex(parameters.CanonicalText)).Append("\n")
+                    .Append("raccords-signes = ").Append(run.SignedRingSeams.Count).Append("\n");
+                foreach (string seam in run.SignedRingSeams) text.Append("raccord-signe = ").Append(seam).Append('\n');
+            }
+
+            text.Append('\n');
             text.Append("| Genre | Carrefour | Trajectoire | Surface Sidewalk | Residu physique (m) | Obstacle temoin | Physique | Residu Sidewalk (m) | Sidewalk |\n|---|---|---|---|---:|---|---|---:|---|\n");
             foreach (var line in lines)
             {
@@ -1632,12 +1682,22 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             // ------------------------------------------------ preuve physique Gate A
             text.Append("## Gate A : preuve physique des 9 carrefours\n\n");
-            text.Append("Correct-course du 2026-09-25, precise le 2026-09-28. Balayage conservateur de la Story 5.51 (algorithme ").Append(JunctionClearance.AlgorithmVersion)
-                .Append(" ; giratoires : balayage v").Append(JunctionClearance.RoundaboutSweepVersion).Append(") sur les references compilees 5.50 : empreinte = gabarit max du profil versionne + marge, gonfle de delta_c = ")
-                .Append(MigrationFormat.Meters(V1RoadModelImporter.ChordToleranceMeters)).Append(" m ; poses canoniques a pas h et coutures explicites ; residu = min(d_a, d_b) - delta/2, strictement positif. ")
-                .Append("Carrefours classiques : chaque mouvement prolonge de L/2 + marge + delta_c, gate physique (obstacles dans la tranche du vehicule IA, relief routier franchissable excepte) et gate Sidewalk en plan (declarations, actives ou non). ")
-                .Append("Giratoires : chaque mouvement prolonge de meme et chaque corridor d'anneau entier, gate physique, plus les residus d'anneau a deux gabarits ci-dessus. ")
-                .Append("Allocation de suivi laterale a_e = ").Append(MigrationFormat.Meters(TrackingAllowanceMeters)).Append(" m. Hors `RoadModelVersion`, hash source et lignee.\n\n");
+            if (run.EvidenceParameters.IsLegacy)
+            {
+                text.Append("Correct-course du 2026-09-25, precise le 2026-09-28. Balayage conservateur de la Story 5.51 (algorithme ").Append(JunctionClearance.AlgorithmVersion)
+                    .Append(" ; giratoires : balayage v").Append(JunctionClearance.RoundaboutSweepVersion).Append(") sur les references compilees 5.50 : empreinte = gabarit max du profil versionne + marge, gonfle de delta_c = ")
+                    .Append(MigrationFormat.Meters(V1RoadModelImporter.ChordToleranceMeters)).Append(" m ; poses canoniques a pas h et coutures explicites ; residu = min(d_a, d_b) - delta/2, strictement positif. ")
+                    .Append("Carrefours classiques : chaque mouvement prolonge de L/2 + marge + delta_c, gate physique (obstacles dans la tranche du vehicule IA, relief routier franchissable excepte) et gate Sidewalk en plan (declarations, actives ou non). ")
+                    .Append("Giratoires : chaque mouvement prolonge de meme et chaque corridor d'anneau entier, gate physique, plus les residus d'anneau a deux gabarits ci-dessus. ")
+                    .Append("Allocation de suivi laterale a_e = ").Append(MigrationFormat.Meters(TrackingAllowanceMeters)).Append(" m. Hors `RoadModelVersion`, hash source et lignee.\n\n");
+            }
+            else
+            {
+                text.Append("Story 5.52 : pose ").Append(run.EvidenceParameters.PoseModelLabel)
+                    .Append(" ; gonflement de chaque preuve = marge reservee + delta_c + a_e, avec restes de grille publies dans le bloc des residus. ")
+                    .Append("a_e = max|o| + epsilon_t = ").Append(MigrationFormat.Meters(run.EvidenceParameters.TrackingAllowanceMeters))
+                    .Append(" m. Les 24 raccords de l'anneau sont lies au clearance-hash et au sign-off format 3.\n\n");
+            }
             text.Append("Verdict : ").Append(run.EvidenceFailures.Count == 0 ? "**vert**" : "**ROUGE**, Gate A fermee").Append(".\n\n");
             foreach (var failure in run.EvidenceFailures)
             {
@@ -2006,10 +2066,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public string PhysicalInputHash;
             public string SemanticInputHash;
             public string ClearanceHash;
+
+            /// <summary>Format 3 (5.52) : allocation et raccords lies a la preuve cinematique.</summary>
+            public float TrackingAllowanceMeters;
+            public float TrackingToleranceMeters;
+            public float MaximumAbsolutePlanningOffsetMeters;
+            public string PoseModel;
+            public string EvidenceParametersHash;
+            public int ConflictSweepAlgorithmVersion;
+            public int FingerprintSchemaVersion;
+            public string[] SignedRingSeams;
         }
 
-        /// <summary>Format du sign-off : 2 depuis la liaison physique de la Gate A.</summary>
-        public const int SignoffFormat = 2;
+        public const int LegacySignoffFormat = 2;
+        public const int SignoffFormat = 3;
 
         /// <summary>
         /// Texte d'un sign-off lie au pipeline frais. Seul <see cref="GateAReviewWindow"/> l'ecrit sur
@@ -2019,7 +2089,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public static string RenderSignoff(AuthoredRun fresh, string approver, string approverEmail, IList<string> reviewedInstances, DateTime signedAtUtc)
         {
             var layout = new SignoffLayout();
-            layout.Format = SignoffFormat;
+            layout.Format = fresh.EvidenceParameters.IsLegacy ? LegacySignoffFormat : SignoffFormat;
             layout.Approver = approver;
             layout.ApproverEmail = approverEmail;
             layout.SignedAtUtc = signedAtUtc.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);
@@ -2038,6 +2108,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             layout.PhysicalInputHash = fresh.Binding.PhysicalInputHash;
             layout.SemanticInputHash = fresh.Binding.SemanticInputHash;
             layout.ClearanceHash = fresh.Binding.ClearanceHash;
+            if (!fresh.EvidenceParameters.IsLegacy)
+            {
+                layout.TrackingAllowanceMeters = fresh.EvidenceParameters.TrackingAllowanceMeters;
+                layout.MaximumAbsolutePlanningOffsetMeters = GateAEvidenceParameters.MaximumAbsolutePlanningOffsetMeters;
+                layout.TrackingToleranceMeters = layout.TrackingAllowanceMeters - layout.MaximumAbsolutePlanningOffsetMeters;
+                layout.PoseModel = fresh.EvidenceParameters.PoseModelLabel;
+                layout.EvidenceParametersHash = V1SourceSet.Sha256Hex(fresh.EvidenceParameters.CanonicalText);
+                layout.ConflictSweepAlgorithmVersion = ConflictSweep.AlgorithmVersionFor(fresh.EvidenceParameters);
+                layout.FingerprintSchemaVersion = PairGeometryFingerprint.SchemaVersionFor(fresh.EvidenceParameters);
+                layout.SignedRingSeams = fresh.SignedRingSeams.ToArray();
+            }
             return JsonUtility.ToJson(layout, true).Replace("\r\n", "\n") + "\n";
         }
 
@@ -2062,7 +2143,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return reasons;
             }
 
-            if (layout == null || layout.Format != SignoffFormat)
+            if (layout == null || (layout.Format != LegacySignoffFormat && layout.Format != SignoffFormat))
             {
                 reasons.Add("Sign-off : format absent ou inconnu.");
                 return reasons;
@@ -2076,6 +2157,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             if (fresh == null || !fresh.Succeeded)
             {
                 reasons.Add("Pipeline frais en echec : sign-off non verifiable, Gate A fermee.");
+                return reasons;
+            }
+
+            if (layout.Format != (fresh.EvidenceParameters.IsLegacy ? LegacySignoffFormat : SignoffFormat))
+            {
+                reasons.Add("Sign-off historique non reconfirme : format " + layout.Format + " face a la preuve "
+                    + fresh.EvidenceParameters.PoseModelLabel + ".");
                 return reasons;
             }
 
@@ -2107,6 +2195,19 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             Stale(reasons, "physical-input-hash", layout.PhysicalInputHash, binding.PhysicalInputHash);
             Stale(reasons, "semantic-input-hash", layout.SemanticInputHash, binding.SemanticInputHash);
             Stale(reasons, "clearance-hash", layout.ClearanceHash, binding.ClearanceHash);
+            if (!fresh.EvidenceParameters.IsLegacy)
+            {
+                Stale(reasons, "a_e", R(layout.TrackingAllowanceMeters), R(fresh.EvidenceParameters.TrackingAllowanceMeters));
+                Stale(reasons, "epsilon_t", R(layout.TrackingToleranceMeters),
+                    R(fresh.EvidenceParameters.TrackingAllowanceMeters - GateAEvidenceParameters.MaximumAbsolutePlanningOffsetMeters));
+                Stale(reasons, "max|o|", R(layout.MaximumAbsolutePlanningOffsetMeters), R(GateAEvidenceParameters.MaximumAbsolutePlanningOffsetMeters));
+                Stale(reasons, "pose-model", layout.PoseModel, fresh.EvidenceParameters.PoseModelLabel);
+                Stale(reasons, "parametres-hash", layout.EvidenceParametersHash, V1SourceSet.Sha256Hex(fresh.EvidenceParameters.CanonicalText));
+                Stale(reasons, "sweep-version", layout.ConflictSweepAlgorithmVersion.ToString(), ConflictSweep.AlgorithmVersionFor(fresh.EvidenceParameters).ToString());
+                Stale(reasons, "fingerprint-version", layout.FingerprintSchemaVersion.ToString(), PairGeometryFingerprint.SchemaVersionFor(fresh.EvidenceParameters).ToString());
+                Stale(reasons, "raccords-signes", string.Join("\n", layout.SignedRingSeams ?? new string[0]),
+                    string.Join("\n", fresh.SignedRingSeams.ToArray()));
+            }
             return reasons;
         }
 
@@ -2368,36 +2469,55 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             string temp = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Temp");
             Directory.CreateDirectory(temp);
             var temps = new List<string>();
+            var backups = new List<string>();
+            var existed = new List<bool>();
+            int committed = 0;
+            bool rollbackSucceeded = true;
             try
             {
                 for (int i = 0; i < files.Count; i++)
                 {
-                    string path = Path.Combine(temp, "rrs-authoring-" + i + ".tmp");
+                    string path = Path.Combine(temp, "rrs-authoring-" + Guid.NewGuid().ToString("N") + ".tmp");
                     temps.Add(path);
                     File.WriteAllText(path, files[i].Value, encoding);
+                    backups.Add(path + ".bak");
                 }
 
                 for (int i = 0; i < files.Count; i++)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(files[i].Key));
-                    if (File.Exists(files[i].Key))
+                    bool hadOriginal = File.Exists(files[i].Key);
+                    existed.Add(hadOriginal);
+                    if (hadOriginal)
                     {
-                        File.Replace(temps[i], files[i].Key, null);
+                        File.Replace(temps[i], files[i].Key, backups[i]);
                     }
                     else
                     {
                         File.Move(temps[i], files[i].Key);
                     }
+                    committed++;
                 }
             }
-            catch (IOException exception)
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
             {
-                error = "Ecriture impossible : " + exception.Message;
-                return false;
-            }
-            catch (UnauthorizedAccessException exception)
-            {
-                error = "Ecriture refusee par le systeme de fichiers : " + exception.Message;
+                string rollbackError = null;
+                for (int i = committed - 1; i >= 0; i--)
+                {
+                    try
+                    {
+                        if (existed[i]) File.Replace(backups[i], files[i].Key, null);
+                        else File.Delete(files[i].Key);
+                    }
+                    catch (Exception rollbackException) when (rollbackException is IOException || rollbackException is UnauthorizedAccessException)
+                    {
+                        rollbackSucceeded = false;
+                        rollbackError = rollbackException.Message;
+                    }
+                }
+                error = "Ecriture impossible : " + exception.Message
+                    + (rollbackSucceeded ? " ; etat precedent restaure."
+                        : " ; restauration incomplete : " + rollbackError + " ; sauvegardes dans " + temp + ".");
                 return false;
             }
             finally
@@ -2409,6 +2529,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         File.Delete(path);
                     }
                 }
+                if (rollbackSucceeded)
+                    foreach (var path in backups)
+                        if (File.Exists(path)) File.Delete(path);
             }
 
             error = null;
