@@ -13,6 +13,9 @@
      nominale cinematique, objectif de mouvement intermediaire, regle de contact) et
      sprint-change-proposal-2026-09-30.md (deux plafonds de braquage, limite de courbe des la 5.31). -->
 
+<!-- Recompile 2026-10-01 (ouverture de la 5.32) : integre sprint-change-proposal-2026-09-30-geometry-5-52.md
+     (correction geometrique locale des trottoirs et des anneaux, aucune exigence nouvelle). -->
+
 ## Goal
 
 Establish host-authoritative vehicle physics and configurable NPC Rage/Fear responses, then build credible routed city traffic on the shared driving stack. The greybox district in `MVP_Run` is the integration and acceptance ground, not the finished Level 1 city or a new run/checkpoint contract. Traffic V1 supplies the behavioral baseline while Traffic V2 is built and validated before V1 retirement.
@@ -82,6 +85,7 @@ Establish host-authoritative vehicle physics and configurable NPC Rage/Fear resp
 - Gate A evidence covers a physical vehicle only if the tracking allocation a_e = max |o(s)| + ε_t actually enters every proof's inflation, beside the reserved margin and δ_c; an allowance recorded only as text covers nothing. ε_t bounds the road-plane displacement of the eight corners of the maximum-gauge box against the kinematic nominal pose: exact at every physics step, between steps only under the per-step-verified integration model M, never a continuous physical guarantee. The reserved margin and residual clearances are never converted into allowance, and no threshold, margin, remainder or geometry is changed to obtain a favorable verdict; a failing proof is escalated to the owner through a separate course correction.
 - Evidence computed with the tangent-aligned gauge pose (everything signed before 2026-09-29) is superseded history and never closes Gate B. V2 vehicles drive outside an explicit measurement run only on trajectories covered by valid kinematic-pose evidence including ε_t. Gate A is re-signed only by the owner, on a new record; previous records stay as superseded history. Gate B closes after that re-signature and a PlayMode milestone 1 rerun, within the stated per-step/model-M proof scope.
 - When an inflated envelope changes, no prior conflict-pair decision is reused without re-evaluation; the approved `5.50-AUTO-DECISIONS-v1` mechanism applies to Story 5.52 under all its conditions but never authorizes review or Gate A signature.
+- The kinematic regeneration was made positive by local geometry only (sidewalk corners, curbs, the T-junction north strip and twelve adjoining corridor sidewalks moved outward in `MVP_Run`; twelve authored ring-section half widths widened to 4.30 m), with ε_t, the reserved margin, δ_c, remainders, thresholds and proof logic unchanged. Gate A re-signature and the Gate B milestone are recorded by 5.52; later stories consume that proven road model and never edit it to fit their own needs.
 
 ## Technical Decisions
 
