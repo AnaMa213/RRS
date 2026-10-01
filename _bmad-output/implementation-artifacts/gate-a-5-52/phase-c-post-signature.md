@@ -1,6 +1,6 @@
 # Story 5.52 — Gate A re-signée et Gate B, jalon 1 (2026-10-01)
 
-Statut : Gate A **liée** et Gate B **fermée pour le jalon 1 hors mesure**. Story `in-progress` jusqu'à la revue et au commit approuvé. La couverture entre deux pas est celle du modèle M vérifié, sans revendication continue au-delà de ce modèle.
+Statut : Gate A **liée** et Gate B **fermée pour le jalon 1 hors mesure**. Story en `review` depuis le commit approuvé `afc4ef0`. La couverture entre deux pas est celle du modèle M vérifié, sans revendication continue au-delà de ce modèle.
 
 ## Signature et intégrité
 

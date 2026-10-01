@@ -2,7 +2,7 @@
 title: 'Story 5.52 -- Couverture de l''erreur de suivi et pose nominale cinematique dans la preuve Gate A, re-signature proprietaire'
 type: 'feature'
 created: '2026-09-30'
-status: 'in-progress'
+status: 'review'
 baseline_commit: '5845dc54f70818097b302935e1f4669df7b38414'
 review_loop_iteration: 0
 context:
@@ -199,7 +199,7 @@ context:
 
 ## Spec Change Log
 
-- 2026-10-01 : Gate A re-signee par Kenan (format 3, `kinematic-v1`, `a_e = 0,34 m`, 24 raccords). L'ancienne signature format 2 est conservee verbatim dans l'historique. Liaison reelle EditMode Story 5.52 : 24/24, 0 erreur Console ; la revue a ajoute la restauration des fichiers deja remplaces si la seconde ecriture de re-signature echoue. Jalon 1 hors mesure dans `MVP_Run` : PlayMode Story 5.52 2/2, 0 skipped, 0 inconclusive, 0 erreur Console ; Gate B fermee pour ce jalon, sous le modele M seulement. Regression PlayMode Story 5.31 : 13/13, 0 erreur Console. Preuve et hashes : `gate-a-5-52/phase-c-post-signature.md`. Story `in-progress` jusqu'a la revue et au commit approuve.
+- 2026-10-01 : Gate A re-signee par Kenan (format 3, `kinematic-v1`, `a_e = 0,34 m`, 24 raccords). L'ancienne signature format 2 est conservee verbatim dans l'historique. Liaison reelle EditMode Story 5.52 : 24/24, 0 erreur Console ; la revue a ajoute la restauration des fichiers deja remplaces si la seconde ecriture de re-signature echoue. Jalon 1 hors mesure dans `MVP_Run` : PlayMode Story 5.52 2/2, 0 skipped, 0 inconclusive, 0 erreur Console ; Gate B fermee pour ce jalon, sous le modele M seulement. Regression PlayMode Story 5.31 : 13/13, 0 erreur Console. Preuve et hashes : `gate-a-5-52/phase-c-post-signature.md`. Commit approuve `afc4ef0` ; Story en `review`.
 
 - 2026-10-01 : Phase C avant re-signature preparee. Decisions v2 reevaluees (270 paires, 136 zones actives, second passage sans changement), modele/overlay/rapport regeneres avec preuve `kinematic-v1` couverte et 24 raccords lies au hash. Sign-off format 3 et historique prepares et testes uniquement en memoire ; sign-off format 2 actif conserve verbatim et explicitement `stale`. EditMode Story 5.52 : 22/22, 0 erreur Console. Diff et empreintes : `gate-a-5-52/phase-c-pre-signature.md`. HALT avant revue et re-signature proprietaire ; Story `in-progress`.
 
