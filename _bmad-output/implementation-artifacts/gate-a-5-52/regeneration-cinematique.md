@@ -9,7 +9,7 @@
 - faisabilite : taux de braquage 300 deg/s, adherence 29.43 m/s2, vitesse desiree 8 m/s
 - parametres canoniques : `2043ab22a4d847d8252ca1a2884a960c169514d1a4d95f1beb1a1712c1d19a84`
 - versions : balayage v2, empreinte de paire v2, degagement v5
-- modele des candidats : `v4:36ba168bc5e1019dafc8b09bb16874ce` ; source `b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc` ; decisions `c05e7048eaa5f6851a1968d76643b3a318bb420b9ce0c6c8cb1c64f3cbbec0e5`
+- modele des candidats : `v4:36ba168bc5e1019dafc8b09bb16874ce` ; source `b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc` ; decisions `2e290408351c1b6d8af536d76441974b3bcdb30f814cb692e173c95a41f58e0f`
 - empreintes d'entree : physique carrefours `5966669fcbe9a690d1ec3b88ef32e32893e037f675fc5278a3fe346e71f2d863`, giratoires `e6cc7aa52cb9d4c7e13bce46281d890c8a000d456c5726bd1692f84a589d803a`, Sidewalk `43e098fcd6809ecc1e8043156f7cd26f57abb73121b844cf6c8badef8b79aef4`
 
 ## Verdict

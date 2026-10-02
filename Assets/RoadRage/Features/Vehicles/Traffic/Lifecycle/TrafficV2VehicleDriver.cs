@@ -201,7 +201,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public RoadId ExitPortalId { get { return exitPortal.Id; } }
         public string MeasurementLabel { get; private set; }
         public VehicleCoverage VehicleCoverageVerdict { get; private set; }
-        public bool HasReachedExitPortal { get; private set; }
+        private bool reachedExitPortal;
+        public bool HasReachedExitPortal { get { return reachedExitPortal && !toleranceResponse.Latched; } }
         public TrafficDecisionProjection LastProjection { get; private set; }
         public ComposedDrive LastComposed { get; private set; }
         public IReadOnlyList<V2StepRecord> Trace { get { return trace; } }
@@ -335,6 +336,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             int currentPiece;
             float currentDistance = current.Project(state.Position, pieceHint, out currentPiece);
             float offset = current.OffsetRadians(currentPiece, currentDistance);
+            // Hors mesure, observer avant toute progression/replanification ou detection de sortie.
+            float? observedDisplacement = MeasurementLabel == null
+                ? ObserveTrackingTolerance(frameId, state, current, currentDistance) : (float?)null;
 
             stopwatch.Restart();
             var frame = new TrafficFrame(frameId, model, new[] {
@@ -349,20 +353,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 if (actor.Location.ElementId == viaMovement) onViaMovement = true;
                 else if (onViaMovement) { viaMovement = RoadId.None; onViaMovement = false; }
             }
-            if (!HasReachedExitPortal && TrafficV2Lifecycle.HasReachedExit(actor.Location, exitPortal))
-                HasReachedExitPortal = true;
+            if (!toleranceResponse.Latched && !HasReachedExitPortal && TrafficV2Lifecycle.HasReachedExit(actor.Location, exitPortal))
+                reachedExitPortal = true;
             double frameMs = stopwatch.Elapsed.TotalMilliseconds;
 
             stopwatch.Restart();
             PlanningDecision decision = null;
-            try
+            if (!toleranceResponse.Latched)
             {
-                decision = PlanningSpine.Evaluate(new PlanningRequest(frame, insertion.TrafficId, route, insertion.ExitPortalId,
-                    insertion.Seed, TrafficV2Settings.LookAheadMeters, null, null, null, driver, TrackingTolerance.Undeclared,
-                    null, null, admission.Evidence, viaMovement, current.HasKinematicPose ? offset : (float?)null));
+                try
+                {
+                    decision = PlanningSpine.Evaluate(new PlanningRequest(frame, insertion.TrafficId, route, insertion.ExitPortalId,
+                        insertion.Seed, TrafficV2Settings.LookAheadMeters, null, null, null, driver, TrackingTolerance.Undeclared,
+                        null, null, admission.Evidence, viaMovement, current.HasKinematicPose ? offset : (float?)null));
+                }
+                catch (ArgumentException) { decision = null; }
+                catch (InvalidOperationException) { decision = null; }
             }
-            catch (ArgumentException) { decision = null; }
-            catch (InvalidOperationException) { decision = null; }
             if (decision != null && decision.Route.Plan != null && decision.Route.Plan != route)
             {
                 if (decision.Route.Outcome == RouteOutcome.Replanned)
@@ -439,18 +446,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             Timings.Add(frameMs, spineMs, planMs, composeMs);
             LastComposed = composed;
 
-            Monitor(frameId, state, speed, actor.Location.Flags, actor.Location.OutsideWidthEnvelope, composed, command, plan);
-            if (decision != null)
-                LastProjection = decision.Projection.WithDrive(DriveOutcome(frameId, composed, plan, driver));
+            Monitor(frameId, state, speed, actor.Location.Flags, actor.Location.OutsideWidthEnvelope, composed, command, plan, observedDisplacement);
+            var projection = decision != null ? decision.Projection : LastProjection;
+            if (projection != null)
+                LastProjection = projection.WithDrive(DriveOutcome(frameId, composed, plan, driver));
             lastIntent = composed.Intent;
         }
 
-        private void Monitor(ulong step, BodyState state, float speed, RoadLocationFlags locationFlags, bool outsideWidth,
-            ComposedDrive composed, MotionCommand? command, SpeedPlan plan)
+        private float ObserveTrackingTolerance(ulong step, BodyState state, ReferenceTrack track, float distance)
         {
-            var track = tracks[tracks.Count - 1];
-            int piece = stepPiece;
-            float distance = stepDistance;
             float displacement = TrackingMeasurement.StepDisplacement(state, track, distance, gauge);
             MaxStepDisplacementMeters = Math.Max(MaxStepDisplacementMeters, displacement);
             if (TrackingToleranceResponse.Exceeds(declared, displacement))
@@ -463,6 +467,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                     UnityEngine.Debug.LogWarning("[Traffic V2] TrackingToleranceExceeded hors mesure : " + name
                         + " passe en repli V2 jusqu'a l'arret maintenu (Story 5.52, decision 2a).", this);
             }
+            return displacement;
+        }
+
+        private void Monitor(ulong step, BodyState state, float speed, RoadLocationFlags locationFlags, bool outsideWidth,
+            ComposedDrive composed, MotionCommand? command, SpeedPlan plan, float? observedDisplacement)
+        {
+            var track = tracks[tracks.Count - 1];
+            int piece = stepPiece;
+            float distance = stepDistance;
+            float displacement = observedDisplacement ?? ObserveTrackingTolerance(step, state, track, distance);
             var trackPiece = track.Pieces[piece];
             var drivability = admission.Model.DrivabilityProfile;
             float curvature = trackPiece.Curve.Sample(trackPiece.ElementS(distance)).CurvaturePerMeter;

@@ -388,6 +388,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     FeasibilityChecks++;
 
                     double extreme = Math.Max(Math.Abs(lo), Math.Abs(hi));
+                    double nominalLock = Math.Atan(ratio * Math.Tan(extreme)) * (180d / Math.PI);
                     double ceiling = PathHorizon.NominalSteeringCeilingMetersPerSecond(drivability, (float)extreme);
                     double lockMargin = ceiling - drivability.SteeringInactiveBelowMetersPerSecond;
                     MinimumLockSpeedMarginMetersPerSecond = Math.Min(MinimumLockSpeedMarginMetersPerSecond, lockMargin);
@@ -396,7 +397,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         parameters.OffsetGridStepRadians);
                     MinimumSteerRateMarginDegreesPerSecond = Math.Min(MinimumSteerRateMarginDegreesPerSecond,
                         inputs.SteerRateDegreesPerSecond - rate);
-                    if (lockMargin >= 0d && rate <= inputs.SteerRateDegreesPerSecond) continue;
+                    if (nominalLock <= drivability.LowSpeedLockDegrees && lockMargin >= 0d
+                        && rate <= inputs.SteerRateDegreesPerSecond) continue;
                     if (failed == 0) firstS = s;
                     lastS = s;
                     failed++;

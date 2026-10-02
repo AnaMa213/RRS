@@ -395,6 +395,32 @@ namespace RoadRage.Tests.EditMode
             }
         }
 
+        [Test]
+        public void TheRingEnvelopeIncludesTheInteriorMaximumForAWideFootprint()
+        {
+            var square = Profile();
+            square.MaxVehicleLengthMeters = 2f;
+            square.MaxVehicleHalfWidthMeters = 1f;
+            square.LateralClearanceMarginMeters = 0f;
+            float maximum = 60f * Mathf.Deg2Rad;
+            Assert.That(RoundaboutClearance.Residual(100f, 105.5f, square, 0f, maximum), Is.GreaterThan(0f),
+                "L'extreme seul manquerait le deficit a 45 deg.");
+            float worst = RoundaboutClearance.WorstResidual(100f, 105.5f, square, 0f, maximum);
+            Assert.That(worst, Is.EqualTo(105.5d - (100d + 4d * Math.Sqrt(2d))).Within(1e-5d));
+            Assert.That(worst, Is.LessThan(0f));
+            foreach (var profile in new[] { square, Profile() })
+                foreach (var maximumDegrees in new[] { 15f, 40f, 60f, 89f })
+                {
+                    float bound = RoundaboutClearance.WorstResidual(100f, 110f, profile, 0.34f, maximumDegrees * Mathf.Deg2Rad);
+                    float dense = float.PositiveInfinity;
+                    for (int i = 0; i <= 900; i++)
+                        dense = Mathf.Min(dense, RoundaboutClearance.Residual(100f, 110f, profile, 0.34f,
+                            maximumDegrees * Mathf.Deg2Rad * i / 900f));
+                    Assert.That(bound, Is.LessThanOrEqualTo(dense + 1e-5f), "Toute pose intermediaire est couverte.");
+                    Assert.That(bound, Is.EqualTo(dense).Within(1e-4f), "Le maximum interieur est inclus sans marge arbitraire.");
+                }
+        }
+
         private static void BruteForce(double radius, double e, double halfLength, double halfWidth, out double min, out double max)
         {
             // Centre (R, 0), tangente +y tournee de e : avant (sin e, cos e), lateral (cos e, -sin e).
@@ -448,9 +474,12 @@ namespace RoadRage.Tests.EditMode
             return high;
         }
 
-        [Test]
-        public void TheFeasibilityCheckFlagsAPoseBeyondTheLowSpeedLock()
+        [TestCase(0f)]
+        [TestCase(0.25f)]
+        public void TheFeasibilityCheckFlagsAPoseBeyondTheLowSpeedLock(float inactiveThreshold)
         {
+            var drivability = Drivability();
+            drivability.SteeringInactiveBelowMetersPerSecond = inactiveThreshold;
             foreach (var tight in new[] { true, false })
             {
                 var graph = new SweepGraph();
@@ -460,9 +489,9 @@ namespace RoadRage.Tests.EditMode
                 graph.Add(M1, true, Arc(ref position, ref heading, tight ? 0.3f : 0.05f, 12f));
                 graph.Link(E, M1);
                 var bounds = KinematicOffsetBounds.Compute(graph, new List<KeyValuePair<RoadId, float>> { new KeyValuePair<RoadId, float>(E, 0f) },
-                    Drivability(), Parameters());
+                    drivability, Parameters());
                 Assert.That(bounds.Failures, Is.Empty);
-                bounds.CheckFeasibility(Drivability(), Parameters());
+                bounds.CheckFeasibility(drivability, Parameters());
                 if (tight)
                 {
                     Assert.That(bounds.Infeasible.Count, Is.EqualTo(1));

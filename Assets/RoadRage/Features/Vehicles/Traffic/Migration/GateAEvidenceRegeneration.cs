@@ -329,7 +329,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             var text = new StringBuilder();
             text.Append("# Differentiel des candidats de conflit -- Story 5.52\n\n");
             text.Append("Parametres : `").Append(result.Parameters.PoseModelLabel).Append("`, a_e = ").Append(R(result.Parameters.TrackingAllowanceMeters))
-                .Append(" m. Reference : decisions signees (empreintes v1). Aucune decision n'est reutilisee sur une enveloppe changee.\n\n");
+                .Append(" m. Reference : decisions conservees, comparees par empreinte exacte. Aucune decision n'est reutilisee sur une enveloppe changee.\n\n");
             foreach (CandidateDiffState state in Enum.GetValues(typeof(CandidateDiffState)))
             {
                 text.Append("- ").Append(state).Append(" : ").Append(result.Diff.Count(entry => entry.State == state)).Append('\n');

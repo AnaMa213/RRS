@@ -55,7 +55,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         }
 
         public static GateAEvidenceResult Bind(CompiledRoadModel model, string modelText,
-            string signoffText, string reportText)
+            string signoffText, string reportText, string currentEvidenceParametersHash = null)
         {
             if (model == null) throw new ArgumentNullException("model");
             if (string.IsNullOrEmpty(modelText) || string.IsNullOrEmpty(signoffText)
@@ -97,6 +97,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                 if (signoff.PoseModel != "kinematic-v1" || signoff.TrackingAllowanceMeters != allowance
                     || signoff.TrackingToleranceMeters + signoff.MaximumAbsolutePlanningOffsetMeters != allowance
                     || string.IsNullOrEmpty(signoff.EvidenceParametersHash)
+                    || (currentEvidenceParametersHash != null
+                        && !string.Equals(signoff.EvidenceParametersHash, currentEvidenceParametersHash, StringComparison.OrdinalIgnoreCase))
                     || !block.Contains("pose-model = " + signoff.PoseModel + " ; ")
                     || !block.Contains("max|o| = " + signoff.MaximumAbsolutePlanningOffsetMeters.ToString("R", CultureInfo.InvariantCulture)
                         + " m ; epsilon_t = " + signoff.TrackingToleranceMeters.ToString("R", CultureInfo.InvariantCulture) + " m\n")

@@ -11,9 +11,14 @@ using RoadRage.App.Services;
 using RoadRage.Features.Online;
 using RoadRage.Features.Players;
 using RoadRage.Features.UI;
+using RoadRage.Features.Vehicles;
 using RoadRage.Features.Vehicles.Traffic;
+using RoadRage.Features.Vehicles.Traffic.Frame;
+using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
+using RoadRage.Features.Vehicles.Traffic.Migration;
 using RoadRage.Features.Vehicles.Traffic.Planning;
+using UnityEditor;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -30,6 +35,10 @@ namespace RoadRage.Tests.PlayMode
         private const int MaxFixedSteps = 9000;
         private string originalProfilePath;
         private string tempProfilePath;
+        private GameObject profileProbe;
+        private GameObject spawnerProbe;
+        private VehicleProfileDef probeVehicleProfile;
+        private DriverProfileDef probeDriverProfile;
 
         [SetUp]
         public void SetUp() { TrafficV2Session.Reset(); }
@@ -47,7 +56,183 @@ namespace RoadRage.Tests.PlayMode
             if (RoadRageBootstrap.Instance != null) Object.Destroy(RoadRageBootstrap.Instance.gameObject);
             if (originalProfilePath != null) PlayerProfileFileStore.DefaultFilePath = originalProfilePath;
             if (tempProfilePath != null && File.Exists(tempProfilePath)) File.Delete(tempProfilePath);
+            Object.Destroy(profileProbe);
+            Object.Destroy(spawnerProbe);
+            Object.Destroy(probeVehicleProfile);
+            Object.Destroy(probeDriverProfile);
             yield return null;
+        }
+
+        [Test]
+        public void ChangedPrefabFeasibilityInputsInvalidateAdmissionAndItsCache()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GateAEvidenceParameters.V2PrefabPath);
+            profileProbe = Object.Instantiate(prefab);
+            profileProbe.SetActive(false);
+            var physics = profileProbe.GetComponent<VehiclePhysicsBody>();
+            var originalVehicle = (VehicleProfileDef)new SerializedObject(physics).FindProperty("vehicleProfile").objectReferenceValue;
+            probeVehicleProfile = Object.Instantiate(originalVehicle);
+            physics.BindProfile(probeVehicleProfile);
+            var driver = profileProbe.GetComponent<TrafficV2VehicleDriver>();
+            probeDriverProfile = Object.Instantiate(driver.DriverProfileDefinition);
+            var serializedDriver = new SerializedObject(driver);
+            serializedDriver.FindProperty("driverProfile").objectReferenceValue = probeDriverProfile;
+            serializedDriver.ApplyModifiedPropertiesWithoutUndo();
+            var initial = TrafficV2Lifecycle.AdmitCommittedArtifacts(profileProbe);
+            Assert.That(initial.Admitted, Is.True);
+            spawnerProbe = new GameObject("Story552 admission caller");
+            spawnerProbe.SetActive(false);
+            var spawner = spawnerProbe.AddComponent<PortalTrafficSpawner>();
+            var prefabField = typeof(PortalTrafficSpawner).GetField("v2VehiclePrefab", BindingFlags.Instance | BindingFlags.NonPublic);
+            var admissionField = typeof(PortalTrafficSpawner).GetField("v2Admission", BindingFlags.Instance | BindingFlags.NonPublic);
+            var tick = typeof(PortalTrafficSpawner).GetMethod("TickV2Slice", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(prefabField, Is.Not.Null);
+            Assert.That(admissionField, Is.Not.Null);
+            Assert.That(tick, Is.Not.Null);
+            prefabField.SetValue(spawner, profileProbe);
+            foreach (var field in new[] { "steerRateDegreesPerSecond", "lateralFrictionCoefficient", "desiredSpeed" })
+            {
+                var definition = field == "desiredSpeed" ? (UnityEngine.Object)probeDriverProfile : probeVehicleProfile;
+                var serialized = new SerializedObject(definition);
+                var property = serialized.FindProperty("profile." + field);
+                Assert.That(property, Is.Not.Null, field);
+                float original = property.floatValue;
+                property.floatValue = field == "steerRateDegreesPerSecond" ? 1f : original * 1.1f;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                var changed = TrafficV2Lifecycle.AdmitCommittedArtifacts(profileProbe);
+                Assert.That(changed.Code, Is.EqualTo(TrafficV2Code.GateAEvidenceStale), field);
+                Assert.That(TrafficV2Lifecycle.EvaluateInsertion(changed, null, TrafficV2Settings.DeclaredTrackingTolerance).Allowed,
+                    Is.False, "Aucune insertion normale sur une preuve perimee : " + field);
+                admissionField.SetValue(spawner, null);
+                tick.Invoke(spawner, null);
+                Assert.That(spawner.V2LastCode, Is.EqualTo(TrafficV2Code.GateAEvidenceStale), "Le spawner admet son propre prefab : " + field);
+                Assert.That(spawner.V2Insertions, Is.Zero);
+                property.floatValue = original;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Assert.That(TrafficV2Lifecycle.AdmitCommittedArtifacts(profileProbe).Admitted, Is.True, "Profil restaure : " + field);
+            }
+            Vector3 gravity = Physics.gravity;
+            try
+            {
+                Physics.gravity = gravity * 1.1f;
+                Assert.That(TrafficV2Lifecycle.AdmitCommittedArtifacts(profileProbe).Code, Is.EqualTo(TrafficV2Code.GateAEvidenceStale));
+            }
+            finally { Physics.gravity = gravity; }
+            Assert.That(TrafficV2Lifecycle.AdmitCommittedArtifacts().Admitted, Is.True, "Les vrais assets restent intacts.");
+        }
+
+        [UnityTest]
+        [Timeout(300000)]
+        public IEnumerator AnActualToleranceExceedanceHoldsTheDriverAcrossPushesAndItsExit()
+        {
+            var admission = TrafficV2Lifecycle.AdmitCommittedArtifacts();
+            Assert.That(admission.Admitted, Is.True);
+            TrafficV2Session.Request(TrafficComposition.V2Slice, null);
+            yield return EnterMvpRun();
+            var spawner = Object.FindAnyObjectByType<PortalTrafficSpawner>();
+            Assert.That(spawner, Is.Not.Null);
+            TrafficV2VehicleDriver driver = null;
+            Rigidbody body = null;
+            Portal exit = default(Portal);
+            EffectiveLaneCorridor corridor = default(EffectiveLaneCorridor);
+            int steps = 0;
+            bool nearExit = false;
+            while (steps++ < MaxFixedSteps && !nearExit)
+            {
+                yield return new WaitForFixedUpdate();
+                Assert.That(spawner.V2Removals, Is.Zero, "Le vehicule doit etre perturbe avant sa sortie.");
+                if (spawner.LiveV2Population == 0) continue;
+                driver = spawner.LiveV2Vehicles[0].GetComponent<TrafficV2VehicleDriver>();
+                body = driver.GetComponent<Rigidbody>();
+                exit = admission.Model.Portals.First(p => p.Id == driver.ExitPortalId);
+                Assert.That(admission.Model.TryGetCorridor(exit.CorridorId, out corridor), Is.True);
+                // Meme localisation que HasReachedExit, qui decide du retrait.
+                var approachPose = new VehicleFootprintPose { Position = body.position, Forward = driver.transform.forward, Up = driver.transform.up };
+                var approachFrame = new TrafficFrame((ulong)steps, admission.Model,
+                    new[] { new TrafficActorInput(driver.TrafficId, approachPose, 0f, exit.CorridorId) });
+                TrafficActor approach;
+                float remaining = approachFrame.TryGetActor(driver.TrafficId, out approach) && approach.Location.Localized
+                    && approach.Location.ElementId == exit.CorridorId ? exit.SMeters - approach.Location.SMeters : float.NaN;
+                nearExit = remaining > 1f && remaining < 4f;
+                Assert.That(driver.ToleranceResponse.Latched, Is.False, "Trajet sain avant la perturbation.");
+            }
+            Assert.That(nearExit, Is.True, "Le vehicule doit atteindre l'approche de son portail de sortie.");
+            Assert.That(driver.MeasurementLabel, Is.Null);
+            body.AddForce(driver.transform.right * body.mass * 6f, ForceMode.Impulse);
+            for (int i = 0; i < 150 && !driver.ToleranceResponse.Latched; i++)
+            {
+                yield return new WaitForFixedUpdate();
+                Assert.That(spawner.V2Removals, Is.Zero);
+            }
+            Assert.That(driver.ToleranceResponse.Latched, Is.True, "Le driver doit mesurer et verrouiller le depassement reel.");
+            Assert.That(driver.ToleranceExceededCount, Is.GreaterThan(0));
+            Assert.That(driver.MaxStepDisplacementMeters, Is.GreaterThan(TrafficV2Settings.DeclaredTrackingTolerance.Meters));
+            int replans = driver.ReplanCount;
+            int tracks = driver.Tracks.Count;
+            float latchedS = corridor.Curve.Project(body.position).SMeters;
+            for (int i = 0; i < 1500 && driver.LastComposed.Terminal != V2FallbackTerminal.Held; i++)
+            {
+                yield return new WaitForFixedUpdate();
+                AssertLatchedVehicle(driver, spawner, body, replans, tracks);
+            }
+            Assert.That(driver.LastComposed.Terminal, Is.EqualTo(V2FallbackTerminal.Held));
+            for (int i = 0; i < 50; i++)
+            {
+                yield return new WaitForFixedUpdate();
+                AssertLatchedVehicle(driver, spawner, body, replans, tracks);
+            }
+
+            Assert.That(body.linearVelocity.magnitude, Is.LessThan(0.25f), "Arret physique maintenu avant les poussees externes.");
+            Vector3 backwardStart = body.position;
+            for (int i = 0; i < 600 && corridor.Curve.Project(body.position).SMeters >= latchedS - 1f; i++)
+            {
+                body.AddForce(-corridor.Curve.Sample(latchedS).Tangent * body.mass * 30f, ForceMode.Force);
+                yield return new WaitForFixedUpdate();
+                AssertLatchedVehicle(driver, spawner, body, replans, tracks);
+            }
+            Assert.That(corridor.Curve.Project(body.position).SMeters, Is.LessThan(latchedS - 1f), "Poussee en arriere de la progression acquise.");
+            Assert.That(Vector3.Distance(backwardStart, body.position), Is.GreaterThan(0.02f), "Le maintien reste poussable.");
+            for (int i = 0; i < 1500 && driver.LastComposed.Terminal != V2FallbackTerminal.Held; i++)
+                yield return new WaitForFixedUpdate();
+            bool crossed = false;
+            for (int i = 0; i < 900 && !crossed; i++)
+            {
+                body.AddForce(corridor.Curve.Sample(exit.SMeters).Tangent * body.mass * 30f, ForceMode.Force);
+                yield return new WaitForFixedUpdate();
+                AssertLatchedVehicle(driver, spawner, body, replans, tracks);
+                var pose = new VehicleFootprintPose { Position = body.position, Forward = driver.transform.forward, Up = driver.transform.up };
+                var frame = new TrafficFrame((ulong)i, admission.Model, new[] { new TrafficActorInput(driver.TrafficId, pose, 0f, exit.CorridorId) });
+                TrafficActor actor;
+                Assert.That(frame.TryGetActor(driver.TrafficId, out actor), Is.True);
+                crossed = TrafficV2Lifecycle.HasReachedExit(actor.Location, exit);
+            }
+            Assert.That(crossed, Is.True, "La poussee doit franchir physiquement le portail, avec une localisation de sortie valide.");
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new WaitForFixedUpdate();
+                AssertLatchedVehicle(driver, spawner, body, replans, tracks);
+            }
+        }
+
+        private static void AssertLatchedVehicle(TrafficV2VehicleDriver driver, PortalTrafficSpawner spawner,
+            Rigidbody body, int replans, int tracks)
+        {
+            Assert.That(driver != null && driver.IsSpawned && driver.gameObject.activeInHierarchy, Is.True, "Vehicule present et reseau actif.");
+            Assert.That(spawner.V2Removals, Is.Zero, "Aucun despawn apres verrouillage, meme au portail.");
+            Assert.That(driver.LastComposed.Fallback, Is.True);
+            Assert.That(driver.LastComposed.Reason, Is.EqualTo(V2FallbackReason.TrackingToleranceExceeded));
+            Assert.That(driver.LastComposed.Intent.Throttle, Is.Zero);
+            Assert.That(driver.LastProjection, Is.Not.Null);
+            Assert.That(driver.LastProjection.Drive.Fallback, Is.True, "Le diagnostic suit la conduite sans relancer la planification.");
+            Assert.That(driver.LastProjection.Drive.FallbackReason, Is.EqualTo(V2FallbackReason.TrackingToleranceExceeded.ToString()));
+            Assert.That(driver.LastProjection.Drive.Throttle, Is.Zero);
+            Assert.That(driver.LastProjection.Drive.PhysicsEpoch, Is.EqualTo(driver.IntentsApplied));
+            Assert.That(driver.ReplanCount, Is.EqualTo(replans));
+            Assert.That(driver.Tracks.Count, Is.EqualTo(tracks), "Aucune adoption d'une nouvelle reference.");
+            Assert.That(driver.HasReachedExitPortal, Is.False, "Le verrou interdit la fin normale du trajet.");
+            Assert.That(body.isKinematic, Is.False);
+            Assert.That(body.constraints, Is.EqualTo(RigidbodyConstraints.None));
+            Assert.That(float.IsNaN(body.position.sqrMagnitude) || float.IsInfinity(body.position.sqrMagnitude), Is.False);
         }
 
         [UnityTest]

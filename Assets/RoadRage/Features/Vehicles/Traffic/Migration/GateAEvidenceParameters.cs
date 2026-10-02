@@ -92,10 +92,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         }
 
         /// <summary>Parametres declares de la regeneration 5.52 : pose cinematique v1, a_e declare, faisabilite du prefab V2.</summary>
-        public static GateAEvidenceParameters Declared()
+        public static GateAEvidenceParameters Declared(GameObject prefab = null)
         {
             return Create(NominalPoseModel.Kinematic, DeclaredAllowanceMeters(), DeclaredOffsetGridStepRadians,
-                DeclaredOffsetToleranceRadians, DeclaredClosureIterationBudget, ReadV2Feasibility());
+                DeclaredOffsetToleranceRadians, DeclaredClosureIterationBudget, ReadV2Feasibility(prefab));
         }
 
         /// <summary>Diagnostic intermediaire (phase A) : a_e declare, pose tangente. Ne vaut jamais preuve.</summary>
@@ -105,9 +105,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         }
 
         /// <summary>Taux de braquage et adherence du profil vehicule, vitesse desiree du profil conducteur du prefab V2.</summary>
-        public static NominalPoseFeasibilityInputs ReadV2Feasibility()
+        public static NominalPoseFeasibilityInputs ReadV2Feasibility(GameObject prefab = null)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(V2PrefabPath);
+            if (prefab == null) prefab = AssetDatabase.LoadAssetAtPath<GameObject>(V2PrefabPath);
             if (prefab == null) throw new InvalidOperationException("Prefab V2 absent : " + V2PrefabPath + ".");
             var body = prefab.GetComponent<VehiclePhysicsBody>();
             var vehicleDef = body == null ? null

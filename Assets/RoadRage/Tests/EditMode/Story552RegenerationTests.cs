@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using NUnit.Framework;
+using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Migration;
+using RoadRage.Features.Vehicles.Traffic.Planning;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 using Debug = UnityEngine.Debug;
@@ -43,10 +45,16 @@ namespace RoadRage.Tests.EditMode
             Assert.That(result.Failures, Is.Empty, "Regeneration incomplete : " + string.Join(" | ", result.Failures.ToArray()));
             Assert.That(result.Run.OffsetBounds != null && result.Run.OffsetBounds.Closed, Is.True, "Bornes d'ecart fermees sur MVP_Run.");
             Assert.That(result.Diff, Is.Not.Empty, "Differentiel publie.");
+            var committed = TrafficV2Lifecycle.AdmitCommittedArtifacts();
+            bool signedCurrentEnvelope = committed.Admitted && committed.Evidence.PoseModel == NominalPoseModel.Kinematic;
             foreach (var entry in result.Diff)
             {
-                Assert.That(entry.State, Is.Not.EqualTo(CandidateDiffState.Confirmed),
-                    "Aucune decision signee (empreinte v1) ne survit a une enveloppe changee : " + entry.PairKey.Replace("\n", " x "));
+                if (signedCurrentEnvelope)
+                    Assert.That(entry.State, Is.EqualTo(CandidateDiffState.Confirmed),
+                        "Apres re-signature, l'enveloppe courante doit reconfirmer chaque empreinte : " + entry.PairKey.Replace("\n", " x "));
+                else
+                    Assert.That(entry.State, Is.Not.EqualTo(CandidateDiffState.Confirmed),
+                        "Aucune decision historique ne survit a une enveloppe changee : " + entry.PairKey.Replace("\n", " x "));
             }
         }
 

@@ -4,6 +4,9 @@ using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 using UnityEngine;
+#if UNITY_EDITOR
+using RoadRage.Features.Vehicles.Traffic.Migration;
+#endif
 
 namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
 {
@@ -171,7 +174,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         }
 
         /// <summary>Admission pure : Load puis Compile, puis liaison documentaire Gate A sur les trois textes.</summary>
-        public static TrafficV2Admission Admit(string modelText, string signoffText, string reportText)
+        public static TrafficV2Admission Admit(string modelText, string signoffText, string reportText,
+            string currentEvidenceParametersHash = null)
         {
             if (string.IsNullOrEmpty(modelText))
                 return new TrafficV2Admission(TrafficV2Code.RoadModelMissing, null, default(GateAEvidenceResult));
@@ -183,7 +187,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             { return new TrafficV2Admission(TrafficV2Code.RoadModelInvalid, null, default(GateAEvidenceResult)); }
             if (!model.DrivabilityProfile.Declared)
                 return new TrafficV2Admission(TrafficV2Code.UndeclaredDrivabilityProfile, model, default(GateAEvidenceResult));
-            var evidence = GateAEvidenceBinding.Bind(model, modelText, signoffText, reportText);
+            var evidence = GateAEvidenceBinding.Bind(model, modelText, signoffText, reportText, currentEvidenceParametersHash);
             var code = evidence.Status == GateAEvidenceStatus.Valid ? TrafficV2Code.Allowed
                 : evidence.Status == GateAEvidenceStatus.GateAEvidenceStale ? TrafficV2Code.GateAEvidenceStale
                 : TrafficV2Code.GateAEvidenceMissing;
@@ -194,15 +198,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         /// Admission de la session : les trois textes commites sont lus dans l'Editeur seulement, et le
         /// resultat est mis en cache par modele. Un build joueur n'a aucune preuve : aucun vehicule V2.
         /// </summary>
-        public static TrafficV2Admission AdmitCommittedArtifacts()
+        public static TrafficV2Admission AdmitCommittedArtifacts(GameObject prefab = null)
         {
 #if UNITY_EDITOR
             string model = ReadOrNull(TrafficV2Settings.ModelPath);
             string signoff = ReadOrNull(TrafficV2Settings.SignoffPath);
             string report = ReadOrNull(TrafficV2Settings.ReportPath);
-            string key = (model ?? "") + "\u0000" + (signoff ?? "") + "\u0000" + (report ?? "");
+            string parametersHash;
+            try { parametersHash = V1SourceSet.Sha256Hex(GateAEvidenceParameters.Declared(prefab).CanonicalText); }
+            catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
+            { return new TrafficV2Admission(TrafficV2Code.GateAEvidenceStale, null,
+                new GateAEvidenceResult(GateAEvidenceStatus.GateAEvidenceStale, 0f)); }
+            string key = (model ?? "") + "\u0000" + (signoff ?? "") + "\u0000" + (report ?? "") + "\u0000" + parametersHash;
             if (cachedAdmission != null && string.Equals(key, cachedKey, StringComparison.Ordinal)) return cachedAdmission;
-            cachedAdmission = Admit(model, signoff, report);
+            cachedAdmission = Admit(model, signoff, report, parametersHash);
             cachedKey = key;
             return cachedAdmission;
 #else

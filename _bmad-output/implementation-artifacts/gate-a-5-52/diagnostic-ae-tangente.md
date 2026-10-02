@@ -8,7 +8,7 @@
 - a_e = 0.34 m (max|o| 0 + epsilon_t declare) ; marge reservee 0.25 m ; delta_c 0.05 m
 - parametres canoniques : `1bbb48e461b73b5857558129849496caa5e45bc0f498644da02cba55d048368a`
 - versions : balayage v1, empreinte de paire v2, degagement v5
-- modele des candidats : `v4:36ba168bc5e1019dafc8b09bb16874ce` ; source `b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc` ; decisions `c05e7048eaa5f6851a1968d76643b3a318bb420b9ce0c6c8cb1c64f3cbbec0e5`
+- modele des candidats : `v4:36ba168bc5e1019dafc8b09bb16874ce` ; source `b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc` ; decisions `2e290408351c1b6d8af536d76441974b3bcdb30f814cb692e173c95a41f58e0f`
 - empreintes d'entree : physique carrefours `ade1ac6b98303acc2ba4db5746b1c95befebcca4c795392add3e58270e04255b`, giratoires `98e229f25a4022d206d4951f99915693dc77ebbc08406754ff69f56437eb1c97`, Sidewalk `a75a985d5c1455470897da9d2398cdcbc441468e46445600d7d4920358ca5bcc`
 
 ## Verdict

@@ -475,9 +475,11 @@ namespace RoadRage.App.Run
                 return;
             }
 
+            // Une fois par spawner : relire le modele (~5 Mo) a chaque pas serait trop couteux.
+            // L'admission compare la preuve aux entrees de faisabilite du prefab effectivement insere.
             if (v2Admission == null)
             {
-                v2Admission = TrafficV2Lifecycle.AdmitCommittedArtifacts();
+                v2Admission = TrafficV2Lifecycle.AdmitCommittedArtifacts(v2VehiclePrefab);
             }
 
             var verdict = TrafficV2Lifecycle.EvaluateInsertion(v2Admission, measurement, TrafficV2Settings.DeclaredTrackingTolerance);

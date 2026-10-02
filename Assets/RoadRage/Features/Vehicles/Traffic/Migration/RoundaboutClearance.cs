@@ -88,8 +88,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// Residu a deux gabarits tournes (Story 5.52) : chaque gabarit fait l'angle <paramref name="offsetRadians"/>
         /// avec la tangente, et la marge de chaque cote vaut m + a_e. Le point le plus interieur est la distance du
         /// centre de l'anneau au rectangle tourne (bord, ou coin si le pied sort du bord), le plus exterieur le coin
-        /// sqrt(R^2 + W^2 + (L/2)^2 + 2R(W cos e + (L/2)|sin e|)). Les deux croissent avec |e| pour |e| &lt; 65 deg :
-        /// le pire ecart de l'anneau donne le residu, exact et sans grille. e = 0 et a_e = 0 : formule historique.
+        /// sqrt(R^2 + W^2 + (L/2)^2 + 2R(W cos e + (L/2)|sin e|)). Residu a cet angle seulement :
+        /// WorstResidual couvre l'ensemble des caps. e = 0 et a_e = 0 : formule historique.
         /// </summary>
         public static float Residual(float innerRadius, float outerRadius, RoadModelValidationProfile profile,
             float trackingAllowanceMeters, float offsetRadians)
@@ -133,6 +133,19 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             double sin = Math.Abs(Math.Sin(offsetRadians));
             return Math.Sqrt(centreRadius * centreRadius + halfWidth * halfWidth + halfLength * halfLength
                 + 2d * centreRadius * (halfWidth * cos + halfLength * sin));
+        }
+
+        /// <summary>
+        /// Pire residu sur |e| dans [0, offsetMax] : la portee radiale atteint son maximum a
+        /// atan2(L/2, W) (W demi-largeur), puis decroit. Ce maximum depend du gabarit, pas d'un seuil fixe de 65 deg.
+        /// Le sur-ensemble symetrique couvre aussi un intervalle de caps qui ne contient pas zero.
+        /// </summary>
+        public static float WorstResidual(float innerRadius, float outerRadius, RoadModelValidationProfile profile,
+            float trackingAllowanceMeters, float offsetMaxRadians)
+        {
+            double peak = Math.Atan2(0.5d * profile.MaxVehicleLengthMeters, profile.MaxVehicleHalfWidthMeters);
+            float worstOffset = (float)Math.Min(Math.Abs((double)offsetMaxRadians), peak);
+            return Residual(innerRadius, outerRadius, profile, trackingAllowanceMeters, worstOffset);
         }
 
         /// <summary>
@@ -188,7 +201,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                 if (!parameters.IsLegacy)
                 {
-                    measurement.EnvelopeResidual = Residual(measurement.EnvelopeInnerRadius, measurement.EnvelopeOuterRadius,
+                    measurement.EnvelopeResidual = WorstResidual(measurement.EnvelopeInnerRadius, measurement.EnvelopeOuterRadius,
                         model.ValidationProfile, measurement.AllowanceMeters, measurement.OffsetMaxRadians);
                 }
 
@@ -197,7 +210,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     measurement.PhysicalOuterRadius = measurement.NearestObstacle == null
                         ? measurement.PavedRadius
                         : Mathf.Min(measurement.PavedRadius, measurement.NearestObstacleRadius);
-                    measurement.PhysicalResidual = Residual(measurement.IslandRadius, measurement.PhysicalOuterRadius, model.ValidationProfile,
+                    measurement.PhysicalResidual = WorstResidual(measurement.IslandRadius, measurement.PhysicalOuterRadius, model.ValidationProfile,
                         measurement.AllowanceMeters, measurement.OffsetMaxRadians);
                 }
 
