@@ -2,7 +2,7 @@
 title: 'Story 5.33 -- Suivi de vehicule par contraintes de vitesse nommees : premier consommateur runtime de la perception et premieres explorations multi-vehicules V2 dans MVP_Run'
 type: 'feature'
 created: '2026-10-02'
-status: 'draft'
+status: 'ready-for-dev'
 baseline_commit: 'fb8d793c7d949ea4c9e2475365f3a2b0fec5cda1'
 review_loop_iteration: 0
 context:

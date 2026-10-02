@@ -193,7 +193,7 @@ development_status:
   # coverage in Gate A evidence and owner re-signature. Gate B closes after it.
   5-52-tracking-error-coverage-in-gate-a-evidence-and-owner-re-signature: review
   5-32-perception-boundary-occupancy-leader-and-hazards: done
-  5-33-vehicle-following-through-named-speed-constraints: backlog
+  5-33-vehicle-following-through-named-speed-constraints: ready-for-dev
   5-34-junction-coordination-core-grants-and-conflicts: backlog
   5-35-authored-control-kinds-stop-yield-priority-roundabout: backlog
   5-36-signal-phase-runtime-and-coordinator-integration: backlog
