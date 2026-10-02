@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-10-01'
 status: 'done'
 baseline_commit: '5f5e776daf96b96baa6adb3f6e3c6c9377eefe10'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context:
   - '{project-root}/_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
   - '{project-root}/_bmad-output/implementation-artifacts/spec-5-30-traffic-v2-planning-and-runtime-spine-foundation.md'
@@ -185,6 +185,89 @@ Revue du 2026-10-02 (`blind-hunter`, `edge-case-hunter`, `verification-gap` ; `s
 - [x] [Review][Patch] Tests ajoutes : `AgentOccupancyUnavailable`, suiveur sur predecesseur et portee effective, debord avant le debut d'element (jeu et longueur libre negative), filtres d'exclusion (fenetre adjacente, autre etage, derriere l'agent, intervalle disjoint), genres de dangers, confiance et vitesse d'un acteur pousse.
 - [x] [Review][Defer] Projection globale sur un element replie -- `deferred-work.md` ; non atteignable sur `MVP_Run`.
 - Risque accepte (regle de build) : les fixtures 5.30/5.31, dont le scan `NewPlanningSurfaceContainsNoControlOrTargetIndex`, ne tournent qu'en fin d'epic ; `FactsStateNoDecision` et `FrameAndPerceptionSourcesUseNoPhysicsNorControlPath` reprennent leurs interdits sur `Frame/` et `Perception/`.
+
+### Revue independante du commit 5cc4f4b (2026-10-02)
+
+Perimetre : `5f5e776..5cc4f4b`, `Assets/RoadRage/` et artefacts BMAD, hors sorties Graphify generees. 12 fichiers, 2 591 lignes ajoutees / 15 retirees. Les quatre couches `blind-hunter`, `edge-case-hunter`, `verification-gap` et `acceptance-auditor` ont ete executees ; la derniere apres les trois premieres, avec reutilisation d'un agent. Aucun correctif source applique. Les contre-exemples ci-dessous sont issus de la lecture et du calcul geometrique, pas de nouvelles fixtures executees. Verdict : corrections requises ; 6 patches, aucune decision de specification requise.
+
+- [x] [Review][Patch][R1][high] La saturation spatiale peut supprimer l'obstacle le plus proche [Assets/RoadRage/Features/Vehicles/Traffic/Perception/TrafficPerception.cs:293]. `QuerySpatial` remplit le tampon dans l'ordre x minimal puis id ; `SpatialQueryBuffer.Add` abandonne les entrees suivantes. La perception ne classe par distance que ce prefixe. Sur NB2, agent a s=2, deux dangers de meme x et memes extents, danger de petit id a s=25 et danger de grand id a s=8, capacite spatiale 2 : l'agent et le danger lointain remplissent le tampon, le danger proche disparait. La saturation est annoncee mais la contrainte "les plus proches sont gardes" n'est pas respectee ; le total du canal ne compte que les faits du prefixe. Le test de saturation actuel n'asserte les identites proches que lorsque la requete spatiale ne sature pas. Correction : filtrer et classer les candidats eligibles avant leur perte, tout en conservant tampon fixe, total, determinisme et requete sans allocation. Sources : les quatre couches.
+
+- [x] [Review][Patch][R2][high] Le choix du centre le plus proche masque une boite qui touche une autre portion du chemin [Assets/RoadRage/Features/Vehicles/Traffic/Perception/TrafficPerception.cs:329]. `TryObstacle` choisit un seul intervalle par distance du centre, puis applique les filtres d'emprise sans essayer les autres intervalles. Sur la route synthetique NB2 -> MR -> EB, agent NB2 s=5, danger centre=(25,0,20), extents=(1,1,20) : NB2 est le plus proche du centre (19 m, contre 20 m pour EB), puis l'ecart lateral 16,97 m provoque le rejet. Pourtant la boite x=[24,26], z=[0,40] touche la ligne centrale de EB a z=40. C'est un faux negatif meme sans saturation. Correction : evaluer l'intersection et les filtres de la boite sur chaque intervalle, puis choisir le fait eligible pertinent. Ajouter ce cas a `Story532`. Sources : edge-case-hunter, acceptance-auditor.
+
+- [x] [Review][Patch][R3][high] Le recouvrement de zone ignore les enveloppes et les intersections entre echantillons [Assets/RoadRage/Features/Vehicles/Traffic/Perception/TrafficPerception.cs:452]. `ZoneSpan` exige qu'un point echantillonne de chaque ligne centrale entre dans le volume. Dans le modele synthetique, zone centre=(7.25,0,34), extents=(0.1,2,0.1), membres MS/MR : les deux enveloppes de demi-largeur 2 m touchent la zone, mais ni MS (x=6) ni MR (x environ 6,79..6,88 sur cette tranche z) n'y fait entrer sa ligne centrale. Un horizon complet sur chaque mouvement ne produit aucun fait. De plus, une intersection de ligne centrale dans s=[0.04,0.06] peut tomber entre les echantillons a 0 et 0,1 m. Le contrat de contexte definit les mouvements par leurs enveloppes balayees ; le commentaire `ponytail:` n'autorise pas leur remplacement par les lignes centrales. Correction : intersection continue ou conservatrice des enveloppes avec la zone, restreinte aux portions declarees, avec fixtures d'enveloppe seule et de zone mince. Sources : blind-hunter, edge-case-hunter, acceptance-auditor.
+
+- [x] [Review][Patch][R4][medium] Le d_max de l'occupation differe de la formule figee [Assets/RoadRage/Features/Vehicles/Traffic/Frame/TrafficFrame.cs:265]. La spec impose la distance maximale des echantillons a la courbe plus h/2 ; le code utilise seulement `abs(LateralOffsetMeters)`, sans composante normale ni depassement longitudinal aux bornes. `RoadProjection.DistanceMeters` porte la distance 3D demandee. Cela change le reste et peut accepter une occupation que le seuil specifie exclut, notamment pour une empreinte depassant fortement une extremite de mouvement courbe. C'est un ecart de contrat confirme, pas a lui seul une preuve de sous-contenance du rectangle. Correction : utiliser la distance prescrite et tester les composantes omises, sans modifier `RoadLocalizer`. Sources : blind-hunter, acceptance-auditor.
+
+- [x] [Review][Patch][R5][medium] La requete large applique la tolerance normale uniquement sur l'axe y monde [Assets/RoadRage/Features/Vehicles/Traffic/Perception/TrafficPerception.cs:289]. Le filtre fin utilise `point.Up`, mais l'AABB n'ajoute `AcceptanceDistanceMeters` que sur y. Sur un corridor droit de tangente z, road-up=(sin(80 deg),cos(80 deg),0), agent de demi-largeur 1,03 m et `LateralRangeMeters=0.1`, ses coins et l'elargissement portent la borne x a environ 2,14 m de la reference. Un petit danger de demi-extents 0,01 m, a 2,4 m selon road-up et 5 m devant, a x environ 2,36 m : il est elimine par la requete alors que son ecart normal est inferieur au seuil 2,5 m et son ecart lateral est eligible. Le validateur autorise un road-up constant dont le produit scalaire avec le haut monde est positif ; ce cas ne concerne pas la carte plane actuelle. Correction : une borne large couvrant aussi la tolerance normale selon les reperes de route, avec test sur modele incline valide. Source : blind-hunter ; contre-exemple ajuste par le triage pour respecter le validateur (road-up strictement ascendant).
+
+- [x] [Review][Patch][R6][medium] Des fenetres d'adjacence recouvrantes dupliquent les occupants [Assets/RoadRage/Features/Vehicles/Traffic/Perception/TrafficPerception.cs:250]. Chaque record ajoute les occupants sans deduplication. Deux adjacences d'ids differents, memes corridors et cote, fenetres recouvrantes, sont valides : les validateurs controlent leurs ids et leur geometrie individuellement, sans interdire ce recouvrement. Avec deux voisins et `ListCapacity=2`, les deux occurrences du voisin le plus proche peuvent prendre les deux places, cacher le second et gonfler total/saturation. Correction : produire un fait par identite occupant/corridor/cote avant le bornage, avec fixture de fenetres recouvrantes. Source : blind-hunter.
+
+**Triage.** Les doublons de couches ont ete fusionnes. Neuf autres propositions ne deviennent pas des actions de cette revue : distance d'obstacle sur un arc ideal sans temoin epingle sur la courbe compilee ; provenance d'horizon non specifiee et absence de consommateur runtime ; bornes s publiees que le contrat n'interdit pas ; overflow aux tailles proches de `float.MaxValue` sans cas d'usage atteint ; messages de pose invalides herites de la 5.26 ; metadonnees des diagnostics `UnmeasuredActors`, dont le contrat donne explicitement les champs ; enrichissement de `ToText()` et de ses assertions sans fuite d'etat constatee ; test supplementaire d'une copie d'horizon deja presente ; assertion supplementaire de confiance de sortie dont le calcul actuel suit deja la spec. La projection sur element replie reste la dette deja enregistree, sans nouvelle entree de defer. Les tests de non-regression des six correctifs retenus restent a ajouter.
+
+**Verification executee par cette revue.** Commande autorisee : `.\scripts\validate.ps1 -Profile Story -Story 5.32 -TestMode EditMode`. Extraits bruts du recapitulatif (code de sortie 0) :
+
+```text
+  VALIDATION STORY (Story532)
+  Profil                   Story (Story532)
+  Tests executes           27 au total (27 en EditMode)
+  Suites completes         non executees ; reservees a la fin d'epic
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7800, Unity 6000.6.0f1, ready
+  Curseur Console          81 (0 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            up_to_date
+  Erreurs Console          0 depuis le curseur 81
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 3 (informatif, hors gate)
+  Selection                27 test(s) attendus (categorie Story532) ; 1042 non executes par selection ; 2 test(s) [Explicit] hors suite par defaut
+  Tests EditMode           27/27 passes
+  Ignores EditMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Non executes (selection) 1042 test(s) de la suite EditMode, hors profil Story
+  Scenes ouvertes          aucune scene modifiee
+  Arbre de travail         4 entree(s) modifiee(s) -- voir git status
+OK
+VALIDATION STORY (Story532) : tests de la story seulement. Suites completes non executees ; elles relevent de la fin d'epic. Cette sortie ne vaut pas validation complete.
+```
+
+Scene ouverte avant/apres : `MainMenuLobby`, `isDirty=false`. Les quatre modifications preexistantes concernent uniquement `graphify-out/`. Cette revue n'a pas sauvegarde de scene, ni modifie de source, modele, preuve ou signature. Au terme de la revue initiale, le statut `in-progress` refletait les correctifs encore ouverts.
+
+### Resolution des six patches (2026-10-02)
+
+Choix proprietaire : **1, appliquer les six correctifs**, sans confirmation par constat. R1 a R6 sont resolus ; aucun nouvel outil, package, asmdef, acces physique ou branchement runtime.
+
+- **R1** : pagination optionnelle de `QuerySpatial`, toujours sans allocation et avec un tampon fixe. La perception parcourt toutes les pages, compte les faits eligibles exactement et ne conserve que les `ListCapacity` plus proches (distance puis id). La saturation spatiale reste explicite. `SaturatedSpatialPagesKeepTheNearestEligibleFactsAndTheirExactTotal` : trois capacites spatiales (1, 2, 4), trois capacites de liste (1, 2, 8), ordre id/distance inverse, candidats hors etage, comparaison a la requete non saturee et reutilisation du tampon. Cout connu O(n * pages) documente par `ponytail:` ; curseur d'index si mesure de besoin en 5.46.
+- **R2** : filtres d'emprise sur chaque intervalle avant selection du fait eligible le plus proche. Le corps doit rencontrer l'intervalle effectivement cherche ; seul le premier intervalle inclut l'arriere de l'agent. `AnObstacleBoxTouchingTheOutgoingPathSurvivesAnIneligibleNearestCenterProjection` : boite du contre-exemple trouvee sur EB, distance et appartenance au couloir verifiees, absence avec horizon court.
+- **R3** : parcours des segments compiles, reutilisation de `RoadCurve.Bounds` pour couvrir les bords tournants et les largeurs variables, puis intersection continue segment/boite elargie. Les plages restent dans les portions declarees. Les bornes AABB sont conservatives : elles peuvent ajouter un recouvrement potentiel, jamais le supprimer ; cette limite et l'option d'intersection polygonale sont explicites dans le commentaire `ponytail:`. `ConflictOverlapCoversEnvelopeOnlyAndBetweenSampleIntersectionsWithoutExtendingHorizons` : cas enveloppe seule et zone mince, puis horizons tronques de chacun des deux agents. Pas de prediction temporelle.
+- **R4** : `d_max` utilise `RoadProjection.DistanceMeters`. `OccupancyRemainderIncludesNormalDistanceAndRejectsAnUnboundedEndpointOverhang` : le reste augmente pour un decalage normal, et une longue empreinte qui depasse l'extremite d'un mouvement est exclue avec `OccupancyNotBounded`.
+- **R5** : la borne large couvre la tolerance normale sur les trois axes monde ; le filtre fin garde le repere road-up. `SpatialQueryIncludesTheNormalAllowanceOnABankedRoad` : modele compile incline a 80 degres, horizon droit court, petit danger a 2,4 m selon road-up, ecart normal et appartenance au couloir verifies.
+- **R6** : un seul fait par occupant/corridor/cote, avec conservation de l'ecart le plus proche avant bornage. `OverlappingAdjacencyWindowsDoNotDuplicateOccupantsOrConsumeTheirCapacity` : deux fenetres recouvrantes, deux voisins, capacite 2, ids exacts, total 2 et absence de saturation.
+
+**Validation executee apres correctifs**, exclusivement par `.\scripts\validate.ps1 -Profile Story -Story 5.32 -TestMode EditMode` ; code de sortie 0, 9 cas ajoutes aux 27 existants. Extraits bruts :
+
+```text
+  VALIDATION STORY (Story532)
+  Profil                   Story (Story532)
+  Tests executes           36 au total (36 en EditMode)
+  Suites completes         non executees ; reservees a la fin d'epic
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          161 (0 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            completed
+  Erreurs Console          0 depuis le curseur 161
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 29 (informatif, hors gate)
+  Selection                36 test(s) attendus (categorie Story532) ; 1042 non executes par selection ; 2 test(s) [Explicit] hors suite par defaut
+  Tests EditMode           36/36 passes
+  Ignores EditMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Non executes (selection) 1042 test(s) de la suite EditMode, hors profil Story
+  Scenes ouvertes          aucune scene modifiee
+  Arbre de travail         10 entree(s) modifiee(s) -- voir git status
+OK
+VALIDATION STORY (Story532) : tests de la story seulement. Suites completes non executees ; elles relevent de la fin d'epic. Cette sortie ne vaut pas validation complete.
+```
+
+Les warnings projet restent visibles dans la sortie de validation (assembly SandboxStops vide, API obsoletes et avertissement UAC0005 hors fichiers modifies) ; aucun n'est masque par le correctif. `MainMenuLobby` reste propre. Modele, scene, preuve et signature `MVP_Run` inchanges. Les suites completes restent reservees a la fin d'epic selon la decision proprietaire.
+
+`graphify update .` execute avec succes : 6 624 noeuds, 18 221 liens, 216 communautes. Depassement preexistant de 5 000 noeuds conserve sans modifier le perimetre. Avertissement d'extraction AST partielle sur `Story531DrivenReplayTests.cs` non modifie (ligne 112) ; la compilation Unity est saine. Les noms de certaines communautes ont ete recalcules par leur hub ; aucune nouvelle passe LLM de labelisation demandee. Statuts de la story et du sprint : `done`.
 
 ## Suggested Review Order
 

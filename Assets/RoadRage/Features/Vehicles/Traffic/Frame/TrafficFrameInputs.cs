@@ -165,10 +165,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
 
         internal void Clear() { Count = 0; Total = 0; }
 
-        internal void Add(SpatialEntry entry)
+        internal void Add(SpatialEntry entry, int offset)
         {
             Total++;
-            if (Count < _entries.Length) _entries[Count++] = entry;
+            if (Total > offset && Count < _entries.Length) _entries[Count++] = entry;
         }
     }
 }

@@ -894,6 +894,177 @@ namespace RoadRage.Tests.EditMode
             Assert.That(minimal.Leader, Is.Null);
         }
 
+        // ================================================================== correctifs de revue 5.32
+
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(4)]
+        public void SaturatedSpatialPagesKeepTheNearestEligibleFactsAndTheirExactTotal(int capacity)
+        {
+            var model = Model();
+            var frame = new TrafficFrame(1, model, new[] { Actor(model, 1, CorridorNB2, 2f) }, new[]
+            {
+                Hazard(1, TrafficHazardKind.Obstacle, new Vector3(6f, 0.5f, 25f), new Vector3(0.2f, 0.5f, 0.2f)),
+                Hazard(2, TrafficHazardKind.Pedestrian, new Vector3(6f, 0.5f, 8f), new Vector3(0.2f, 0.5f, 0.2f)),
+                Hazard(3, TrafficHazardKind.Obstacle, new Vector3(6f, 4f, 15f), Vector3.one * 0.1f),
+                Hazard(4, TrafficHazardKind.Obstacle, new Vector3(6f, 5f, 20f), Vector3.one * 0.1f)
+            });
+            var horizon = Horizon(frame, 1, PortalExitN2);
+            var shared = new SpatialQueryBuffer(capacity);
+            foreach (int listCapacity in new[] { 1, 2, 8 })
+            {
+                var limits = new PerceptionLimits(30f, 3f, 15f, listCapacity);
+                var paged = TrafficPerception.Observe(frame, Vehicle(1), horizon, limits, shared);
+                var full = Observe(frame, 1, horizon, limits: limits);
+                Assert.That(paged.SpatialQueryTotal, Is.EqualTo(full.SpatialQueryTotal));
+                Assert.That(paged.SpatialQueryTotal, Is.GreaterThan(capacity));
+                Assert.That(paged.SpatialQuerySaturated, Is.True);
+                Assert.That(paged.Obstacles.Saturated, Is.True);
+                Assert.That(paged.Obstacles.Total, Is.EqualTo(2), "l'autre etage n'est pas un fait");
+                Assert.That(paged.Obstacles.Items.Select(x => x.Id), Is.EqualTo(full.Obstacles.Items.Select(x => x.Id)));
+                Assert.That(paged.Obstacles.Items.Select(x => x.NearDistanceMeters),
+                    Is.EqualTo(full.Obstacles.Items.Select(x => x.NearDistanceMeters)));
+                Assert.That(paged.Obstacles.Items[0].Id, Is.EqualTo(Vehicle(1002)), "le petit id est le plus loin");
+                Assert.That(paged.Obstacles.Items.Select(x => x.Id), Is.Unique);
+                Assert.That(shared.Count, Is.LessThanOrEqualTo(shared.Capacity));
+            }
+        }
+
+        [Test]
+        public void AnObstacleBoxTouchingTheOutgoingPathSurvivesAnIneligibleNearestCenterProjection()
+        {
+            var model = Model();
+            var frame = new TrafficFrame(1, model, new[] { Actor(model, 1, CorridorNB2, 5f) }, new[]
+            {
+                Hazard(1, TrafficHazardKind.Obstacle, new Vector3(25f, 0f, 20f), new Vector3(1f, 1f, 20f))
+            });
+            var horizon = Horizon(frame, 1, PortalExitEB);
+            var observation = Observe(frame, 1, horizon);
+            var fact = observation.Obstacles.Items.Single();
+            Assert.That(fact.Id, Is.EqualTo(Vehicle(1001)));
+            Assert.That(fact.InSweptPath, Is.True);
+            ElementOccupant self;
+            frame.TryGetOccupancy(Vehicle(1), out self);
+            float expected = horizon.Intervals.Single(x => x.Id == CorridorEB).StartDistanceMeters + 8f
+                - (self.SMaxMeters - horizon.Intervals[0].StartSMeters);
+            Assert.That(fact.NearDistanceMeters, Is.EqualTo(expected).Within(1e-3f));
+            Assert.That(Observe(frame, 1, Horizon(frame, 1, PortalExitEB, 15f)).Obstacles.Items, Is.Empty,
+                "la portion suivante n'entre pas dans l'horizon court");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ConflictOverlapCoversEnvelopeOnlyAndBetweenSampleIntersectionsWithoutExtendingHorizons(bool thin)
+        {
+            var source = BuildSource();
+            var zone = source.ConflictZones[0];
+            zone.Volume = thin ? Box(new Vector3(6f, 0f, 30.05f), new Vector3(0.1f, 2f, 0.01f))
+                : Box(new Vector3(7.25f, 0f, 34f), new Vector3(0.1f, 2f, 0.1f));
+            source.ConflictZones[0] = zone;
+            var model = RoadModelCompiler.Compile(source);
+            var published = new PublishedIntentHorizon(0, new[]
+                { new IntentInterval(RoadElementKind.JunctionMovement, MovementMS, 0f, 10f) });
+            var frame = new TrafficFrame(1, model, new[]
+                { Actor(model, 1, CorridorNB2, 5f), Actor(model, 2, CorridorNB, 5f, horizon: published) });
+            var horizon = Horizon(frame, 1, PortalExitEB);
+            var fact = Observe(frame, 1, horizon).IntentOverlaps.Items.Single();
+            Assert.That(fact.Kind, Is.EqualTo(IntentOverlapKind.ConflictZone));
+            Assert.That(fact.SharedId, Is.EqualTo(ZoneZ));
+            Assert.That(fact.AgentDistanceMeters, Is.InRange(25f, horizon.LengthMeters));
+            Assert.That(fact.OtherDistanceMeters, Is.InRange(0f, 10f));
+
+            var shortPublished = new PublishedIntentHorizon(0, new[]
+                { new IntentInterval(RoadElementKind.JunctionMovement, MovementMS, 0f, thin ? 0.01f : 2f) });
+            var shortFrame = new TrafficFrame(1, model, new[]
+                { Actor(model, 1, CorridorNB2, 5f), Actor(model, 2, CorridorNB, 5f, horizon: shortPublished) });
+            Assert.That(Observe(shortFrame, 1, Horizon(shortFrame, 1, PortalExitEB)).IntentOverlaps.Items, Is.Empty,
+                "ni la zone mince ni l'enveloppe ne prolongent l'horizon publie");
+            Assert.That(Observe(frame, 1, Horizon(frame, 1, PortalExitEB, 20f)).IntentOverlaps.Items, Is.Empty,
+                "le mouvement n'entre pas dans l'horizon court de l'agent");
+        }
+
+        [Test]
+        public void OccupancyRemainderIncludesNormalDistanceAndRejectsAnUnboundedEndpointOverhang()
+        {
+            var model = Model();
+            var baseInput = Actor(model, 1, MovementMR, 5f);
+            var raisedPose = baseInput.Pose;
+            raisedPose.Position += Vector3.up * 1.5f;
+            var raisedInput = new TrafficActorInput(Vehicle(1), raisedPose, 0f, MovementMR, new[] { MovementMR });
+            var ground = new TrafficFrame(1, model, new[] { baseInput });
+            var raised = new TrafficFrame(1, model, new[] { raisedInput });
+            ElementOccupant groundBody, raisedBody;
+            Assert.That(ground.TryGetOccupancy(Vehicle(1), out groundBody), Is.True);
+            Assert.That(raised.TryGetOccupancy(Vehicle(1), out raisedBody), Is.True);
+            Assert.That(raisedBody.RemainderMeters, Is.GreaterThan(groundBody.RemainderMeters + 1e-3f));
+
+            var longBody = Car;
+            longBody.FrontMeters = 12f;
+            var endInput = new TrafficActorInput(Vehicle(1), Pose(model, MovementMR, Curve(model, MovementMR).Length - 0.1f, longBody),
+                0f, MovementMR, new[] { MovementMR });
+            var overhang = new TrafficFrame(1, model, new[] { endInput });
+            TrafficActor actor;
+            overhang.TryGetActor(Vehicle(1), out actor);
+            Assert.That(actor.Location.Localized, Is.True);
+            Assert.That(actor.Location.ElementId, Is.EqualTo(MovementMR));
+            Assert.That(actor.OccupancyExclusion, Is.EqualTo(OccupancyExclusion.OccupancyNotBounded));
+            ElementOccupant unused;
+            Assert.That(overhang.TryGetOccupancy(Vehicle(1), out unused), Is.False);
+        }
+
+        [Test]
+        public void SpatialQueryIncludesTheNormalAllowanceOnABankedRoad()
+        {
+            var source = BuildSource();
+            var rotation = Quaternion.AngleAxis(-80f, Vector3.forward);
+            foreach (var corridor in source.Corridors) RotateSamples(corridor.Samples, rotation);
+            foreach (var movement in source.Movements) RotateSamples(movement.Samples, rotation);
+            var model = RoadModelCompiler.Compile(source);
+            var input = Actor(model, 1, CorridorNB2, 5f);
+            var point = Curve(model, CorridorNB2).Sample(10f);
+            var frame = new TrafficFrame(1, model, new[] { input }, new[]
+                { Hazard(1, TrafficHazardKind.Pedestrian, point.Position + point.Up * 2.4f, Vector3.one * 0.01f) });
+            var observation = Observe(frame, 1, Horizon(frame, 1, PortalExitN2, 10f),
+                limits: new PerceptionLimits(30f, 0.1f, 15f, 8));
+            var fact = observation.Obstacles.Items.Single();
+            Assert.That(fact.Id, Is.EqualTo(Vehicle(1001)));
+            Assert.That(fact.InSweptPath, Is.True);
+            Assert.That(fact.VerticalGapMeters, Is.InRange(2.3f, model.LocalizationProfile.AcceptanceDistanceMeters));
+        }
+
+        private static void RotateSamples(RoadCurveSample[] samples, Quaternion rotation)
+        {
+            for (int i = 0; i < samples.Length; i++)
+            {
+                var sample = samples[i];
+                sample.Position = rotation * sample.Position;
+                sample.Tangent = rotation * sample.Tangent;
+                sample.Up = rotation * sample.Up;
+                samples[i] = sample;
+            }
+        }
+
+        [Test]
+        public void OverlappingAdjacencyWindowsDoNotDuplicateOccupantsOrConsumeTheirCapacity()
+        {
+            var source = BuildSource();
+            var duplicate = source.Adjacencies[1];
+            duplicate.Id = Id(25);
+            duplicate.FromStartSMeters = duplicate.ToStartSMeters = 5f;
+            duplicate.FromEndSMeters = duplicate.ToEndSMeters = 25f;
+            source.Adjacencies = new[] { duplicate, source.Adjacencies[0], source.Adjacencies[1] };
+            var model = RoadModelCompiler.Compile(source);
+            var frame = new TrafficFrame(1, model, new[]
+            {
+                Actor(model, 1, CorridorNB2, 10f), Actor(model, 2, CorridorNB, 11f), Actor(model, 3, CorridorNB, 20f)
+            });
+            var adjacent = Observe(frame, 1, Horizon(frame, 1, PortalExitN2),
+                limits: new PerceptionLimits(30f, 3f, 15f, 2)).Adjacent;
+            Assert.That(adjacent.Total, Is.EqualTo(2));
+            Assert.That(adjacent.Saturated, Is.False);
+            Assert.That(adjacent.Items.Select(x => x.TrafficId), Is.EqualTo(new[] { Vehicle(2), Vehicle(3) }));
+        }
+
         // ================================================================== vue partagee, determinisme, absence d'etat
 
         private static TrafficActorInput[] Crowd(CompiledRoadModel model)

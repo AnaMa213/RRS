@@ -198,12 +198,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
 
         /// <summary>
         /// Entrees dont la boite rejoint <paramref name="query"/>, dans l'ordre de l'index (x minimal, puis id).
-        /// N'alloue pas ; le total compte aussi ce qui depasse la capacite du tampon.
+        /// N'alloue pas ; le total compte tous les candidats, meme ceux precedant l'offset de pagination.
         /// </summary>
         // ponytail: balayage trie sur x, O(n) sur une bande x dense ; grille si la 5.46 mesure un cout.
-        public void QuerySpatial(Bounds query, SpatialQueryBuffer buffer)
+        public void QuerySpatial(Bounds query, SpatialQueryBuffer buffer, int offset = 0)
         {
             if (buffer == null) throw new ArgumentNullException("buffer");
+            if (offset < 0) throw new ArgumentException("InvalidSpatialOffset", "offset");
             buffer.Clear();
             float from = query.min.x - _maxSpatialWidthX;
             int low = 0, high = _spatial.Length;
@@ -213,7 +214,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
                 if (_spatial[mid].Bounds.min.x < from) low = mid + 1; else high = mid;
             }
             for (int i = low; i < _spatial.Length && _spatial[i].Bounds.min.x <= query.max.x; i++)
-                if (_spatial[i].Bounds.Intersects(query)) buffer.Add(_spatial[i]);
+                if (_spatial[i].Bounds.Intersects(query)) buffer.Add(_spatial[i], offset);
         }
 
         /// <summary>Courbe et longueur d'un corridor ou d'un mouvement ; faux si l'element est inconnu.</summary>
@@ -262,7 +263,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
                         s = s <= curve.StartS + 1e-3f ? s - projection.LongitudinalOverrunMeters : s + projection.LongitudinalOverrunMeters;
                     sMin = Mathf.Min(sMin, s);
                     sMax = Mathf.Max(sMax, s);
-                    dMax = Mathf.Max(dMax, Mathf.Abs(projection.LateralOffsetMeters));
+                    dMax = Mathf.Max(dMax, projection.DistanceMeters);
                 }
             }
             dMax += 0.5f * step;

@@ -245,16 +245,32 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
                         var o = occupants[k];
                         if (o.TrafficId == c.Agent.TrafficId || o.SMaxMeters < to0 || o.SMinMeters > to1) continue;
                         float gap = o.SMinMeters > body1 ? o.SMinMeters - body1 : o.SMaxMeters < body0 ? o.SMaxMeters - body0 : 0f;
-                        facts.Add(new AdjacentOccupantFact(o.TrafficId, adjacency.ToCorridorId, adjacency.Side, gap,
+                        AddAdjacent(facts, new AdjacentOccupantFact(o.TrafficId, adjacency.ToCorridorId, adjacency.Side, gap,
                             o.SpeedMetersPerSecond, c.Structured(window, o.Confidence)));
                     }
                 }
             }
-            return Bounded(c, facts, (x, y) =>
-            {
-                int order = Mathf.Abs(x.LongitudinalGapMeters).CompareTo(Mathf.Abs(y.LongitudinalGapMeters));
-                return order != 0 ? order : x.TrafficId.CompareTo(y.TrafficId);
-            }, PerceptionStatus.Evaluated, window);
+            return Bounded(c, facts, CompareAdjacent, PerceptionStatus.Evaluated, window);
+        }
+
+        private static void AddAdjacent(List<AdjacentOccupantFact> facts, AdjacentOccupantFact fact)
+        {
+            for (int i = 0; i < facts.Count; i++)
+                if (facts[i].TrafficId == fact.TrafficId && facts[i].CorridorId == fact.CorridorId && facts[i].Side == fact.Side)
+                {
+                    if (CompareAdjacent(fact, facts[i]) < 0) facts[i] = fact;
+                    return;
+                }
+            facts.Add(fact);
+        }
+
+        private static int CompareAdjacent(AdjacentOccupantFact x, AdjacentOccupantFact y)
+        {
+            int order = Mathf.Abs(x.LongitudinalGapMeters).CompareTo(Mathf.Abs(y.LongitudinalGapMeters));
+            if (order == 0) order = x.TrafficId.CompareTo(y.TrafficId);
+            if (order == 0) order = x.CorridorId.CompareTo(y.CorridorId);
+            if (order == 0) order = x.Side.CompareTo(y.Side);
+            return order != 0 ? order : x.LongitudinalGapMeters.CompareTo(y.LongitudinalGapMeters);
         }
 
         private static ObservationChannel<ObstacleFact> Obstacles(Context c, SpatialQueryBuffer buffer)
@@ -286,31 +302,48 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             var corners = TrafficFrame.Corners(c.Agent.Pose);
             for (int k = 0; k < corners.Length; k++) query.Encapsulate(corners[k]);
             float grow = halfWidth + lateralRange;
-            query.Expand(new Vector3(2f * grow, 2f * (grow + vertical), 2f * grow));
-            frame.QuerySpatial(query, buffer);
+            // Road-up peut etre incline : la tolerance normale doit etre couverte sur chaque axe monde.
+            query.Expand(2f * (grow + vertical));
 
             var facts = new List<ObstacleFact>();
-            for (int e = 0; e < buffer.Count; e++)
+            int total = 0, offset = 0;
+            // ponytail: O(n * pages) avec un petit tampon ; curseur d'index si la 5.46 mesure un cout.
+            do
             {
-                var entry = buffer[e];
-                if (entry.Id == c.Agent.TrafficId) continue;
-                if (entry.IsTrafficActor)
+                frame.QuerySpatial(query, buffer, offset);
+                for (int e = 0; e < buffer.Count; e++)
                 {
-                    // Un acteur deja dans l'occupation d'un element de l'horizon est un fait structure, pas un obstacle.
-                    ElementOccupant occupant;
-                    if (frame.TryGetOccupancy(entry.Id, out occupant) && horizonElements.Contains(occupant.ElementId)) continue;
+                    var entry = buffer[e];
+                    if (entry.Id == c.Agent.TrafficId) continue;
+                    if (entry.IsTrafficActor)
+                    {
+                        // Un acteur deja structure sur l'horizon n'est pas aussi un obstacle.
+                        ElementOccupant occupant;
+                        if (frame.TryGetOccupancy(entry.Id, out occupant) && horizonElements.Contains(occupant.ElementId)) continue;
+                    }
+                    ObstacleFact fact;
+                    if (!TryObstacle(c, entry, front, rear, lateralRange, vertical, out fact)) continue;
+                    total++;
+                    int at = 0;
+                    while (at < facts.Count && CompareObstacle(facts[at], fact) <= 0) at++;
+                    if (at >= c.Limits.ListCapacity) continue;
+                    facts.Insert(at, fact);
+                    if (facts.Count > c.Limits.ListCapacity) facts.RemoveAt(facts.Count - 1);
                 }
-                ObstacleFact fact;
-                if (TryObstacle(c, entry, front, rear, halfWidth, lateralRange, vertical, out fact)) facts.Add(fact);
+                offset += buffer.Count;
             }
-            return Bounded(c, facts, (x, y) =>
-            {
-                int order = x.NearDistanceMeters.CompareTo(y.NearDistanceMeters);
-                return order != 0 ? order : x.Id.CompareTo(y.Id);
-            }, PerceptionStatus.Evaluated, c.Horizon.LengthMeters, buffer.Saturated);
+            while (offset < buffer.Total);
+            return new ObservationChannel<ObstacleFact>(PerceptionStatus.Evaluated, facts, total,
+                buffer.Saturated || total > c.Limits.ListCapacity, c.Horizon.LengthMeters);
         }
 
-        private static bool TryObstacle(Context c, SpatialEntry entry, float front, float rear, float halfWidth,
+        private static int CompareObstacle(ObstacleFact x, ObstacleFact y)
+        {
+            int order = x.NearDistanceMeters.CompareTo(y.NearDistanceMeters);
+            return order != 0 ? order : x.Id.CompareTo(y.Id);
+        }
+
+        private static bool TryObstacle(Context c, SpatialEntry entry, float front, float rear,
             float lateralRange, float vertical, out ObstacleFact fact)
         {
             fact = default(ObstacleFact);
@@ -318,8 +351,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             var model = c.Frame.Model;
             Vector3 center = entry.Bounds.center, extents = entry.Bounds.extents;
             bool found = false;
-            RoadProjection best = default(RoadProjection);
-            int bestInterval = -1;
             for (int i = 0; i < intervals.Count; i++)
             {
                 RoadElementKind kind;
@@ -327,29 +358,29 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
                 IReadOnlyList<RoadCurveSample> samples;
                 if (!TrafficFrame.TryGetElement(model, intervals[i].Id, out kind, out curve, out samples)) continue;
                 var projection = curve.Project(center, intervals[i].StartSMeters, intervals[i].EndSMeters);
-                if (!found || projection.DistanceMeters < best.DistanceMeters)
-                { best = projection; bestInterval = i; found = true; }
+                var interval = intervals[i];
+                float along = interval.StartDistanceMeters + projection.SMeters - interval.StartSMeters;
+                if (projection.LongitudinalOverrunMeters > 0f)
+                    along += projection.SMeters <= interval.StartSMeters + 1e-3f ? -projection.LongitudinalOverrunMeters : projection.LongitudinalOverrunMeters;
+                var point = projection.Point;
+                float halfLong = HalfExtent(extents, point.Tangent);
+                float halfLat = HalfExtent(extents, point.Right);
+                float halfUp = HalfExtent(extents, point.Up);
+                float intervalRear = i == 0 ? rear : interval.StartDistanceMeters;
+                if (along + halfLong < intervalRear || along - halfLong > interval.EndDistanceMeters) continue;
+                var footprint = c.Agent.Pose.Footprint;
+                float side = projection.LateralOffsetMeters >= 0f ? footprint.RightMeters : footprint.LeftMeters;
+                float lateralGap = Mathf.Abs(projection.LateralOffsetMeters) - halfLat - side;
+                float verticalGap = Mathf.Abs(projection.NormalOffsetMeters) - halfUp;
+                if (lateralGap > lateralRange || verticalGap > vertical) continue;
+                // Acteur : min des deux confiances de localisation ; danger : sa confiance declaree.
+                float confidence = entry.IsTrafficActor ? Mathf.Min(c.Agent.Location.Confidence, entry.Confidence) : entry.Confidence;
+                var candidate = new ObstacleFact(entry.Id, Kind(entry), along - halfLong - front, lateralGap, verticalGap, entry.Velocity,
+                    new ObservationMetadata(c.Frame.FrameId, ObservationSource.SpatialQuery, c.Horizon.LengthMeters, confidence));
+                if (!found || CompareObstacle(candidate, fact) < 0) fact = candidate;
+                found = true;
             }
-            if (!found) return false;
-            var interval = intervals[bestInterval];
-            float along = interval.StartDistanceMeters + best.SMeters - interval.StartSMeters;
-            if (best.LongitudinalOverrunMeters > 0f)
-                along += best.SMeters <= interval.StartSMeters + 1e-3f ? -best.LongitudinalOverrunMeters : best.LongitudinalOverrunMeters;
-            var point = best.Point;
-            float halfLong = HalfExtent(extents, point.Tangent);
-            float halfLat = HalfExtent(extents, point.Right);
-            float halfUp = HalfExtent(extents, point.Up);
-            if (along + halfLong < rear || along - halfLong > c.Horizon.LengthMeters) return false;
-            var footprint = c.Agent.Pose.Footprint;
-            float side = best.LateralOffsetMeters >= 0f ? footprint.RightMeters : footprint.LeftMeters;
-            float lateralGap = Mathf.Abs(best.LateralOffsetMeters) - halfLat - side;
-            float verticalGap = Mathf.Abs(best.NormalOffsetMeters) - halfUp;
-            if (lateralGap > lateralRange || verticalGap > vertical) return false;
-            // Acteur : min des deux confiances de localisation ; danger : sa confiance declaree.
-            float confidence = entry.IsTrafficActor ? Mathf.Min(c.Agent.Location.Confidence, entry.Confidence) : entry.Confidence;
-            fact = new ObstacleFact(entry.Id, Kind(entry), along - halfLong - front, lateralGap, verticalGap, entry.Velocity,
-                new ObservationMetadata(c.Frame.FrameId, ObservationSource.SpatialQuery, c.Horizon.LengthMeters, confidence));
-            return true;
+            return found;
         }
 
         private static PerceivedObstacleKind Kind(SpatialEntry entry)
@@ -436,8 +467,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             facts.Add(fact);
         }
 
-        /// <summary>Plage [s0, s1] d'un mouvement, restreinte a [from, to], dont la ligne centrale est dans le volume de zone.</summary>
-        // ponytail: ligne centrale echantillonnee au pas d'occupation, pas l'enveloppe ; a elargir si la 5.34 le demande.
+        /// <summary>Plage conservative d'intersection de l'enveloppe avec la zone, dans [from, to] seulement.</summary>
+        // ponytail: bornes AABB conservatives, possibles recouvrements en plus ; intersection polygonale si la 5.34 exige de les lever.
         private static bool ZoneSpan(CompiledRoadModel model, RoadId movementId, RoadBoundsBox volume, float from, float to,
             out float s0, out float s1)
         {
@@ -445,14 +476,48 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             CompiledJunctionMovement movement;
             if (!model.TryGetMovement(movementId, out movement)) return false;
             var box = new Bounds(volume.Center, 2f * volume.Extents);
-            int count = Mathf.Max(1, Mathf.CeilToInt((to - from) / TrafficFrame.OccupancySampleStepMeters));
-            for (int k = 0; k <= count; k++)
+            for (int k = 0; k + 1 < movement.Samples.Count; k++)
             {
-                float s = from + (to - from) * k / count;
-                if (!box.Contains(movement.Curve.Sample(s).Position)) continue;
-                s0 = Mathf.Min(s0, s); s1 = Mathf.Max(s1, s);
+                float start = Mathf.Max(from, movement.Samples[k].SMeters);
+                float end = Mathf.Min(to, movement.Samples[k + 1].SMeters);
+                if (start > end) continue;
+                var a = movement.Curve.Sample(start).Position;
+                var b = movement.Curve.Sample(end).Position;
+                var centerBounds = new Bounds(a, Vector3.zero);
+                centerBounds.Encapsulate(b);
+                // Reutilise la borne des bords tournants et des largeurs variables de RoadCurve.
+                var envelope = movement.Curve.Bounds(start, end);
+                var padding = Vector3.Max(centerBounds.min - envelope.min, envelope.max - centerBounds.max);
+                var expanded = box;
+                expanded.Expand(2f * padding);
+                float u0, u1;
+                if (!SegmentBoxSpan(a, b, expanded, out u0, out u1)) continue;
+                s0 = Mathf.Min(s0, Mathf.Lerp(start, end, u0));
+                s1 = Mathf.Max(s1, Mathf.Lerp(start, end, u1));
             }
             return s0 <= s1;
+        }
+
+        private static bool SegmentBoxSpan(Vector3 a, Vector3 b, Bounds box, out float u0, out float u1)
+        {
+            u0 = 0f; u1 = 1f;
+            var delta = b - a;
+            var min = box.min;
+            var max = box.max;
+            for (int axis = 0; axis < 3; axis++)
+            {
+                if (delta[axis] == 0f)
+                {
+                    if (a[axis] < min[axis] || a[axis] > max[axis]) return false;
+                    continue;
+                }
+                float lo = (min[axis] - a[axis]) / delta[axis];
+                float hi = (max[axis] - a[axis]) / delta[axis];
+                u0 = Mathf.Max(u0, Mathf.Min(lo, hi));
+                u1 = Mathf.Min(u1, Mathf.Max(lo, hi));
+                if (u0 > u1) return false;
+            }
+            return true;
         }
 
         private static bool Contains(IReadOnlyList<RoadId> ids, RoadId id)

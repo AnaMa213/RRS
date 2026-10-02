@@ -192,7 +192,7 @@ development_status:
   # Inserted 2026-09-29 (sprint-change-proposal-2026-09-29.md): tracking-error
   # coverage in Gate A evidence and owner re-signature. Gate B closes after it.
   5-52-tracking-error-coverage-in-gate-a-evidence-and-owner-re-signature: review
-  5-32-perception-boundary-occupancy-leader-and-hazards: review
+  5-32-perception-boundary-occupancy-leader-and-hazards: done
   5-33-vehicle-following-through-named-speed-constraints: backlog
   5-34-junction-coordination-core-grants-and-conflicts: backlog
   5-35-authored-control-kinds-stop-yield-priority-roundabout: backlog
