@@ -1,0 +1,21 @@
+Commande : .\scripts\validate.ps1 -TestMode EditMode -TestFilter Story552Regeneration -TestFilterType category -IncludeExplicit
+2026-10-02, premier passage ; extrait brut final, code de sortie 1.
+
+  [FAIL] RoadRage.Tests.EditMode.Story552RegenerationTests.B_TheKinematicRegenerationIsCompleteAndDeterministic :   Aucune decision signee (empreinte v1) ne survit a une enveloppe changee : movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2595419089204212690-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3090780301558315585-2089303282 x movement:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3140214303589415212-2089303282>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1603012186147765281-2089303282
+  Expected: not equal to Confirmed
+  But was:  Confirmed
+
+ECHEC: 1/3 test(s) EditMode en echec.
+
+---- Recapitulatif de validation ----
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          645 (1 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            completed
+  Erreurs Console          0 depuis le curseur 645
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 94 (informatif, hors gate)
+  Profil                   Full (suite complete, aucune exclusion)
+  Selection explicite      3 test(s) attendus (categorie Story552Regeneration, EditMode)
+-------------------------------------
+VALIDATION FAILED / INCOMPLETE

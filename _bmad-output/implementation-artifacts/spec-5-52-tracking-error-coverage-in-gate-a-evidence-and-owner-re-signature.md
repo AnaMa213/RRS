@@ -2,9 +2,9 @@
 title: 'Story 5.52 -- Couverture de l''erreur de suivi et pose nominale cinematique dans la preuve Gate A, re-signature proprietaire'
 type: 'feature'
 created: '2026-09-30'
-status: 'review'
+status: 'done'
 baseline_commit: '5845dc54f70818097b302935e1f4669df7b38414'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context:
   - '{project-root}/_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
   - '{project-root}/_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-29.md'
@@ -197,7 +197,61 @@ context:
 - Given la preuve regeneree, when la Gate A est re-signee, then seul le proprietaire signe un enregistrement format 3 ; l'ancien reste dans l'historique ; la liaison lit a_e = 0,34 m et `Kinematic`.
 - Given la nouvelle signature, when le jalon 1 est rejoue hors mesure, then les vehicules V2 roulent de portail a portail dans la portee de preuve, et la Gate B se ferme.
 
+### Review Findings
+
+Code review du 2026-10-02 : baseline `5845dc54f70818097b302935e1f4669df7b38414`, livraison `5f5e776daf96b96baa6adb3f6e3c6c9377eefe10`, persistance des constats verifiee dans HEAD `3cec4bd`. Les quatre couches BMAD ont termine : blind-hunter, edge-case-hunter, verification-gap et acceptance-auditor. Six items `patch`, aucun arbitrage proprietaire, aucun item differe. La revue ne modifie ni la geometrie ni les artefacts signes. Les parametres actuels de MVP_Run ne declenchent pas les deux cas limites numeriques ci-dessous.
+
+- [x] [Review][Patch][P1/high][R1] Refuser une preuve dont les entrees de faisabilite V2 ont change [Assets/RoadRage/Features/Vehicles/Traffic/Planning/GateAEvidenceBinding.cs:99]. Le format 3 compare `EvidenceParametersHash` au texte du rapport, sans comparer les parametres signes aux profils effectivement utilises. Par exemple, reduire le taux de braquage V2 a `1 deg/s` reste valide pour `VehicleProfileDef.TryValidate`, mais les textes modele/sign-off/rapport et la cle de cache restent identiques : admission `Allowed`, couverture `Covered`. Le taux entre pourtant dans `GateAEvidenceParameters.CanonicalText` (:134) et dans la preuve de faisabilite. Le spawner ne compare pas ces entrees ; `SpeedPlan.Build` ne borne pas le taux de braquage, et le driver ne fait que journaliser `NominalPoseInfeasible` (:493). Comparer les entrees courantes a celles de la preuve avant admission, et couvrir la modification d'un profil signe par un test. AC : preuve perimee fermee ; contrat section 8 : pose infaisable jamais couverte. Source : blind-hunter.
+
+- [x] [Review][Patch][P2/medium][R2] Empecher le retrait au portail pendant la reponse 2a [Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs:352]. Le driver continue a fixer `HasReachedExitPortal` meme lorsque `ToleranceResponse.Latched` est vrai. `PortalTrafficSpawner.ReleaseVehiclesAtExitPortals` (:342-358) retire ensuite le vehicule et appelle `Despawn` sans consulter le verrou. Un depassement peu avant la sortie, suivi d'un franchissement pendant le freinage, ou une poussee externe franchissant le portail apres l'arret, fait disparaitre le vehicule. Le verrou doit aussi empecher la fin normale du trajet et son retrait, avec un test d'integration au portail. AC/Always/Never de la reponse 2a : vehicule present, maintien compris, aucun despawn. Source : acceptance-auditor.
+
+- [x] [Review][Patch][P2/medium][R3] Empecher la replanification pendant la reponse 2a [Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs:360]. Le verrou ne supprime la commande qu'apres `PlanningSpine.Evaluate` et l'adoption de route (:374). Une poussee en arriere sur le corridor rend `RoutePlanner.TryReuse` invalide lorsque `location.SMeters < plan.ProgressSMeters` (:459) : le driver incremente `ReplanCount` et adopte la nouvelle reference avant son freinage en repli. Conserver l'observation necessaire au diagnostic sans adopter une nouvelle route apres verrouillage ; verifier une poussee vers l'arriere en PlayMode. Never de la reponse 2a : aucune recuperation ni replanification, reservees a 5.39. Source : acceptance-auditor.
+
+- [x] [Review][Patch][P2/medium][R4] Tester le declenchement du repli dans le driver reel [Assets/RoadRage/Tests/PlayMode/Story552ToleranceResponsePlayModeTests.cs:150]. Le banc cree seulement `VehiclePhysicsBody`, verrouille manuellement un `TrackingToleranceResponse` distinct, puis fournit directement `null` et `TrackingToleranceExceeded` au composeur (:191). Il ne teste ni la mesure du driver (:462), ni son branchement du verrou (:425). Le test EditMode (:281) recherche seulement des fragments de source ; le jalon sain impose que la tolerance ne soit jamais depassee. Remplacer l'appel runtime par `Observe(step, true, declared, displacement)` laisserait ces controles verts tout en supprimant le verrou de tous les vehicules reels hors mesure. Ajouter un scenario dans MVP_Run sur un driver reseau effectivement insere, provoquer le depassement puis observer le refus aux pas suivants, l'arret maintenu et la poussee. AC : depassement hors mesure declenchant le repli jusqu'au maintien. Source : verification-gap.
+
+- [x] [Review][Patch][P2/medium][R5] Calculer le pire residu d'anneau sur tout l'intervalle de caps [Assets/RoadRage/Features/Vehicles/Traffic/Migration/RoundaboutClearance.cs:189]. `RingOffsetMax` ne conserve que max|e| et `Measure` calcule le residu a ce seul angle. La monotonie annoncee sous 65 deg depend du rapport longueur/largeur et ne vaut pas pour tous les profils admis. Contre-exemple analytique de l'API pure : carre de 2 m (`MaxVehicleLengthMeters=2`, `MaxVehicleHalfWidthMeters=1`), rayons 100/105.5 m, marge et allocation nulles, intervalle contenant 45 et 60 deg. Les formules donnent environ `+0.035934 m` a 60 deg, mais `-0.156854 m` a 45 deg (`105.5 - (100 + 4*sqrt(2))`). Utiliser seulement l'extreme peut donc cacher un deficit interieur. Borner explicitement le domaine de monotonie en fonction du gabarit ou minimiser sur l'intervalle complet avec une borne conservative ; tester ce contre-exemple. Cas synthetique sur des entrees acceptees, sans deficit demontre sur le gabarit/cap actuels de MVP_Run. AC/contrat section 8 : union de toutes les poses, residu non positif jamais couvert. Source : edge-case-hunter.
+
+- [x] [Review][Patch][P2/medium][R6] Refuser l'angle nominal impossible quand le seuil de direction active vaut zero [Assets/RoadRage/Features/Vehicles/Traffic/Migration/KinematicOffsetBounds.cs:390]. `RoadModelValidator.CheckDrivabilityProfile` autorise `SteeringInactiveBelowMetersPerSecond=0`. Avec `L/a=1`, un braquage maximal de 30 deg et un intervalle atteignable contenant e=40 deg, le braquage nominal depasse le maximum ; `NominalSteeringCeilingMetersPerSecond` renvoie pourtant 0, `lockMargin=0-0` passe et le taux est multiplie par la vitesse 0. `CheckFeasibility` ne produit alors aucun `NominalPoseInfeasible`. Verifier explicitement l'angle nominal contre le braquage disponible, sans utiliser une vitesse nulle comme preuve de faisabilite d'un angle impossible, et tester ce seuil valide. Le seuil actuel de MVP_Run est 0.25 m/s : ce cas limite ne le touche pas. AC/contrat section 8 : faisabilite partout, pose infaisable jamais couverte. Source : edge-case-hunter.
+
+Verification executee pendant cette revue : `./scripts/validate.ps1 -Profile Story -Story 5.52 -TestMode Both`, code de sortie 0. Extrait brut du recapitulatif :
+
+```text
+  VALIDATION STORY (Story552)
+  Tests executes           26 au total (2 en PlayMode)
+  Suites completes         non executees ; reservees a la fin d'epic
+  Recompilation            up_to_date
+  Erreurs Console          0 depuis le curseur 423
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Tests EditMode           24/24 passes
+  Ignores EditMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Non executes (selection) 1054 test(s) de la suite EditMode, hors profil Story
+  Tests PlayMode           2/2 passes
+  Ignores PlayMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Couverture PlayMode      2 test(s) de la story ; suite complete non executee
+  Scenes ouvertes          aucune scene modifiee
+  Arbre de travail         propre
+OK
+VALIDATION STORY (Story552) : tests de la story seulement. Suites completes non executees ; elles relevent de la fin d'epic. Cette sortie ne vaut pas validation complete.
+```
+
+Les tests existants passent ; les contre-exemples de revue sont issus du code et de l'analyse mathematique, sans execution de sonde ou de script de verification ajoute. La campagne explicite de regeneration n'a pas ete relancee pendant cette revue. Les six corrections restent a implementer et a verifier. Story remise en `in-progress` ; la 5.33 reste bloquee par sa decision D8.
+
+Corrections appliquees le 2026-10-02 (R1 a R6) :
+- R1 : `TrafficV2Lifecycle.AdmitCommittedArtifacts(prefab)` calcule le hash canonique des parametres de preuve sur le prefab effectivement insere ; `GateAEvidenceBinding.Bind` rend `GateAEvidenceStale` s'il differe du hash signe. Le spawner admet une seule fois, avec son propre prefab : une readmission a chaque `FixedUpdate` relisait le modele de 5 Mo et a ete ecartee. Test PlayMode `ChangedPrefabFeasibilityInputsInvalidateAdmissionAndItsCache` : taux de braquage, adherence, vitesse desiree et gravite modifies, admission et insertion refusees.
+- R2 : sous verrou, la sortie n'est plus detectee et `HasReachedExitPortal` reste faux ; le spawner ne retire donc pas le vehicule.
+- R3 : la mesure de tolerance precede la detection de sortie et la planification ; sous verrou, `PlanningSpine.Evaluate` n'est plus appele, aucune route n'est adoptee, la derniere projection est conservee pour le diagnostic.
+- R4 : `AnActualToleranceExceedanceHoldsTheDriverAcrossPushesAndItsExit` dans `MVP_Run` sur le driver reseau insere : poussee laterale reelle pres du portail, verrou mesure par le driver, arret maintenu, poussee arriere sans replanification ni nouvelle reference, franchissement pousse du portail sans despawn.
+- R5 : `RoundaboutClearance.WorstResidual` evalue le residu a min(max|e|, atan2(L/2, W)) ; contre-exemple du carre de 2 m et balayage dense testes. Residus de `MVP_Run` inchanges.
+- R6 : `CheckFeasibility` refuse toute pose dont le braquage nominal atan(L/a tan e) depasse `LowSpeedLockDegrees`, quel que soit le seuil de direction inactive ; teste a 0 et 0,25 m/s.
+- Campagne explicite de regeneration : son assertion datait d'avant la re-signature ; apres signature, l'enveloppe courante doit reconfirmer chaque empreinte (136 `Confirmed`). Premier echec conserve dans `gate-a-5-52/review-fixes-regeneration-first-failure.txt`. Artefacts signes inchanges.
+
+Verification : `validate.ps1 -Profile Story -Story 5.52` EditMode 26/26, campagne `Story552Regeneration` explicite 3/3, PlayMode 4/4 (0 skipped, 0 inconclusive), 0 erreur Console. Un premier passage PlayMode a echoue 1/4 : la fenetre d'approche du test R4 utilisait une projection differente de celle du retrait ; corrigee pour employer la localisation de `HasReachedExit`. Story en `done` a la demande du proprietaire.
+
 ## Spec Change Log
+
+- 2026-10-02 : corrections R1 a R6 appliquees et testees (EditMode Story 26/26, regeneration explicite 3/3, PlayMode Story 4/4, 0 erreur Console). Artefacts signes inchanges. Story `done` a la demande du proprietaire, sprint synchronise.
+
+- 2026-10-02 : revue BMAD en quatre couches, six corrections ouvertes (R1 a R6), profil Story 5.52 Both vert (24/24 EditMode, 2/2 PlayMode, 0 erreur Console). Story `in-progress`, sprint synchronise ; aucun code ni artefact signe modifie.
 
 - 2026-10-01 : Gate A re-signee par Kenan (format 3, `kinematic-v1`, `a_e = 0,34 m`, 24 raccords). L'ancienne signature format 2 est conservee verbatim dans l'historique. Liaison reelle EditMode Story 5.52 : 24/24, 0 erreur Console ; la revue a ajoute la restauration des fichiers deja remplaces si la seconde ecriture de re-signature echoue. Jalon 1 hors mesure dans `MVP_Run` : PlayMode Story 5.52 2/2, 0 skipped, 0 inconclusive, 0 erreur Console ; Gate B fermee pour ce jalon, sous le modele M seulement. Regression PlayMode Story 5.31 : 13/13, 0 erreur Console. Preuve et hashes : `gate-a-5-52/phase-c-post-signature.md`. Commit approuve `afc4ef0` ; Story en `review`.
 
@@ -229,7 +283,7 @@ context:
 
 **Anneau tourne.**
 - Point interieur = distance du centre au rectangle tourne (bord ou coin). Coin exterieur = √(R² + W² + (L/2)² + 2R(W·cos e + (L/2)|sin e|)).
-- Les deux sont croissants en |e| pour e < 65° : le pire cas est en max|e|, exact et sans grille.
+- Le pire cas sur [0, max|e|] est a min(max|e|, atan2(L/2, W)) : le maximum depend du gabarit, exact et sans grille.
 
 **Point d'arret attendu.**
 - 0,1127 − 0,34 ≈ −0,227 m sur le diagnostic, avant l'effet du cap. Le rapport final nomme chaque ligne ≤ 0 pour le correct-course geometrique.
