@@ -144,9 +144,9 @@ __pycache__/
 # Traffic V2 campaign raw per-step output: exploratory runs stay local (5-10 MB each);
 # acceptance runs are committed as closing evidence.
 /_bmad-output/implementation-artifacts/traffic-v2-*-measurements/exploratory-*-steps.tsv
-/_bmad-output/implementation-artifacts/traffic-v2-5-33-explorations/explore-*-steps.tsv
-/_bmad-output/implementation-artifacts/traffic-v2-5-33-explorations/perf-*-steps.tsv
-/_bmad-output/implementation-artifacts/traffic-v2-5-33-explorations/perf-*-frames.tsv
+/_bmad-output/implementation-artifacts/traffic-v2-*-explorations/explore-*-steps.tsv
+/_bmad-output/implementation-artifacts/traffic-v2-*-explorations/perf-*-steps.tsv
+/_bmad-output/implementation-artifacts/traffic-v2-*-explorations/perf-*-frames.tsv
 
 # Third-party paid asset packs. Synty EULA / Unity Asset Store Extension Asset licence forbids
 # redistribution, and this repository is public, so the raw pack must never be committed.
