@@ -13,6 +13,7 @@ using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Blockers;
 using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
+using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
@@ -1120,6 +1121,54 @@ namespace RoadRage.Tests.EditMode
             var cutIn = next(new LongitudinalPerception(PerceptionUnavailableReason.None, new LongitudinalLeader(new RoadId(7, 7), holdGap, 0f), null));
             Assert.That(cutIn.Hold.Phase, Is.EqualTo(StopHoldPhase.Entered));
             Assert.That(cutIn.Hold.SourceId, Is.EqualTo(new RoadId(7, 7)));
+        }
+
+        [TestCase(PerceptionUnavailableReason.ChannelUnavailable)]
+        [TestCase(PerceptionUnavailableReason.ChannelSaturated)]
+        [TestCase(PerceptionUnavailableReason.HazardCollectorSaturated)]
+        public void AnUnavailablePerceptionNeverReleasesAVisibleStopHoldSource(PerceptionUnavailableReason reason)
+        {
+            var driver = Driver;
+            var settings = TrafficV2Settings.StopHold;
+            var plan = PlanAt(1f, 0f, driver);
+            var vehicle = AssetDatabase.LoadAssetAtPath<VehicleProfileDef>(
+                "Assets/RoadRage/ScriptableObjects/Vehicles/VehicleProfileDef_Default.asset").Profile;
+            foreach (bool obstacle in new[] { false, true })
+                foreach (bool departure in new[] { false, true })
+                {
+                    float holdGap = driver.MinimumGap + settings.HoldGapMarginMeters * 0.5f;
+                    var entered = Decide(plan, driver, 0f, Dt,
+                        obstacle ? ObstacleOnly(holdGap, 0f, PerceivedObstacleKind.TrafficActor) : LeaderOnly(holdGap, 0f),
+                        LongitudinalMemory.None);
+                    Assert.That(entered.Hold.Active, Is.True);
+                    var before = BlockerTracker.Update(null, entered, driver, 29);
+                    float gap = driver.MinimumGap + (departure ? settings.HoldGapMarginMeters + 0.05f : settings.ReleaseGapMarginMeters);
+                    float speed = departure ? settings.SourceDepartureSpeedMetersPerSecond : 0f;
+                    var saturated = new LongitudinalPerception(reason,
+                        obstacle ? (LongitudinalLeader?)null : new LongitudinalLeader(Other, gap, speed),
+                        obstacle ? new[] { new LongitudinalObstacle(HazardId, PerceivedObstacleKind.TrafficActor, gap, speed) } : null);
+
+                    var held = Decide(plan, driver, 0f, Dt, saturated, entered.Memory);
+                    Assert.That(held.Hold.Phase, Is.EqualTo(StopHoldPhase.Holding), held.ToText());
+                    Assert.That(held.Hold.Release, Is.EqualTo(StopHoldRelease.None));
+                    Assert.That(held.Hold.SourceId, Is.EqualTo(entered.Hold.SourceId));
+                    Assert.That(held.AppliedAccelerationMetersPerSecondSquared, Is.LessThan(0f));
+                    var blocker = BlockerTracker.Update(before, held, driver, 30).Single();
+                    Assert.That(blocker.SinceFrame, Is.EqualTo(29UL));
+                    Assert.That(blocker.BlockingActorOrRule, Is.EqualTo(before.Single().BlockingActorOrRule));
+                    var command = new MotionCommand(30, 30, 30, held.AppliedAccelerationMetersPerSecondSquared, 0f, held.Binding.Constraint);
+                    var composed = new VehicleDriveIntentComposer(vehicle, driver.SafeBrakingLimit, Dt)
+                        .Compose(30, command, V2FallbackReason.None, 0f, 0f);
+                    Assert.That(composed.Fallback, Is.False);
+                    Assert.That(composed.Intent.Handbrake, Is.EqualTo(1f), "le maintien physique tient aussi");
+
+                    var available = new LongitudinalPerception(PerceptionUnavailableReason.None,
+                        saturated.HasLeader ? (LongitudinalLeader?)saturated.Leader : null, saturated.Obstacles);
+                    var released = Decide(plan, driver, 0f, Dt, available, held.Memory);
+                    Assert.That(released.Hold.Release, Is.EqualTo(departure ? StopHoldRelease.SourceDeparted : StopHoldRelease.GapOpened));
+                    Assert.That(released.Hold.Active, Is.False);
+                    Assert.That(BlockerTracker.Update(new[] { blocker }, released, driver, 31), Is.Empty);
+                }
         }
 
         [Test]

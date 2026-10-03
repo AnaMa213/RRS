@@ -477,9 +477,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                         ? new StopHoldState(StopHoldPhase.Holding, previous.HoldCause, previous.HoldSourceId, float.NaN, float.NaN,
                             StopHoldRelease.None)
                         : Released(previous, float.NaN, float.NaN, StopHoldRelease.SourceGone);
-                else if (source.GapMeters >= s0 + stopHold.ReleaseGapMarginMeters)
+                else if (perception.UnavailableReason == PerceptionUnavailableReason.None
+                    && source.GapMeters >= s0 + stopHold.ReleaseGapMarginMeters)
                     hold = Released(previous, source.GapMeters, source.SourceSpeedMetersPerSecond, StopHoldRelease.GapOpened);
-                else if (source.SourceSpeedMetersPerSecond >= stopHold.SourceDepartureSpeedMetersPerSecond
+                else if (perception.UnavailableReason == PerceptionUnavailableReason.None
+                    && source.SourceSpeedMetersPerSecond >= stopHold.SourceDepartureSpeedMetersPerSecond
                     && source.GapMeters > s0 + stopHold.HoldGapMarginMeters)
                     hold = Released(previous, source.GapMeters, source.SourceSpeedMetersPerSecond, StopHoldRelease.SourceDeparted);
                 else
