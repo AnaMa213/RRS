@@ -51,12 +51,31 @@ namespace RoadRage.App.Run
         private bool compositionFrozen;
         private TrafficComposition composition = TrafficComposition.V1;
         private MeasurementRun measurement;
+        private TrafficV2Scenario scenario;
         private bool warnedCompositionChange;
         private bool warnedV2Refusal;
         private TrafficV2Admission v2Admission;
         private int v2InsertionCounter;
         private int v2NextTriplet;
+        private int v2NextScenarioInsertion;
         private int v2EntryCursor;
+
+        /// <summary>Story 5.33 : ordonnanceur hote, une seule frame partagee par pas pour tous les vehicules V2.</summary>
+        private readonly TrafficV2StepRunner v2Runner = new TrafficV2StepRunner();
+        private readonly List<TrafficV2VehicleDriver> v2Drivers = new List<TrafficV2VehicleDriver>();
+        private readonly List<ScenarioInsertionRecord> scenarioInsertions = new List<ScenarioInsertionRecord>();
+
+        /// <summary>Story 5.33 : ordonnanceur V2 de la session (FrameId global, frame, collecteur).</summary>
+        public TrafficV2StepRunner V2Runner
+        {
+            get { return v2Runner; }
+        }
+
+        /// <summary>Story 5.33 : insertions effectives du scenario de test, avec leur FrameId reel d'insertion.</summary>
+        public IReadOnlyList<ScenarioInsertionRecord> ScenarioInsertions
+        {
+            get { return scenarioInsertions; }
+        }
 
         private readonly Collider[] clearanceHits = new Collider[32];
 
@@ -169,6 +188,9 @@ namespace RoadRage.App.Run
             ResolveCompositionOnce();
             if (composition == TrafficComposition.V2Slice)
             {
+                // Story 5.33 : retrait, puis frame et pas de chaque vehicule par TrafficId croissant, puis insertion.
+                // Un vehicule insere conduit au pas suivant.
+                StepV2Vehicles();
                 TickV2Slice();
                 return;
             }
@@ -445,11 +467,13 @@ namespace RoadRage.App.Run
             {
                 composition = TrafficV2Session.Composition;
                 measurement = TrafficV2Session.Measurement;
+                scenario = TrafficV2Session.Scenario;
                 compositionFrozen = true;
                 return;
             }
 
-            if (TrafficV2Session.Composition != composition || TrafficV2Session.Measurement != measurement)
+            if (TrafficV2Session.Composition != composition || TrafficV2Session.Measurement != measurement
+                || TrafficV2Session.Scenario != scenario)
             {
                 WarnOnce(ref warnedCompositionChange, "composition de trafic changee apres la premiere lecture : changement ignore, la session reste en "
                     + composition + ".");
@@ -457,14 +481,41 @@ namespace RoadRage.App.Run
         }
 
         /// <summary>
+        /// Story 5.33 : une seule frame partagee par pas hote, construite avant tout pas de conduite, puis exactement
+        /// un pas par vehicule V2 lie, par TrafficId croissant. Le FrameId global avance a chaque pas V2Slice.
+        /// </summary>
+        private void StepV2Vehicles()
+        {
+            v2Drivers.Clear();
+            foreach (var networkObject in liveVehicles)
+            {
+                var driver = networkObject != null ? networkObject.GetComponent<TrafficV2VehicleDriver>() : null;
+                if (driver != null)
+                {
+                    v2Drivers.Add(driver);
+                }
+            }
+
+            v2Runner.Step(v2Admission != null ? v2Admission.Model : null, v2Drivers);
+        }
+
+        /// <summary>
         /// Story 5.31 : branche V2Slice. Aucun vehicule V1, au plus un vehicule V2 vivant, insertions
         /// successives a un portail d'entree libre, retrait uniquement au portail de sortie. Hors run de
         /// mesure, un vehicule V2 n'entre que si sa couverture est etablie : sinon un code nomme est publie.
+        /// Story 5.33 : seul un scenario de test leve la population, jusqu'a son maximum ; il n'accorde aucune
+        /// permission et il est exclusif avec un run de mesure.
         /// </summary>
         private void TickV2Slice()
         {
+            if (scenario != null && measurement != null)
+            {
+                RefuseV2(TrafficV2Code.ScenarioWithMeasurement, "scenario de test et run de mesure demandes ensemble : aucun vehicule V2 insere.");
+                return;
+            }
+
             // Le retrait a deja eu lieu dans ReleaseVehiclesAtExitPortals, seul chemin de despawn du trafic.
-            if (LiveV2Population >= TrafficV2Settings.V2SliceMaxPopulation)
+            if (LiveV2Population >= (scenario != null ? scenario.MaxPopulation : TrafficV2Settings.V2SliceMaxPopulation))
             {
                 return;
             }
@@ -472,6 +523,12 @@ namespace RoadRage.App.Run
             if (measurement != null && v2NextTriplet >= measurement.Triplets.Count)
             {
                 V2LastCode = TrafficV2Code.CampaignCompleted;
+                return;
+            }
+
+            if (scenario != null && v2NextScenarioInsertion >= scenario.Insertions.Count)
+            {
+                V2LastCode = TrafficV2Code.ScenarioCompleted;
                 return;
             }
 
@@ -514,6 +571,19 @@ namespace RoadRage.App.Run
                 exitId = triplet.ExitPortalId;
                 seed = triplet.Seed;
                 viaMovementId = triplet.ViaMovementId;
+            }
+            else if (scenario != null)
+            {
+                // Calendrier du scenario : l'insertion attend son pas au plus tot, puis un portail libre.
+                var next = scenario.Insertions[v2NextScenarioInsertion];
+                if (v2Runner.FrameId < next.EarliestStep)
+                {
+                    return;
+                }
+
+                entryId = next.EntryPortalId;
+                exitId = next.ExitPortalId;
+                seed = next.Seed;
             }
             else
             {
@@ -559,7 +629,7 @@ namespace RoadRage.App.Run
 
             v2InsertionCounter++;
             instance.name = "AI_VehicleV2_Portal_" + v2InsertionCounter.ToString("D3");
-            instance.GetComponent<TrafficV2VehicleDriver>().Bind(v2Admission, prepared, verdict, measurement != null);
+            instance.GetComponent<TrafficV2VehicleDriver>().Bind(v2Admission, prepared, verdict, measurement != null || scenario != null);
             var spawned = instance.GetComponent<NetworkObject>();
             if (!spawned.IsSpawned)
             {
@@ -571,6 +641,13 @@ namespace RoadRage.App.Run
             if (measurement != null)
             {
                 v2NextTriplet++;
+            }
+
+            if (scenario != null)
+            {
+                // Pas reel d'insertion publie ; le vehicule conduit au pas hote suivant.
+                scenarioInsertions.Add(new ScenarioInsertionRecord(v2NextScenarioInsertion, prepared.TrafficId, v2Runner.FrameId));
+                v2NextScenarioInsertion++;
             }
         }
 

@@ -20,14 +20,54 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         /// <summary>v* inatteignable depuis l'etat courant a la deceleration de confort : freinage a SafeBrakingLimit.</summary>
         SteeringCeilingUnreachable = 7,
         /// <summary>Limite de courbe (2026-09-30, avancee de la 5.33) : v &lt;= racine(a_lat / |kappa|).</summary>
-        CurveLimit = 8
+        CurveLimit = 8,
+        /// <summary>Limite de route authoree (5.33) : plafond nomme, au meme rang que DesiredSpeed et CurveLimit.</summary>
+        RoadLimit = 9,
+        /// <summary>Suivi de leader (5.33) : IDM 5.9 au jeu percu pare-chocs a pare-chocs.</summary>
+        LeaderFollowing = 10,
+        /// <summary>Obstacle du couloir balaye (5.33) : IDM a la distance de sa face proche.</summary>
+        Obstacle = 11,
+        /// <summary>Perception indisponible ou tronquee (5.33) : aucune acceleration.</summary>
+        PerceptionUnavailable = 12
     }
 
-    /// <summary>Limite nommee et reportee. La limite de courbe est appliquee (SpeedConstraint.CurveLimit) depuis le 2026-09-30.</summary>
+    /// <summary>
+    /// Limite nommee et reportee (5.31). Depuis la 5.33, la limite de route est appliquee
+    /// (<see cref="SpeedPlan.RoadLimits"/>) et <see cref="SpeedPlan.DeferredLimits"/> est toujours vide.
+    /// </summary>
     public enum DeferredLimitKind { RoadLimit = 0 }
 
-    /// <summary>Etat d'une limite nommee mais jamais appliquee (reportee a la 5.33).</summary>
+    /// <summary>Etat d'une limite nommee mais jamais appliquee (5.31) ; aucune limite n'est plus reportee depuis la 5.33.</summary>
     public enum DeferredLimitState { DeferredUnauthored = 0, DeferredAuthored = 1 }
+
+    /// <summary>Etat publie de la limite de route d'un element (5.33).</summary>
+    public enum RoadLimitState
+    {
+        /// <summary>0 authore : aucun plafond, jamais presente comme une limite appliquee.</summary>
+        Unauthored = 0,
+        Applied = 1
+    }
+
+    /// <summary>Limite de route d'un element de l'horizon : Applied(v) ou Unauthored.</summary>
+    public readonly struct RoadLimitValue
+    {
+        public readonly RoadElementKind ElementKind;
+        public readonly RoadId ElementId;
+        public readonly RoadLimitState State;
+        /// <summary>Plafond applique (m/s) quand <see cref="State"/> vaut Applied, sinon 0.</summary>
+        public readonly float MetersPerSecond;
+
+        public RoadLimitValue(RoadElementKind elementKind, RoadId elementId, float authored)
+        {
+            ElementKind = elementKind; ElementId = elementId;
+            bool applied = authored > 0f && !float.IsNaN(authored) && !float.IsInfinity(authored);
+            State = applied ? RoadLimitState.Applied : RoadLimitState.Unauthored;
+            MetersPerSecond = applied ? authored : 0f;
+        }
+
+        /// <summary>Plafond de vitesse : +inf quand la limite n'est pas authoree.</summary>
+        public float CapMetersPerSecond { get { return State == RoadLimitState.Applied ? MetersPerSecond : float.PositiveInfinity; } }
+    }
 
     public enum SpeedPlanIssue { None = 0, PlanInfeasible = 1, InvalidInput = 2, ProfileRefused = 3 }
 
@@ -68,24 +108,31 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         public readonly float CurrentStateMetersPerSecond;
         /// <summary>Limite de courbe retenue sur le voisinage du noeud ; +inf en ligne droite.</summary>
         public readonly float CurveLimitMetersPerSecond;
+        /// <summary>Limite de route retenue sur le voisinage du noeud (5.33) ; +inf si aucune n'est authoree.</summary>
+        public readonly float RoadLimitMetersPerSecond;
 
         internal SpeedPlanPoint(float distance, float speed, SpeedConstraint binding, float desired, bool unbounded,
-            float ceiling, float backward, float forward, float current, float curveLimit)
+            float ceiling, float backward, float forward, float current, float curveLimit,
+            float roadLimit = float.PositiveInfinity)
         {
             DistanceMeters = distance; SpeedMetersPerSecond = speed; Binding = binding;
             DesiredMetersPerSecond = desired; CeilingUnbounded = unbounded;
             CeilingMetersPerSecond = unbounded ? 0f : ceiling;
             BackwardMetersPerSecond = backward; ForwardMetersPerSecond = forward;
             CurrentStateMetersPerSecond = current; CurveLimitMetersPerSecond = curveLimit;
+            RoadLimitMetersPerSecond = roadLimit;
         }
     }
 
     /// <summary>
     /// Plan de vitesse a contraintes nommees (Story 5.31, A3). Contraintes appliquees : vitesse desiree,
-    /// plafond de braquage v*(s), limite de courbe et bornes longitudinales ; la limite de route est nommee et
-    /// reportee (5.33), jamais appliquee. Passe arriere a la deceleration de confort, passe avant a
-    /// l'acceleration maximale, verification par le verificateur 5.30 avec les bornes du profil
-    /// (MaxAcceleration, SafeBrakingLimit).
+    /// limite de route (5.33), plafond de braquage v*(s), limite de courbe et bornes longitudinales. Passe
+    /// arriere a la deceleration de confort, passe avant a l'acceleration maximale, verification par le
+    /// verificateur 5.30 avec les bornes du profil (MaxAcceleration, SafeBrakingLimit).
+    ///
+    /// Limite de route (5.33, decision D6) : valeur compilee du corridor ; pour un mouvement, min des valeurs
+    /// authorees de ses corridors d'origine et de destination ; 0 = non authoree, aucun plafond, publiee
+    /// Unauthored. Aucune limite n'est plus reportee.
     ///
     /// Limite de courbe (decision proprietaire du 2026-09-30, avancee de la 5.33) : v &lt;= racine(a_lat / |kappa|),
     /// a_lat = min(ComfortableDeceleration, adherence laterale du vehicule). Le conducteur applique a
@@ -106,7 +153,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         public const float PlanningBoundMargin = 0.99f;
 
         public IReadOnlyList<SpeedPlanPoint> Points { get; }
+        /// <summary>Toujours vide depuis la 5.33 : la limite de route est appliquee (<see cref="RoadLimits"/>).</summary>
         public IReadOnlyList<DeferredLimit> DeferredLimits { get; }
+        /// <summary>Limite de route publiee par intervalle de l'horizon (5.33) : Applied(v) ou Unauthored.</summary>
+        public IReadOnlyList<RoadLimitValue> RoadLimits { get; }
         public SpeedConstraint Binding { get; }
         public float PlanningDecelerationMetersPerSecondSquared { get; }
         public SpeedPlanIssue Issue { get; }
@@ -122,11 +172,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         /// <summary>a_lat de la limite de courbe (m/s2).</summary>
         public float LateralAccelerationMetersPerSecondSquared { get; }
 
-        private SpeedPlan(List<SpeedPlanPoint> points, List<DeferredLimit> deferred, SpeedConstraint binding,
+        private static readonly DeferredLimit[] NoDeferredLimits = new DeferredLimit[0];
+
+        private SpeedPlan(List<SpeedPlanPoint> points, List<RoadLimitValue> roadLimits, SpeedConstraint binding,
             float deceleration, SpeedPlanIssue issue, SpeedProfileResult verification, MotionIssue planIssue,
             SpeedConstraint limiting = SpeedConstraint.None, float lateral = 0f)
         {
-            Points = points.AsReadOnly(); DeferredLimits = deferred.AsReadOnly(); Binding = binding;
+            Points = points.AsReadOnly(); DeferredLimits = Array.AsReadOnly(NoDeferredLimits);
+            RoadLimits = roadLimits.AsReadOnly(); Binding = binding;
             PlanningDecelerationMetersPerSecondSquared = deceleration; Issue = issue;
             Verification = verification; PlanIssue = planIssue;
             LimitingConstraint = limiting; LateralAccelerationMetersPerSecondSquared = lateral;
@@ -165,28 +218,35 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         {
             if (motion == null) throw new ArgumentNullException("motion");
             if (model == null) throw new ArgumentNullException("model");
-            var deferred = DeferredLimitsOf(motion.Path, model);
+            var roadLimits = RoadLimitsOf(motion.Path, model);
             var empty = new List<SpeedPlanPoint>();
             var bounds = new LongitudinalBounds(driver.MaxAcceleration, driver.SafeBrakingLimit);
             if (motion.Issue != MotionIssue.None)
-                return new SpeedPlan(empty, deferred, SpeedConstraint.None, 0f, SpeedPlanIssue.PlanInfeasible,
+                return new SpeedPlan(empty, roadLimits, SpeedConstraint.None, 0f, SpeedPlanIssue.PlanInfeasible,
                     new SpeedProfileResult(SpeedProfileIssue.PlanInfeasible, motion.IssueDistanceMeters,
                         motion.Diagnostics, motion.Issue), motion.Issue);
             float desired = driver.DesiredSpeed;
             float comfortable = driver.ComfortableDeceleration;
             if (!bounds.Valid || !IsFinite(desired) || desired < 0f || !(comfortable > 0f) || !IsFinite(comfortable)
                 || !IsFinite(currentSpeedMetersPerSecond) || !(lateralGripMetersPerSecondSquared > 0f))
-                return new SpeedPlan(empty, deferred, SpeedConstraint.None, 0f, SpeedPlanIssue.InvalidInput,
+                return new SpeedPlan(empty, roadLimits, SpeedConstraint.None, 0f, SpeedPlanIssue.InvalidInput,
                     new SpeedProfileResult(SpeedProfileIssue.InvalidSpeedProfile, 0f, motion.Diagnostics), MotionIssue.None);
             double lateral = Math.Min(comfortable, lateralGripMetersPerSecondSquared);
 
-            // Points de l'horizon a plafond regroupe : un raccord porte le min des deux cotes (et la plus forte courbure).
-            var distances = new List<float>();
-            var ceilings = new List<float>();
-            var unbounded = new List<bool>();
-            var curvatures = new List<float>();
-            foreach (var interval in motion.Path.Intervals)
-                foreach (var point in interval.Points)
+            // Points de l'horizon a plafond regroupe : un raccord porte le min des deux cotes (et la plus forte courbure,
+            // et la plus basse limite de route).
+            // Listes a la capacite exacte (Story 5.33, D14) : aucune reallocation, memes valeurs.
+            int total = 0;
+            for (int interval = 0; interval < motion.Path.Intervals.Count; interval++) total += motion.Path.Intervals[interval].Points.Count;
+            var distances = new List<float>(total);
+            var ceilings = new List<float>(total);
+            var unbounded = new List<bool>(total);
+            var curvatures = new List<float>(total);
+            var limits = new List<float>(total);
+            for (int interval = 0; interval < motion.Path.Intervals.Count; interval++)
+            {
+                float limit = roadLimits[interval].CapMetersPerSecond;
+                foreach (var point in motion.Path.Intervals[interval].Points)
                 {
                     int last = distances.Count - 1;
                     float curvature = Math.Abs(point.Reference.CurvaturePerMeter);
@@ -195,15 +255,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                         if (!point.Unbounded && (unbounded[last] || point.SteeringCeilingMetersPerSecond < ceilings[last]))
                         { ceilings[last] = point.SteeringCeilingMetersPerSecond; unbounded[last] = false; }
                         curvatures[last] = Math.Max(curvatures[last], curvature);
+                        limits[last] = Math.Min(limits[last], limit);
                         continue;
                     }
                     distances.Add(point.DistanceMeters);
                     ceilings.Add(point.Unbounded ? 0f : point.SteeringCeilingMetersPerSecond);
                     unbounded.Add(point.Unbounded);
                     curvatures.Add(curvature);
+                    limits.Add(limit);
                 }
+            }
             if (distances.Count == 0)
-                return new SpeedPlan(empty, deferred, SpeedConstraint.None, 0f, SpeedPlanIssue.InvalidInput,
+                return new SpeedPlan(empty, roadLimits, SpeedConstraint.None, 0f, SpeedPlanIssue.InvalidInput,
                     new SpeedProfileResult(SpeedProfileIssue.InvalidSpeedProfile, 0f, motion.Diagnostics), MotionIssue.None);
 
             // Noeuds du profil : au plus un tous les MinimumKnotSpacingMeters, premier et dernier conserves.
@@ -225,23 +288,27 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             var ceiling = new double[n];
             var ceilingUnbounded = new bool[n];
             var curve = new double[n];
+            var road = new double[n];
             for (int k = 0; k < n; k++)
             {
                 d[k] = distances[knots[k]];
                 // Le verificateur juge chaque sous-intervalle par max(v) aux bornes contre min(v*) aux bornes,
                 // et son v* en un point est le min des deux points d'horizon qui l'encadrent : un noeud porte
                 // donc le plus petit plafond de tous les points entre ses voisins, elargi d'un point de chaque cote.
-                // La limite de courbe prend le meme voisinage (courbure maximale).
+                // La limite de courbe et la limite de route prennent le meme voisinage (courbure maximale, limite minimale) :
+                // un element limite plus court que l'espacement des noeuds reste couvert.
                 int from = Math.Max(0, (k == 0 ? knots[0] : knots[k - 1]) - 2);
                 int to = Math.Min(distances.Count - 1, (k == n - 1 ? knots[n - 1] : knots[k + 1]) + 1);
                 ceilingUnbounded[k] = true;
                 ceiling[k] = 0d;
                 double curvature = 0d;
+                road[k] = double.PositiveInfinity;
                 for (int i = Math.Min(from, to); i <= Math.Max(from, to); i++)
                 {
                     if (!unbounded[i] && (ceilingUnbounded[k] || ceilings[i] < ceiling[k]))
                     { ceiling[k] = ceilings[i]; ceilingUnbounded[k] = false; }
                     curvature = Math.Max(curvature, curvatures[i]);
+                    road[k] = Math.Min(road[k], limits[i]);
                 }
                 curve[k] = curvature > 0d ? Math.Sqrt(lateral / curvature) : double.PositiveInfinity;
             }
@@ -259,6 +326,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             for (int k = 0; k < n; k++)
             {
                 cap[k] = desired; capBinding[k] = SpeedConstraint.DesiredSpeed;
+                if (road[k] < cap[k]) { cap[k] = road[k]; capBinding[k] = SpeedConstraint.RoadLimit; }
                 if (!ceilingUnbounded[k] && ceiling[k] < cap[k])
                 { cap[k] = ceiling[k]; capBinding[k] = SpeedConstraint.SteeringCeiling; }
                 if (curve[k] < cap[k]) { cap[k] = curve[k]; capBinding[k] = SpeedConstraint.CurveLimit; }
@@ -314,7 +382,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             var points = new List<SpeedPlanPoint>(n);
             for (int k = 0; k < n; k++)
                 points.Add(new SpeedPlanPoint((float)d[k], (float)speed[k], binding[k], desired, ceilingUnbounded[k],
-                    (float)ceiling[k], (float)backward[k], (float)forward[k], (float)lower[k], (float)curve[k]));
+                    (float)ceiling[k], (float)backward[k], (float)forward[k], (float)lower[k], (float)curve[k], (float)road[k]));
             // Un seul noeud (horizon nul) : le profil doit tout de meme couvrir [0, L].
             if (points.Count == 2 && points[0].DistanceMeters == points[1].DistanceMeters)
                 points.RemoveAt(1);
@@ -324,7 +392,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                 profile[i] = new SpeedProfilePoint(points[i].DistanceMeters, points[i].SpeedMetersPerSecond);
             var verification = motion.VerifySpeedProfile(profile, bounds);
             var planBinding = unreachable ? SpeedConstraint.SteeringCeilingUnreachable : points[0].Binding;
-            return new SpeedPlan(points, deferred, planBinding, (float)planningDeceleration,
+            return new SpeedPlan(points, roadLimits, planBinding, (float)planningDeceleration,
                 verification.Issue == SpeedProfileIssue.None ? SpeedPlanIssue.None : SpeedPlanIssue.ProfileRefused,
                 verification, verification.PlanIssue, capBinding[origin[0]], (float)lateral);
         }
@@ -358,19 +426,40 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             return true;
         }
 
-        private static List<DeferredLimit> DeferredLimitsOf(PathHorizon path, CompiledRoadModel model)
+        private static List<RoadLimitValue> RoadLimitsOf(PathHorizon path, CompiledRoadModel model)
         {
-            var result = new List<DeferredLimit>();
-            foreach (var interval in path.Intervals)
-            {
-                float authored = 0f;
-                EffectiveLaneCorridor corridor;
-                if (interval.Kind == RoadElementKind.LaneCorridor && model.TryGetCorridor(interval.Id, out corridor))
-                    authored = corridor.SpeedLimitMetersPerSecond;
-                // La limite de courbe est appliquee depuis le 2026-09-30 : seule la limite de route reste reportee.
-                result.Add(new DeferredLimit(interval.Kind, interval.Id, DeferredLimitKind.RoadLimit, authored));
-            }
+            var result = new List<RoadLimitValue>(path.Intervals.Count);
+            foreach (var interval in path.Intervals) result.Add(RoadLimitOf(model, interval.Kind, interval.Id));
             return result;
+        }
+
+        /// <summary>
+        /// Limite de route d'un element (5.33) : valeur compilee d'un corridor ; pour un mouvement, min des valeurs
+        /// authorees (non nulles) de ses corridors d'origine et de destination. Aucune valeur authoree : Unauthored.
+        /// </summary>
+        public static RoadLimitValue RoadLimitOf(CompiledRoadModel model, RoadElementKind kind, RoadId elementId)
+        {
+            if (model == null) throw new ArgumentNullException("model");
+            float authored = 0f;
+            EffectiveLaneCorridor corridor;
+            CompiledJunctionMovement movement;
+            if (kind == RoadElementKind.LaneCorridor && model.TryGetCorridor(elementId, out corridor))
+                authored = corridor.SpeedLimitMetersPerSecond;
+            else if (kind == RoadElementKind.JunctionMovement && model.TryGetMovement(elementId, out movement))
+            {
+                authored = AuthoredOrZero(model, movement.FromCorridorId);
+                float to = AuthoredOrZero(model, movement.ToCorridorId);
+                if (to > 0f && (authored == 0f || to < authored)) authored = to;
+            }
+            return new RoadLimitValue(kind, elementId, authored);
+        }
+
+        private static float AuthoredOrZero(CompiledRoadModel model, RoadId corridorId)
+        {
+            EffectiveLaneCorridor corridor;
+            if (!model.TryGetCorridor(corridorId, out corridor)) return 0f;
+            float value = corridor.SpeedLimitMetersPerSecond;
+            return value > 0f && IsFinite(value) ? value : 0f;
         }
 
         private static bool IsFinite(float value) { return !float.IsNaN(value) && !float.IsInfinity(value); }

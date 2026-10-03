@@ -24,6 +24,7 @@ namespace RoadRage.Tests.EditMode
     /// </summary>
     [Category("Core")]
     [Category("Story531")]
+    [Category("Story533")]
     public sealed class Story531SpeedPlanAndComposerTests
     {
         private const string DriverProfilePath = "Assets/RoadRage/ScriptableObjects/Vehicles/DriverProfileDef_Default.asset";
@@ -247,14 +248,14 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void TheRoadLimitIsNamedDeferredAndNeverAppliedWhileTheCurveLimitIsApplied()
+        public void TheRoadLimitIsAppliedOrUnauthoredWhileTheCurveLimitIsApplied()
         {
             var plan = Insert(0).FirstSpeedPlan;
-            Assert.That(plan.DeferredLimits.Count, Is.GreaterThan(0));
-            Assert.That(plan.DeferredLimits.All(l => l.State == DeferredLimitState.DeferredUnauthored), Is.True,
-                "limites a 0 dans le modele signe (report 5.33)");
-            Assert.That(plan.DeferredLimits.All(l => l.Kind == DeferredLimitKind.RoadLimit), Is.True,
-                "la limite de courbe n'est plus reportee (decision du 2026-09-30)");
+            // Story 5.33 (D6) : la limite de route n'est plus reportee ; elle est appliquee, ou publiee Unauthored a 0.
+            Assert.That(plan.DeferredLimits, Is.Empty, "plus aucune limite reportee");
+            Assert.That(plan.RoadLimits.Count, Is.GreaterThan(0));
+            Assert.That(plan.RoadLimits.All(l => l.State == RoadLimitState.Unauthored), Is.True,
+                "limites a 0 dans le modele signe : aucun plafond, jamais presente comme une limite appliquee");
             Assert.That(plan.LateralAccelerationMetersPerSecondSquared, Is.EqualTo(Driver.ComfortableDeceleration));
             Assert.That(plan.Points.Any(p => p.Binding == SpeedConstraint.CurveLimit
                 || p.Binding == SpeedConstraint.AnticipatedDeceleration), Is.True);
@@ -262,7 +263,7 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(point.SpeedMetersPerSecond, Is.LessThanOrEqualTo(point.CurveLimitMetersPerSecond * 1.0001f + 1e-4f),
                     "v <= racine(a_lat / |kappa|) au noeud " + point.DistanceMeters);
 
-            // Valeur authoree synthetique non nulle : publiee DeferredAuthored(3), jamais appliquee.
+            // Valeur authoree synthetique non nulle : publiee Applied(3) et appliquee (Story 5.33).
             var source = RoadModelDocument.Load(File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-model.json"));
             for (int i = 0; i < source.Sections.Length; i++) source.Sections[i].DefaultSpeedLimitMetersPerSecond = 3f;
             var model = RoadModelCompiler.Compile(source);
@@ -283,12 +284,13 @@ namespace RoadRage.Tests.EditMode
                 TrafficV2Settings.LookAheadMeters, null, null, null, Driver, TrackingTolerance.Undeclared, null, null, evidence));
             var authored = SpeedPlan.Build(decision.Motion, model, Driver, 0f);
             Assert.That(authored.Accepted, Is.True);
-            var roadLimits = authored.DeferredLimits.Where(l => l.Kind == DeferredLimitKind.RoadLimit
-                && l.ElementKind == RoadElementKind.LaneCorridor).ToList();
+            Assert.That(authored.DeferredLimits, Is.Empty);
+            var roadLimits = authored.RoadLimits.Where(l => l.ElementKind == RoadElementKind.LaneCorridor).ToList();
             Assert.That(roadLimits, Is.Not.Empty);
-            Assert.That(roadLimits.All(l => l.State == DeferredLimitState.DeferredAuthored && l.AuthoredMetersPerSecond == 3f), Is.True);
-            Assert.That(authored.Points.Max(p => p.SpeedMetersPerSecond), Is.GreaterThan(3f),
-                "une limite authoree reportee n'est jamais appliquee");
+            Assert.That(roadLimits.All(l => l.State == RoadLimitState.Applied && l.MetersPerSecond == 3f), Is.True);
+            Assert.That(authored.Points.Max(p => p.SpeedMetersPerSecond), Is.LessThanOrEqualTo(3f + 1e-4f),
+                "une limite authoree est appliquee");
+            Assert.That(authored.Points.Any(p => p.Binding == SpeedConstraint.RoadLimit), Is.True, "et nommee comme liante");
         }
 
         // ------------------------------------------------------------------ giratoires (decision du 2026-09-30)

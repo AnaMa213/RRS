@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace RoadRage.Features.Vehicles.Traffic.Frame
@@ -69,9 +70,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
 
         private static readonly ElementOccupant[] NoOccupants = new ElementOccupant[0];
 
+        // Marqueurs de profilage (diagnostic de performance 5.33) : aucune influence sur la frame.
+        private static readonly ProfilerMarker LocalizeMarker = new ProfilerMarker("TrafficV2.Frame.Localize");
+        private static readonly ProfilerMarker OccupancyMarker = new ProfilerMarker("TrafficV2.Frame.Occupancy");
+        private static readonly ProfilerMarker HazardsMarker = new ProfilerMarker("TrafficV2.Frame.Hazards");
+
         private readonly Dictionary<RoadId, ElementOccupant[]> _occupantsByElement = new Dictionary<RoadId, ElementOccupant[]>();
         private readonly Dictionary<RoadId, ElementOccupant> _occupancyByActor = new Dictionary<RoadId, ElementOccupant>();
         private readonly Dictionary<RoadId, SignalState> _signalByMovement = new Dictionary<RoadId, SignalState>();
+        // Story 5.33, D15 : calculs mutualises entre observateurs, fixes ou purs pour la duree de la frame.
+        private readonly Dictionary<RoadId, TrafficActor[]> _unmeasuredByElement = new Dictionary<RoadId, TrafficActor[]>();
+        private Dictionary<ProjectionKey, RoadProjection> _projections;
         private readonly SpatialEntry[] _spatial;
         private readonly float _maxSpatialWidthX;
 
@@ -114,8 +123,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
                 var input = ordered[i];
                 if (i > 0 && input.TrafficId == ordered[i - 1].TrafficId)
                     throw new ArgumentException("DuplicateTrafficId", "inputs");
+                LocalizeMarker.Begin();
                 var location = RoadLocalizer.Localize(model, input.Pose, input.PreviousElementId, input.RouteElementIds,
                     input.Kinematics);
+                LocalizeMarker.End();
                 bool declared = FootprintDeclared(input.Pose.Footprint);
                 var exclusion = OccupancyExclusion.None;
                 if (!location.Localized) exclusion = OccupancyExclusion.NotLocalized;
@@ -123,7 +134,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
                 else
                 {
                     ElementOccupant occupant;
-                    if (TryOccupy(model, input, location, out occupant))
+                    OccupancyMarker.Begin();
+                    bool occupied = TryOccupy(model, input, location, out occupant);
+                    OccupancyMarker.End();
+                    if (occupied)
                     {
                         _occupancyByActor.Add(input.TrafficId, occupant);
                         List<ElementOccupant> bucket;
@@ -141,6 +155,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
                 actors[i] = new TrafficActor(input, location, declared, exclusion);
             }
             Actors = Array.AsReadOnly(actors);
+            var unmeasured = new Dictionary<RoadId, List<TrafficActor>>();
+            for (int i = 0; i < actors.Length; i++)
+            {
+                if (!actors[i].Location.Localized || actors[i].OccupancyExclusion == OccupancyExclusion.None) continue;
+                List<TrafficActor> bucket;
+                if (!unmeasured.TryGetValue(actors[i].Location.ElementId, out bucket))
+                    unmeasured.Add(actors[i].Location.ElementId, bucket = new List<TrafficActor>());
+                bucket.Add(actors[i]);
+            }
+            foreach (var pair in unmeasured) _unmeasuredByElement.Add(pair.Key, pair.Value.ToArray());
             foreach (var pair in byElement)
             {
                 var values = pair.Value.ToArray();
@@ -148,7 +172,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
                 _occupantsByElement.Add(pair.Key, values);
             }
 
+            HazardsMarker.Begin();
             Hazards = BuildHazards(hazards, spatial);
+            HazardsMarker.End();
             spatial.Sort(CompareSpatial);
             _spatial = spatial.ToArray();
             for (int i = 0; i < _spatial.Length; i++)
@@ -182,6 +208,57 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
         public bool TryGetOccupancy(RoadId trafficId, out ElementOccupant occupant)
         {
             return _occupancyByActor.TryGetValue(trafficId, out occupant);
+        }
+
+        private static readonly TrafficActor[] NoActors = new TrafficActor[0];
+
+        /// <summary>Acteurs localises sur l'element mais sans occupation, par id croissant (index construit une fois par frame).</summary>
+        internal TrafficActor[] UnmeasuredOn(RoadId elementId)
+        {
+            TrafficActor[] actors;
+            return _unmeasuredByElement.TryGetValue(elementId, out actors) ? actors : NoActors;
+        }
+
+        private readonly struct ProjectionKey : IEquatable<ProjectionKey>
+        {
+            private readonly RoadId _entry, _element;
+            private readonly int _min, _max;
+
+            public ProjectionKey(RoadId entry, RoadId element, float sMin, float sMax)
+            {
+                _entry = entry; _element = element;
+                _min = BitConverter.SingleToInt32Bits(sMin); _max = BitConverter.SingleToInt32Bits(sMax);
+            }
+
+            public bool Equals(ProjectionKey other)
+            {
+                return _entry == other._entry && _element == other._element && _min == other._min && _max == other._max;
+            }
+
+            public override bool Equals(object obj) { return obj is ProjectionKey && Equals((ProjectionKey)obj); }
+
+            public override int GetHashCode()
+            {
+                unchecked { return ((_entry.GetHashCode() * 397 ^ _element.GetHashCode()) * 397 ^ _min) * 397 ^ _max; }
+            }
+        }
+
+        /// <summary>
+        /// Projection du centre d'une entree spatiale sur une plage d'element, calculee une fois par frame et partagee par tous
+        /// les observateurs (Story 5.33, D15). Fonction pure des entrees de la frame : le meme resultat que l'appel direct, quel
+        /// que soit l'observateur qui la demande en premier.
+        /// </summary>
+        internal RoadProjection ProjectEntry(RoadId entryId, Vector3 center, RoadId elementId, RoadCurve curve, float sMin, float sMax)
+        {
+            if (_projections == null) _projections = new Dictionary<ProjectionKey, RoadProjection>();
+            var key = new ProjectionKey(entryId, elementId, sMin, sMax);
+            RoadProjection projection;
+            if (!_projections.TryGetValue(key, out projection))
+            {
+                projection = curve.Project(center, sMin, sMax);
+                _projections.Add(key, projection);
+            }
+            return projection;
         }
 
         public bool TryGetSignalState(RoadId movementId, out SignalState state)
@@ -244,11 +321,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
             RoadCurve curve;
             IReadOnlyList<RoadCurveSample> samples;
             if (!TryGetElement(model, location.ElementId, out kind, out curve, out samples)) return false;
-            float kappaMax = 0f;
-            for (int i = 0; i < samples.Count; i++) kappaMax = Mathf.Max(kappaMax, Mathf.Abs(samples[i].CurvaturePerMeter));
+            // Story 5.33, D14 : courbure maximale precalculee et projection elaguee, toutes deux exactes au bit pres.
+            float kappaMax = curve.MaximumAbsoluteCurvaturePerMeter;
 
             var corners = Corners(input.Pose);
             float sMin = float.PositiveInfinity, sMax = float.NegativeInfinity, dMax = 0f, step = 0f;
+            // Amorce chainee (Story 5.33, D15) : le s du point voisin du perimetre, a 10 cm, au lieu du point de reference.
+            // L'amorce ne change jamais la projection, seulement le nombre de segments examines.
+            float hint = location.SMeters;
             for (int edge = 0; edge < 4; edge++)
             {
                 Vector3 a = corners[edge], b = corners[(edge + 1) % 4];
@@ -257,7 +337,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Frame
                 step = Mathf.Max(step, length / count);
                 for (int k = 0; k < count; k++)
                 {
-                    var projection = curve.Project(Vector3.Lerp(a, b, (float)k / count));
+                    // Seuls s, distance et depassement sont lus : la projection compacte les rend au bit pres.
+                    var projection = curve.ProjectNearestCompact(Vector3.Lerp(a, b, (float)k / count), hint);
+                    hint = projection.SMeters;
                     float s = projection.SMeters;
                     if (projection.LongitudinalOverrunMeters > 0f)
                         s = s <= curve.StartS + 1e-3f ? s - projection.LongitudinalOverrunMeters : s + projection.LongitudinalOverrunMeters;

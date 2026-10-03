@@ -88,6 +88,9 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 # Classification des changements pour le profil Auto (source unique du mapping : le script
 # lui-meme, jamais duplique ici). Voir scripts/validation-profiles.ps1 -SelfTest.
 . (Join-Path $PSScriptRoot 'validation-profiles.ps1')
+# Lecture du statut de tests tolerante au Domain Reload (decision proprietaire du 2026-10-03). Voir
+# scripts/validation-cli.ps1 -SelfTest.
+. (Join-Path $PSScriptRoot 'validation-cli.ps1')
 
 $script:ProfileLabel = 'Full (suite complete, aucune exclusion)'
 $script:ProfileCategoryFilter = $null
@@ -576,13 +579,28 @@ foreach ($mode in $modes) {
     Write-Step "unity cmd test_status ($mode)"
     $deadline = (Get-Date).AddSeconds($TestTimeoutSec)
     $testStatus = $null
+    $statusRetries = 0
     do {
         Start-Sleep -Seconds 2
-        $testStatus = Get-CmdResult (Invoke-UnityJson -CliArgs @('cmd', 'test_status'))
+        # Domain Reload a l'entree et a la sortie du Play Mode : le CLI peut se taire un instant (sortie vide ou code 6).
+        # Lecture retentee 5 fois au plus, a 2 s d'intervalle, puis echec ferme ; tout autre code, une sortie illisible ou un
+        # refus de l'Editeur reste bloquant immediatement. L'interpretation du statut ci-dessous est inchangee.
+        $query = Invoke-TestStatusQuery -Attempts 5 -DelaySec 2 -Invoker {
+            $raw = & unity cmd test_status --format json 2>&1
+            [pscustomobject]@{ ExitCode = $LASTEXITCODE; Text = ($raw | Out-String) }
+        }
+        if (-not $query.Ok) {
+            Fail "unity cmd test_status : $($query.Message) (AD-8)"
+        }
+        $statusRetries += $query.Retries
+        $testStatus = Get-CmdResult $query.Parsed
         if (-not $testStatus -or -not $testStatus.status) {
             Fail "test_status illisible (AD-8)"
         }
     } while ($testStatus.status -notin @('completed', 'failed', 'error') -and (Get-Date) -lt $deadline)
+    if ($statusRetries -gt 0) {
+        Write-Host "  test_status : $statusRetries lecture(s) retentee(s) pendant une indisponibilite passagere du CLI (Domain Reload)" -ForegroundColor DarkGray
+    }
 
     if ($testStatus.status -ne 'completed') {
         Fail "test_status bloque sur '$($testStatus.status)' apres ${TestTimeoutSec}s (AD-8)."

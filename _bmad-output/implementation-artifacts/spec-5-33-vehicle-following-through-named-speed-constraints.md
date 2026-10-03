@@ -2,7 +2,7 @@
 title: 'Story 5.33 -- Suivi de vehicule par contraintes de vitesse nommees : premier consommateur runtime de la perception et premieres explorations multi-vehicules V2 dans MVP_Run'
 type: 'feature'
 created: '2026-10-02'
-status: 'ready-for-dev'
+status: 'done'
 baseline_commit: 'fb8d793c7d949ea4c9e2475365f3a2b0fec5cda1'
 review_loop_iteration: 0
 context:
@@ -230,27 +230,27 @@ context:
 **Execution** -- quatre phases internes. Chaque phase se termine par un checkpoint : validation de la phase verte, sinon HALT. Aucune nouvelle story.
 
 *Phase 0 -- prealables*
-- [ ] Verifier que la Story 5.52 est `done` ; sinon HALT (D8).
-- [ ] `_bmad-output/planning-artifacts/epics.md` -- amender la Story 5.33 (index et fiche) : complexite L, harness et PlayMode au niveau story, verification `Both` dans la table des revues. Citer la decision proprietaire du 2026-10-02 -- l'Epic ne diverge pas silencieusement de la spec.
+- [x] Verifier que la Story 5.52 est `done` ; sinon HALT (D8).
+- [x] `_bmad-output/planning-artifacts/epics.md` -- amender la Story 5.33 (index et fiche) : complexite L, harness et PlayMode au niveau story, verification `Both` dans la table des revues. Citer la decision proprietaire du 2026-10-02 -- l'Epic ne diverge pas silencieusement de la spec.
 
 *Phase 1 -- noyau pur (EditMode)*
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/SpeedPlan.cs` -- `RoadLimit` applique, valeurs publiees (`Applied(v)`, `Unauthored`), `DeferredLimits` desormais vide ; nouvelles valeurs `SpeedConstraint` (`RoadLimit`, `LeaderFollowing`, `Obstacle`, `PerceptionUnavailable`) par ajout -- fermer la limite reportee par la 5.31.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs` (nouveau, pur) -- candidats, minimum, ordre d'egalite, liante et rejetes, raisons de `PerceptionUnavailable`, reprise lissee (D5) -- une seule regle de suivi et d'obstacle.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionCommand.cs` -- `Track` accepte une decision longitudinale optionnelle ; sans elle, comportement 5.31 au bit pres -- compatibilite.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Blockers/Blocker.cs`, `BlockerTracker.cs` (nouveaux, purs) -- records, table des genres, `SinceFrame`, dominant -- ensemble de blockers pour 5.34/5.39.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/SpeedPlan.cs` -- `RoadLimit` applique, valeurs publiees (`Applied(v)`, `Unauthored`), `DeferredLimits` desormais vide ; nouvelles valeurs `SpeedConstraint` (`RoadLimit`, `LeaderFollowing`, `Obstacle`, `PerceptionUnavailable`) par ajout -- fermer la limite reportee par la 5.31.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs` (nouveau, pur) -- candidats, minimum, ordre d'egalite, liante et rejetes, raisons de `PerceptionUnavailable`, reprise lissee (D5) -- une seule regle de suivi et d'obstacle.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionCommand.cs` -- `Track` accepte une decision longitudinale optionnelle ; sans elle, comportement 5.31 au bit pres -- compatibilite.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Blockers/Blocker.cs`, `BlockerTracker.cs` (nouveaux, purs) -- records, table des genres, `SinceFrame`, dominant -- ensemble de blockers pour 5.34/5.39.
 - Checkpoint 1 : `Story533` EditMode (parties pures) et `Story531` EditMode verts.
 
 *Phase 2 -- branchement runtime, un seul vehicule*
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2HazardCollector.cs` (nouveau) -- requetes bornees, classification, identite, diagnostics -- dangers de la frame.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2StepRunner.cs` (nouveau) -- epoque globale, frame unique, pas ordonnes -- frame partagee.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs` -- plus d'auto-cadence ; entree d'acteur avec empreinte ; pas sur frame fournie : perception, arbitrage, blockers, projection ; champs de trace ajoutes -- premier consommateur.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs` -- constantes runtime, `TrafficV2Scenario` et sa garde, `Request` etendu par parametre optionnel, exclusivite -- scenarios rejouables.
-- [ ] `Assets/RoadRage/App/Run/PortalTrafficSpawner.cs` -- ordre retrait, pas, insertion ; calendrier du scenario ; population du scenario -- plusieurs vehicules V2.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs` -- partie observation, arbitrage et blockers par ajout -- debug.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2HazardCollector.cs` (nouveau) -- requetes bornees, classification, identite, diagnostics -- dangers de la frame.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2StepRunner.cs` (nouveau) -- epoque globale, frame unique, pas ordonnes -- frame partagee.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs` -- plus d'auto-cadence ; entree d'acteur avec empreinte ; pas sur frame fournie : perception, arbitrage, blockers, projection ; champs de trace ajoutes -- premier consommateur.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs` -- constantes runtime, `TrafficV2Scenario` et sa garde, `Request` etendu par parametre optionnel, exclusivite -- scenarios rejouables.
+- [x] `Assets/RoadRage/App/Run/PortalTrafficSpawner.cs` -- ordre retrait, pas, insertion ; calendrier du scenario ; population du scenario -- plusieurs vehicules V2.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs` -- partie observation, arbitrage et blockers par ajout -- debug.
 - Checkpoint 2 (D4) : `Story531` PlayMode puis `Story552` PlayMode, sans modification. Saturation du collecteur mesuree sur le jalon. Rouge ou saturation en route libre : HALT.
 
 *Phase 3 -- scenarios d'acceptation et phase 4 -- campagne exploratoire* : fixtures ci-dessous. Checkpoint 3 : `Story533` PlayMode vert. Checkpoint 4 : invariants de la campagne verts, rapports publies, aucune anomalie de cout au sens de D7.
-- [ ] `Assets/RoadRage/Tests/EditMode/Story533LongitudinalTests.cs` `[Core][Story533]` -- couvrir :
+- [x] `Assets/RoadRage/Tests/EditMode/Story533LongitudinalTests.cs` `[Core][Story533]` -- couvrir :
   - la matrice ;
   - les cas noyau 5.9 V1-B01, B02 et B03 rejoues contre l'arbitrage, aux memes nombres ; V1-B06 rejoue contre la reprise lissee (D5) : convergence sans depassement, temps de reaction quasi instantane, nul ou negatif borne et fini ; aucune restriction jamais retardee ;
   - une simulation longitudinale point-masse sur un corridor `MVP_Run`, jeu mesure par la perception depuis une frame reelle : convergence vers s0 a 0,05 m pres en au plus 60 s simulees, jamais sous s0 − 0,05 m ;
@@ -259,18 +259,18 @@ context:
   - la limite de route sur modeles mutes (corridor, mouvement, 0) ;
   - `ToText()` de la projection etendue : deterministe, invariant de culture ;
   - le scan de `Planning/` et `Blockers/` : liste 5.30 plus `Physics.`, et aucun membre public declare dont le nom contient `Brake`, `Throttle` ou `Pedal`.
-- [ ] `Assets/RoadRage/Tests/EditMode/Story533SharedFrameTests.cs` `[Core][Story533]` -- couvrir :
+- [x] `Assets/RoadRage/Tests/EditMode/Story533SharedFrameTests.cs` `[Core][Story533]` -- couvrir :
   - les parties pures de l'ordonnanceur : frame unique, decisions identiques quel que soit l'ordre d'evaluation ;
   - la classification des dangers, le domaine d'identite et la deduplication : une racine V2 n'est jamais un danger, et aucun id n'est a la fois leader et obstacle dans une observation ;
   - la propagation des saturations (canal, requete spatiale, collecteur) vers `PerceptionUnavailable` ;
   - la garde du jeton de scenario ;
   - le constructeur de scenarios, deterministe ;
   - la disponibilite des canaux a emprise le long des 11 routes `campaign-5-31.json` aux poses nominales. `PerceptionUnavailable` ne doit jamais lier en route libre ; sinon HALT.
-- [ ] `Assets/RoadRage/Tests/EditMode/Story531SpeedPlanAndComposerTests.cs` -- ajouter `[Category("Story533")]` ; remplacer seulement les assertions de limite reportee par limite appliquee ou `Unauthored` -- l'AC 5.31 « reportee » est remplacee par la 5.33 (epics.md).
-- [ ] `Assets/RoadRage/Tests/PlayMode/Story533FollowingPlayModeTests.cs` `[Story533]` -- deux scenarios d'acceptation (AC ci-dessous).
-- [ ] `Assets/RoadRage/Tests/PlayMode/Story533ExplorationPlayModeTests.cs` `[Explicit][Category("Story533Exploration")]` -- campagne exploratoire (Design Notes) ; echec seulement sur un invariant ou une anomalie de cout D7 ; rapports bruts publies.
+- [x] `Assets/RoadRage/Tests/EditMode/Story531SpeedPlanAndComposerTests.cs` -- ajouter `[Category("Story533")]` ; remplacer seulement les assertions de limite reportee par limite appliquee ou `Unauthored` -- l'AC 5.31 « reportee » est remplacee par la 5.33 (epics.md).
+- [x] `Assets/RoadRage/Tests/PlayMode/Story533FollowingPlayModeTests.cs` `[Story533]` -- deux scenarios d'acceptation (AC ci-dessous).
+- [x] `Assets/RoadRage/Tests/PlayMode/Story533ExplorationPlayModeTests.cs` `[Explicit][Category("Story533Exploration")]` -- campagne exploratoire (Design Notes) ; echec seulement sur un invariant ou une anomalie de cout D7 ; rapports bruts publies.
   - Cout par N = 2, 4, 8, publie separement : frame (collecteur compris), perception, planning et horizon (spine), plan de vitesse et arbitrage, composition, total.
-- [ ] `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml` -- solder les entrees 510-514 ; consigner la reouverture de la dette 508 et les constats ; statut de la story. Puis `graphify update .`.
+- [x] `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml` -- solder les entrees 510-514 ; consigner la reouverture de la dette 508 et les constats ; statut de la story. Puis `graphify update .`.
 
 **Acceptance Criteria:**
 
@@ -292,6 +292,45 @@ context:
 - Given la campagne exploratoire, when elle s'execute, then les traces brutes, les constats et le cout par etape en fonction de N sont publies. Seul un invariant viole la fait echouer : NaN, intent manquant ou double, frame multiple par pas, retrait hors portail, population au-dela du maximum, joueur hote dans un fait V2, anomalie de cout D7. Les contacts et interblocages aux carrefours et giratoires sont des constats pour 5.34/5.35, jamais des echecs 5.33.
 
 ## Spec Change Log
+
+- **2026-10-02 -- implementation, mesure EditMode avant le checkpoint 2, decision proprietaire D9 (capacite du collecteur).** Le risque connu des Design Notes s'est realise. Mesure par la fixture `Story533SharedFrameTests.TheStaticDecorOfMvpRunLeavesRoomInTheCollectorBufferForAFullScenario` : le long des 11 routes de `campaign-5-31.json`, pas de 2 m, rayon 40 m.
+  - 809 requetes saturees sur 1 538 avec la capacite 64.
+  - Tampon non borne : maximum 98 colliders, dont 97 statiques, pres du carrefour central ; mediane 65, p90 90.
+  - A rayon reduit : 58 a 25 m, 75 a 30 m, 86 a 35 m.
+  - Avec 64, un vehicule seul aurait lie `PerceptionUnavailable` (`HazardCollectorSaturated`) sur plus de la moitie du reseau : HALT prevu.
+  - **Decision D9 : `HazardQueryCapacity` = 256, rayon 40 m inchange.** La valeur « tampon 64 » du bloc fige est remplacee par cette decision. La garde EditMode reste : maximum statique + 8 vehicules < capacite.
+- **2026-10-02 -- checkpoint 2, rejeu Story552 PlayMode, decision proprietaire D10 (budget d'entree de la fixture 5.52).** Deux runs sur Editeur redemarre, meme echec : `AnActualToleranceExceedanceHoldsTheDriverAcrossPushesAndItsExit`, premier test du run, reste sur `MainMenuLobby`.
+  - Cause lue en Console : le premier `CreateLobbyAsync` Steam, juste apres l'initialisation du client par `Bootstrap`, ne repond pas en 300 frames (~2,8 s). L'appel suivant repond en 0,25 s. Aucun code trafic n'a tourne.
+  - Les 3 autres tests 552 sont verts : jalon Gate B 936 pas, d max 0,1993 m, borne M max 0,2003 m, v/v* max 0,344, 0 contact ; reponse 2a arret au pas 95.
+  - **Decision D10 : `Story552MilestonePlayModeTests.EnterMvpRun` attend 30 s en temps reel au lieu de 300 frames.** Aucune assertion de mesure n'est modifiee ; D4 reste entier pour les seuils. Le harnais 5.33 suit la meme regle. La fixture 5.31 (`Story531V2VerticalSlicePlayModeTests`, 300 frames, verte ce jour) est laissee intacte et consignee dans `deferred-work.md`.
+- **2026-10-02 -- checkpoint 3, scenario A rouge, decision proprietaire D11 (maintien a l'arret) et politique pre-5.39.** Run `acceptance-A-20261002-182834` : 1 sortie sur 3, vehicules 2 et 3 en `TrackingToleranceExceeded` (frames 1109 et 1468), d = 0,3407 et 0,340 m.
+  - Cause diagnostiquee sur la trace : l'IDM n'arrete jamais franchement derriere une cause arretee. A l'arret, jeu > s0, son candidat est > 0 : aucun blocker, et le vehicule rampe vers s0 (0,35 a 0,84 m a 0,02-0,5 m/s, braquage jusqu'a -1). Sous 0,5 m/s, `VehicleTireModel.ResolveLowSpeedRamp` attenue l'adherence laterale : dans la courbe en S de la file, d derive jusqu'a epsilon_t et le verrou 2a (5.52) coupe perception et arbitrage pour toujours. Aucun leader fantome, jeu fige, blocker memorise ni PerceptionUnavailable.
+  - epsilon_t reste 0,34 m : l'allocation Gate A n'est pas modifiee pour masquer ce comportement (a_e dimensionne aussi les degagements de carrefour).
+  - **D11 -- StopHold.** L'IDM conduit l'approche. Quasi arrete (v <= 0,5 m/s = `VehicleTireModel.SlipReferenceSpeed`) avec une liante `LeaderFollowing` ou `Obstacle` dont le jeu vaut au plus s0 + Delta_hold, le vehicule passe en `StopHold` : candidat nomme par sa cause et sa source, acceleration min(candidat de la source, -b), arret au frein a main a 0 m/s, etat porte par `LongitudinalMemory`. Liberation par hysteresis : source disparue d'une perception disponible (une perception indisponible ne libere jamais), jeu >= s0 + Delta_release, ou source repartie (vitesse >= 0,5 m/s et jeu > s0 + Delta_hold) ; un frisson du leader ne libere pas. La reprise lissee D5 part de 0, non de -b. Le maintien amende l'arbitrage du bloc fige ; 5.31 au bit pres sans interaction reste vrai.
+  - **Calibration (banc EditMode, `stophold-calibration.md`)** avec la roue libre mesuree de la bande de service (2 m/s2 sous 0,41 m/s) : IDM seul, 0,39-0,40 m de rampement ; Delta_hold 0,25 m, 0,15 m ; **Delta_hold 0,5 m, 0 m**, jeu maintenu 2,447-2,452 m, liberation 0,34 s apres le depart du leader, aucune re-entree. Source a 0,05 m/s pendant 60 s : 4, 2 et 1 liberations pour Delta_release 1 ; 1,5 ; 2 m. **Retenu : Delta_hold 0,5 m, Delta_release 2 m** (`TrafficV2Settings.StopHold`).
+  - **Semantique des blockers revisee :** un blocker est une cause reelle d'immobilisation, la source d'un StopHold et les autres faits qui le tiendraient seuls (jeu <= s0 + Delta_hold), ou l'immobilisation de politique. Un candidat <= 0 en roulant n'en est plus un (le vehicule 3 portait `Leader:02` a 3,72 m/s, frame 782). Remplace la regle « candidat <= 0 » du bloc fige.
+  - **Rejeu D11 (`acceptance-A-20261002-214649`) et critere de rampement precise (decision proprietaire du 2026-10-02).** Aucun `TrackingToleranceExceeded`, d max 0,1995 / 0,1937 / 0,1874 m, 3 sorties sur 3, StopHold a 2,497-2,499 m puis liberations en cascade (SourceGone fr 1073, SourceDeparted fr 1107 et 1175). Le critere « acceleration > 0 sous 0,5 m/s derriere une source arretee » comptait 0,095 m de fin d'approche du vehicule 2 (19 pas a 0,25 m/s, sans arret, d +0,009 m). Rampement redefini comme ce mouvement APRES un arret (v < 0,05 m/s) derriere une cause d'interaction, jusqu'a une liberation explicite ; seuil 0,05 m inchange ; fin d'approche publiee a part. Applique aux traces : run fautif 0,31 / 0,23 / 0,44 m (echec), rejeu D11 0 / 0 / 0 m.
+  - **Campagne du 2026-10-02 22:00 et decision proprietaire D12 (verrou pre-5.34).** explore-2, rejeu (ecart 0 m sur 3 017 pas-vehicule), explore-4 (file de 4 en StopHold, liberation en cascade, 0 rampement apres arret) et explore-poussee (contamination au pas 705, arret au pas 855) verts. explore-8 rouge : au pas 1846 le vehicule 1, libere du maintien derriere l'obstacle « sortie », traverse le carrefour a 6,9 m/s sur le mouvement `40ca7f10` pendant que le vehicule 8 arrive sur `4e437f94` ; les deux sont membres de la zone de conflit `ConflictZones[23]` (controles distincts) et aucun ne voit l'autre dans son couloir avant le chevauchement ; impulsion 1 230 N.s, d 0,004 -> 0,345 m en 10 pas, verrou 2a au pas 1857. Cout N = 8 : 4,723 ms (1,44 x N = 2), dans D7. **D12 :** dans les campagnes nominales, un verrou est un constat pre-5.34 (fenetre fonctionnelle close, D7 juge sur la fenetre propre) seulement si le vehicule verrouille a eu, au plus 50 pas avant, un contact de caisse avec un autre vehicule V2 et si, a ce pas, les deux etaient sur deux mouvements distincts d'une meme zone de conflit. Tout autre verrou nominal reste un echec ; A et B restent stricts. Regle a retirer par la 5.34.
+  - **Diagnostic de performance et decision proprietaire D13 (2026-10-02).** Fixture `Story533Perf` (explore-4 tronque a N = 1..4, conditions d'acceptation) : pas Traffic V2 moyen 4,36 / 7,42 / 10,06 / 13,19 ms, marginal ~3 ms par vehicule ; en population pleine a N = 4, 19,4 a 21,3 ms par pas hote, au-dela du pas fixe de 20 ms, d'ou jusqu'a 17 FixedUpdate par frame et des frames de 350 a 427 ms (gel de la video). Postes : occupation de la frame (`TryOccupy` projette ~130 points sur toute la courbe de l'element), SpeedPlan et horizon reconstruits sur toute la route restante a chaque pas (dette 508), perception ; GC gen0 ~1 collection par seconde et par vehicule. Ni quadratique, ni harnais, ni traitement periodique. Analyse : `traffic-v2-5-33-explorations/analysis-20261002-performance-diagnostic.md`. Le seuil relatif D7 passe mais le budget absolu est depasse : dette 508 bloquante. **D13 : optimiser dans la 5.33, avant cloture et avant la campagne complete** -- occupation fenetree, horizon et plan de vitesse incrementaux sans changement de comportement (preuve au bit pres en EditMode, 5.31/5.52/5.33 PlayMode inchanges), puis allocations. Cible : <= 1 ms par vehicule en population pleine, N = 8 sous 10 ms par pas hote, au plus 2 FixedUpdate par frame sur explore-4 a N = 4, mesures par `Story533Perf`.
+  - **Banc de planification et decision proprietaire D14 (2026-10-02).** Un horizon incremental exact est impossible (e de depart change a chaque pas, transport non lineaire). Banc EditMode `Story533PlanningCostBenchTests` (1 335 poses, 11 routes) : horizon + plan 3,52 ms par vehicule et par pas ; exact optimise 2,73 ms (1,29x, 0 difference au bit pres) ; exact + portee bornee 0,37 ms (9,6x, 7 838 commandes identiques, 0 refus) ; verification du profil 1,94 ms sur 2,02 ; occupation 1,23 -> 0,70 ms par projection elaguee exacte (0 difference sur 176 220). **D14 : planification bornee a H = d1 + v_ref^2 / (2 b_plan) + 1 m** (d1 : premier noeud du plan au-dela de la previsualisation, v_ref = max(v desiree, v courante), b_plan = deceleration de confort x 0,99) ; **perception laissee sur toute la route restante** (un leader percu seulement a H imposerait -2,2 a -4,7 m/s2), servie par des caches par element sans construire les points ; optimisations exactes (occupation, horizon, verification). Changements publics : horizon et plan publies jusqu'a H, `HorizonTruncated`, `HorizonTerminalStop` au dernier noeud, defaut de geometrie au-dela de H detecte plus tard ; commande, liantes nommees et perception inchangees, a prouver au bit pres (EditMode) puis 5.31/5.52/5.33 PlayMode inchanges et `Story533Perf` contre la cible. Proposition : `traffic-v2-5-33-explorations/proposal-20261002-bounded-planning-horizon.md`.
+  - **Diagnostic rond-point contre ligne droite et decision proprietaire D15 (2026-10-03).**
+    - Constat : la croissance quadratique venait du seul canal obstacles de la perception. La densite de la geometrie
+      signee des mouvements de giratoire (17,6 echantillons/m) etait parcourue a 50 Hz par toutes les projections lineaires
+      de `RoadCurve`, et la localisation balayait les 116 elements.
+    - Optimisation structurelle exacte, sans aucune perte de qualite (`proposal-20261003-structural-optimization.md`) :
+      - projection acceleree au bit pres : plage par dichotomie, amorce, elagage par blocs ; projection compacte et amorce
+        chainee pour l'occupation ;
+      - perception d'obstacles : rejet prouve par etendue (angle corde / tangente), projections memoisees dans la frame,
+        index des acteurs non mesures ;
+      - verification du profil par curseurs ;
+      - index spatial de localisation par modele.
+    - Geometrie signee, Gate A, portees, footprints et D14 inchanges.
+    - Preuves EditMode : 0 difference sur 55 680 projections, 876 observations d'obstacles (4 402 faits, 465 saturees) et
+      2 918 points de localisation.
+    - Banc (`results-20261003-structural-optimization.md`) : rond-point N = 8 de 17,75 a 5,68 ms, ligne droite N = 8 de
+      10,33 a 3,79 ms ; pas O(N), environ 0,7 ms par vehicule en giratoire.
+    - Compteurs de travail diagnostiques `TrafficV2WorkCounters` ajoutes au runtime (increments seuls).
+  - **Politique pre-5.39 :** scenarios nominaux (A, B, campagnes 2/4/8), aucune poussee et tout `TrackingToleranceExceeded` est un echec immediat ; poussee deplacee d'explore-2 vers le scenario exploratoire separe `explore-poussee`, dont le premier verrou marque le point de contamination, clot la fenetre d'observation fonctionnelle et arrete le scenario. Le verrou 2a n'est ni rendu recuperable ni complete d'une reprise hors route : responsabilite de 5.39.
 
 ## Design Notes
 
@@ -351,10 +390,92 @@ Attendu, et hors perimetre : sans grants (5.34), deux vehicules qui se croisent 
 
 ## Verification
 
-**Commands** (l'Editeur doit etre redemarre avant chaque execution PlayMode : le runner ne sert qu'une fois par session) :
+**Commands** (Domain Reload actif depuis le 2026-10-03 : les runs PlayMode s'enchainent sans redemarrer l'Editeur, voir docs/setup/build-workflow-rules.md 3.3) :
 
 - `.\scripts\validate.ps1 -Profile Story -Story 5.33 -TestMode EditMode` -- expected: `VALIDATION STORY`, compte execute = compte attendu (fixtures `Story533`, dont 5.31 adaptee), 0 erreur Console.
 - `.\scripts\validate.ps1 -Profile Story -Story 5.33 -TestMode PlayMode` -- expected: scenarios A et B verts, 0 erreur Console, `MVP_Run` propre.
 - `.\scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode EditMode` -- expected: vert. Non-regression ciblee de `SpeedPlan` et `MotionCommand` (D4).
 - `.\scripts\validate.ps1 -Profile Story -Story 5.31 -TestMode PlayMode`, puis `-Story 5.52 -TestMode PlayMode` -- expected: verts sans modification (D4, checkpoint 2).
 - `.\scripts\validate.ps1 -TestMode PlayMode -TestFilter Story533Exploration -TestFilterType category -IncludeExplicit` -- expected: invariants verts, rapports ecrits ; les constats sont publies, pas juges.
+
+## Suggested Review Order
+
+**Frame partagee et ordonnancement**
+
+- Point d'entree : une frame par pas hote, collecteur, puis un pas par vehicule trie par TrafficId.
+  [`TrafficV2StepRunner.cs:90`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2StepRunner.cs#L90)
+
+- Ordre hote : retrait aux portails, pas des vehicules, puis insertion ; calendrier du scenario.
+  [`PortalTrafficSpawner.cs:173`](../../Assets/RoadRage/App/Run/PortalTrafficSpawner.cs#L173)
+
+- Le driver ne s'auto-cadence plus : pas sur la frame fournie, perception, arbitrage, blockers.
+  [`TrafficV2VehicleDriver.cs:572`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs#L572)
+
+**Dangers physiques**
+
+- Classification par racine : une racine V2 n'est jamais un danger, decor statique ecarte.
+  [`TrafficV2HazardCollector.cs:101`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2HazardCollector.cs#L101)
+
+- Requetes bornees, saturation publiee par vehicule, identites de session.
+  [`TrafficV2HazardCollector.cs:127`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2HazardCollector.cs#L127)
+
+**Arbitrage longitudinal et maintien a l'arret**
+
+- Candidats nommes, minimum, ordre d'egalite, reprise lissee D5 ; fonction pure.
+  [`LongitudinalArbitration.cs:411`](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs#L411)
+
+- StopHold D11 : liberation par hysteresis, perception indisponible ne libere jamais.
+  [`LongitudinalArbitration.cs:465`](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs#L465)
+
+- Branchement perception -> arbitrage dans le pas du driver.
+  [`TrafficV2VehicleDriver.cs:682`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs#L682)
+
+- Commande : decision longitudinale optionnelle, 5.31 au bit pres sans elle.
+  [`MotionCommand.cs:87`](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionCommand.cs#L87)
+
+- Limite de route appliquee comme plafond nomme ; 0 reste Unauthored.
+  [`SpeedPlan.cs:329`](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/SpeedPlan.cs#L329)
+
+**Blockers**
+
+- Ensemble par pas, SinceFrame continu ; correctif de revue pour une source de maintien non vue.
+  [`BlockerTracker.cs:36`](../../Assets/RoadRage/Features/Vehicles/Traffic/Blockers/BlockerTracker.cs#L36)
+
+**Performance D14/D15 (exacte, sans changement de comportement)**
+
+- Planification bornee a H ; perception sur toute la route restante.
+  [`TrafficV2VehicleDriver.cs:614`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs#L614)
+
+- Chemin de route cache par element, sans construire les points.
+  [`RoutePath.cs:42`](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/RoutePath.cs#L42)
+
+- Coeur de projection exact : plage, amorce, elagage par blocs.
+  [`RoadCurve.cs:291`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadCurve.cs#L291)
+
+- Index spatial de localisation par modele.
+  [`RoadLocalization.cs:316`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadLocalization.cs#L316)
+
+**Composition, scenario et debug**
+
+- Jeton de scenario reserve aux tests, exclusif avec la mesure ; production a 1.
+  [`TrafficV2Composition.cs:218`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs#L218)
+
+- Constantes runtime, capacite du collecteur D9.
+  [`TrafficV2Composition.cs:74`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs#L74)
+
+- Projection enrichie par ajout : observation, arbitrage, blockers.
+  [`TrafficDecisionProjection.cs:223`](../../Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs#L223)
+
+**Tests**
+
+- Frame unique, decisions independantes de l'ordre d'evaluation.
+  [`Story533SharedFrameTests.cs:136`](../../Assets/RoadRage/Tests/EditMode/Story533SharedFrameTests.cs#L136)
+
+- Maintien, hysteresis et blockers sous perception aveugle.
+  [`Story533LongitudinalTests.cs:1054`](../../Assets/RoadRage/Tests/EditMode/Story533LongitudinalTests.cs#L1054)
+
+- Scenario d'acceptation A dans MVP_Run.
+  [`Story533FollowingPlayModeTests.cs:60`](../../Assets/RoadRage/Tests/PlayMode/Story533FollowingPlayModeTests.cs#L60)
+
+- Invariants par pas : un intent, une frame, epoque de decision.
+  [`Story533Harness.cs:377`](../../Assets/RoadRage/Tests/PlayMode/Story533Harness.cs#L377)

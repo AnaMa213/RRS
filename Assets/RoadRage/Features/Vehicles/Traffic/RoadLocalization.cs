@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 
 namespace RoadRage.Features.Vehicles.Traffic
 {
@@ -183,6 +184,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             }
 
             ValidatePose(pose);
+            TrafficV2WorkCounters.Work.LocalizeCalls++;
 
             var profile = model.LocalizationProfile;
             Vector3 forward;
@@ -212,14 +214,15 @@ namespace RoadRage.Features.Vehicles.Traffic
 
             var candidates = new List<RoadLocationCandidate>();
             var projections = new Dictionary<RoadId, RoadProjection>();
-            for (int i = 0; i < model.Corridors.Count; i++)
+            // Story 5.33, D15 : seuls les elements de la cellule du point (corridors puis mouvements, dans l'ordre du modele)
+            // sont examines. La cellule contient tout element dont la boite elargie de Consider peut contenir le point : le
+            // balayage complet ne retiendrait rien d'autre. Recherche globale par construction, ou que soit le vehicule.
+            var index = ElementIndex.Of(model);
+            var cell = index.Cell(reference);
+            for (int k = 0; k < cell.Length; k++)
             {
-                Consider(query, RoadElementKind.LaneCorridor, model.Corridors[i].CorridorId, model.Corridors[i].Curve, candidates, projections);
-            }
-
-            for (int i = 0; i < model.Movements.Count; i++)
-            {
-                Consider(query, RoadElementKind.JunctionMovement, model.Movements[i].Id, model.Movements[i].Curve, candidates, projections);
+                int e = cell[k];
+                Consider(query, index.Kinds[e], index.Ids[e], index.Curves[e], candidates, projections);
             }
 
             candidates.Sort(Compare);
@@ -304,6 +307,105 @@ namespace RoadRage.Features.Vehicles.Traffic
 
         // ------------------------------------------------------------------ interne
 
+        /// <summary>
+        /// Index spatial des elements d'un modele compile (Story 5.33, D15), construit une fois par modele : grille XZ de
+        /// cellules de 8 m, chaque element range dans toutes les cellules que touche sa boite elargie de Consider (plus 5 cm,
+        /// pour que l'arrondi ne puisse jamais l'exclure). Les elements d'une cellule sont tries dans l'ordre du balayage
+        /// complet (corridors puis mouvements). Le modele est immuable : aucune invalidation.
+        /// </summary>
+        private sealed class ElementIndex
+        {
+            private const float CellMeters = 8f;
+            private const float SlackMeters = 0.05f;
+            private static readonly int[] Empty = new int[0];
+            private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<CompiledRoadModel, ElementIndex> Indexes =
+                new System.Runtime.CompilerServices.ConditionalWeakTable<CompiledRoadModel, ElementIndex>();
+
+            public RoadElementKind[] Kinds;
+            public RoadId[] Ids;
+            public RoadCurve[] Curves;
+            private float _originX, _originZ;
+            private int _cellsX, _cellsZ;
+            private int[][] _cells;
+
+            public static ElementIndex Of(CompiledRoadModel model)
+            {
+                return Indexes.GetValue(model, Build);
+            }
+
+            public int[] Cell(Vector3 point)
+            {
+                if (_cells == null) return Empty;
+                int x = (int)Math.Floor((point.x - _originX) / CellMeters), z = (int)Math.Floor((point.z - _originZ) / CellMeters);
+                if (x < 0 || z < 0 || x >= _cellsX || z >= _cellsZ) return Empty;
+                return _cells[z * _cellsX + x];
+            }
+
+            private static ElementIndex Build(CompiledRoadModel model)
+            {
+                int count = model.Corridors.Count + model.Movements.Count;
+                var index = new ElementIndex { Kinds = new RoadElementKind[count], Ids = new RoadId[count], Curves = new RoadCurve[count] };
+                for (int i = 0; i < model.Corridors.Count; i++)
+                {
+                    index.Kinds[i] = RoadElementKind.LaneCorridor; index.Ids[i] = model.Corridors[i].CorridorId; index.Curves[i] = model.Corridors[i].Curve;
+                }
+                for (int i = 0; i < model.Movements.Count; i++)
+                {
+                    int e = model.Corridors.Count + i;
+                    index.Kinds[e] = RoadElementKind.JunctionMovement; index.Ids[e] = model.Movements[i].Id; index.Curves[e] = model.Movements[i].Curve;
+                }
+                if (count == 0) return index;
+                // Meme boite que Consider : enveloppe complete elargie de 2 x voisinage, voisinage = 2 x acceptation.
+                float neighbourhood = 2f * model.LocalizationProfile.AcceptanceDistanceMeters;
+                var boxes = new Bounds[count];
+                float minX = float.PositiveInfinity, minZ = float.PositiveInfinity, maxX = float.NegativeInfinity, maxZ = float.NegativeInfinity;
+                for (int e = 0; e < count; e++)
+                {
+                    var bounds = index.Curves[e].FullBounds;
+                    bounds.Expand(2f * neighbourhood + 2f * SlackMeters);
+                    boxes[e] = bounds;
+                    minX = Mathf.Min(minX, bounds.min.x); minZ = Mathf.Min(minZ, bounds.min.z);
+                    maxX = Mathf.Max(maxX, bounds.max.x); maxZ = Mathf.Max(maxZ, bounds.max.z);
+                }
+                if (float.IsInfinity(minX) || float.IsNaN(minX) || float.IsNaN(maxX)) return index;
+                index._originX = minX; index._originZ = minZ;
+                index._cellsX = (int)Math.Floor((maxX - minX) / CellMeters) + 1;
+                index._cellsZ = (int)Math.Floor((maxZ - minZ) / CellMeters) + 1;
+                var lists = new List<int>[index._cellsX * index._cellsZ];
+                for (int e = 0; e < count; e++)
+                {
+                    int x0 = Math.Max(0, (int)Math.Floor((boxes[e].min.x - minX) / CellMeters));
+                    int x1 = Math.Min(index._cellsX - 1, (int)Math.Floor((boxes[e].max.x - minX) / CellMeters));
+                    int z0 = Math.Max(0, (int)Math.Floor((boxes[e].min.z - minZ) / CellMeters));
+                    int z1 = Math.Min(index._cellsZ - 1, (int)Math.Floor((boxes[e].max.z - minZ) / CellMeters));
+                    for (int z = z0; z <= z1; z++)
+                        for (int x = x0; x <= x1; x++)
+                        {
+                            var list = lists[z * index._cellsX + x];
+                            if (list == null) lists[z * index._cellsX + x] = list = new List<int>();
+                            list.Add(e);
+                        }
+                }
+                index._cells = new int[lists.Length][];
+                for (int c = 0; c < lists.Length; c++) index._cells[c] = lists[c] == null ? Empty : lists[c].ToArray();
+                return index;
+            }
+        }
+
+        /// <summary>
+        /// Elements que la localisation examine pour ce point (Story 5.33, D15) : ceux de sa cellule, dans l'ordre du balayage
+        /// complet. Expose pour la preuve d'inclusion ; aucun autre usage.
+        /// </summary>
+        public static IReadOnlyList<RoadId> ExaminedElements(CompiledRoadModel model, Vector3 point)
+        {
+            if (model == null) throw new ArgumentNullException("model");
+            var index = ElementIndex.Of(model);
+            var cell = index.Cell(point);
+            var ids = new RoadId[cell.Length];
+            for (int k = 0; k < cell.Length; k++) ids[k] = index.Ids[cell[k]];
+            return ids;
+        }
+
         private sealed class Query
         {
             public CompiledRoadModel Model;
@@ -366,11 +468,13 @@ namespace RoadRage.Features.Vehicles.Traffic
             float neighbourhood = 2f * query.Profile.AcceptanceDistanceMeters;
             var bounds = curve.FullBounds;
             bounds.Expand(2f * neighbourhood);
+            TrafficV2WorkCounters.Work.LocalizeScanned++;
             if (!bounds.Contains(query.Reference))
             {
                 return;
             }
 
+            TrafficV2WorkCounters.Work.LocalizeProjected++;
             var projection = curve.Project(query.Reference);
             var at = projection.Point;
             float lateral = projection.LateralOffsetMeters;
@@ -430,6 +534,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             candidate.Rank = contained ? 0 : 1;
             candidate.Score = score;
             candidate.Accepted = distance <= query.Profile.AcceptanceDistanceMeters;
+            TrafficV2WorkCounters.Work.LocalizeCandidates++;
             candidates.Add(candidate);
             projections[id] = projection;
         }

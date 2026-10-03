@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using UnityEngine;
@@ -39,7 +40,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
     /// </summary>
     public static class TrafficPerception
     {
-        public static AgentObservation Observe(TrafficFrame frame, RoadId trafficId, PathHorizon horizon,
+        public static AgentObservation Observe(TrafficFrame frame, RoadId trafficId, IPathGeometry horizon,
             PerceptionLimits limits, SpatialQueryBuffer buffer)
         {
             if (frame == null) throw new ArgumentNullException("frame");
@@ -49,11 +50,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             TrafficActor agent;
             if (!frame.TryGetActor(trafficId, out agent)) throw new ArgumentException("UnknownTrafficId", "trafficId");
 
+            TrafficV2WorkCounters.Work.PerceptionCalls++;
             var context = new Context(frame, agent, horizon, limits);
             var self = default(ElementOccupant);
             PerceptionStatus bodyStatus = !agent.FootprintDeclared ? PerceptionStatus.UndeclaredFootprint
-                : !frame.TryGetOccupancy(trafficId, out self) || horizon.Intervals.Count == 0
-                    || horizon.Intervals[0].Id != self.ElementId ? PerceptionStatus.AgentOccupancyUnavailable
+                : !frame.TryGetOccupancy(trafficId, out self) || horizon.Spans.Count == 0
+                    || horizon.Spans[0].Id != self.ElementId ? PerceptionStatus.AgentOccupancyUnavailable
                 : PerceptionStatus.Evaluated;
             context.Self = self;
 
@@ -75,18 +77,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
         {
             public readonly TrafficFrame Frame;
             public readonly TrafficActor Agent;
-            public readonly PathHorizon Horizon;
+            public readonly IPathGeometry Horizon;
             public readonly PerceptionLimits Limits;
             public ElementOccupant Self;
             public readonly List<UnmeasuredActorFact> Unmeasured = new List<UnmeasuredActorFact>();
 
-            public Context(TrafficFrame frame, TrafficActor agent, PathHorizon horizon, PerceptionLimits limits)
+            public Context(TrafficFrame frame, TrafficActor agent, IPathGeometry horizon, PerceptionLimits limits)
             { Frame = frame; Agent = agent; Horizon = horizon; Limits = limits; }
 
             /// <summary>Distance d'horizon du pare-chocs avant de l'agent.</summary>
             public float FrontDistance
             {
-                get { var first = Horizon.Intervals[0]; return first.StartDistanceMeters + Self.SMaxMeters - first.StartSMeters; }
+                get { var first = Horizon.Spans[0]; return first.StartDistanceMeters + Self.SMaxMeters - first.StartSMeters; }
             }
 
             public ObservationMetadata Structured(float range, float otherConfidence)
@@ -98,11 +100,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             /// <summary>Note les acteurs localises sur l'element mais sans occupation (aucune distance inventee).</summary>
             public void NoteUnmeasured(RoadId elementId)
             {
-                for (int i = 0; i < Frame.Actors.Count; i++)
+                // Index par element construit une fois par frame (D15) : memes acteurs, meme ordre d'id que le balayage complet.
+                var onElement = Frame.UnmeasuredOn(elementId);
+                for (int i = 0; i < onElement.Length; i++)
                 {
-                    var actor = Frame.Actors[i];
-                    if (actor.TrafficId == Agent.TrafficId || !actor.Location.Localized || actor.Location.ElementId != elementId
-                        || actor.OccupancyExclusion == OccupancyExclusion.None) continue;
+                    var actor = onElement[i];
+                    if (actor.TrafficId == Agent.TrafficId) continue;
                     bool known = false;
                     for (int k = 0; k < Unmeasured.Count && !known; k++) known = Unmeasured[k].TrafficId == actor.TrafficId;
                     if (!known)
@@ -113,7 +116,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
 
         private static ObservationChannel<VehicleGapFact> Leader(Context c)
         {
-            var intervals = c.Horizon.Intervals;
+            var intervals = c.Horizon.Spans;
             float front = c.FrontDistance, range = c.Horizon.LengthMeters;
             var candidates = new List<VehicleGapFact>();
             var seen = new HashSet<RoadId>();
@@ -275,7 +278,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
 
         private static ObservationChannel<ObstacleFact> Obstacles(Context c, SpatialQueryBuffer buffer)
         {
-            var intervals = c.Horizon.Intervals;
+            var intervals = c.Horizon.Spans;
             var frame = c.Frame;
             var footprint = c.Agent.Pose.Footprint;
             float lateralRange = c.Limits.LateralRangeMeters;
@@ -291,11 +294,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             for (int i = 0; i < intervals.Count; i++)
             {
                 horizonElements.Add(intervals[i].Id);
-                var points = intervals[i].Points;
-                for (int p = 0; p < points.Count; p++)
+                int points = c.Horizon.PointCount(i);
+                TrafficV2WorkCounters.Work.ObstacleBoxPoints += points;
+                for (int p = 0; p < points; p++)
                 {
-                    if (!any) { query = new Bounds(points[p].Reference.Position, Vector3.zero); any = true; }
-                    else query.Encapsulate(points[p].Reference.Position);
+                    if (!any) { query = new Bounds(c.Horizon.PointPosition(i, p), Vector3.zero); any = true; }
+                    else query.Encapsulate(c.Horizon.PointPosition(i, p));
                 }
             }
             // L'arriere de l'agent deborde en amont du debut de l'horizon : ses coins entrent dans la boite.
@@ -314,6 +318,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
                 for (int e = 0; e < buffer.Count; e++)
                 {
                     var entry = buffer[e];
+                    TrafficV2WorkCounters.Work.ObstacleEntries++;
                     if (entry.Id == c.Agent.TrafficId) continue;
                     if (entry.IsTrafficActor)
                     {
@@ -347,9 +352,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             float lateralRange, float vertical, out ObstacleFact fact)
         {
             fact = default(ObstacleFact);
-            var intervals = c.Horizon.Intervals;
+            var intervals = c.Horizon.Spans;
             var model = c.Frame.Model;
             Vector3 center = entry.Bounds.center, extents = entry.Bounds.extents;
+            // Borne de rejet (Story 5.33, D15), prouvee : un fait exige |lateral| <= L et |normal| <= V (demi-etendues de la boite
+            // bornees par |extents|, cote de l'agent par sa plus grande demi-largeur), et un depassement au plus O. Hors
+            // depassement, la composante le long de la tangente est au plus |offset| x 2 sin(theta/2), theta etant l'angle
+            // maximal corde / tangente de la courbe (le point le plus proche est orthogonal a la corde, ou dans le cone
+            // normal d'un sommet). D'ou |offset| <= R, et |offset| >= distance du centre a la boite de l'element (le point
+            // projete est sur la ligne centrale). Une etendue plus loin que R (marge 1 % + 1 cm) ne peut donner aucun fait.
+            var agentFootprint = c.Agent.Pose.Footprint;
+            float extent = extents.magnitude;
+            float lateralBound = lateralRange + extent + Mathf.Max(agentFootprint.LeftMeters, agentFootprint.RightMeters);
+            float verticalBound = vertical + extent;
+            float planar = lateralBound * lateralBound + verticalBound * verticalBound;
             bool found = false;
             for (int i = 0; i < intervals.Count; i++)
             {
@@ -357,7 +373,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
                 RoadCurve curve;
                 IReadOnlyList<RoadCurveSample> samples;
                 if (!TrafficFrame.TryGetElement(model, intervals[i].Id, out kind, out curve, out samples)) continue;
-                var projection = curve.Project(center, intervals[i].StartSMeters, intervals[i].EndSMeters);
+                float chord = 2f * Mathf.Sin(0.5f * curve.MaximumChordTangentAngleRadians);
+                if (chord < 0.9f)
+                {
+                    float overrunBound = extent + 1e-3f + (i == 0 ? Mathf.Max(0f, intervals[0].StartDistanceMeters - rear) : 0f);
+                    float reach = Mathf.Max(Mathf.Sqrt(planar / (1f - chord * chord)), Mathf.Sqrt(planar + overrunBound * overrunBound));
+                    reach = reach * 1.01f + 0.01f;
+                    if (DistanceSquaredToBox(center, curve.FullBounds) > reach * reach) continue;
+                }
+                TrafficV2WorkCounters.Work.ObstacleProjections++;
+                var projection = c.Frame.ProjectEntry(entry.Id, center, intervals[i].Id, curve, intervals[i].StartSMeters, intervals[i].EndSMeters);
                 var interval = intervals[i];
                 float along = interval.StartDistanceMeters + projection.SMeters - interval.StartSMeters;
                 if (projection.LongitudinalOverrunMeters > 0f)
@@ -395,6 +420,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             }
         }
 
+        private static float DistanceSquaredToBox(Vector3 p, Bounds box)
+        {
+            Vector3 min = box.min, max = box.max;
+            float dx = Mathf.Max(0f, Mathf.Max(min.x - p.x, p.x - max.x));
+            float dy = Mathf.Max(0f, Mathf.Max(min.y - p.y, p.y - max.y));
+            float dz = Mathf.Max(0f, Mathf.Max(min.z - p.z, p.z - max.z));
+            return dx * dx + dy * dy + dz * dz;
+        }
+
         private static float HalfExtent(Vector3 extents, Vector3 axis)
         {
             return Mathf.Abs(extents.x * axis.x) + Mathf.Abs(extents.y * axis.y) + Mathf.Abs(extents.z * axis.z);
@@ -403,7 +437,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
         private static ObservationChannel<IntentPathOverlapFact> IntentOverlaps(Context c)
         {
             var model = c.Frame.Model;
-            var mine = c.Horizon.Intervals;
+            var mine = c.Horizon.Spans;
             var facts = new List<IntentPathOverlapFact>();
             for (int a = 0; a < c.Frame.Actors.Count; a++)
             {
@@ -419,6 +453,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
                     for (int i = 0; i < mine.Count; i++)
                     {
                         var m = mine[i];
+                        TrafficV2WorkCounters.Work.IntentPairs++;
                         if (m.Id == b.ElementId)
                         {
                             float s0 = Mathf.Max(m.StartSMeters, b.StartSMeters), s1 = Mathf.Min(m.EndSMeters, b.EndSMeters);
@@ -431,6 +466,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
                             var zones = model.ConflictZones;
                             for (int z = 0; z < zones.Count; z++)
                             {
+                                TrafficV2WorkCounters.Work.ConflictZoneTests++;
                                 if (!Contains(zones[z].MemberMovementIds, m.Id) || !Contains(zones[z].MemberMovementIds, b.ElementId))
                                     continue;
                                 // Seulement si la zone tombe dans la portion declaree de chacun des deux horizons.
@@ -473,6 +509,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
             out float s0, out float s1)
         {
             s0 = float.PositiveInfinity; s1 = float.NegativeInfinity;
+            TrafficV2WorkCounters.Work.ZoneSpans++;
             CompiledJunctionMovement movement;
             if (!model.TryGetMovement(movementId, out movement)) return false;
             var box = new Bounds(volume.Center, 2f * volume.Extents);
@@ -528,7 +565,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
 
         private static ObservationChannel<ExitOccupancyFact> Exit(Context c)
         {
-            var intervals = c.Horizon.Intervals;
+            var intervals = c.Horizon.Spans;
             for (int i = 0; i < intervals.Count; i++)
             {
                 if (intervals[i].Kind != RoadElementKind.JunctionMovement) continue;

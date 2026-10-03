@@ -1755,7 +1755,7 @@ Therefore: **prove trajectory, curvature, speed, topology, identity, versioning 
 | 5.30 | Traffic V2 planning and runtime spine foundation | FOUNDATION | Planning spine | L |
 | 5.31 | **First driven Traffic V2 vertical slice: portal to portal** | VERTICAL | Spine, end to end | L |
 | 5.32 | Perception boundary: occupancy index, leader and hazard observations | FOUNDATION | Facts | L |
-| 5.33 | Vehicle following through named speed constraints | VERTICAL | Longitudinal | M |
+| 5.33 | Vehicle following through named speed constraints *(reclassified M → L, owner decision D1 of 2026-10-02)* | VERTICAL | Longitudinal | L |
 | 5.34 | Junction coordination core: grants, conflicts, blocked exit, committed traversal | FOUNDATION | Permissions | L |
 | 5.35 | Authored control kinds: stop, yield, priority and roundabout entry | VERTICAL | Traffic rules | M |
 | 5.36 | Signal phase runtime and coordinator integration | VERTICAL | Signals | M |
@@ -2726,6 +2726,8 @@ So that the V2 architecture is proven to work end to end before any advanced tra
 **Then** it applies desired speed, the nominal-pose steering speed ceiling, the grip-based curve limit (contract §8) and the declared longitudinal bounds as named constraints and identifies the binding one; the road limit is named, reported as deferred to Story 5.33 and not applied; an authored non-zero road limit is reported as authored-but-not-applied, never as the absence of a limit
 **And** the Story 5.9 IDM envelope is preserved unchanged
 
+*Superseded 2026-10-02 by Story 5.33 (owner decision D6): the road limit is now applied as a named cap, published `Applied(v)` or `Unauthored` (0 authored: no cap, never presented as an applied limit), and no limit remains deferred. `MVP_Run` stays unauthored.*
+
 ---
 
 ### Story 5.52: Tracking-Error Coverage and Kinematic Nominal Pose in Gate A Evidence, and Owner Re-Signature
@@ -2855,8 +2857,10 @@ So that later decisions are made from measured reality instead of each system ru
 
 ### Story 5.33: Vehicle Following Through Named Speed Constraints
 
-**Type:** VERTICAL BEHAVIOR · **Boundary:** Longitudinal planning · **Complexity:** M
+**Type:** VERTICAL BEHAVIOR · **Boundary:** Longitudinal planning · **Complexity:** L
 **Implements:** FR6, AD-37, BC-5, BC-8, oracle rows V1-B01 → V1-B06, V1-F01
+
+*Amended 2026-10-02 (owner decisions D1–D8 recorded in `spec-5-33-vehicle-following-through-named-speed-constraints.md`): the complete vertical slice stays one story, reclassified from M to L and executed in internal phases with checkpoints. It adds the single host frame shared by every V2 vehicle per physics step, the host hazard collector, the runtime `PerceptionLimits` values and a story-level PlayMode harness in `MVP_Run` (two acceptance scenarios plus an exploratory campaign at 2, 4 and 8 vehicles). This replaces "PlayMode verification: none at story level" below; the epic does not diverge silently from the spec. Production keeps `V2SliceMaxPopulation = 1`; only a test-only scenario token raises it, up to 8 (D2). Junction coordination and Gate C remain out of scope.*
 
 As a player,
 I want AI vehicles to queue behind each other and settle at a credible gap,
@@ -2878,7 +2882,7 @@ So that the road reads as traffic rather than as independent vehicles that happe
 
 **EditMode verification:** free-road acceleration is finite and fades to zero at desired speed; a stopped leader produces firm finite braking, including at a zero or collapsed gap, with no NaN or infinity; following settles near the authored minimum gap measured bumper to bumper; response smoothing is finite, bounded and deterministic for the same inputs, including near-instant and zero-or-negative reaction times; the plan names its binding constraint and retains its rejected alternatives; several blockers coexist without collapsing — a leader and a future red signal are two records, not whichever branch ran last; a deliberate stop behind a leader is a **legitimate** blocker.
 
-**PlayMode verification:** none at story level; exercised at Gate C.
+**PlayMode verification:** ~~none at story level; exercised at Gate C.~~ *Amended 2026-10-02 (D1):* story-level PlayMode in `MVP_Run` — acceptance scenario A (three vehicles queue behind a test-placed kinematic obstacle, then the queue dissolves) and scenario B (two vehicles, staggered insertion, the follower's perceived gap never below s0 − 0.10 m), plus an `[Explicit]` exploratory campaign at 2, 4 and 8 vehicles that publishes findings and per-stage cost without judging them. Story 5.31 and 5.52 PlayMode are replayed unchanged as the Gate B non-regression (D4). Gate C stays with 5.35.
 
 **Regression scenarios covered:** V1-B01, V1-B02, V1-B03, V1-B06 (kernel envelopes preserved); V1-F01 and V1-C05 (a correct stop, and an intentional immobilizing stop, are not blockages).
 
@@ -3811,7 +3815,7 @@ Test routing follows `docs/setup/build-workflow-rules.md` section 2, applied to 
 | 5.30 | EditMode | `edge-case-hunter`, `verification-gap` — dense planning logic, and the story claims to drive nothing |
 | **5.31** | **Both** | `edge-case-hunter`, `verification-gap`, **`security-review`** — the first host-authoritative V2 control path and a changed ownership boundary |
 | 5.32 | EditMode | `edge-case-hunter` |
-| 5.33 | EditMode | `edge-case-hunter` |
+| **5.33** | **Both** *(amended 2026-10-02, owner decision D1)* | `edge-case-hunter` |
 | 5.34 | EditMode | `edge-case-hunter`, `verification-gap` |
 | **5.35** | **Both** | `edge-case-hunter`, `verification-gap` |
 | 5.36 | EditMode | `edge-case-hunter` |

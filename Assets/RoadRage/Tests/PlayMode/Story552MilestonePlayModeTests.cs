@@ -366,7 +366,10 @@ namespace RoadRage.Tests.PlayMode
             try
             {
                 Click(lobby, "startGameButton");
-                for (int frame = 0; frame < 300 && SceneManager.GetActiveScene().name != AppSceneRouter.MvpRunSceneName; frame++)
+                // Premier test d'un Editeur redemarre : le premier CreateLobbyAsync Steam a froid depasse 300 frames
+                // (~2,8 s, deux runs du 2026-10-02, decision proprietaire en Story 5.33) : budget en temps reel.
+                float deadline = Time.realtimeSinceStartup + 30f;
+                while (SceneManager.GetActiveScene().name != AppSceneRouter.MvpRunSceneName && Time.realtimeSinceStartup < deadline)
                 {
                     var bootstrap = RoadRageBootstrap.Instance;
                     if (bootstrap != null && bootstrap.LobbyRoom != null

@@ -6,6 +6,7 @@ using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 using RoadRage.Features.Vehicles;
+using Unity.Profiling;
 
 namespace RoadRage.Features.Vehicles.Traffic
 {
@@ -32,6 +33,11 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// la pose nominale (5.31, 2026-09-30). Nul : plafond de regime etabli du compilateur.
         /// </summary>
         public readonly float? NominalOffsetRadians;
+        /// <summary>
+        /// Portee bornee de la planification (Story 5.33, D14) : nulle, horizon sur <see cref="LookAheadMeters"/>. Fournie,
+        /// l'horizon de planification s'arrete a H et la perception lit le chemin complet (<see cref="PlanningDecision.PerceptionPath"/>).
+        /// </summary>
+        public readonly PlanningReach? Reach;
 
         public PlanningRequest(TrafficFrame frame, RoadId trafficId, RoutePlan existingRoute,
             RoadId destinationExitId, RouteSeed sessionSeed, float lookAheadMeters,
@@ -40,9 +46,10 @@ namespace RoadRage.Features.Vehicles.Traffic
             LongitudinalBounds? bounds = null,
             IReadOnlyList<SpeedProfilePoint> candidateSpeedProfile = null,
             GateAEvidenceResult? evidence = null, RoadId viaMovementId = default(RoadId),
-            float? nominalOffsetRadians = null)
+            float? nominalOffsetRadians = null, PlanningReach? reach = null)
         {
             ViaMovementId = viaMovementId;
+            Reach = reach;
             NominalOffsetRadians = nominalOffsetRadians;
             Frame = frame; TrafficId = trafficId; ExistingRoute = existingRoute;
             DestinationExitId = destinationExitId; SessionSeed = sessionSeed;
@@ -62,11 +69,16 @@ namespace RoadRage.Features.Vehicles.Traffic
         public MotionPlan Motion { get; }
         public SpeedProfileResult? SpeedProfile { get; }
         public TrafficDecisionProjection Projection { get; }
+        /// <summary>
+        /// Chemin lu par la perception (Story 5.33, D14) : la route restante entiere sur <see cref="PlanningRequest.LookAheadMeters"/>,
+        /// meme quand la planification est bornee. Sans portee bornee, c'est l'horizon lui-meme. Nul sans route.
+        /// </summary>
+        public IPathGeometry PerceptionPath { get; }
 
         internal PlanningDecision(AgentObservation observation, RouteResult route, PathHorizon path,
-            MotionPlan motion, SpeedProfileResult? speedProfile, TrafficDecisionProjection projection)
+            MotionPlan motion, SpeedProfileResult? speedProfile, TrafficDecisionProjection projection, IPathGeometry perceptionPath)
         { Observation = observation; Route = route; Path = path; Motion = motion;
-            SpeedProfile = speedProfile; Projection = projection; }
+            SpeedProfile = speedProfile; Projection = projection; PerceptionPath = perceptionPath; }
     }
 
     /// <summary>Stateless host decision over exactly one immutable frame.</summary>
@@ -86,30 +98,47 @@ namespace RoadRage.Features.Vehicles.Traffic
                 throw new ArgumentException("UnknownTrafficId", "request");
 
             var observation = new AgentObservation(frame.FrameId, actor);
+            RouteMarker.Begin();
             var route = RoutePlanner.Plan(new RouteRequest(frame.Model, observation.Location,
                 request.DestinationExitId, request.SessionSeed, request.TrafficId, "route",
                 new DecisionCounter(frame.FrameId), request.ExistingRoute, false, null, request.ViaMovementId));
+            RouteMarker.End();
             var evidence = request.Evidence ?? GateAEvidenceBinding.Bind(frame.Model, request.ModelText,
                 request.SignoffText, request.ReportText);
+            HorizonMarker.Begin();
             PathHorizon path = route.Plan == null ? null
                 : PathHorizon.Build(frame.Model, route.Plan, request.LookAheadMeters, request.NominalOffsetRadians,
-                    evidence.Valid && evidence.PoseModel == NominalPoseModel.Kinematic ? evidence.SignedRingSeams : null);
+                    evidence.Valid && evidence.PoseModel == NominalPoseModel.Kinematic ? evidence.SignedRingSeams : null, request.Reach);
+            // Perception sur toute la route restante : un leader ou un obstacle lointain reste percu (D14).
+            IPathGeometry perceptionPath = route.Plan == null ? null
+                : request.Reach.HasValue ? RoutePath.Build(frame.Model, route.Plan, request.LookAheadMeters) : (IPathGeometry)path;
+            HorizonMarker.End();
             MotionPlan motion = null;
             SpeedProfileResult? checkedProfile = null;
+            MotionMarker.Begin();
             if (path != null)
             {
                 motion = new MotionPlan(path, frame.Model.DrivabilityProfile, evidence, request.Tracking);
                 if (request.CandidateSpeedProfile != null)
                     checkedProfile = motion.VerifySpeedProfile(request.CandidateSpeedProfile, request.Bounds);
             }
+            MotionMarker.End();
             string code = route.Plan == null ? route.Reason.ToString()
                 : path.Issue != PathIssue.None ? path.Issue.ToString()
                 : motion.Issue != MotionIssue.None ? motion.Issue.ToString()
                 : checkedProfile.HasValue && checkedProfile.Value.Issue != SpeedProfileIssue.None
                     ? checkedProfile.Value.Issue.ToString() : "None";
+            ProjectionMarker.Begin();
             var projection = new TrafficDecisionProjection(frame.FrameId, frame.Version, request.TrafficId,
                 observation.Location, route, motion, code);
-            return new PlanningDecision(observation, route, path, motion, checkedProfile, projection);
+            ProjectionMarker.End();
+            return new PlanningDecision(observation, route, path, motion, checkedProfile, projection, perceptionPath);
         }
+
+        // Marqueurs de profilage (diagnostic de performance 5.33) : aucune influence sur la decision.
+        private static readonly ProfilerMarker RouteMarker = new ProfilerMarker("TrafficV2.Spine.Route");
+        private static readonly ProfilerMarker HorizonMarker = new ProfilerMarker("TrafficV2.Spine.Horizon");
+        private static readonly ProfilerMarker MotionMarker = new ProfilerMarker("TrafficV2.Spine.Motion");
+        private static readonly ProfilerMarker ProjectionMarker = new ProfilerMarker("TrafficV2.Spine.Projection");
     }
 }

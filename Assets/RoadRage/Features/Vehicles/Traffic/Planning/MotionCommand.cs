@@ -71,17 +71,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         }
 
         /// <summary>
-        /// Commande de suivi de la reference compilee. Acceleration : min(IDM route libre, suivi du plan) ;
-        /// freinage a SafeBrakingLimit si le plafond est inatteignable. Angle : anticipation de la courbure au
+        /// Commande de suivi de la reference compilee. Acceleration : celle de l'arbitrage longitudinal (5.33) quand il
+        /// est fourni, sinon min(IDM route libre, suivi du plan) et freinage a SafeBrakingLimit si le plafond est
+        /// inatteignable (5.31). Angle : anticipation de la courbure au
         /// point de reference plus correction de cap et d'ecart lateral, bornee au braquage declare.
         /// </summary>
         /// <param name="nominalHeadingErrorDegrees">
         /// Ecart de cap nominal de la route (-e, pose nominale cinematique du contrat §8), fourni par le driver V2.
         /// Absent : ecart du regime etabli, qui saute aux discontinuites de courbure (bancs synthetiques seulement).
         /// </param>
+        /// <param name="longitudinal">
+        /// Decision de l'arbitrage longitudinal (5.33) : son acceleration appliquee devient l'acceleration visee.
+        /// Absente : comportement 5.31 au bit pres.
+        /// </param>
         public static MotionCommand Track(ulong frameId, int validitySteps, SpeedPlan plan, DriverProfile driver,
             DrivabilityProfile drivability, RoadCurve curve, float progressSMeters, Vector3 referencePoint,
-            Vector3 forward, float speedMetersPerSecond, float fixedDeltaTime, float? nominalHeadingErrorDegrees = null)
+            Vector3 forward, float speedMetersPerSecond, float fixedDeltaTime, float? nominalHeadingErrorDegrees = null,
+            LongitudinalDecision longitudinal = null)
         {
             if (plan == null) throw new ArgumentNullException("plan");
             if (curve == null) throw new ArgumentNullException("curve");
@@ -89,7 +95,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             float speed = Math.Max(0f, speedMetersPerSecond);
 
             float acceleration;
-            if (plan.Binding == SpeedConstraint.SteeringCeilingUnreachable || !(fixedDeltaTime > 0f))
+            if (longitudinal != null) acceleration = longitudinal.AppliedAccelerationMetersPerSecondSquared;
+            else if (plan.Binding == SpeedConstraint.SteeringCeilingUnreachable || !(fixedDeltaTime > 0f))
                 acceleration = -driver.SafeBrakingLimit;
             else
             {

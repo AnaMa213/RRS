@@ -1,0 +1,24 @@
+# explore-poussee 20261002-220236 (exploratoire : constats publies, jamais juges)
+
+- Scenario explore-poussee : 2 insertions, population maximale 2, pas hote 855 / 6000, fixedDeltaTime 0.02 s
+- Insertions reelles : #0 au plus tot 0, reelle 1 ; #1 au plus tot 0, reelle 284
+- Sorties atteintes : 0/2, vehicules encore presents : 2
+- Frame : 854 construites, 0 refusees, population maximale observee 2
+- Files : jusqu'a 0 vehicules avec blocker, 1 arretes simultanement ; jeu percu minimal 9.71 m
+- Collecteur : 72 colliders au plus par requete (capacite 256), 0 pas-vehicule satures
+- PerceptionUnavailable : aucun
+- Repli 2a (TrackingToleranceExceeded) : 1 vehicule(s), constat attendu pre-5.39 (pas hote 705 : 00000000000000000000000000000001 TrackingToleranceExceeded, d max 0.3827 m (epsilon_t 0.34 m))
+- Maintien a l'arret (D11) :
+  - #0 00000000000000000000000000000001 : aucun maintien ; rampement apres arret 0 m ; fin d'approche lente poussee 0 m en 0 pas (d max 0 m) ; d max 0.72403 m ; TrackingToleranceExceeded OUI
+  - #1 00000000000000000000000000000002 : aucun maintien ; rampement apres arret 0 m ; fin d'approche lente poussee 0 m en 0 pas (d max 0 m) ; d max 0.19758 m ; TrackingToleranceExceeded non
+- Contacts entre vehicules : 0, avec un obstacle : 0, autres : 0
+- Reproductibilite physique : non mesure (premiere execution du scenario dans cette campagne)
+- Cout par vehicule et par pas (N = 2) : frame 1.025 ms / perception 0.108 ms / spine 1.22 ms / plan+arbitrage 1.413 ms / composition 0.034 ms / total 3.8 ms
+- Constats :
+  - vehicule #0 pousse au pas hote 700 (6 m/s lateral)
+  - point de contamination : pas hote 705 : 00000000000000000000000000000001 TrackingToleranceExceeded, d max 0.3827 m (epsilon_t 0.34 m) ; fenetre d'observation fonctionnelle close, le comportement des vehicules bloques par le vehicule terminal n'est plus une preuve du trafic nominal
+  - scenario arrete au pas hote 855 : objectif diagnostique atteint
+  - encore present en fin de campagne : #0 00000000000000000000000000000001 sur 47de8d1a8e71016a20b301b8a86852a5 a 0 m/s, dominant -, liante None, repli TrackingToleranceExceeded
+  - encore present en fin de campagne : #1 00000000000000000000000000000002 sur 45d560a7a864362a2f19600802713fac a 2.85 m/s, dominant -, liante CurveLimit
+- Invariants : verts
+- Trace brute : `explore-poussee-20261002-220236-steps.tsv`

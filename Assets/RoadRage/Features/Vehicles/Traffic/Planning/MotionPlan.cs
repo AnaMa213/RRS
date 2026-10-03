@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 
 namespace RoadRage.Features.Vehicles.Traffic.Planning
 {
@@ -166,74 +167,85 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             }
 
             MotionDiagnostic diagnostics = Diagnostics;
+            TrafficV2WorkCounters.Work.VerifyCalls++;
+            var knots = new List<float>();
+            // Les noeuds croissent aussi d'un intervalle au suivant (intervalles contigus) : un seul curseur dans le profil.
+            int candidateCursor = 1;
             foreach (var interval in Path.Intervals)
             {
-                var knots = new List<float>();
+                knots.Clear();
                 float from = Math.Max(interval.StartDistanceMeters, candidate[0].DistanceMeters);
                 float to = Math.Min(interval.EndDistanceMeters, candidate[candidate.Count - 1].DistanceMeters);
                 if (to < from) continue;
+                // Noeuds de l'intervalle : from, puis la fusion de deux suites deja triees (points de l'intervalle et du profil
+                // strictement entre from et to), puis to. C'est la meme suite que l'ajout de tous ces points suivi d'un tri
+                // (Story 5.33, D14 : meme resultat au bit pres, sans parcourir tout le profil a chaque intervalle).
                 knots.Add(from);
-                foreach (var point in interval.Points)
-                    if (point.DistanceMeters > from && point.DistanceMeters < to) knots.Add(point.DistanceMeters);
-                foreach (var point in candidate)
-                    if (point.DistanceMeters > from && point.DistanceMeters < to) knots.Add(point.DistanceMeters);
+                var points = interval.Points;
+                int p = 0;
+                while (p < points.Count && !(points[p].DistanceMeters > from)) p++;
+                int c = FirstAbove(candidate, from);
+                while (true)
+                {
+                    bool hasPoint = p < points.Count && points[p].DistanceMeters < to;
+                    bool hasCandidate = c < candidate.Count && candidate[c].DistanceMeters < to;
+                    if (!hasPoint && !hasCandidate) break;
+                    if (hasPoint && (!hasCandidate || points[p].DistanceMeters <= candidate[c].DistanceMeters))
+                        knots.Add(points[p++].DistanceMeters);
+                    else knots.Add(candidate[c++].DistanceMeters);
+                }
                 if (to > from) knots.Add(to);
-                knots.Sort();
+                TrafficV2WorkCounters.Work.VerifyKnots += knots.Count;
+                // Vitesse, plafond et courbure du noeud precedent : memes fonctions pures sur la meme abscisse, reutilisees.
+                // Story 5.33, D15 : les noeuds croissent, donc le premier indice i >= 1 tel que s <= d_i ne recule jamais ; un
+                // curseur le suit au lieu d'une recherche dichotomique par noeud (meme indice, memes expressions, meme resultat).
+                float previousSpeed = 0f, previousCeiling = 0f, previousCurvature = 0f;
+                int pointCursor = 1;
                 for (int i = 0; i < knots.Count; i++)
                 {
                     float s = knots[i];
-                    float speed = SpeedAt(candidate, s);
-                    float ceiling = CeilingAt(interval, s);
+                    while (candidateCursor <= candidate.Count - 1 && !(s <= candidate[candidateCursor].DistanceMeters)) candidateCursor++;
+                    while (pointCursor <= points.Count - 1 && !(s <= points[pointCursor].DistanceMeters)) pointCursor++;
+                    float speed = SpeedAt(candidate, candidateCursor <= candidate.Count - 1 ? candidateCursor : -1, s);
+                    int at = pointCursor <= points.Count - 1 ? pointCursor : -1;
+                    float ceiling = CeilingAt(points, at);
+                    float curvature = CurvatureAt(points, at, s);
                     if (speed > ceiling)
                         return new SpeedProfileResult(SpeedProfileIssue.SteeringCeilingExceeded, s, diagnostics);
-                    if (speed > 0f && speed < _profile.SteeringInactiveBelowMetersPerSecond
-                        && Math.Abs(CurvatureAt(interval, s)) > 0f)
+                    if (speed > 0f && speed < _profile.SteeringInactiveBelowMetersPerSecond && Math.Abs(curvature) > 0f)
                         diagnostics |= MotionDiagnostic.SteeringInactiveSpan;
                     if (i > 0)
                     {
-                        float previous = knots[i - 1];
-                        float previousSpeed = SpeedAt(candidate, previous);
                         if (Math.Max(previousSpeed, speed) > 0f
                             && Math.Min(previousSpeed, speed) < _profile.SteeringInactiveBelowMetersPerSecond
-                            && (Math.Abs(CurvatureAt(interval, previous)) > 0f
-                                || Math.Abs(CurvatureAt(interval, s)) > 0f))
+                            && (Math.Abs(previousCurvature) > 0f || Math.Abs(curvature) > 0f))
                             diagnostics |= MotionDiagnostic.SteeringInactiveSpan;
-                        float minimumCeiling = Math.Min(CeilingAt(interval, previous), ceiling);
+                        float minimumCeiling = Math.Min(previousCeiling, ceiling);
                         if (Math.Max(previousSpeed, speed) > minimumCeiling)
-                            return new SpeedProfileResult(SpeedProfileIssue.SteeringCeilingExceeded, previous, diagnostics);
+                            return new SpeedProfileResult(SpeedProfileIssue.SteeringCeilingExceeded, knots[i - 1], diagnostics);
                     }
+                    previousSpeed = speed; previousCeiling = ceiling; previousCurvature = curvature;
                 }
             }
             return new SpeedProfileResult(SpeedProfileIssue.None, 0f, diagnostics);
         }
 
-        // 5.31 : recherche dichotomique du premier i >= 1 tel que s <= d_i. Les distances sont croissantes,
-        // donc l'indice est exactement celui du parcours lineaire d'origine (meme resultat, cout log).
-        private static int FirstAtOrAfter(IReadOnlyList<SpeedProfilePoint> points, float s)
+        /// <summary>Premier indice d'abscisse strictement superieure a <paramref name="s"/> (Count si aucun).</summary>
+        private static int FirstAbove(IReadOnlyList<SpeedProfilePoint> points, float s)
         {
-            int low = 1, high = points.Count - 1, found = -1;
-            while (low <= high)
+            int low = 0, high = points.Count;
+            while (low < high)
             {
                 int mid = (low + high) / 2;
-                if (s <= points[mid].DistanceMeters) { found = mid; high = mid - 1; } else low = mid + 1;
+                if (points[mid].DistanceMeters > s) high = mid; else low = mid + 1;
             }
-            return found;
+            return low;
         }
 
-        private static int FirstAtOrAfter(IReadOnlyList<PathPoint> points, float s)
+        // 5.31 : premier i >= 1 tel que s <= d_i (-1 si aucun), le meme indice que le parcours lineaire d'origine. Story 5.33,
+        // D15 : fourni par un curseur monotone de la verification au lieu d'une recherche dichotomique par appel.
+        private static float SpeedAt(IReadOnlyList<SpeedProfilePoint> points, int i, float s)
         {
-            int low = 1, high = points.Count - 1, found = -1;
-            while (low <= high)
-            {
-                int mid = (low + high) / 2;
-                if (s <= points[mid].DistanceMeters) { found = mid; high = mid - 1; } else low = mid + 1;
-            }
-            return found;
-        }
-
-        private static float SpeedAt(IReadOnlyList<SpeedProfilePoint> points, float s)
-        {
-            int i = FirstAtOrAfter(points, s);
             if (i > 0)
             {
                 var a = points[i - 1]; var b = points[i];
@@ -245,25 +257,22 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             return points[points.Count - 1].SpeedMetersPerSecond;
         }
 
-        private static float CeilingAt(PathInterval interval, float s)
+        private static float CeilingAt(IReadOnlyList<PathPoint> points, int i)
         {
-            int i = FirstAtOrAfter(interval.Points, s);
             if (i > 0)
-                return Math.Min(interval.Points[i - 1].SteeringCeilingMetersPerSecond,
-                    interval.Points[i].SteeringCeilingMetersPerSecond);
-            return interval.Points[interval.Points.Count - 1].SteeringCeilingMetersPerSecond;
+                return Math.Min(points[i - 1].SteeringCeilingMetersPerSecond, points[i].SteeringCeilingMetersPerSecond);
+            return points[points.Count - 1].SteeringCeilingMetersPerSecond;
         }
 
-        private static float CurvatureAt(PathInterval interval, float s)
+        private static float CurvatureAt(IReadOnlyList<PathPoint> points, int i, float s)
         {
-            int i = FirstAtOrAfter(interval.Points, s);
             if (i > 0)
             {
-                var a = interval.Points[i - 1]; var b = interval.Points[i];
+                var a = points[i - 1]; var b = points[i];
                 float t = (s - a.DistanceMeters) / (b.DistanceMeters - a.DistanceMeters);
                 return a.Reference.CurvaturePerMeter + t * (b.Reference.CurvaturePerMeter - a.Reference.CurvaturePerMeter);
             }
-            return interval.Points[interval.Points.Count - 1].Reference.CurvaturePerMeter;
+            return points[points.Count - 1].Reference.CurvaturePerMeter;
         }
     }
 }

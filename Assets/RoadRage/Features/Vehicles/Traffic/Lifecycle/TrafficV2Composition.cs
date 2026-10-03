@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using RoadRage.Features.Vehicles.Traffic.Frame;
+using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 using UnityEngine;
@@ -31,13 +32,92 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         UnknownPortal = 10,
         CampaignCompleted = 11,
         RoadModelInvalid = 12,
-        VehicleProfileMissing = 13
+        VehicleProfileMissing = 13,
+        /// <summary>Story 5.33 : scenario de test et run de mesure demandes ensemble, exclusifs ; aucune insertion.</summary>
+        ScenarioWithMeasurement = 14,
+        /// <summary>Story 5.33 : toutes les insertions du scenario ont eu lieu.</summary>
+        ScenarioCompleted = 15
     }
 
     /// <summary>Constantes declarees de la tranche V2 (une seule source).</summary>
     public static class TrafficV2Settings
     {
+        /// <summary>Population de production de la composition V2Slice (D2) ; seul un scenario de test la leve.</summary>
         public const int V2SliceMaxPopulation = 1;
+
+        // Valeurs runtime 5.33 : parametres de conception, confirmes par les totaux et saturations publies par le
+        // harness. Toute revision est une decision proprietaire (Ask First).
+
+        /// <summary>Portee arriere de la perception (m).</summary>
+        public const float PerceptionRearRangeMeters = 30f;
+
+        /// <summary>Elargissement lateral du couloir balaye de la perception (m).</summary>
+        public const float PerceptionLateralRangeMeters = 1f;
+
+        /// <summary>Fenetre longitudinale de l'occupation adjacente (m).</summary>
+        public const float PerceptionAdjacentWindowMeters = 10f;
+
+        /// <summary>Capacite des listes de faits de la perception.</summary>
+        public const int PerceptionListCapacity = 8;
+
+        /// <summary>Capacite du tampon de requete spatiale de la perception, un par vehicule, reutilise.</summary>
+        public const int SpatialQueryCapacity = 32;
+
+        /// <summary>Rayon de la requete du collecteur de dangers, une par vehicule V2 et par pas (m).</summary>
+        public const float HazardQueryRadiusMeters = 40f;
+
+        /// <summary>
+        /// Capacite du tampon du collecteur : une requete pleine est saturee. Revisee de 64 a 256 par decision
+        /// proprietaire du 2026-10-02 (D9) : le decor statique de MVP_Run rend jusqu'a 98 colliders a 40 m le long des
+        /// routes de reference (97 statiques) et saturait 64 sur 53 % des requetes.
+        /// </summary>
+        public const int HazardQueryCapacity = 256;
+
+        /// <summary>Population maximale d'un scenario de test (D2).</summary>
+        public const int ScenarioMaxPopulation = 8;
+
+        /// <summary>
+        /// Maintien a l'arret D11 (decision proprietaire du 2026-10-02). Vitesses d'entree et de depart de la source :
+        /// <see cref="VehicleTireModel.SlipReferenceSpeed"/>, sous laquelle l'adherence laterale du pneu est attenuee
+        /// (aucun mouvement entretenu dans cette bande : c'est le rampement qui faisait deriver d au scenario A). Delta_hold
+        /// et Delta_release : calibres par Story533LongitudinalTests.TheStopHoldWindowIsCalibratedOnThePointMassBench
+        /// (rapport stophold-calibration.md) ; Delta_hold au plus 0,5 m, borne haute du jeu d'une file d'acceptation.
+        /// </summary>
+        public static StopHoldParameters StopHold
+        {
+            get
+            {
+                return new StopHoldParameters(VehicleTireModel.SlipReferenceSpeed, StopHoldGapMarginMeters, StopHoldReleaseGapMarginMeters,
+                    VehicleTireModel.SlipReferenceSpeed);
+            }
+        }
+
+        /// <summary>
+        /// Delta_hold : fenetre d'entree du maintien au-dessus de s0 (m). A 0,25 m, l'arret en roue libre de la bande de
+        /// service (vers s0 + 0,4..0,5) laisse 0,15 m de rampement ; a 0,5 m, aucun, jeu maintenu 2,45 m.
+        /// </summary>
+        public const float StopHoldGapMarginMeters = 0.5f;
+
+        /// <summary>
+        /// Marge m de la portee bornee de la planification (D14, 2026-10-02) : H = d1 + v_ref^2 / (2 b_plan) + m. Absorbe
+        /// l'arrondi de la chaine arriere du plan de vitesse ; banc Story533PlanningCostBenchTests : 7 838 commandes identiques.
+        /// </summary>
+        public const float PlanningReachMarginMeters = 1f;
+
+        /// <summary>
+        /// Delta_release : ouverture du jeu au-dessus de s0 qui libere un maintien (m). Seule une source lente (&lt; vitesse de
+        /// depart) y recourt ; derriere une source a 0,05 m/s pendant 60 s : 4 liberations a 1 m, 2 a 1,5 m, 1 a 2 m.
+        /// </summary>
+        public const float StopHoldReleaseGapMarginMeters = 2f;
+
+        public static PerceptionLimits PerceptionLimits
+        {
+            get
+            {
+                return new PerceptionLimits(PerceptionRearRangeMeters, PerceptionLateralRangeMeters,
+                    PerceptionAdjacentWindowMeters, PerceptionListCapacity);
+            }
+        }
 
         /// <summary>Fenetre de validite d'une commande, en pas physiques : [p, p].</summary>
         public const int PlanValiditySteps = 1;
@@ -100,25 +180,84 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         }
     }
 
+    /// <summary>Insertion d'un scenario de test : entree, sortie imposee, graine et pas hote d'insertion au plus tot.</summary>
+    public readonly struct ScenarioInsertion
+    {
+        public readonly RoadId EntryPortalId;
+        public readonly RoadId ExitPortalId;
+        public readonly ulong Seed;
+        /// <summary>FrameId global a partir duquel l'insertion peut avoir lieu (portail libre exige en plus).</summary>
+        public readonly ulong EarliestStep;
+
+        public ScenarioInsertion(RoadId entryPortalId, RoadId exitPortalId, ulong seed, ulong earliestStep)
+        {
+            EntryPortalId = entryPortalId; ExitPortalId = exitPortalId; Seed = seed; EarliestStep = earliestStep;
+        }
+    }
+
+    /// <summary>Insertion effective d'un scenario : rang dans le scenario, identite et FrameId global d'insertion.</summary>
+    public readonly struct ScenarioInsertionRecord
+    {
+        public readonly int Index;
+        public readonly RoadId TrafficId;
+        /// <summary>FrameId global du pas hote ou l'insertion a eu lieu ; le vehicule conduit au pas suivant.</summary>
+        public readonly ulong FrameId;
+
+        public ScenarioInsertionRecord(int index, RoadId trafficId, ulong frameId)
+        {
+            Index = index; TrafficId = trafficId; FrameId = frameId;
+        }
+    }
+
     /// <summary>
-    /// Choix de composition et de mesure d'une session hote. Lu une fois par le spawner, avant la
+    /// Jeton de scenario de test (Story 5.33) : etiquette, population maximale (1 a
+    /// <see cref="TrafficV2Settings.ScenarioMaxPopulation"/>) et insertions ordonnees. Construit uniquement sous Tests/
+    /// (garde structurelle, comme MeasurementRun). Il n'accorde aucune permission : insertion hors mesure, couverture
+    /// Covered exigee, repli 2a actif ; aucun objectif intermediaire. Exclusif avec MeasurementRun (refus nomme).
+    /// </summary>
+    public sealed class TrafficV2Scenario
+    {
+        public string Label { get; }
+        public int MaxPopulation { get; }
+        public IReadOnlyList<ScenarioInsertion> Insertions { get; }
+
+        public TrafficV2Scenario(string label, int maxPopulation, IReadOnlyList<ScenarioInsertion> insertions)
+        {
+            if (insertions == null || insertions.Count == 0) throw new ArgumentException("EmptyScenario", "insertions");
+            if (maxPopulation < 1 || maxPopulation > TrafficV2Settings.ScenarioMaxPopulation)
+                throw new ArgumentException("InvalidScenarioPopulation", "maxPopulation");
+            for (int i = 0; i < insertions.Count; i++)
+                if (insertions[i].EntryPortalId.IsEmpty || insertions[i].ExitPortalId.IsEmpty)
+                    throw new ArgumentException("InvalidScenarioInsertion", "insertions");
+            Label = string.IsNullOrEmpty(label) ? "scenario" : label;
+            MaxPopulation = maxPopulation;
+            Insertions = new List<ScenarioInsertion>(insertions).AsReadOnly();
+        }
+    }
+
+    /// <summary>
+    /// Choix de composition, de mesure et de scenario d'une session hote. Lu une fois par le spawner, avant la
     /// premiere insertion, puis fige ; tout changement ulterieur est ignore avec un diagnostic.
     /// </summary>
     public static class TrafficV2Session
     {
         public static TrafficComposition Composition { get; private set; }
         public static MeasurementRun Measurement { get; private set; }
+        /// <summary>Scenario de test (5.33) ; nul en production : population 1.</summary>
+        public static TrafficV2Scenario Scenario { get; private set; }
 
-        public static void Request(TrafficComposition composition, MeasurementRun measurement)
+        public static void Request(TrafficComposition composition, MeasurementRun measurement, TrafficV2Scenario scenario = null)
         {
             Composition = composition;
             Measurement = measurement;
+            Scenario = scenario;
         }
 
         public static void Reset()
         {
             Composition = TrafficComposition.V1;
             Measurement = null;
+            Scenario = null;
         }
     }
 

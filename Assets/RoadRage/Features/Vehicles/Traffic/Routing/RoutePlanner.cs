@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 
 namespace RoadRage.Features.Vehicles.Traffic.Routing
 {
@@ -178,6 +179,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             if (existing != null && !stale && !replan)
                 return new RouteResult(RouteOutcome.Planned, RouteReason.Requested, reused);
 
+            TrafficV2WorkCounters.Work.RouteSearches++;
             var nodes = new Dictionary<RoadId, Node>();
             for (int i = 0; i < model.Corridors.Count; i++)
             {

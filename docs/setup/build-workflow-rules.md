@@ -124,14 +124,32 @@ La story checkpoint `X.N` execute cette procedure et est la seule a promouvoir
 le `sprint-status` en `done`. Sans story checkpoint, l'executer avant
 `bmad-retrospective`.
 
-1. Demander a l'utilisateur de redemarrer l'Editeur : le runner PlayMode ne
-   fonctionne qu'une fois par session.
+1. Verifier que l'Editeur repond (`unity status` = `ready`). Aucun redemarrage systematique : voir 3.3.
 2. Lancer `.\scripts\validate.ps1 -Profile Full`, puis
    `.\scripts\validate.ps1 -TestMode PlayMode`, une seule fois chacun.
 3. Comparer PlayMode a
    `_bmad-output/implementation-artifacts/v1-regression-5-51/after-playmode-results.json`
    (6 echecs connus) ; aucun nouvel echec n'est admis.
 4. Consigner les sorties brutes ; la retrospective les cite.
+
+### 3.3 Domain Reload et runs PlayMode successifs (decision proprietaire du 2026-10-03)
+
+- Le projet garde le **Domain Reload actif** a l'entree en Play Mode
+  (`ProjectSettings/EditorSettings.asset` : `m_EnterPlayModeOptionsEnabled: 1`, `m_EnterPlayModeOptions: 2`, soit le
+  rechargement de scene desactive et le rechargement de domaine actif). C'est un choix intentionnel : les runs PlayMode
+  se relancent l'un apres l'autre sans redemarrer l'Editeur.
+- **Ne pas demander de redemarrage de l'Editeur entre deux runs PlayMode.** Un redemarrage ne se demande que si
+  l'Editeur ou le Test Runner est reellement bloque ou corrompu : `unity status` qui ne revient pas a `ready`, un run
+  qui rend `total: 0` sans raison, ou un etat `running` qui ne se termine jamais.
+- Pendant un rechargement de domaine, le CLI ne repond pas un court instant (sortie vide ou code de sortie 6).
+  `validate.ps1` le tolere pour `test_status` comme pour les requetes Console :
+  - lecture retentee 5 fois au plus, a 2 s d'intervalle, puis surveillance normale ;
+  - tout autre code de sortie, une sortie illisible, un refus de l'Editeur ou un statut de test `failed` ou `error`
+    restent bloquants immediatement ;
+  - essais epuises : echec ferme avec diagnostic.
+- La politique vit dans `scripts/validation-cli.ps1`, couverte par son `-SelfTest`.
+- Un resultat lu ailleurs (journal de l'Editeur, Console) ne vaut jamais preuve si `validate.ps1` n'a pas recupere le
+  statut officiel.
 
 Le script verifie le CLI Unity, l'Editeur connecte, la recompilation, la Console niveau erreur, les
 tests cibles, puis l'etat final scenes/Git. **Il echoue ferme** : Editeur inaccessible, CLI muet,

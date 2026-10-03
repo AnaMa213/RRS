@@ -22,7 +22,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
         /// Story 5.52 (decision 2a) : borne de suivi depassee en fonctionnement normal ; repli jusqu'a l'arret
         /// maintenu, vehicule present et libre, sans recuperation (5.39).
         /// </summary>
-        TrackingToleranceExceeded = 10
+        TrackingToleranceExceeded = 10,
+        /// <summary>Story 5.33 : la frame partagee du pas n'a pas pu etre construite ; chaque vehicule recoit le repli.</summary>
+        FrameUnavailable = 11
     }
 
     /// <summary>Etat terminal du repli, diagnostique et publie ; le vehicule reste present.</summary>

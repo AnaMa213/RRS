@@ -2,11 +2,106 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using RoadRage.Features.Vehicles.Traffic.Blockers;
+using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 
 namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
 {
+    /// <summary>Compteurs du collecteur de dangers sur un pas hote (5.33) : requetes, saturations, exclusions.</summary>
+    public readonly struct TrafficHazardCollectorCounters
+    {
+        public readonly int Queries;
+        public readonly int SaturatedQueries;
+        public readonly int Hits;
+        public readonly int Emitted;
+        public readonly int ExcludedStatic;
+        public readonly int ExcludedSelf;
+        public readonly int ExcludedTrafficV2;
+        public readonly int IdentityCollisions;
+        public readonly int NonFinite;
+
+        public TrafficHazardCollectorCounters(int queries, int saturatedQueries, int hits, int emitted, int excludedStatic,
+            int excludedSelf, int excludedTrafficV2, int identityCollisions, int nonFinite)
+        {
+            Queries = queries; SaturatedQueries = saturatedQueries; Hits = hits; Emitted = emitted;
+            ExcludedStatic = excludedStatic; ExcludedSelf = excludedSelf; ExcludedTrafficV2 = excludedTrafficV2;
+            IdentityCollisions = identityCollisions; NonFinite = nonFinite;
+        }
+
+        public string ToText()
+        {
+            return string.Format(CultureInfo.InvariantCulture,
+                "requetes {0} saturees {1} / colliders {2} / dangers {3} / ecartes statiques {4} propre {5} V2 {6} / "
+                + "HazardIdentityCollision {7} / non finis {8}", Queries, SaturatedQueries, Hits, Emitted, ExcludedStatic,
+                ExcludedSelf, ExcludedTrafficV2, IdentityCollisions, NonFinite);
+        }
+    }
+
+    /// <summary>
+    /// Partie perception, arbitrage et blockers d'une decision (5.33) : faits retenus et statuts, candidats, liante,
+    /// acceleration visee, limites de route, blockers et dominant, compteurs du collecteur. Hote seul.
+    /// </summary>
+    public sealed class TrafficLongitudinalOutcome
+    {
+        private static readonly RoadLimitValue[] NoRoadLimits = new RoadLimitValue[0];
+
+        public ulong FrameId { get; }
+        /// <summary>Perceived faux : perception non evaluee a ce pas.</summary>
+        public AgentObservation Observation { get; }
+        /// <summary>Nulle : aucun arbitrage a ce pas (pas de plan accepte).</summary>
+        public LongitudinalDecision Decision { get; }
+        public IReadOnlyList<RoadLimitValue> RoadLimits { get; }
+        public IReadOnlyList<Blocker> Blockers { get; }
+        public bool HasDominant { get; }
+        public Blocker Dominant { get; }
+        /// <summary>Colliders rendus par la requete du collecteur emise pour ce vehicule.</summary>
+        public int HazardQueryHits { get; }
+        public bool HazardQuerySaturated { get; }
+        public TrafficHazardCollectorCounters Collector { get; }
+
+        public TrafficLongitudinalOutcome(ulong frameId, AgentObservation observation, LongitudinalDecision decision,
+            IReadOnlyList<RoadLimitValue> roadLimits, IReadOnlyList<Blocker> blockers, int hazardQueryHits,
+            bool hazardQuerySaturated, TrafficHazardCollectorCounters collector)
+        {
+            FrameId = frameId; Observation = observation; Decision = decision;
+            var limits = roadLimits == null ? NoRoadLimits : new RoadLimitValue[roadLimits.Count];
+            for (int i = 0; i < limits.Length; i++) limits[i] = roadLimits[i];
+            RoadLimits = Array.AsReadOnly(limits);
+            Blockers = blockers ?? BlockerTracker.Empty;
+            Blocker dominant;
+            HasDominant = BlockerTracker.TryGetDominant(Blockers, out dominant);
+            Dominant = dominant;
+            HazardQueryHits = hazardQueryHits; HazardQuerySaturated = hazardQuerySaturated; Collector = collector;
+        }
+
+        /// <summary>Texte deterministe et invariant de culture.</summary>
+        public string ToText()
+        {
+            var text = new StringBuilder();
+            text.Append("Observation ");
+            if (Observation.Perceived) text.Append('\n').Append(Observation.ToText());
+            else text.Append("non evaluee\n");
+            text.Append(Decision == null ? "Longitudinal aucun arbitrage\n" : Decision.ToText());
+            text.Append("Road limits");
+            if (RoadLimits.Count == 0) text.Append(" aucune");
+            for (int i = 0; i < RoadLimits.Count; i++)
+            {
+                var limit = RoadLimits[i];
+                text.Append(i == 0 ? " " : ", ").Append(limit.ElementId).Append(' ').Append(limit.State);
+                if (limit.State == RoadLimitState.Applied)
+                    text.Append(' ').Append(limit.MetersPerSecond.ToString("0.####", CultureInfo.InvariantCulture));
+            }
+            text.Append('\n').Append("Blockers ").Append(Blockers.Count.ToString(CultureInfo.InvariantCulture));
+            for (int i = 0; i < Blockers.Count; i++) text.Append("\n  ").Append(Blockers[i].ToText());
+            text.Append('\n').Append("Dominant ").Append(HasDominant ? Dominant.Id : "aucun").Append('\n');
+            text.Append("Hazard query ").Append(HazardQueryHits.ToString(CultureInfo.InvariantCulture))
+                .Append(HazardQuerySaturated ? " saturee" : "").Append(" / collector ").Append(Collector.ToText());
+            return text.ToString();
+        }
+    }
+
     /// <summary>
     /// Partie conduite d'une decision (5.31) : contraintes appliquees et reportees, liante, epoques,
     /// intent final en quatre flottants, repli et raison, couverture vehicule et etiquette de mesure.
@@ -77,6 +172,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         public string Code { get; }
         /// <summary>Partie conduite (5.31) ; nulle pour une decision sans conduite (5.30).</summary>
         public TrafficDriveOutcome Drive { get; private set; }
+        /// <summary>Partie perception, arbitrage et blockers (5.33) ; nulle sans perception ni arbitrage a ce pas.</summary>
+        public TrafficLongitudinalOutcome Longitudinal { get; private set; }
 
         internal TrafficDecisionProjection(ulong frameId, RoadModelVersion version, RoadId trafficId,
             RoadLocation location, RouteResult route, MotionPlan motion, string code)
@@ -119,6 +216,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         {
             var copy = (TrafficDecisionProjection)MemberwiseClone();
             copy.Drive = drive;
+            return copy;
+        }
+
+        /// <summary>Copie immuable portant la partie longitudinale (5.33) ; nulle l'efface.</summary>
+        public TrafficDecisionProjection WithLongitudinal(TrafficLongitudinalOutcome longitudinal)
+        {
+            var copy = (TrafficDecisionProjection)MemberwiseClone();
+            copy.Longitudinal = longitudinal;
             return copy;
         }
 
@@ -165,6 +270,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
                 text.Append("Vehicle coverage ").Append(Drive.VehicleCoverage)
                     .Append(" / measurement ").Append(Drive.MeasurementLabel ?? "hors mesure");
             }
+            if (Longitudinal != null) text.Append('\n').Append(Longitudinal.ToText());
             return text.ToString();
         }
     }
