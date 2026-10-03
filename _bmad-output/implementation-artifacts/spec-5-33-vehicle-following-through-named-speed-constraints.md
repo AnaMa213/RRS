@@ -291,6 +291,98 @@ context:
 - Given une saturation d'un canal, de la requete spatiale ou du collecteur pour un vehicule, when il decide, then `PerceptionUnavailable` est evalue avec la raison publiee ; jamais une perception complete supposee.
 - Given la campagne exploratoire, when elle s'execute, then les traces brutes, les constats et le cout par etape en fonction de N sont publies. Seul un invariant viole la fait echouer : NaN, intent manquant ou double, frame multiple par pas, retrait hors portail, population au-dela du maximum, joueur hote dans un fait V2, anomalie de cout D7. Les contacts et interblocages aux carrefours et giratoires sont des constats pour 5.34/5.35, jamais des echecs 5.33.
 
+### Review Findings (2026-10-03)
+
+Review scope: implementation commit `5264b12` and closure commits through `850852c`, compared with `954eb20` (Story 5.52 review closed). Four independent layers completed: blind hunter, edge cases, verification gaps, and acceptance audit. The owner-approved D9-D15 amendments were considered. No production code was changed by this review.
+
+- [ ] [Review][Decision][R4][medium] Resolve the outstanding D13 maximum of two FixedUpdates per rendered frame. `results-20261003-structural-optimization.md:107` explicitly records one frame with three steps for explore-4; `perf-N4-20261003-115242-summary.md` confirms it. The diagnostic only asserts a nonempty run (`Assets/RoadRage/Tests/PlayMode/Story533PerformanceDiagnosticPlayModeTests.cs:323`). The measurements therefore leave this target unmet; deciding whether isolated exceptions are acceptable requires an owner amendment. Full-population costs were separately measured in the results report, so this finding does not claim they were absent.
+- [x] [Review][Patch][R1][medium] Preserve StopHold for every unavailable perception, including when its source is still visible. [`Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs:480`] `LongitudinalPerception.From` retains visible facts while reporting channel or collector saturation. The `GapOpened` and `SourceDeparted` branches release a seen source without checking that reason; only the absent-source branch guards it. At rest with an opened gap, `PerceptionUnavailable` can bind at zero acceleration, producing neither brake nor handbrake and removing the blocker. This violates D11's rule that unavailable perception never releases the hold. Guard all release branches and cover visible-source saturation in the hysteresis tests.
+- [x] [Review][Patch][R2][medium] Correct the population comparison's repeated normalization. [`Assets/RoadRage/Tests/PlayMode/Story533PerformanceDiagnosticPlayModeTests.cs:549`] The comparison divides every row by configured population, including metrics already divided by actual vehicle count at lines 409-410. The committed `perf-comparison-20261003-120437.md` shows 0.747 ms per vehicle becoming 0.093 ms under `/veh N=8`. Preserve already normalized metrics; derive total per-vehicle comparisons from actual vehicle counts or a declared full-population window, rather than dividing mixed-population means by the maximum. Verify publication arithmetic with known samples.
+- [x] [Review][Patch][R3][medium] Reject unrecognized nonzero CLI codes before considering blank output retryable. [`scripts/validation-cli.ps1:51`] A response `{ ExitCode = 3; Text = '' }` enters the retry branch and can be followed by an accepted completed response. The helper's policy and the workflow require every nonzero code other than 6 to block immediately. Check the code first and add the blank-output/nonzero-code combination to the existing self-tests.
+
+Validation executed during review:
+
+```powershell
+.\scripts\validate.ps1 -Profile Story -Story 5.33 -TestMode Both
+```
+
+Raw result excerpt:
+
+```text
+VALIDATION STORY (Story533)
+Tests EditMode           66/66 passes
+Tests PlayMode           2/2 passes
+Erreurs Console          0 depuis le curseur 2358
+Etat de compilation      sain (scriptCompilationFailed=false)
+Scenes ouvertes          aucune scene modifiee
+OK
+```
+
+The targeted tests do not cover R1-R3. Full suites, the explicit exploratory campaign, and the performance diagnostics were not rerun in this review. The validation generated acceptance A/B traces and summaries with stamps `20261003-162416` and `20261003-162453`. Story status is `in-progress` until the review items are resolved.
+
+### Review patch resolution (2026-10-03)
+
+R1-R3 were applied at the owner's request:
+
+- R1: both visible-source release branches now require available perception. Three new EditMode cases cover all unavailable reasons, leader and obstacle holds, both release conditions, blocker continuity, physical handbrake composition, and release after perception becomes available again.
+- R2: comparison costs are normalized by the actual vehicle count of each measured step before averaging. Already normalized metrics retain their values. Global frame recorders have no per-vehicle estimate and publish `-`. Three non-explicit `Story533` PlayMode tests exercise the real comparison text with mixed populations, the 0.747/0.099 regression values, missing data, and invariant culture. The historical performance comparisons remain records of the original runs; their old `/veh` columns must not be used as corrected evidence. No new performance budget or D13 exception is inferred from these arithmetic tests.
+- R3: unknown nonzero CLI exit codes are rejected before the blank-output retry rule. The existing helper self-test now includes silent failures, failure after transient silence, and silent code 6, checking retry and wait counts. `validate.ps1` executes those simulations before contacting Unity, so verification stays on the project-approved path.
+
+Validation: `validate.ps1 -Profile Story -Story 5.33 -TestMode Both` passed 69/69 EditMode and 5/5 PlayMode tests; the CLI self-test passed 13/13 cases. Console errors since cursor 2448: 0. `MVP_Run` stayed clean. The raw recap is stored in `traffic-v2-5-33-explorations/review-fixes-20261003-validation.txt`; acceptance A/B reports are stamped `20261003-164149` and `20261003-164226`.
+
+D4 non-regressions were also executed through `validate.ps1`: Story 5.31 Both passed 50/50 EditMode and 13/13 PlayMode tests (Console cursor 2562); Story 5.52 PlayMode passed 4/4 tests (cursor 2634). Both had 0 Console errors, healthy compilation, no skipped or inconclusive tests, and no dirty scene. The 5.31 fixture regenerated `traffic-v2-5-31-measurements/playmode-short-run-steps.tsv` as expected. The explicit exploration and performance campaigns and the full suites were not rerun for these patches.
+
+`graphify update .` completed (7,379 nodes, 20,641 edges). It still reports a partial AST extraction for the unchanged `Story531DrivenReplayTests.cs` at line 112; Unity compilation and the executable tests are the validation authority. R4 remains open and the story remains `in-progress`.
+
+### Reprise R4 autorisee (2026-10-03)
+
+Le proprietaire demande de traiter R4 puis de fermer la story en `done` une fois corrigee. Le scope restant est R4 ; les phases initiales et R1-R3 sont deja executees. Les modifications presentes dans l'arbre sont celles de cette revue et de ses validations, autorisees dans la conversation. Ne pas refaire l'implementation initiale.
+
+Investigation initiale : la trace locale `perf-N4-20261003-115242-frames.tsv` contient une frame 1576 a 81,669 ms, `PlayerLoop` 6,569 ms, `TrafficV2.Step` 2,271 ms, `GC.Collect` 0 ; la frame suivante 1577 compte trois pas. La trace vehicule montre trois vehicules aux pas 765-769, avant l'insertion du quatrieme. Ceci explique le contexte du pic, mais n'autorise pas a exclure cette frame du maximum D13. La sonde publie aussi des intervalles inverses tels que `765-764` : son ordre par rapport au spawner doit etre verifie avant de conclure sur l'alignement des mesures.
+
+- [x] `Assets/RoadRage/Tests/PlayMode/Story533PerformanceDiagnosticPlayModeTests.cs` : investiguer et corriger le comptage/alignement des frames et toute cause applicative demontree du depassement. Rendre les cibles D13 bloquantes dans la campagne `Story533Perf`, avec mesures de population pleine non vides et maximum de deux pas sur l'ensemble de la fenetre explore-4/N4. Publier les depassements et leur contexte avant toute assertion. Conserver les seuils, les constantes de temps Unity, la physique, le scenario, la geometrie et la Gate A ; aucune exclusion opportuniste d'une pause Editeur ou d'une population transitoire.
+- [x] `Assets/RoadRage/Tests/PlayMode/Story533PerformancePublicationTests.cs` : couvrir les regressions de mesure et la porte D13 dans la categorie `Story533` si la correction en introduit une logique testable.
+- [x] Verifier par `scripts/validate.ps1` : Story 5.33 Both puis campagne explicite `Story533Perf` et campagne exploratoire requise par le spec ; conserver les sorties officielles, y compris un echec. Les non-regressions D4 deja vertes restent valides si aucun code runtime n'est modifie ; sinon les rejouer. Pas de suite complete de fin d'epic. Apres source changee, `graphify update .`.
+- [x] Clore R4 avec les preuves exactes dans un rapport et dans cette spec. Si le seuil reste depasse sans correction autorisee, consigner la cause et laisser la story ouverte ; aucune exception D13 n'est approuvee. La cloture `done` demandee reste conditionnee a une preuve verte, puis a la revue de la correction.
+
+### Correction et preuves R4 (2026-10-03)
+
+Rapport : `traffic-v2-5-33-explorations/review-R4-20261003.md`. Delta source limite aux deux fixtures PlayMode ci-dessus ; aucun changement runtime, scene, geometrie, preuve, scenario, physique, constante Unity ou seuil. Compteur physique independant conserve ; epoques capturees aux bornes Update et verifiees contre ce compteur, sans hypothese d'ordre du spawner. Duree moteur et recorders attaches a leur frame ; bords partiels publies. La porte D13 exige des mesures non vides en population pleine et publie tous les depassements avant d'asserter.
+
+Campagne `Story533Perf` officielle : 5/5 passes, 0 erreur Console depuis 2847, compilation saine, `MVP_Run` propre. Couts en population pleine N1/N2/N3/N4/N8 : 0.871/0.793/0.776/0.770/0.736 ms par vehicule. N4 : 1970 pas en population pleine, 3.081 ms/pas hote ; maximum physique **2** sur les **6942 frames de toute la fenetre**, transitions incluses. N8 : 920 pas en population pleine, **5.890 ms/pas hote**. Alignement physique/epoque verifie pour tous les runs. Aucune exclusion ni exception D13.
+
+Le maximum N3 est **3**, conserve dans `perf-N3-20261003-171753-summary.md` : frame 3079, epoques 1608-1610, apres une frame de 41.028 ms (`PlayerLoop` 39.685 ms, Traffic V2 2.310 ms, physique 0.063 ms, GC 0). Le poste restant du PlayerLoop n'est pas attribue a une cause precise ; la cible de deux pas porte sur N4. Les depassements historiques ne sont ni effaces ni declares faux par la correction d'alignement. Une future execution N4 qui depasserait deux pas echouera.
+
+Validation finale `Story533 Both` : **69/69 EditMode et 8/8 PlayMode**, 0 erreur Console depuis 2984, compilation saine, scene propre ; aucun edit source concurrent. Cette preuve remplace le premier run vert (curseur 2721) pendant lequel une petite correction de diagnostic avait encore ete ecrite durant EditMode. Les campagnes finales et cette validation n'ont aucun edit source concurrent. D4 demeure valide, puisque R4 ne change aucun runtime.
+
+Campagne `Story533Exploration` officielle : **5/5 passes**, 0 erreur Console depuis 3071, compilation saine, scene propre. 2/2 sorties et rejeu a 0.001 m d'ecart maximal ; file de quatre resorbee, 4/4 sorties ; N8 : 5/8 sorties, trois vehicules bloques apres contact de carrefour, constats pre-5.34/5.35 conserves ; poussee : contamination au pas 705 puis arret du scenario au pas 855. Ces constats ne sont pas des preuves d'acceptation ni une Gate C.
+
+Sorties officielles conservees : `r4-story-validation-20261003.txt`, `r4-perf-validation-20261003.txt`, `r4-exploration-validation-20261003.txt`, dans le dossier du rapport. Suites completes non executees (fin d'epic uniquement). La revue R4 et la cloture finale sont encore a effectuer par le workflow parent.
+
+`graphify update .` termine : 7388 noeuds, 20667 liens, 226 communautes ; avertissement AST partiel preexistant sur `Story531DrivenReplayTests.cs:112` inchange. Perimetre conserve, seules les fins de ligne des quatre JSON/rapports generes normalisees en LF. Dernier controle des scenes : `MVP_Run` chargee, active, `isDirty=false`.
+
+### Revue finale du delta R4
+
+Trois couches executees en parallele sur le seul delta R4 sauvegarde avant correction : risk-scaled, edge-case et verification-gap. Le changement concerne le cycle de vie et la publication d'une mesure ; aucune frontiere reseau n'est deplacee. Le diff initial de la story et R1-R3 ne sont pas empiles avec une nouvelle revue (AD-10).
+
+Triage : quatre corrections locales `patch`, sans changement de spec ni exception D13 : duree provisoire du dernier intervalle en attente ; denominateur de recorder incluant des pas non mesures ; comparaison N8 non ecrite si l'assertion D13 echoue ; absence de test de l'assemblage reel et du flush terminal. Les assertions et les campagnes deja vertes restent consignees ; la preuve finale du diagnostic sera mise a jour apres ces correctifs.
+
+### Preuve finale post-revue et cloture (2026-10-03)
+
+Source figee a 17:45 (fixtures PlayMode de diagnostic et de publication) ; aucun edit source pendant les validations suivantes. `validate.ps1 -Profile Story -Story 5.33 -TestMode Both` : **69/69 EditMode, 11/11 PlayMode**, 0 erreur Console depuis 3223, compilation saine, scenes propres (`r4-review-patch-story-validation-20261003.txt`).
+
+Campagne `Story533Perf` rejouee sur ce diagnostic stabilise (`r4-review-patch-perf-validation-20261003.txt`, campagne `20261003-174909`) : **5/5 passes**, 0 erreur Console depuis 3320, compilation saine, scenes propres. Tous les resumes : fin normale, alignement physique/epoque verifie, verdict vert.
+
+| N | Pas en population pleine | ms/pas hote | ms/vehicule (cible <= 1) | Maximum physique/frame |
+|---|---:|---:|---:|---:|
+| 1 | 2832 | 0.876 | 0.876 | 2 |
+| 2 | 2554 | 1.624 | 0.812 | 4 |
+| 3 | 2267 | 2.345 | 0.782 | 2 |
+| 4 | 1970 | 3.103 | 0.776 | **2** (18 498 frames, aucun bord ni transition exclu) |
+| 8 | 920 | 5.868 (cible < 10) | 0.734 | 2 |
+
+La cible D13 de deux pas porte sur explore-4/N4 : atteinte. Le maximum N2 de 4 est publie, non exclu : frame 5437, pas 2791-2794, frame precedente de 69.13 ms avec Traffic V2 a 1.035 ms et GC 0, donc un rattrapage apres une pause du moteur sans lien avec le cout applicatif ; il ne concerne pas la cible N4. Le N3 historique a 3 (run 171753) reste consigne. Aucune exception D13 n'est approuvee ni invoquee. Les campagnes exploratoire (5/5) et les non-regressions D4 restent applicables : le delta apres elles ne touche que le diagnostic et ses tests. Aucune affirmation de reproductibilite generale ni de Gate C. Suites completes : fin d'epic. Story cloturee `done` sur demande du proprietaire.
+
 ## Spec Change Log
 
 - **2026-10-02 -- implementation, mesure EditMode avant le checkpoint 2, decision proprietaire D9 (capacite du collecteur).** Le risque connu des Design Notes s'est realise. Mesure par la fixture `Story533SharedFrameTests.TheStaticDecorOfMvpRunLeavesRoomInTheCollectorBufferForAFullScenario` : le long des 11 routes de `campaign-5-31.json`, pas de 2 m, rayon 40 m.

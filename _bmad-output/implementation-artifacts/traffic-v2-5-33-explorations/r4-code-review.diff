@@ -1,0 +1,309 @@
+﻿diff --git a/C:/Users/Kenan/AppData/Local/Temp/rrs-r4-baseline/Story533PerformanceDiagnosticPlayModeTests.cs b/Assets/RoadRage/Tests/PlayMode/Story533PerformanceDiagnosticPlayModeTests.cs
+index aef1fa4..87248b1 100644
+--- a/C:/Users/Kenan/AppData/Local/Temp/rrs-r4-baseline/Story533PerformanceDiagnosticPlayModeTests.cs
++++ b/Assets/RoadRage/Tests/PlayMode/Story533PerformanceDiagnosticPlayModeTests.cs
+@@ -24,8 +24,7 @@ namespace RoadRage.Tests.PlayMode
+     /// runs d'acceptation : pilotage au pas physique, observateur du harnais a chaque pas, trace au pas des vehicules.
+     /// Mesures : par pas hote, les sections de l'ordonnanceur (TrafficV2StepCost) et des drivers (V2StageTimings) ; par
+     /// frame rendue, des ProfilerRecorder (frame, FixedUpdate executes, physique, GC, sous-sections de frame et de spine).
+-    /// Publie un resume par population, la timeline des pics et une comparaison 1 -> 4. Ne juge rien : seul un run sans
+-    /// vehicule conduit echoue.
++    /// Publie un resume par population, la timeline des pics et une comparaison 1 -> 8, puis juge les cibles D13.
+     /// </summary>
+     [Explicit]
+     [Category("Story533Perf")]
+@@ -97,7 +96,7 @@ private sealed class StepSample
+             public int Collections;
+         }
+ 
+-        private sealed class FrameSample
++        internal sealed class FrameSample
+         {
+             public int Index;
+             public double WallMilliseconds;
+@@ -105,6 +104,7 @@ private sealed class FrameSample
+             public ulong FirstHostStep, LastHostStep;
+             public double[] Values;
+             public int[] Counts;
++            public bool Partial;
+         }
+ 
+         internal sealed class PopulationResult
+@@ -137,49 +137,83 @@ public static Snapshot Of(V2StageTimings t)
+             }
+         }
+ 
+-        /// <summary>Sonde de frame rendue : FixedUpdate executes et valeurs des recorders de la frame precedente, alignees.</summary>
++        /// <summary>Un intervalle Update : epoques effectivement executees, independamment de l'ordre des FixedUpdate.</summary>
++        internal static FrameSample FrameInterval(ulong previousHost, ulong host, int physicalSteps, double milliseconds)
++        {
++            return new FrameSample { FixedSteps = physicalSteps,
++                FirstHostStep = host > previousHost ? previousHost + 1UL : 0UL,
++                LastHostStep = host > previousHost ? host : 0UL, WallMilliseconds = milliseconds };
++        }
++
++        /// <summary>
++        /// Les recorders lus dans Update portent la frame precedente. Son intervalle et ses epoques sont conserves
++        /// ensemble jusqu'a cette lecture ; aucune hypothese sur l'ordre du spawner et d'une sonde FixedUpdate.
++        /// Les deux bords partiels de la fenetre restent dans le maximum D13.
++        /// </summary>
+         private sealed class FrameProbe : MonoBehaviour
+         {
+             public PortalTrafficSpawner Spawner;
+             public ProfilerRecorder[] Recorders;
+-            public bool Recording;
++            private bool recording;
+             public readonly List<FrameSample> Frames = new List<FrameSample>();
+-            private int fixedInFrame, fixedPrevious;
+-            private ulong firstStepPrevious, lastStepPrevious, firstStep;
++            private ulong lastHost;
+             private double lastUpdate;
+-            private bool havePrevious;
++            private FrameSample pending;
++            private int physicalSteps;
++
++            private void FixedUpdate() { if (recording) physicalSteps++; }
+ 
+-            private void FixedUpdate()
++            public void Begin()
+             {
+-                if (fixedInFrame == 0 && Spawner != null) firstStep = Spawner.V2Runner.FrameId + 1UL;
+-                fixedInFrame++;
++                lastHost = Spawner.V2Runner.FrameId;
++                lastUpdate = Time.realtimeSinceStartupAsDouble;
++                physicalSteps = 0;
++                recording = true;
+             }
+ 
+             private void Update()
+             {
++                if (!recording) return;
+                 double now = Time.realtimeSinceStartupAsDouble;
+-                ulong host = Spawner != null ? Spawner.V2Runner.FrameId : 0UL;
+-                // Les recorders rendent la frame precedente : on la publie avec ses propres FixedUpdate.
+-                if (Recording && havePrevious && Recorders != null)
++                if (pending != null)
+                 {
+-                    var sample = new FrameSample { Index = Frames.Count, WallMilliseconds = (now - lastUpdate) * 1000.0,
+-                        FixedSteps = fixedPrevious, FirstHostStep = firstStepPrevious, LastHostStep = lastStepPrevious,
+-                        Values = new double[Recorders.Length], Counts = new int[Recorders.Length] };
+-                    for (int i = 0; i < Recorders.Length; i++)
++                    // Delta non scale du moteur : duree de la frame precedente, sans inclure les FixedUpdate
++                    // de la frame courante comme le ferait now - lastUpdate. Un bord partiel garde sa duree propre.
++                    if (!pending.Partial) pending.WallMilliseconds = Time.unscaledDeltaTime * 1000.0;
++                    for (int i = 0; !pending.Partial && i < Recorders.Length; i++)
+                     {
+-                        if (!Recorders[i].Valid || Recorders[i].Count == 0) { sample.Values[i] = double.NaN; continue; }
++                        if (!Recorders[i].Valid || Recorders[i].Count == 0) continue;
+                         var last = Recorders[i].GetSample(0);
+-                        sample.Values[i] = last.Value;
+-                        sample.Counts[i] = (int)last.Count;
++                        pending.Values[i] = last.Value;
++                        pending.Counts[i] = (int)last.Count;
+                     }
+-                    Frames.Add(sample);
++                    Frames.Add(pending);
+                 }
+-                fixedPrevious = fixedInFrame;
+-                firstStepPrevious = fixedInFrame > 0 ? firstStep : 0UL;
+-                lastStepPrevious = fixedInFrame > 0 ? host : 0UL;
+-                fixedInFrame = 0;
++                pending = Capture(now);
++            }
++
++            private FrameSample Capture(double now)
++            {
++                ulong host = Spawner.V2Runner.FrameId;
++                var sample = FrameInterval(lastHost, host, physicalSteps, (now - lastUpdate) * 1000.0);
++                sample.Index = Frames.Count;
++                sample.Partial = Frames.Count == 0 && pending == null;
++                sample.Values = Enumerable.Repeat(double.NaN, Stats.Length).ToArray();
++                sample.Counts = new int[Stats.Length];
++                lastHost = host;
++                physicalSteps = 0;
+                 lastUpdate = now;
+-                havePrevious = true;
++                return sample;
++            }
++
++            public void End()
++            {
++                recording = false;
++                // Pas d'Update suivant dans la fenetre : les valeurs moteur sont encore indisponibles, pas inventees.
++                if (pending != null) Frames.Add(pending);
++                var final = Capture(Time.realtimeSinceStartupAsDouble);
++                final.Partial = true;
++                if (final.FixedSteps > 0) Frames.Add(final);
+             }
+         }
+ 
+@@ -261,7 +295,7 @@ private IEnumerator Diagnose(string scenarioLabel, int population)
+                     {
+                         recorders = StartRecorders(out missing);
+                         probe.Recorders = recorders;
+-                        probe.Recording = true;
++                        probe.Begin();
+                         wallStart = Time.realtimeSinceStartupAsDouble;
+                         collectionsStart = GC.CollectionCount(0);
+                     }
+@@ -308,7 +342,7 @@ private IEnumerator Diagnose(string scenarioLabel, int population)
+             }
+             double wallSeconds = Time.realtimeSinceStartupAsDouble - wallStart;
+             int totalCollections = GC.CollectionCount(0) - collectionsStart;
+-            probe.Recording = false;
++            if (recorders != null) probe.End();
+ 
+             // Ecritures disque de fin de run, mesurees a part (aucune pendant le run).
+             watch.Restart();
+@@ -322,6 +356,12 @@ private IEnumerator Diagnose(string scenarioLabel, int population)
+             Results[population] = result;
+             if (recorders != null) foreach (var recorder in recorders) recorder.Dispose();
+             Assert.That(steps.Count(s => s.Vehicles > 0), Is.GreaterThan(0), "aucun vehicule conduit : diagnostic vide");
++            var full = steps.Where(s => s.Vehicles == population).ToList();
++            var failures = D13Failures(population, full.Count,
++                full.Count == 0 ? double.NaN : full.Average(s => s.Cost.TotalMilliseconds),
++                probe.Frames.Count, probe.Frames.Count == 0 ? 0 : probe.Frames.Max(f => f.FixedSteps),
++                probe.Frames.All(EpochsAligned));
++            Assert.That(failures, Is.Empty, string.Join(" | ", failures));
+         }
+ 
+         // ------------------------------------------------------------------ publication
+@@ -380,11 +420,39 @@ private static string Responsible(FrameSample frame)
+             return text;
+         }
+ 
++        internal static bool EpochsAligned(FrameSample frame)
++        {
++            return frame.FixedSteps >= 0 && (ulong)frame.FixedSteps ==
++                (frame.FirstHostStep == 0UL ? 0UL : frame.LastHostStep - frame.FirstHostStep + 1UL);
++        }
++
++        /// <summary>Cibles D13 declarees : moyennes en population pleine, maximum de pas sur toute la fenetre N4.</summary>
++        internal static List<string> D13Failures(int population, int fullSteps, double fullMeanMilliseconds,
++            int frames, int maxFixedSteps, bool epochsAligned = true)
++        {
++            var failures = new List<string>();
++            if (fullSteps == 0 || double.IsNaN(fullMeanMilliseconds) || double.IsInfinity(fullMeanMilliseconds))
++                failures.Add("D13 : population pleine non mesuree");
++            else
++            {
++                if (fullMeanMilliseconds / population > 1d) failures.Add("D13 : cout moyen en population pleine > 1 ms par vehicule");
++                if (population == 8 && fullMeanMilliseconds >= 10d) failures.Add("D13 : N8 doit rester sous 10 ms par pas hote");
++            }
++            if (frames == 0) failures.Add("D13 : fenetre de frames vide");
++            if (!epochsAligned) failures.Add("D13 : epoques hote et pas physiques non alignes");
++            if (population == 4 && maxFixedSteps > 2) failures.Add("D13 : explore-4/N4 depasse deux FixedUpdate par frame");
++            return failures;
++        }
++
+         private static PopulationResult Publish(int population, Story533Harness.ScenarioRecord record, List<StepSample> steps,
+             List<FrameSample> frames, double wallSeconds, int collections, string missing, double traceMilliseconds,
+             Story533Harness.Observer observer, string traceStamp)
+         {
+             var driven = steps.Where(s => s.Vehicles > 0).ToList();
++            var full = driven.Where(s => s.Vehicles == population).ToList();
++            double fullMean = full.Count == 0 ? double.NaN : full.Average(s => s.Cost.TotalMilliseconds);
++            int maxFixed = frames.Count == 0 ? 0 : frames.Max(f => f.FixedSteps);
++            var d13 = D13Failures(population, full.Count, fullMean, frames.Count, maxFixed, frames.All(EpochsAligned));
+             var result = new PopulationResult { Population = population, HostSteps = steps.Count, WallSeconds = wallSeconds,
+                 Collections = collections, CollectionsPerMinute = wallSeconds > 0 ? collections * 60.0 / wallSeconds : 0 };
+             Func<Func<StepSample, double>, List<double>> per = f => driven.Select(f).ToList();
+@@ -446,6 +514,28 @@ private static string Responsible(FrameSample frame)
+                 .Append(", invariants ").Append(observer.Violations.Count == 0 ? "verts" : string.Join(" | ", observer.Violations)).Append('\n');
+             text.Append("- Ecriture de la trace TSV en fin de run : ").Append(Ms(traceMilliseconds)).Append(" ms (aucune ecriture disque pendant le run)\n\n");
+ 
++            text.Append("## Porte D13\n\n- Population pleine : ").Append(full.Count).Append(" pas ; cout moyen ")
++                .Append(Ms(fullMean)).Append(" ms/pas hote, ").Append(Ms(fullMean / population)).Append(" ms/vehicule (cible <= 1).\n")
++                .Append("- N8 : cible < 10 ms/pas hote en population pleine.\n- Maximum sur toute la fenetre : ")
++                .Append(maxFixed).Append(" FixedUpdate/frame (cible N4 <= 2, transitions et bords partiels inclus).\n")
++                .Append("- Alignement compteur physique / epoques hote : ").Append(frames.All(EpochsAligned) ? "verifie" : "ECHEC")
++                .Append(".\n- Verdict : ").Append(d13.Count == 0 ? "vert" : string.Join(" | ", d13)).Append("\n\n")
++                .Append("Les pas physiques et epoques sont captures dans Update. A l'Update suivant, les recorders et la duree de la frame precedente (Time.unscaledDeltaTime) leur sont attaches. Les bords partiels gardent leur duree mesuree ; les derniers intervalles sans lecture suivante publient des recorders absents.\n\n")
++                .Append("### Depassements de deux pas ou desalignements (aucune exclusion)\n\n| frame | pas hote | physiques | ms | population des pas | frame precedente ms | Traffic V2 precedent | GC precedent |\n|---|---|---|---|---|---|---|---|\n");
++            for (int i = 0; i < frames.Count; i++)
++            {
++                var f = frames[i];
++                if (f.FixedSteps <= 2 && EpochsAligned(f)) continue;
++                var previous = i > 0 ? frames[i - 1] : null;
++                var populations = steps.Where(s => s.HostStep >= f.FirstHostStep && s.HostStep <= f.LastHostStep)
++                    .Select(s => s.HostStep.ToString(CultureInfo.InvariantCulture) + ":N" + s.Vehicles).ToArray();
++                text.Append("| ").Append(f.Index).Append(" | ").Append(f.FirstHostStep).Append('-').Append(f.LastHostStep)
++                    .Append(" | ").Append(f.FixedSteps).Append(" | ").Append(Ms(f.WallMilliseconds)).Append(" | ")
++                    .Append(string.Join(", ", populations)).Append(" | ").Append(Ms(previous == null ? double.NaN : previous.WallMilliseconds))
++                    .Append(" | ").Append(Ms(previous == null ? double.NaN : FrameValue(previous, "TrafficV2.Step")))
++                    .Append(" | ").Append(Ms(previous == null ? double.NaN : FrameValue(previous, "GC.Collect"))).Append(" |\n");
++            }
++
+             text.Append("## Cout par pas hote (ms, pas avec au moins un vehicule)\n\n| Section | moyenne | mediane | p95 | max |\n|---|---|---|---|---|\n");
+             foreach (var section in sections) text.Append(Stat(section.Key.Replace("  ", "&nbsp;&nbsp;"), section.Value));
+             text.Append(Stat("perception par vehicule", per(s => s.Perception / s.Vehicles)));
+@@ -516,11 +606,11 @@ private static string Responsible(FrameSample frame)
+             string folder = Story533Harness.Folder;
+             Directory.CreateDirectory(folder);
+             File.WriteAllText(folder + "/perf-N" + population + "-" + traceStamp + "-summary.md", text.ToString());
+-            var frameText = new StringBuilder("frame\twall_ms\tfixed\tfirst_step\tlast_step\t" + string.Join("\t", Stats) + "\n");
++            var frameText = new StringBuilder("frame\twall_ms\tfixed\tfirst_step\tlast_step\tpartial\t" + string.Join("\t", Stats) + "\n");
+             foreach (var f in frames)
+             {
+                 frameText.Append(f.Index).Append('\t').Append(Ms(f.WallMilliseconds)).Append('\t').Append(f.FixedSteps).Append('\t')
+-                    .Append(f.FirstHostStep).Append('\t').Append(f.LastHostStep);
++                    .Append(f.FirstHostStep).Append('\t').Append(f.LastHostStep).Append('\t').Append(f.Partial ? 1 : 0);
+                 for (int i = 0; i < Stats.Length; i++)
+                     frameText.Append('\t').Append(Stats[i] == "GC Allocated In Frame" || Stats[i] == "GC.Alloc"
+                         ? (double.IsNaN(f.Values[i]) ? "-" : f.Values[i].ToString("0", CultureInfo.InvariantCulture)) : Ms(f.Values[i] / 1e6));
+diff --git a/C:/Users/Kenan/AppData/Local/Temp/rrs-r4-baseline/Story533PerformancePublicationTests.cs b/Assets/RoadRage/Tests/PlayMode/Story533PerformancePublicationTests.cs
+index e672af7..0de427c 100644
+--- a/C:/Users/Kenan/AppData/Local/Temp/rrs-r4-baseline/Story533PerformancePublicationTests.cs
++++ b/Assets/RoadRage/Tests/PlayMode/Story533PerformancePublicationTests.cs
+@@ -5,10 +5,50 @@
+ 
+ namespace RoadRage.Tests.PlayMode
+ {
+-    /// <summary>Regression R2 : calculs et texte du rapport reel, sans campagne physique ni ecriture de fichiers.</summary>
++    /// <summary>Regressions R2/R4 : calculs, alignement des mesures et porte D13 du rapport reel.</summary>
+     [Category("Story533")]
+     public sealed class Story533PerformancePublicationTests
+     {
++        [Test]
++        public void FrameIntervalsKeepActualHostEpochsAndPhysicalCountsWithoutPredictingSpawnerOrder()
++        {
++            var frame = Story533PerformanceDiagnosticPlayModeTests.FrameInterval(764UL, 767UL, 3, 81.669);
++            Assert.That(frame.FirstHostStep, Is.EqualTo(765UL));
++            Assert.That(frame.LastHostStep, Is.EqualTo(767UL));
++            Assert.That(frame.FixedSteps, Is.EqualTo(3));
++            Assert.That(frame.WallMilliseconds, Is.EqualTo(81.669));
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.EpochsAligned(frame), Is.True);
++            var empty = Story533PerformanceDiagnosticPlayModeTests.FrameInterval(767UL, 767UL, 0, 6.0);
++            Assert.That(empty.FirstHostStep, Is.Zero);
++            Assert.That(empty.LastHostStep, Is.Zero);
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.EpochsAligned(empty), Is.True);
++            var mismatch = Story533PerformanceDiagnosticPlayModeTests.FrameInterval(767UL, 768UL, 2, 20.0);
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.EpochsAligned(mismatch), Is.False);
++        }
++
++        [Test]
++        public void D13RejectsThreePhysicalStepsEvenWithFastFullPopulationCosts()
++        {
++            var failures = Story533PerformanceDiagnosticPlayModeTests.D13Failures(4, 10, 2.0, 100, 3);
++            Assert.That(failures, Has.Count.EqualTo(1));
++            StringAssert.Contains("deux FixedUpdate", failures[0]);
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.D13Failures(4, 10, 4.0, 100, 2), Is.Empty);
++        }
++
++        [Test]
++        public void D13RequiresNonemptyFullPopulationMeasurementsAndAlignedPhysicalEpochs()
++        {
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.D13Failures(8, 0, double.NaN, 100, 2), Is.Not.Empty);
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.D13Failures(8, 10, double.PositiveInfinity, 100, 2), Is.Not.Empty);
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.D13Failures(4, 10, 2.0, 0, 0), Is.Not.Empty);
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.D13Failures(4, 10, 2.0, 100, 2, false), Is.Not.Empty);
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.D13Failures(8, 10, 8.0, 100, 2), Is.Empty);
++            Assert.That(Story533PerformanceDiagnosticPlayModeTests.D13Failures(8, 10, 8.01, 100, 2), Is.Not.Empty);
++            var ten = Story533PerformanceDiagnosticPlayModeTests.D13Failures(8, 10, 10.0, 100, 2);
++            Assert.That(ten, Has.Count.EqualTo(2));
++            StringAssert.Contains("sous 10 ms", ten[1]);
++        }
++
+         [Test]
+         public void ComparisonNormalizesEachMeasuredStepByItsActualVehicleCount()
+         {
