@@ -48,13 +48,13 @@ function Invoke-TestStatusQuery {
         $response = & $Invoker
         $lastCode = $response.ExitCode
         $lastText = ([string]$response.Text).Trim()
+        if ($lastCode -ne 0 -and $lastCode -ne $script:CliUnavailableExitCode) {
+            return @{ Ok = $false; Attempts = $attempt; Retries = $attempt - 1
+                Message = "code de sortie $lastCode non reconnu (aucune nouvelle tentative)`n$lastText" }
+        }
         $unavailable = [string]::IsNullOrWhiteSpace($lastText) -or $lastCode -eq $script:CliUnavailableExitCode
 
         if (-not $unavailable) {
-            if ($lastCode -ne 0) {
-                return @{ Ok = $false; Attempts = $attempt; Retries = $attempt - 1
-                    Message = "code de sortie $lastCode non reconnu (aucune nouvelle tentative)`n$lastText" }
-            }
             $parsed = $null
             try { $parsed = $lastText | ConvertFrom-Json } catch { $parsed = $null }
             if ($null -eq $parsed) {
@@ -88,6 +88,8 @@ function Invoke-TestStatusQuerySelfTest {
     $failedRun = @{ ExitCode = 0; Text = '{"success": true, "data": {"result": {"status": "failed", "summary": {"total": 4, "failed": 1}}}}' }
     $refused = @{ ExitCode = 0; Text = '{"success": false, "errors": ["unknown command"]}' }
     $unknownCode = @{ ExitCode = 3; Text = 'erreur de transport' }
+    $unknownCodeSilent = @{ ExitCode = 3; Text = '' }
+    $downSilent = @{ ExitCode = 6; Text = '' }
     $garbled = @{ ExitCode = 0; Text = 'pas du JSON' }
 
     $cases = @(
@@ -98,6 +100,9 @@ function Invoke-TestStatusQuerySelfTest {
         @{ Name = 'melange silence et code 6 puis statut'; Responses = @($down, $mute, $down, $mute, $running); Ok = $true; Calls = 5 },
         @{ Name = 'statut failed rendu tel quel (jamais retente)'; Responses = @($failedRun, $completed); Ok = $true; Calls = 1; Status = 'failed' },
         @{ Name = 'code non reconnu -> bloquant immediatement'; Responses = @($unknownCode, $completed); Ok = $false; Calls = 1 },
+        @{ Name = 'code non reconnu sans texte -> bloquant immediatement'; Responses = @($unknownCodeSilent, $completed); Ok = $false; Calls = 1 },
+        @{ Name = 'silence puis code non reconnu sans texte -> bloquant'; Responses = @($mute, $unknownCodeSilent, $completed); Ok = $false; Calls = 2 },
+        @{ Name = 'code 6 sans texte -> statut termine'; Responses = @($downSilent, $completed); Ok = $true; Calls = 2 },
         @{ Name = 'refus logique (success:false, code 0) -> bloquant'; Responses = @($refused, $completed); Ok = $false; Calls = 1 },
         @{ Name = 'sortie illisible -> bloquante'; Responses = @($garbled, $completed); Ok = $false; Calls = 1 },
         @{ Name = 'silence puis code non reconnu -> bloquant'; Responses = @($mute, $unknownCode, $completed); Ok = $false; Calls = 2 }
@@ -113,6 +118,7 @@ function Invoke-TestStatusQuerySelfTest {
             -Invoker { $calls.Value++; $next = $queue.Dequeue(); [pscustomobject]@{ ExitCode = $next.ExitCode; Text = $next.Text } }.GetNewClosure() `
             -Sleep { param($seconds) $sleeps.Value++ }.GetNewClosure()
         $ok = $outcome.Ok -eq $case.Ok -and $calls.Value -eq $case.Calls
+        if ($ok) { $ok = $sleeps.Value -eq $case.Calls - 1 -and $outcome.Retries -eq $case.Calls - 1 }
         if ($ok -and $case.Status) { $ok = $outcome.Parsed.data.result.status -eq $case.Status }
         if ($ok -and -not $outcome.Ok) { $ok = -not [string]::IsNullOrWhiteSpace($outcome.Message) }
         if ($ok) {

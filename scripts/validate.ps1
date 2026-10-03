@@ -291,6 +291,13 @@ if ($Profile -eq 'Story') {
     $script:Summary['Suites completes'] = "non executees ; reservees a la fin d'epic"
 }
 
+# Regression du lecteur de statut : simulations seules, aucun appel Unity ni attente reelle.
+Write-Step "self-test du lecteur de statut CLI"
+if ((Invoke-TestStatusQuerySelfTest) -ne 0) {
+    Fail "SelfTest validation-cli en echec : lecteur de statut non valide."
+}
+$script:Summary['SelfTest lecteur CLI'] = 'passe (cas detailles ci-dessus)'
+
 # --- Etape 0 : version CLI figee (AGENTS.md, non revalidee automatiquement) ---
 Write-Step "Version Unity CLI"
 $cliVersion = (& unity --version 2>&1 | Out-String).Trim()
