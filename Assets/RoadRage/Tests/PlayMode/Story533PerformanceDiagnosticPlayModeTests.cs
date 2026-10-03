@@ -24,8 +24,7 @@ namespace RoadRage.Tests.PlayMode
     /// runs d'acceptation : pilotage au pas physique, observateur du harnais a chaque pas, trace au pas des vehicules.
     /// Mesures : par pas hote, les sections de l'ordonnanceur (TrafficV2StepCost) et des drivers (V2StageTimings) ; par
     /// frame rendue, des ProfilerRecorder (frame, FixedUpdate executes, physique, GC, sous-sections de frame et de spine).
-    /// Publie un resume par population, la timeline des pics et une comparaison 1 -> 4. Ne juge rien : seul un run sans
-    /// vehicule conduit echoue.
+    /// Publie un resume par population, la timeline des pics et une comparaison 1 -> 8, puis juge les cibles D13.
     /// </summary>
     [Explicit]
     [Category("Story533Perf")]
@@ -81,7 +80,6 @@ namespace RoadRage.Tests.PlayMode
         public IEnumerator DiagnoseEightVehiclesAndCompare()
         {
             yield return Diagnose("explore-8", 8);
-            WriteComparison();
         }
 
         // ------------------------------------------------------------------ mesures
@@ -97,7 +95,7 @@ namespace RoadRage.Tests.PlayMode
             public int Collections;
         }
 
-        private sealed class FrameSample
+        internal sealed class FrameSample
         {
             public int Index;
             public double WallMilliseconds;
@@ -105,14 +103,16 @@ namespace RoadRage.Tests.PlayMode
             public ulong FirstHostStep, LastHostStep;
             public double[] Values;
             public int[] Counts;
+            public bool Partial;
         }
 
-        private sealed class PopulationResult
+        internal sealed class PopulationResult
         {
             public int Population;
             public int HostSteps;
             public double WallSeconds;
             public readonly Dictionary<string, double> PerStep = new Dictionary<string, double>();
+            public readonly Dictionary<string, double> PerVehicle = new Dictionary<string, double>();
             public double FramesPerSecond, FixedPerFrame;
             public int Spikes20, Spikes50, Spikes100;
             public long BytesPerStep;
@@ -136,49 +136,113 @@ namespace RoadRage.Tests.PlayMode
             }
         }
 
-        /// <summary>Sonde de frame rendue : FixedUpdate executes et valeurs des recorders de la frame precedente, alignees.</summary>
+        /// <summary>Un intervalle Update : epoques effectivement executees, independamment de l'ordre des FixedUpdate.</summary>
+        internal static FrameSample FrameInterval(ulong previousHost, ulong host, int physicalSteps, double milliseconds)
+        {
+            return new FrameSample { FixedSteps = physicalSteps,
+                FirstHostStep = host > previousHost ? previousHost + 1UL : 0UL,
+                LastHostStep = host > previousHost ? host : 0UL, WallMilliseconds = milliseconds };
+        }
+
+        /// <summary>
+        /// Les recorders lus dans Update portent la frame precedente. Son intervalle et ses epoques sont conserves
+        /// ensemble jusqu'a cette lecture ; aucune hypothese sur l'ordre du spawner et d'une sonde FixedUpdate.
+        /// Les deux bords partiels de la fenetre restent dans le maximum D13.
+        /// </summary>
+        internal sealed class FrameAssembly
+        {
+            public readonly List<FrameSample> Frames = new List<FrameSample>();
+            private ulong lastHost;
+            private double lastUpdate;
+            private FrameSample pending;
+            private int physicalSteps;
+
+            public void PhysicalStep() { physicalSteps++; }
+
+            public void Begin(ulong host, double now)
+            {
+                lastHost = host;
+                lastUpdate = now;
+                physicalSteps = 0;
+            }
+
+            public void Update(ulong host, double now, double previousFrameMilliseconds, Action<FrameSample> readRecorders)
+            {
+                if (pending != null)
+                {
+                    // Delta non scale du moteur : duree de la frame precedente, sans inclure les FixedUpdate
+                    // de la frame courante comme le ferait now - lastUpdate. Un bord partiel garde sa duree propre.
+                    if (!pending.Partial)
+                    {
+                        pending.WallMilliseconds = previousFrameMilliseconds;
+                        readRecorders(pending);
+                    }
+                    Frames.Add(pending);
+                }
+                pending = Capture(host, now);
+            }
+
+            private FrameSample Capture(ulong host, double now)
+            {
+                var sample = FrameInterval(lastHost, host, physicalSteps, (now - lastUpdate) * 1000.0);
+                sample.Index = Frames.Count;
+                sample.Partial = Frames.Count == 0 && pending == null;
+                sample.Values = Enumerable.Repeat(double.NaN, Stats.Length).ToArray();
+                sample.Counts = new int[Stats.Length];
+                lastHost = host;
+                physicalSteps = 0;
+                lastUpdate = now;
+                return sample;
+            }
+
+            public void End(ulong host, double now)
+            {
+                // Pas d'Update suivant dans la fenetre : les valeurs moteur sont encore indisponibles, pas inventees.
+                if (pending != null)
+                {
+                    if (!pending.Partial) pending.WallMilliseconds = double.NaN;
+                    pending.Partial = true;
+                    Frames.Add(pending);
+                }
+                var final = Capture(host, now);
+                final.Partial = true;
+                if (final.FixedSteps > 0) Frames.Add(final);
+            }
+        }
+
         private sealed class FrameProbe : MonoBehaviour
         {
             public PortalTrafficSpawner Spawner;
             public ProfilerRecorder[] Recorders;
-            public bool Recording;
-            public readonly List<FrameSample> Frames = new List<FrameSample>();
-            private int fixedInFrame, fixedPrevious;
-            private ulong firstStepPrevious, lastStepPrevious, firstStep;
-            private double lastUpdate;
-            private bool havePrevious;
+            private bool recording;
+            private readonly FrameAssembly assembly = new FrameAssembly();
+            public List<FrameSample> Frames { get { return assembly.Frames; } }
 
-            private void FixedUpdate()
+            private void FixedUpdate() { if (recording) assembly.PhysicalStep(); }
+            public void Begin()
             {
-                if (fixedInFrame == 0 && Spawner != null) firstStep = Spawner.V2Runner.FrameId + 1UL;
-                fixedInFrame++;
+                assembly.Begin(Spawner.V2Runner.FrameId, Time.realtimeSinceStartupAsDouble);
+                recording = true;
             }
-
             private void Update()
             {
-                double now = Time.realtimeSinceStartupAsDouble;
-                ulong host = Spawner != null ? Spawner.V2Runner.FrameId : 0UL;
-                // Les recorders rendent la frame precedente : on la publie avec ses propres FixedUpdate.
-                if (Recording && havePrevious && Recorders != null)
+                if (recording) assembly.Update(Spawner.V2Runner.FrameId, Time.realtimeSinceStartupAsDouble,
+                    Time.unscaledDeltaTime * 1000.0, ReadRecorders);
+            }
+            private void ReadRecorders(FrameSample sample)
+            {
+                for (int i = 0; i < Recorders.Length; i++)
                 {
-                    var sample = new FrameSample { Index = Frames.Count, WallMilliseconds = (now - lastUpdate) * 1000.0,
-                        FixedSteps = fixedPrevious, FirstHostStep = firstStepPrevious, LastHostStep = lastStepPrevious,
-                        Values = new double[Recorders.Length], Counts = new int[Recorders.Length] };
-                    for (int i = 0; i < Recorders.Length; i++)
-                    {
-                        if (!Recorders[i].Valid || Recorders[i].Count == 0) { sample.Values[i] = double.NaN; continue; }
-                        var last = Recorders[i].GetSample(0);
-                        sample.Values[i] = last.Value;
-                        sample.Counts[i] = (int)last.Count;
-                    }
-                    Frames.Add(sample);
+                    if (!Recorders[i].Valid || Recorders[i].Count == 0) continue;
+                    var last = Recorders[i].GetSample(0);
+                    sample.Values[i] = last.Value;
+                    sample.Counts[i] = (int)last.Count;
                 }
-                fixedPrevious = fixedInFrame;
-                firstStepPrevious = fixedInFrame > 0 ? firstStep : 0UL;
-                lastStepPrevious = fixedInFrame > 0 ? host : 0UL;
-                fixedInFrame = 0;
-                lastUpdate = now;
-                havePrevious = true;
+            }
+            public void End()
+            {
+                recording = false;
+                assembly.End(Spawner.V2Runner.FrameId, Time.realtimeSinceStartupAsDouble);
             }
         }
 
@@ -260,7 +324,7 @@ namespace RoadRage.Tests.PlayMode
                     {
                         recorders = StartRecorders(out missing);
                         probe.Recorders = recorders;
-                        probe.Recording = true;
+                        probe.Begin();
                         wallStart = Time.realtimeSinceStartupAsDouble;
                         collectionsStart = GC.CollectionCount(0);
                     }
@@ -307,7 +371,7 @@ namespace RoadRage.Tests.PlayMode
             }
             double wallSeconds = Time.realtimeSinceStartupAsDouble - wallStart;
             int totalCollections = GC.CollectionCount(0) - collectionsStart;
-            probe.Recording = false;
+            if (recorders != null) probe.End();
 
             // Ecritures disque de fin de run, mesurees a part (aucune pendant le run).
             watch.Restart();
@@ -320,7 +384,14 @@ namespace RoadRage.Tests.PlayMode
                 observer, traceStamp);
             Results[population] = result;
             if (recorders != null) foreach (var recorder in recorders) recorder.Dispose();
+            if (population == 8) WriteComparison();
             Assert.That(steps.Count(s => s.Vehicles > 0), Is.GreaterThan(0), "aucun vehicule conduit : diagnostic vide");
+            var full = steps.Where(s => s.Vehicles == population).ToList();
+            var failures = D13Failures(population, full.Count,
+                full.Count == 0 ? double.NaN : full.Average(s => s.Cost.TotalMilliseconds),
+                probe.Frames.Count, probe.Frames.Count == 0 ? 0 : probe.Frames.Max(f => f.FixedSteps),
+                probe.Frames.All(EpochsAligned));
+            Assert.That(failures, Is.Empty, string.Join(" | ", failures));
         }
 
         // ------------------------------------------------------------------ publication
@@ -379,11 +450,54 @@ namespace RoadRage.Tests.PlayMode
             return text;
         }
 
+        internal static bool EpochsAligned(FrameSample frame)
+        {
+            return frame.FixedSteps >= 0 && (ulong)frame.FixedSteps ==
+                (frame.FirstHostStep == 0UL ? 0UL : frame.LastHostStep - frame.FirstHostStep + 1UL);
+        }
+
+        internal static double RecorderMeanPerStep(IReadOnlyList<FrameSample> frames, int statIndex,
+            out int measuredFrames, out int measuredSteps)
+        {
+            measuredFrames = measuredSteps = 0;
+            double total = 0d;
+            foreach (var frame in frames)
+            {
+                if (frame.Partial || statIndex < 0 || double.IsNaN(frame.Values[statIndex])) continue;
+                measuredFrames++;
+                measuredSteps += frame.FixedSteps;
+                total += frame.Values[statIndex] / 1e6;
+            }
+            return measuredSteps == 0 ? double.NaN : total / measuredSteps;
+        }
+
+        /// <summary>Cibles D13 declarees : moyennes en population pleine, maximum de pas sur toute la fenetre N4.</summary>
+        internal static List<string> D13Failures(int population, int fullSteps, double fullMeanMilliseconds,
+            int frames, int maxFixedSteps, bool epochsAligned = true)
+        {
+            var failures = new List<string>();
+            if (fullSteps == 0 || double.IsNaN(fullMeanMilliseconds) || double.IsInfinity(fullMeanMilliseconds))
+                failures.Add("D13 : population pleine non mesuree");
+            else
+            {
+                if (fullMeanMilliseconds / population > 1d) failures.Add("D13 : cout moyen en population pleine > 1 ms par vehicule");
+                if (population == 8 && fullMeanMilliseconds >= 10d) failures.Add("D13 : N8 doit rester sous 10 ms par pas hote");
+            }
+            if (frames == 0) failures.Add("D13 : fenetre de frames vide");
+            if (!epochsAligned) failures.Add("D13 : epoques hote et pas physiques non alignes");
+            if (population == 4 && maxFixedSteps > 2) failures.Add("D13 : explore-4/N4 depasse deux FixedUpdate par frame");
+            return failures;
+        }
+
         private static PopulationResult Publish(int population, Story533Harness.ScenarioRecord record, List<StepSample> steps,
             List<FrameSample> frames, double wallSeconds, int collections, string missing, double traceMilliseconds,
             Story533Harness.Observer observer, string traceStamp)
         {
             var driven = steps.Where(s => s.Vehicles > 0).ToList();
+            var full = driven.Where(s => s.Vehicles == population).ToList();
+            double fullMean = full.Count == 0 ? double.NaN : full.Average(s => s.Cost.TotalMilliseconds);
+            int maxFixed = frames.Count == 0 ? 0 : frames.Max(f => f.FixedSteps);
+            var d13 = D13Failures(population, full.Count, fullMean, frames.Count, maxFixed, frames.All(EpochsAligned));
             var result = new PopulationResult { Population = population, HostSteps = steps.Count, WallSeconds = wallSeconds,
                 Collections = collections, CollectionsPerMinute = wallSeconds > 0 ? collections * 60.0 / wallSeconds : 0 };
             Func<Func<StepSample, double>, List<double>> per = f => driven.Select(f).ToList();
@@ -405,20 +519,22 @@ namespace RoadRage.Tests.PlayMode
                 new KeyValuePair<string, List<double>>("    instrumentation (blockers, trace, projection)", per(s => s.Instrumentation)),
                 new KeyValuePair<string, List<double>>("harnais : observateur par pas", per(s => s.ObserverMilliseconds))
             };
-            foreach (var section in sections) result.PerStep[section.Key.Trim()] = section.Value.Count == 0 ? double.NaN : section.Value.Average();
-            result.PerStep["perception par vehicule"] = driven.Count == 0 ? double.NaN : driven.Average(s => s.Perception / s.Vehicles);
-            result.PerStep["pas Traffic V2 par vehicule"] = driven.Count == 0 ? double.NaN : driven.Average(s => s.Cost.TotalMilliseconds / s.Vehicles);
-            result.PerStep["OverlapSphereNonAlloc par pas"] = driven.Count == 0 ? double.NaN : driven.Average(s => (double)s.Cost.Overlaps);
+            var vehicleCounts = driven.Select(s => s.Vehicles).ToArray();
+            foreach (var section in sections) RecordStepMetric(result, section.Key.Trim(), section.Value, vehicleCounts);
+            result.PerStep["perception par vehicule"] = result.PerVehicle["perception par vehicule"] = result.PerVehicle["perception (tous vehicules)"];
+            result.PerStep["pas Traffic V2 par vehicule"] = result.PerVehicle["pas Traffic V2 par vehicule"] = result.PerVehicle["pas Traffic V2 total"];
+            RecordStepMetric(result, "OverlapSphereNonAlloc par pas", per(s => s.Cost.Overlaps), vehicleCounts);
             result.BytesPerStep = driven.Count == 0 ? 0 : (long)driven.Average(s => (double)s.Cost.TotalBytes);
 
             // Par frame rendue (recorders) : moyennes par pas hote des sous-sections hors ordonnanceur.
-            int hostSteps = Math.Max(1, frames.Sum(f => f.FixedSteps));
+            var recorderCoverage = new Dictionary<string, int[]>();
             foreach (var stat in new[] { "TrafficV2.Frame.Localize", "TrafficV2.Frame.Occupancy", "TrafficV2.Frame.Hazards",
                 "TrafficV2.Spine.Route", "TrafficV2.Spine.Horizon", "TrafficV2.Spine.Motion", "TrafficV2.Spine.Projection",
                 "Physics.Simulate", "FixedBehaviourUpdate", "FixedUpdate.PhysicsFixedUpdate", "GC.Collect", "TrafficV2.Step" })
             {
-                var values = frames.Select(f => FrameValue(f, stat)).Where(v => !double.IsNaN(v)).ToList();
-                result.PerStep["[recorder] " + stat] = values.Count == 0 ? double.NaN : values.Sum() / hostSteps;
+                int measuredFrames, measuredSteps;
+                result.PerStep["[recorder] " + stat] = RecorderMeanPerStep(frames, StatIndex(stat), out measuredFrames, out measuredSteps);
+                recorderCoverage[stat] = new[] { measuredFrames, measuredSteps };
             }
             result.FramesPerSecond = wallSeconds > 0 ? frames.Count / wallSeconds : 0;
             result.FixedPerFrame = frames.Count == 0 ? 0 : frames.Average(f => (double)f.FixedSteps);
@@ -444,6 +560,28 @@ namespace RoadRage.Tests.PlayMode
                 .Append(", invariants ").Append(observer.Violations.Count == 0 ? "verts" : string.Join(" | ", observer.Violations)).Append('\n');
             text.Append("- Ecriture de la trace TSV en fin de run : ").Append(Ms(traceMilliseconds)).Append(" ms (aucune ecriture disque pendant le run)\n\n");
 
+            text.Append("## Porte D13\n\n- Population pleine : ").Append(full.Count).Append(" pas ; cout moyen ")
+                .Append(Ms(fullMean)).Append(" ms/pas hote, ").Append(Ms(fullMean / population)).Append(" ms/vehicule (cible <= 1).\n")
+                .Append("- N8 : cible < 10 ms/pas hote en population pleine.\n- Maximum sur toute la fenetre : ")
+                .Append(maxFixed).Append(" FixedUpdate/frame (cible N4 <= 2, transitions et bords partiels inclus).\n")
+                .Append("- Alignement compteur physique / epoques hote : ").Append(frames.All(EpochsAligned) ? "verifie" : "ECHEC")
+                .Append(".\n- Verdict : ").Append(d13.Count == 0 ? "vert" : string.Join(" | ", d13)).Append("\n\n")
+                .Append("Les pas physiques et epoques sont captures dans Update. A l'Update suivant, les recorders et la duree de la frame precedente (Time.unscaledDeltaTime) leur sont attaches. Les bords partiels gardent leur duree mesuree ; une frame en attente dont la duree moteur n'est plus lisible publie une duree absente et Partial=true. Les recorders absents ne contribuent ni au numerateur ni au denominateur de leur moyenne par pas.\n\n")
+                .Append("### Depassements de deux pas ou desalignements (aucune exclusion)\n\n| frame | pas hote | physiques | ms | population des pas | frame precedente ms | Traffic V2 precedent | GC precedent |\n|---|---|---|---|---|---|---|---|\n");
+            for (int i = 0; i < frames.Count; i++)
+            {
+                var f = frames[i];
+                if (f.FixedSteps <= 2 && EpochsAligned(f)) continue;
+                var previous = i > 0 ? frames[i - 1] : null;
+                var populations = steps.Where(s => s.HostStep >= f.FirstHostStep && s.HostStep <= f.LastHostStep)
+                    .Select(s => s.HostStep.ToString(CultureInfo.InvariantCulture) + ":N" + s.Vehicles).ToArray();
+                text.Append("| ").Append(f.Index).Append(" | ").Append(f.FirstHostStep).Append('-').Append(f.LastHostStep)
+                    .Append(" | ").Append(f.FixedSteps).Append(" | ").Append(Ms(f.WallMilliseconds)).Append(" | ")
+                    .Append(string.Join(", ", populations)).Append(" | ").Append(Ms(previous == null ? double.NaN : previous.WallMilliseconds))
+                    .Append(" | ").Append(Ms(previous == null ? double.NaN : FrameValue(previous, "TrafficV2.Step")))
+                    .Append(" | ").Append(Ms(previous == null ? double.NaN : FrameValue(previous, "GC.Collect"))).Append(" |\n");
+            }
+
             text.Append("## Cout par pas hote (ms, pas avec au moins un vehicule)\n\n| Section | moyenne | mediane | p95 | max |\n|---|---|---|---|---|\n");
             foreach (var section in sections) text.Append(Stat(section.Key.Replace("  ", "&nbsp;&nbsp;"), section.Value));
             text.Append(Stat("perception par vehicule", per(s => s.Perception / s.Vehicles)));
@@ -452,9 +590,13 @@ namespace RoadRage.Tests.PlayMode
                 .Append(Ms(driven.Count == 0 ? double.NaN : driven.Average(s => s.Cost.Overlaps == 0 ? 0 : s.Cost.OverlapMilliseconds / s.Cost.Overlaps)))
                 .Append(" ms par requete.\n\n");
 
-            text.Append("## Sous-sections par pas hote (recorders, ms)\n\n| Stat | ms par pas hote |\n|---|---|\n");
+            text.Append("## Sous-sections par pas hote (recorders, ms)\n\n| Stat | ms par pas hote | frames mesurees | pas physiques mesures |\n|---|---|---|---|\n");
             foreach (var pair in result.PerStep.Where(p => p.Key.StartsWith("[recorder]")))
-                text.Append("| ").Append(pair.Key.Substring(11)).Append(" | ").Append(Ms(pair.Value)).Append(" |\n");
+            {
+                var coverage = recorderCoverage[pair.Key.Substring(11)];
+                text.Append("| ").Append(pair.Key.Substring(11)).Append(" | ").Append(Ms(pair.Value)).Append(" | ")
+                    .Append(coverage[0]).Append(" | ").Append(coverage[1]).Append(" |\n");
+            }
 
             text.Append("\n## Allocations GC\n\n");
             text.Append("- Par pas hote : total ").Append(result.BytesPerStep).Append(" octets ; preparation ")
@@ -514,11 +656,11 @@ namespace RoadRage.Tests.PlayMode
             string folder = Story533Harness.Folder;
             Directory.CreateDirectory(folder);
             File.WriteAllText(folder + "/perf-N" + population + "-" + traceStamp + "-summary.md", text.ToString());
-            var frameText = new StringBuilder("frame\twall_ms\tfixed\tfirst_step\tlast_step\t" + string.Join("\t", Stats) + "\n");
+            var frameText = new StringBuilder("frame\twall_ms\tfixed\tfirst_step\tlast_step\tpartial\t" + string.Join("\t", Stats) + "\n");
             foreach (var f in frames)
             {
                 frameText.Append(f.Index).Append('\t').Append(Ms(f.WallMilliseconds)).Append('\t').Append(f.FixedSteps).Append('\t')
-                    .Append(f.FirstHostStep).Append('\t').Append(f.LastHostStep);
+                    .Append(f.FirstHostStep).Append('\t').Append(f.LastHostStep).Append('\t').Append(f.Partial ? 1 : 0);
                 for (int i = 0; i < Stats.Length; i++)
                     frameText.Append('\t').Append(Stats[i] == "GC Allocated In Frame" || Stats[i] == "GC.Alloc"
                         ? (double.IsNaN(f.Values[i]) ? "-" : f.Values[i].ToString("0", CultureInfo.InvariantCulture)) : Ms(f.Values[i] / 1e6));
@@ -529,13 +671,26 @@ namespace RoadRage.Tests.PlayMode
             return result;
         }
 
+        /// <summary>Pas avec vehicule seulement : chaque cout est normalise par sa population reelle avant la moyenne.</summary>
+        internal static void RecordStepMetric(PopulationResult result, string key, IReadOnlyList<double> values, IReadOnlyList<int> vehicleCounts)
+        {
+            result.PerStep[key] = values.Count == 0 ? double.NaN : values.Average();
+            result.PerVehicle[key] = values.Count == 0 ? double.NaN : values.Select((v, i) => v / vehicleCounts[i]).Average();
+        }
+
         private static void WriteComparison()
         {
-            var populations = Results.Keys.OrderBy(k => k).ToList();
+            File.WriteAllText(Story533Harness.Folder + "/perf-comparison-" + campaignStamp + ".md", ComparisonText(Results, campaignStamp));
+            UnityEngine.Debug.Log("[Story533] comparaison de performance publiee.");
+        }
+
+        internal static string ComparisonText(IReadOnlyDictionary<int, PopulationResult> results, string stamp)
+        {
+            var populations = results.Keys.OrderBy(k => k).ToList();
             var text = new StringBuilder();
             text.Append("# Comparaison du cout Traffic V2, N = ").Append(string.Join(", ", populations.Select(p => p.ToString(CultureInfo.InvariantCulture)).ToArray()))
-                .Append(" (").Append(campaignStamp).Append(")\n\nMoyennes par pas hote (ms). Marginal : difference avec la population precedente ; par vehicule : valeur / N.\n\n");
-            var keys = Results.Values.SelectMany(r => r.PerStep.Keys).Distinct().ToList();
+                .Append(" (").Append(stamp).Append(")\n\nMoyennes par pas hote (ms). Marginal : difference avec la population precedente ; par vehicule : moyenne des couts divises par le nombre reel de vehicules a chaque pas. Les lignes deja par vehicule gardent leur valeur ; les recorders globaux ne sont pas normalises par vehicule (-).\n\n");
+            var keys = results.Values.SelectMany(r => r.PerStep.Keys).Distinct().ToList();
             text.Append("| Section |");
             foreach (var p in populations) text.Append(" N=").Append(p).Append(" |");
             for (int i = 1; i < populations.Count; i++) text.Append(" marginal ").Append(populations[i - 1]).Append("->").Append(populations[i]).Append(" |");
@@ -544,28 +699,28 @@ namespace RoadRage.Tests.PlayMode
             foreach (var key in keys)
             {
                 text.Append("| ").Append(key).Append(" |");
-                foreach (var p in populations) text.Append(' ').Append(Ms(Value(p, key))).Append(" |");
-                for (int i = 1; i < populations.Count; i++) text.Append(' ').Append(Ms(Value(populations[i], key) - Value(populations[i - 1], key))).Append(" |");
-                foreach (var p in populations) text.Append(' ').Append(Ms(Value(p, key) / p)).Append(" |");
+                foreach (var p in populations) text.Append(' ').Append(Ms(Value(results, p, key))).Append(" |");
+                for (int i = 1; i < populations.Count; i++) text.Append(' ').Append(Ms(Value(results, populations[i], key) - Value(results, populations[i - 1], key))).Append(" |");
+                foreach (var p in populations) text.Append(' ').Append(Ms(Value(results, p, key, true))).Append(" |");
                 text.Append('\n');
             }
             text.Append("\n| N | fps | FixedUpdate par frame | pics > 20 / 50 / 100 ms | octets alloues par pas | collections gen0 par minute |\n|---|---|---|---|---|---|\n");
             foreach (var p in populations)
             {
-                var r = Results[p];
+                var r = results[p];
                 text.Append("| ").Append(p).Append(" | ").Append(Ms(r.FramesPerSecond)).Append(" | ").Append(Ms(r.FixedPerFrame)).Append(" | ")
                     .Append(r.Spikes20).Append(" / ").Append(r.Spikes50).Append(" / ").Append(r.Spikes100).Append(" | ").Append(r.BytesPerStep)
                     .Append(" | ").Append(Ms(r.CollectionsPerMinute)).Append(" |\n");
             }
-            File.WriteAllText(Story533Harness.Folder + "/perf-comparison-" + campaignStamp + ".md", text.ToString());
-            UnityEngine.Debug.Log("[Story533] comparaison de performance publiee.");
+            return text.ToString();
         }
 
-        private static double Value(int population, string key)
+        private static double Value(IReadOnlyDictionary<int, PopulationResult> results, int population, string key, bool perVehicle = false)
         {
             PopulationResult result;
             double value;
-            return Results.TryGetValue(population, out result) && result.PerStep.TryGetValue(key, out value) ? value : double.NaN;
+            return results.TryGetValue(population, out result)
+                && (perVehicle ? result.PerVehicle : result.PerStep).TryGetValue(key, out value) ? value : double.NaN;
         }
     }
 }
