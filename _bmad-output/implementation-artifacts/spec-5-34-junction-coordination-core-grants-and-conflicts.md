@@ -2,7 +2,7 @@
 title: 'Story 5.34 -- Coordination de carrefour : demandes, grants, zones de conflit, sortie bloquee et traversee engagee, avec premier branchement runtime'
 type: 'feature'
 created: '2026-10-03'
-status: 'draft'
+status: 'ready-for-dev'
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
@@ -331,7 +331,7 @@ context:
   - frontiere 5.34 / 5.35 explicite dans les verdicts.
   Approuves sans reserve : reservation de l'ancien, tete de file, sortie le long de la route, demande anticipee, test de saturation du collecteur.
 
-**Traversee plutot que mouvement (consequence d'O6, a confirmer).** Dans `MVP_Run`, les 24 mouvements d'entree et de continuation de giratoire debouchent sur un corridor d'anneau de 0,87 ou 5,58 m suivi d'un autre mouvement du meme carrefour.
+**O7 -- Traversee plutot que mouvement (decision proprietaire du 2026-10-03, grant par traversee valide).** Dans `MVP_Run`, les 24 mouvements d'entree et de continuation de giratoire debouchent sur un corridor d'anneau de 0,87 ou 5,58 m suivi d'un autre mouvement du meme carrefour.
 - Avec un grant par mouvement, deux issues seulement :
   - une recherche de sortie bornee au prochain mouvement ne trouverait jamais `L + s0` = 6,44 m : refus permanent ;
   - le vehicule attendrait a l'interieur de l'anneau son grant suivant : risque d'attente circulaire.
