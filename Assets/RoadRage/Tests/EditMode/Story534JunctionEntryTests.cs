@@ -707,6 +707,64 @@ namespace RoadRage.Tests.EditMode
             Assert.That(new TrafficJunctionOutcome(7, stale, granted, true).SnapshotStale, Is.True);
         }
 
+        [TestCase(JunctionReason.Committed)]
+        [TestCase(JunctionReason.CommittedCarried)]
+        [TestCase(JunctionReason.Restored)]
+        public void ACommittedRoundaboutContinuationKeepsEngagementAndRequestsTheNextTraversal(JunctionReason reason)
+        {
+            RoutePlan route = null;
+            RoadId enteredMovement = RoadId.None;
+            int ring = 0, last = -1, next = -1;
+            foreach (var movement in Model.Movements.OrderBy(m => m.Id))
+            {
+                EffectiveLaneCorridor corridor;
+                var predecessor = Model.Movements.FirstOrDefault(m => m.ToCorridorId == movement.FromCorridorId
+                    && m.JunctionId == movement.JunctionId);
+                if (predecessor.Id.IsEmpty
+                    || !Model.TryGetCorridor(movement.FromCorridorId, out corridor)
+                    || corridor.LengthMeters <= Car.FrontMeters + Car.RearMeters + 2f * DistancesAt(0f).StopMeters) continue;
+                var candidate = RouteVia(movement.Id, Agent);
+                int first = candidate.Occurrences.ToList().FindIndex(o => o.Id == movement.Id);
+                int end = first, following = -1;
+                for (int k = first + 1; k < candidate.Occurrences.Count; k++)
+                {
+                    if (candidate.Occurrences[k].Kind != RoadElementKind.JunctionMovement) continue;
+                    if (Index.JunctionOf(candidate.Occurrences[k].Id) != movement.JunctionId) { following = k; break; }
+                    end = k;
+                }
+                if (following < 0) continue;
+                route = candidate; enteredMovement = predecessor.Id; last = end; next = following;
+                break;
+            }
+            Assert.That(route, Is.Not.Null, "route MVP : anneau assez long puis carrefour suivant");
+            float ringStart = 0f;
+            for (int k = 0; k < ring; k++) ringStart += route.Occurrences[k].EndSMeters - route.Occurrences[k].StartSMeters;
+            // Garder de la marge pour l'occupation structuree conservative dans ce corridor courbe.
+            float distance = ringStart + (route.Occurrences[ring].EndSMeters - route.Occurrences[ring].StartSMeters) * 0.4f;
+            var track = ReferenceTrack.FromRoute(Model, route.Occurrences, 0f);
+            var frame = new TrafficFrame(7, Model, new[] { ActorOn(Agent, route, track, distance, 0f) });
+            TrafficActor actor;
+            Assert.That(frame.TryGetActor(Agent, out actor) && actor.Location.ElementId == route.Occurrences[ring].Id, Is.True,
+                "vehicule reellement localise sur le corridor interne");
+            // Route re-emise depuis l'anneau : le grant original conserve aussi le mouvement deja franchi.
+            var movements = new[] { enteredMovement }.Concat(route.Occurrences.Take(last + 1)
+                .Where(o => o.Kind == RoadElementKind.JunctionMovement).Select(o => o.Id)).ToArray();
+            var snapshot = new JunctionSnapshot(6, 7, new[] { new JunctionRecord(Agent, Index.JunctionOf(movements[0]), movements[0],
+                movements, 1, 6, 7, JunctionGrantStatus.Held, reason) }, default(JunctionBatchCounters));
+            var report = Report(frame, Agent, route, snapshot);
+            Assert.That(report.Approaches[0].DistanceMeters, Is.GreaterThanOrEqualTo(report.Approaches[0].Distances.StopMeters),
+                "la continuation est devant, hors de sa propre distance d'engagement");
+            Assert.That(report.Approaches[0].GrantEffective, Is.True);
+            Assert.That(report.Approaches[0].Engaged, Is.True, "O8 : l'entree originale a deja engage toute la traversee");
+            Assert.That(report.HasRequest, Is.True, report.ToText());
+            Assert.That(report.Request.Traversal.FirstMovementId, Is.EqualTo(route.Occurrences[next].Id), report.ToText());
+
+            var stale = new JunctionSnapshot(5, 6, snapshot.Records, snapshot.Counters);
+            var ungranted = Report(frame, Agent, route, stale);
+            Assert.That(ungranted.Approaches[0].GrantEffective, Is.False, "un engagement ancien ne contourne pas EffectiveFrame");
+            Assert.That(ungranted.Request.Traversal.FirstMovementId, Is.EqualTo(route.Occurrences[ring + 1].Id));
+        }
+
         // ================================================================== carrefour libre : vehicule seul sur les 11 routes
 
         [Serializable]
@@ -992,10 +1050,14 @@ namespace RoadRage.Tests.EditMode
             var b = InsertionVia(SouthLeft, 2UL, out second);
             Assert.That(Index.ToCorridorOf(EastStraight), Is.EqualTo(Index.ToCorridorOf(SouthLeft)), "corridor de depart commun 40e937a9");
 
-            // C : les deux vehicules attendent a la meme distance de leur entree derriere un obstacle de test, retires ensemble par
-            // le test une fois les deux arretes : leurs demandes se rencontrent sur ConflictZones[23].
-            var c = new ScenarioRecord { Label = "C", MaxPopulation = 2, MaxSteps = 9000, Insertions = new[] { first, second },
-                Obstacles = new[] { BeforeEntry(a.Route, EastStraight, 8f, "attente-est"), BeforeEntry(b.Route, SouthLeft, 8f, "attente-sud") },
+            // C : le sud porte le plus petit TrafficId et gagne l'egalite du lot commun ; sa traversee plus longue permet
+            // l'arret de l'est sous JunctionGrant avant l'occupation de leur sortie commune (C.3).
+            // Les obstacles restent a 8 m ; le test retire celui de l'est puis celui du sud un pas plus tard.
+            InsertionRecord southFirst, eastSecond;
+            var southC = InsertionVia(SouthLeft, 1UL, out southFirst);
+            var eastC = InsertionVia(EastStraight, 2UL, out eastSecond);
+            var c = new ScenarioRecord { Label = "C", MaxPopulation = 2, MaxSteps = 9000, Insertions = new[] { southFirst, eastSecond },
+                Obstacles = new[] { BeforeEntry(eastC.Route, EastStraight, 8f, "attente-est"), BeforeEntry(southC.Route, SouthLeft, 8f, "attente-sud") },
                 Pushes = new PushRecord[0] };
 
             // D : obstacle sur le corridor de depart commun, entierement hors du mouvement, qui retient le premier vehicule en
@@ -1027,8 +1089,8 @@ namespace RoadRage.Tests.EditMode
             var file = JsonUtility.FromJson<ScenarioFile>(firstText);
             Assert.That(file.Scenarios.Select(s => s.Label), Is.EqualTo(new[] { "C", "D" }));
             var c = file.Scenarios[0];
-            Assert.That(c.Insertions[0].Elements, Does.Contain(EastStraight.ToString()));
-            Assert.That(c.Insertions[1].Elements, Does.Contain(SouthLeft.ToString()));
+            Assert.That(c.Insertions[0].Elements, Does.Contain(SouthLeft.ToString()));
+            Assert.That(c.Insertions[1].Elements, Does.Contain(EastStraight.ToString()));
             Assert.That(c.Obstacles.Length, Is.EqualTo(2));
             var d = file.Scenarios[1];
             Assert.That(d.Obstacles[0].ElementId, Is.EqualTo(Index.ToCorridorOf(EastStraight).ToString()), "obstacle sur 40e937a9");

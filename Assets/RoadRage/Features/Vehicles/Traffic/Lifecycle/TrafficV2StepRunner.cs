@@ -139,8 +139,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             if (inputs.Count == 0)
             {
                 // Aucun acteur : lot valide vide, les grants des absents sont revoques (ActorGone).
-                reports.Clear();
-                Coordinate(null, ref cost);
+                Coordinate(null, snapshot, ref cost);
                 return;
             }
 
@@ -189,6 +188,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             LastSteppedCount = prepared.Count;
 
             // Resolution des demandes de N apres tous les pas : instantane effectif a N+1 seulement.
+            Coordinate(frame, snapshot, ref cost);
+        }
+
+        /// <summary>Lot du coordinateur, rapports d'occupation sans pas compris ; fail-closed si la frame a ete refusee.</summary>
+        private void Coordinate(TrafficFrame frame, JunctionSnapshot snapshot, ref TrafficV2StepCost cost)
+        {
+            long allocated = GC.GetAllocatedBytesForCurrentThread();
+            sectionWatch.Restart();
+            CoordinateMarker.Begin();
             reports.Clear();
             if (frame != null)
                 for (int i = 0; i < actorsInFrame.Count; i++)
@@ -198,15 +206,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                         ? driver.LastJunctionReport : driver.BuildOccupancyReport(frame, coordinator.Index, snapshot, FrameId);
                     if (report != null) reports.Add(report);
                 }
-            Coordinate(frame, ref cost);
-        }
-
-        /// <summary>Lot du coordinateur : frame construite, ou fail-closed si sa construction a ete refusee.</summary>
-        private void Coordinate(TrafficFrame frame, ref TrafficV2StepCost cost)
-        {
-            long allocated = GC.GetAllocatedBytesForCurrentThread();
-            sectionWatch.Restart();
-            CoordinateMarker.Begin();
             bool refused = frame == null && inputs.Count > 0;
             if (refused) coordinator.ResolveUnavailableFrame(FrameId);
             else coordinator.Resolve(FrameId, reports);

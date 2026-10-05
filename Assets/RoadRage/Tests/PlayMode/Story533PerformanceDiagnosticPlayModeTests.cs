@@ -44,7 +44,11 @@ namespace RoadRage.Tests.PlayMode
             "TrafficV2.Spine.Horizon", "TrafficV2.Spine.Motion", "TrafficV2.Spine.Projection", "TrafficV2.Driver.Perception",
             "TrafficV2.Driver.SpeedPlan", "TrafficV2.Driver.Arbitration", "TrafficV2.Driver.Compose",
             "TrafficV2.Driver.MotionCommand", "TrafficV2.Driver.Instrumentation", "Story533.Harness.Observe",
-            "TrafficV2.Coordinate", "TrafficV2.Driver.Junction"
+            "TrafficV2.Coordinate", "TrafficV2.Driver.Junction",
+            // Diagnostic D13 : attribuer aussi les pics hors des scripts FixedUpdate, sans exclure de frame.
+            "Update.ScriptRunBehaviourUpdate", "PreLateUpdate.ScriptRunBehaviourLateUpdate",
+            "CoroutinesDelayedCalls", "Camera.Render", "RenderPipelineManager.DoRenderLoop_Internal",
+            "Gfx.WaitForPresentOnGfxThread", "Gfx.PresentFrame", "WaitForTargetFPS", "EditorLoop", "SceneView.Repaint"
         };
 
         private static readonly Dictionary<int, PopulationResult> Results = new Dictionary<int, PopulationResult>();
@@ -300,6 +304,10 @@ namespace RoadRage.Tests.PlayMode
             string missing = "non demarre";
             var watch = new Stopwatch();
             int warmup = -1;
+            int recorderStartFrame = -1;
+            bool recording = false;
+            double recorderSetupMilliseconds = double.NaN;
+            ulong recorderSetupHost = 0UL, recordingStartHost = 0UL;
             double wallStart = 0d;
             int collectionsStart = 0;
 
@@ -317,18 +325,27 @@ namespace RoadRage.Tests.PlayMode
                 yield return new WaitForFixedUpdate();
                 var cost = spawner.V2Runner.LastCost;
 
-                // Demarrage des recorders une fois tous les marqueurs crees (premier pas conduit), hors fenetre mesuree.
+                // Initialiser les recorders APRES creation des marqueurs, AVANT les cinq pas de chauffe.
+                // GetAvailable/StartNew peuvent bloquer l'Editeur : leur dette de rattrapage n'est pas du trafic mesure.
                 if (recorders == null && cost.Vehicles > 0)
                 {
-                    if (warmup < 0) warmup = step + 5;
-                    if (step >= warmup)
-                    {
-                        recorders = StartRecorders(out missing);
-                        probe.Recorders = recorders;
-                        probe.Begin();
-                        wallStart = Time.realtimeSinceStartupAsDouble;
-                        collectionsStart = GC.CollectionCount(0);
-                    }
+                    watch.Restart();
+                    recorders = StartRecorders(out missing);
+                    recorderSetupMilliseconds = watch.Elapsed.TotalMilliseconds;
+                    recorderSetupHost = spawner.V2Runner.FrameId;
+                    probe.Recorders = recorders;
+                    recorderStartFrame = Time.frameCount;
+                    warmup = step + 5;
+                }
+                // Un Update doit aussi avoir termine la frame d'initialisation. Une fois Begin appele,
+                // tous les pas et les deux bords partiels restent dans le maximum D13, sans exemption.
+                if (!recording && recorders != null && step >= warmup && Time.frameCount > recorderStartFrame)
+                {
+                    probe.Begin();
+                    recording = true;
+                    recordingStartHost = spawner.V2Runner.FrameId;
+                    wallStart = Time.realtimeSinceStartupAsDouble;
+                    collectionsStart = GC.CollectionCount(0);
                 }
 
                 watch.Restart();
@@ -337,7 +354,7 @@ namespace RoadRage.Tests.PlayMode
                 ObserveMarker.End();
                 double observed = watch.Elapsed.TotalMilliseconds;
 
-                if (recorders != null)
+                if (recording)
                 {
                     var sample = new StepSample { HostStep = spawner.V2Runner.FrameId, Vehicles = cost.Vehicles, Cost = cost,
                         ObserverMilliseconds = observed, Collections = GC.CollectionCount(0) - collections };
@@ -372,7 +389,7 @@ namespace RoadRage.Tests.PlayMode
             }
             double wallSeconds = Time.realtimeSinceStartupAsDouble - wallStart;
             int totalCollections = GC.CollectionCount(0) - collectionsStart;
-            if (recorders != null) probe.End();
+            if (recording) probe.End();
 
             // Ecritures disque de fin de run, mesurees a part (aucune pendant le run).
             watch.Restart();
@@ -382,7 +399,7 @@ namespace RoadRage.Tests.PlayMode
             double traceMilliseconds = watch.Elapsed.TotalMilliseconds;
 
             var result = Publish(population, record, steps, probe.Frames, wallSeconds, totalCollections, missing, traceMilliseconds,
-                observer, traceStamp);
+                observer, traceStamp, recorderSetupMilliseconds, recorderSetupHost, recordingStartHost);
             Results[population] = result;
             if (recorders != null) foreach (var recorder in recorders) recorder.Dispose();
             if (population == 8) WriteComparison();
@@ -446,6 +463,15 @@ namespace RoadRage.Tests.PlayMode
             };
             var best = parts.Where(p => !double.IsNaN(p.Value)).OrderByDescending(p => p.Value).FirstOrDefault();
             string text = best.Key == null ? "-" : best.Key + " " + Ms(best.Value) + " ms";
+            var engineStats = new[] { "Update.ScriptRunBehaviourUpdate", "PreLateUpdate.ScriptRunBehaviourLateUpdate",
+                "CoroutinesDelayedCalls", "Camera.Render", "RenderPipelineManager.DoRenderLoop_Internal",
+                "Gfx.WaitForPresentOnGfxThread", "Gfx.PresentFrame", "WaitForTargetFPS", "EditorLoop", "SceneView.Repaint" };
+            foreach (string stat in engineStats)
+            {
+                double milliseconds = FrameValue(frame, stat);
+                if (!double.IsNaN(milliseconds) && milliseconds > 5d)
+                    text += " ; " + stat + " " + Ms(milliseconds) + " ms";
+            }
             if (best.Key == "TrafficV2.Step")
             {
                 var subs = new[] { "TrafficV2.Prepare", "TrafficV2.Collect", "TrafficV2.Frame.Localize", "TrafficV2.Frame.Occupancy",
@@ -505,7 +531,8 @@ namespace RoadRage.Tests.PlayMode
 
         private static PopulationResult Publish(int population, Story533Harness.ScenarioRecord record, List<StepSample> steps,
             List<FrameSample> frames, double wallSeconds, int collections, string missing, double traceMilliseconds,
-            Story533Harness.Observer observer, string traceStamp)
+            Story533Harness.Observer observer, string traceStamp, double recorderSetupMilliseconds,
+            ulong recorderSetupHost, ulong recordingStartHost)
         {
             var driven = steps.Where(s => s.Vehicles > 0).ToList();
             var full = driven.Where(s => s.Vehicles == population).ToList();
@@ -566,6 +593,9 @@ namespace RoadRage.Tests.PlayMode
                 .Append(" premieres insertions, obstacle du scenario jusqu'au pas ")
                 .Append(record.Obstacles.Length > 0 ? record.Obstacles[0].UntilStep.ToString(CultureInfo.InvariantCulture) : "-")
                 .Append(", aucune poussee), pilotage WaitForFixedUpdate, observateur du harnais a chaque pas, trace au pas active\n");
+            text.Append("- Initialisation des recorders hors mesure : ").Append(Ms(recorderSetupMilliseconds))
+                .Append(" ms au pas hote ").Append(recorderSetupHost).Append(" ; debut apres chauffe au pas ")
+                .Append(recordingStartHost).Append(" et apres un Update de l'Editeur.\n");
             text.Append("- Fenetre mesuree : ").Append(steps.Count).Append(" pas hote (").Append(driven.Count).Append(" avec vehicule), ")
                 .Append(Ms(wallSeconds)).Append(" s reelles, ").Append(frames.Count).Append(" frames rendues (")
                 .Append(Ms(result.FramesPerSecond)).Append(" fps), pas simule/reel ")

@@ -235,7 +235,7 @@ namespace RoadRage.Tests.PlayMode
             var obstacles = record.Obstacles.Select(o => harness.CreateObstacle(o)).ToList();
             var observer = new Story533Harness.Observer(spawner, record.MaxPopulation);
             var batches = new List<Batch>();
-            ulong removedAt = 0UL;
+            ulong removedAt = 0UL, southRemovedAt = 0UL;
             int settled = 0;
             for (int step = 0; step < record.MaxSteps && spawner.V2Removals < record.Insertions.Length; step++)
             {
@@ -244,12 +244,20 @@ namespace RoadRage.Tests.PlayMode
                 if (observer.PlayerFacts > 0) Assert.Inconclusive("run invalide : joueur hote dans un fait leader ou obstacle V2");
                 if (observer.ToleranceLatch != null) break;
                 Capture(spawner, batches);
-                if (removedAt != 0UL) continue;
+                if (removedAt != 0UL)
+                {
+                    if (southRemovedAt == 0UL && spawner.V2Runner.FrameId == removedAt + 1UL)
+                    {
+                        harness.Destroy(obstacles[1]);
+                        southRemovedAt = spawner.V2Runner.FrameId;
+                    }
+                    continue;
+                }
                 var drivers = Drivers(spawner, 2);
                 settled = drivers != null && drivers.All(Held) ? settled + 1 : 0;
                 if (settled < SettleSteps) continue;
-                // Les deux attendent a la meme distance de leur entree : retrait simultane, demandes qui se rencontrent.
-                foreach (var obstacle in obstacles) harness.Destroy(obstacle);
+                // La demande sud arrivait un pas avant l'est : staging a un pas d'ecart, sans grant anterieur au lot commun.
+                harness.Destroy(obstacles[0]);
                 removedAt = spawner.V2Runner.FrameId;
             }
 
@@ -259,11 +267,12 @@ namespace RoadRage.Tests.PlayMode
             string journal = Story533Harness.WriteJunctionLog("scenario-C", stamp, observer, Folder);
             List<string> vehicleContacts, obstacleContacts, otherContacts;
             Story533Harness.Contacts(runs, out vehicleContacts, out obstacleContacts, out otherContacts);
-            var sequence = new List<string> { "obstacles d'attente retires ensemble au pas hote " + removedAt };
+            var sequence = new List<string> { "obstacle est retire au pas hote " + removedAt + ", obstacle sud au pas hote " + southRemovedAt };
 
             Assert.That(removedAt, Is.GreaterThan(0UL), "les deux vehicules ne se sont pas arretes derriere leur obstacle d'attente");
-            var east = runs.Single(r => r.Index == 0);
-            var south = runs.Single(r => r.Index == 1);
+            Assert.That(southRemovedAt, Is.EqualTo(removedAt + 1UL), "staging des obstacles C a un pas physique d'ecart");
+            var east = runs.Single(r => r.Index == 1);
+            var south = runs.Single(r => r.Index == 0);
             var eastFrames = new HashSet<ulong>(east.Record.Trace.Where(t => t.Interaction.Junction.RequestValid
                 && t.Interaction.Junction.TraversalId == EastStraight).Select(t => t.Interaction.FrameId));
             var both = south.Record.Trace.Where(t => t.Interaction.Junction.RequestValid && t.Interaction.Junction.TraversalId == SouthLeft
@@ -276,6 +285,11 @@ namespace RoadRage.Tests.PlayMode
             ulong meet = both[0];
             sequence.Add("1. demandes actives au meme lot " + meet + " sur 40ca7f10 (" + east.TrafficId + ") et 4e437f94 (" + south.TrafficId + ")");
 
+            Assert.That(batches.Where(b => b.Frame < meet).SelectMany(b => b.Records).Any(r => r.IsEffectiveGrant
+                && ((r.TrafficId == east.TrafficId && r.Contains(EastStraight))
+                    || (r.TrafficId == south.TrafficId && r.Contains(SouthLeft)))), Is.False,
+                "precondition C invalide : grant anterieur au lot commun ; aucune arbitration fraiche demontree");
+
             var atMeet = batches.Single(b => b.Frame == meet).Records;
             bool eastHolds = atMeet.Any(r => r.TrafficId == east.TrafficId && r.IsEffectiveGrant && r.Contains(EastStraight));
             bool southHolds = atMeet.Any(r => r.TrafficId == south.TrafficId && r.IsEffectiveGrant && r.Contains(SouthLeft));
@@ -284,6 +298,7 @@ namespace RoadRage.Tests.PlayMode
             var waiter = eastHolds ? south : east;
             RoadId holderTraversal = eastHolds ? EastStraight : SouthLeft, waiterTraversal = eastHolds ? SouthLeft : EastStraight;
             var grant = atMeet.First(r => r.TrafficId == holder.TrafficId && r.IsEffectiveGrant && r.Contains(holderTraversal));
+            Assert.That(grant.Status, Is.EqualTo(JunctionGrantStatus.Granted), "C.2 : grant frais au lot commun, jamais Held");
             var denial = atMeet.Single(r => r.TrafficId == waiter.TrafficId && r.TraversalId == waiterTraversal);
             Assert.That(denial.Status, Is.EqualTo(JunctionGrantStatus.Denied), denial.ToText());
             Assert.That(denial.Reason, Is.EqualTo(JunctionReason.ConflictGranted), denial.ToText());

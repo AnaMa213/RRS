@@ -204,7 +204,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             foreach (var grant in waiting)
             {
                 var holder = byId[grant.TrafficId];
-                if (!holder.RequestValid || holder.Request.Traversal.FirstMovementId != grant.TraversalId)
+                if (!holder.RequestValid || !MatchesTraversal(grant, holder.Request.Traversal))
                 {
                     records.Add(Record(grant, grant.Movements, frameId, effective, JunctionGrantStatus.Revoked, JunctionReason.RequestWithdrawn));
                     continue;
@@ -431,13 +431,24 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             var traversal = actor.Request.Traversal;
             foreach (var grant in kept)
             {
-                if (grant.TrafficId != actor.TrafficId) continue;
-                if (grant.TraversalId == traversal.FirstMovementId) return true;
+                if (grant.TrafficId != actor.TrafficId || grant.JunctionId != traversal.JunctionId
+                    || grant.ExitCorridorId != traversal.ExitCorridorId) continue;
+                if (!grant.Engaged) { if (MatchesTraversal(grant, traversal)) return true; else continue; }
                 bool all = true;
                 foreach (var movement in traversal.MovementIds) all &= grant.Movements.Contains(movement);
                 if (all) return true;
             }
             return false;
+        }
+
+        /// <summary>Un grant non engage ne couvre que la meme chaine complete et la meme sortie, pas son seul premier mouvement.</summary>
+        private static bool MatchesTraversal(Grant grant, JunctionTraversal traversal)
+        {
+            if (grant.TraversalId != traversal.FirstMovementId || grant.JunctionId != traversal.JunctionId
+                || grant.ExitCorridorId != traversal.ExitCorridorId || grant.Movements.Count != traversal.MovementIds.Count) return false;
+            for (int i = 0; i < grant.Movements.Count; i++)
+                if (grant.Movements[i] != traversal.MovementIds[i]) return false;
+            return true;
         }
 
         private static bool LiveContains(Grant grant, RoadId movement)

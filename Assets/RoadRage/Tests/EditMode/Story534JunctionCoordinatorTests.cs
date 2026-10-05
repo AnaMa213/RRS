@@ -430,6 +430,50 @@ namespace RoadRage.Tests.EditMode
             AssertStatus(s3, Id(1), EastStraight, JunctionGrantStatus.Held, JunctionReason.Committed);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void APendingGrantIsReplacedWhenItsContinuationChangesWithTheSameFirstMovement(bool extend)
+        {
+            RoadId[] chain;
+            RoadId other;
+            PartialConflict(out chain, out other);
+            var directExit = Index.SameJunctionSuccessors(chain[0]).First(m => Index.SameJunctionSuccessors(m).Count == 0);
+            var shorter = Traversal(chain[0], directExit);
+            var longer = Traversal(chain);
+            var original = extend ? shorter : longer;
+            var replacement = extend ? longer : shorter;
+            var coordinator = new JunctionCoordinator(Model, 1);
+            Batch(coordinator, 1, Requesting(Id(1), original, d: 12f));
+            var snapshot = Batch(coordinator, 2, Requesting(Id(1), replacement, d: 11.9f));
+            Assert.That(snapshot.Records.Any(r => r.TrafficId == Id(1) && r.Status == JunctionGrantStatus.Revoked
+                && r.Reason == JunctionReason.RequestWithdrawn && r.MovementIds.SequenceEqual(original.MovementIds)), Is.True,
+                "l'ancien grant non engage est retire en entier");
+            var grant = Decision(snapshot, Id(1), replacement.FirstMovementId);
+            Assert.That(grant.Status, Is.EqualTo(JunctionGrantStatus.Granted), snapshot.ToText());
+            Assert.That(grant.MovementIds, Is.EqualTo(replacement.MovementIds), "nouvelle chaine complete, pas le seul premier mouvement");
+            Assert.That(grant.RequestSinceFrame, Is.EqualTo(1UL), "O2 : meme premier mouvement, anciennete conservee");
+            var held = Batch(coordinator, 3, Requesting(Id(1), replacement, d: 11.8f, effective: true));
+            AssertStatus(held, Id(1), replacement.FirstMovementId, JunctionGrantStatus.Held, JunctionReason.Pending);
+        }
+
+        [Test]
+        public void APendingGrantIsReplacedWhenOnlyItsExitChanges()
+        {
+            var original = Traversal(EastStraight);
+            // Les deux mouvements ZC23 ont la meme sortie : choisir une autre sortie connue du meme carrefour.
+            var otherExit = Model.GetMovementsInJunction(original.JunctionId)
+                .Select(m => Index.ToCorridorOf(m)).First(c => c != original.ExitCorridorId);
+            var replacement = new JunctionTraversal(original.JunctionId, original.MovementIds, otherExit);
+            var coordinator = new JunctionCoordinator(Model, 1);
+            Batch(coordinator, 1, Requesting(Id(1), original, d: 12f));
+            var snapshot = Batch(coordinator, 2, Requesting(Id(1), replacement, d: 11.9f));
+            Assert.That(snapshot.Records.Any(r => r.Status == JunctionGrantStatus.Revoked
+                && r.Reason == JunctionReason.RequestWithdrawn), Is.True, snapshot.ToText());
+            AssertStatus(snapshot, Id(1), EastStraight, JunctionGrantStatus.Granted, JunctionReason.Granted);
+            AssertStatus(Batch(coordinator, 3, Requesting(Id(1), replacement, d: 11.8f, effective: true)),
+                Id(1), EastStraight, JunctionGrantStatus.Held, JunctionReason.Pending);
+        }
+
         [Test]
         public void AHolderInFallbackKeepsItsGrantUntilItsFootprintLeavesTheBoundary()
         {

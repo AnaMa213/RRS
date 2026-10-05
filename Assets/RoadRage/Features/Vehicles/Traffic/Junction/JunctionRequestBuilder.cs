@@ -90,10 +90,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                     float d = (float)(start[k0] - front);
                     var distances = JunctionDistances.For(driver.Value, actor.TangentialSpeedMetersPerSecond, deltaTimeSeconds,
                         controlMarginMeters, holdEntrySpeedMetersPerSecond);
-                    bool effective = Covers(snapshot, trafficId, traversal, frameId);
-                    if (effective && (d <= 0f || d < distances.StopMeters))
+                    JunctionRecord grant;
+                    bool effective = Covers(snapshot, trafficId, traversal, frameId, out grant);
+                    bool committed = effective && (grant.Reason == JunctionReason.Committed
+                        || grant.Reason == JunctionReason.CommittedCarried || grant.Reason == JunctionReason.Restored);
+                    if (effective && (committed || d <= 0f || d < distances.StopMeters))
                     {
-                        // Engagee : tenue sans demande ; la demande porte sur la traversee suivante (O8).
+                        // O8 : une continuation appartient toujours a la traversee engagee, meme loin de sa propre entree.
                         approaches.Add(new JunctionApproach(traversal, d, distances, true, RoadId.None, true, true, default(JunctionExitAssessment)));
                         k0 = last + 1;
                         while (k0 < occurrences.Count && occurrences[k0].Kind != RoadElementKind.JunctionMovement) k0++;
@@ -213,9 +216,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         }
 
         /// <summary>Grant effectif de l'instantane, lu a la frame, qui contient tous les mouvements de la traversee.</summary>
-        private static bool Covers(JunctionSnapshot snapshot, RoadId trafficId, JunctionTraversal traversal, ulong frameId)
+        private static bool Covers(JunctionSnapshot snapshot, RoadId trafficId, JunctionTraversal traversal, ulong frameId,
+            out JunctionRecord record)
         {
-            JunctionRecord record;
+            record = default(JunctionRecord);
             if (snapshot == null || !snapshot.TryGetEffectiveGrant(trafficId, traversal.FirstMovementId, frameId, out record)) return false;
             for (int i = 0; i < traversal.MovementIds.Count; i++)
                 if (!record.Contains(traversal.MovementIds[i])) return false;
