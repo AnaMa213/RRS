@@ -1756,7 +1756,7 @@ Therefore: **prove trajectory, curvature, speed, topology, identity, versioning 
 | 5.31 | **First driven Traffic V2 vertical slice: portal to portal** | VERTICAL | Spine, end to end | L |
 | 5.32 | Perception boundary: occupancy index, leader and hazard observations | FOUNDATION | Facts | L |
 | 5.33 | Vehicle following through named speed constraints *(reclassified M → L, owner decision D1 of 2026-10-02)* | VERTICAL | Longitudinal | L |
-| 5.34 | Junction coordination core: grants, conflicts, blocked exit, committed traversal | FOUNDATION | Permissions | L |
+| 5.34 | Junction coordination core: grants, conflicts, blocked exit, committed traversal *(scope B with first runtime wiring and story-level PlayMode, owner decisions O1–O8 of 2026-10-03)* | FOUNDATION | Permissions | L |
 | 5.35 | Authored control kinds: stop, yield, priority and roundabout entry | VERTICAL | Traffic rules | M |
 | 5.36 | Signal phase runtime and coordinator integration | VERTICAL | Signals | M |
 | 5.37 | `SafetyFilter`: narrow veto and clamp boundary | FOUNDATION | Invariants | M |
@@ -2915,6 +2915,15 @@ So that the road reads as traffic rather than as independent vehicles that happe
 **Type:** FOUNDATION · **Boundary:** Permissions · **Complexity:** L
 **Implements:** FR6, FR24, FR25, AD-37, AD-46, BC-5, BC-7, NFR4
 
+*Amended 2026-10-03 (owner decisions O1–O8 recorded in `spec-5-34-junction-coordination-core-grants-and-conflicts.md`). O1, scope B: the coordination foundation **and** its first runtime wiring.*
+- *One generic host coordinator serves all nine `MVP_Run` junctions, roundabouts included (O4). It grants **traversals**: the chain of consecutive movements of one junction along the route, granted or refused as a whole, so no vehicle ever waits inside a junction (O7).*
+- *A vehicle without a grant stops before the traversal through a new named constraint, `JunctionEntry`. Its stop, engage and request distances are derived from kinematics and pipeline latency, never calibrated by eye.*
+- *Tie-break: oldest continuous request, then `TrafficId` (O2). An invalid frame fails closed and real occupants are protected before any request (O6).*
+- *The request targets the first traversal ahead of the front bumper for which the vehicle holds no engaged grant (O8). Without this, consecutive `MVP_Run` junctions are closer than the request distance.*
+- *Story-level PlayMode is added (scenarios C and D, see below) and the 5.33 pre-5.34 campaign exemption D12 is removed. Verification mode becomes `Both`; this replaces "PlayMode verification: none at story level" below, and the epic does not diverge silently from the spec.*
+- *O6 sets the 5.34 / 5.35 boundary in campaign verdicts. A contact between two distinct movements of one conflict zone, simultaneous incompatible effective grants, or an entry without grant is a 5.34 failure. A ring-merge service order that differs from "ring first" is a published 5.35 finding, never a 5.34 rule.*
+- *Story 5.35 keeps stop, yield, road priority, roundabout (ring) priority and Gate C; signals stay with 5.36.*
+
 As a solo developer,
 I want one authority that decides, per frame and deterministically, which vehicles may enter a junction,
 So that priority is never an emergent consequence of component update order or of two vehicles negotiating privately.
@@ -2935,7 +2944,7 @@ So that priority is never an emergent consequence of component update order or o
 
 **EditMode verification:** all requests derived from frame `N` are collected and resolved as one stable-ID-ordered batch against coordinator-owned prior grants, and published as versioned grants effective in frame `N+1`; tactical planning never acts on an unpublished same-frame grant; two movements sharing a conflict zone never hold simultaneous grants; tie resolution is deterministic and identical under shuffled request order; exit capacity is evaluated **before** an entry grant is issued, referencing the departure corridor occupancy of the intended movement; a vehicle already committed to a junction clears it consistently rather than being revoked mid-traversal; every grant and denial carries a stable reason code suitable for automated assertion.
 
-**PlayMode verification:** none at story level; the whole junction branch is proven together at Gate C.
+**PlayMode verification:** ~~none at story level; the whole junction branch is proven together at Gate C.~~ *Amended 2026-10-03 (O1, O5, O6):* story-level PlayMode in `MVP_Run`. Scenario C replays the `explore-8` encounter on conflict zone `4258af54` (two vehicles on `40ca7f10` and `4e437f94`) and must show the complete sequence: both requests in one batch, one grant, a `ConflictGranted` denial with a stop before the entry, release, then the second grant and both exits. Scenario D proves a blocked exit is refused before any conflict and never entered. A collector-saturation regression accompanies the runner change. Stories 5.31, 5.52 and 5.33 (A and B) are replayed unchanged, `Story533Perf` publishes the coordinator cost, and the `Story533Exploration` campaign runs without D12 under the O6 verdicts. Gate C stays with 5.35.
 
 **Regression scenarios covered:** new V2 contract scenarios — stable decisions independent of update order; conflicting movements never simultaneously granted; blocked exit prevents entry before priority is evaluated; a committed vehicle clears consistently.
 
@@ -3816,7 +3825,7 @@ Test routing follows `docs/setup/build-workflow-rules.md` section 2, applied to 
 | **5.31** | **Both** | `edge-case-hunter`, `verification-gap`, **`security-review`** — the first host-authoritative V2 control path and a changed ownership boundary |
 | 5.32 | EditMode | `edge-case-hunter` |
 | **5.33** | **Both** *(amended 2026-10-02, owner decision D1)* | `edge-case-hunter` |
-| 5.34 | EditMode | `edge-case-hunter`, `verification-gap` |
+| **5.34** | **Both** *(amended 2026-10-03, owner decision O1)* | `edge-case-hunter`, `verification-gap` |
 | **5.35** | **Both** | `edge-case-hunter`, `verification-gap` |
 | 5.36 | EditMode | `edge-case-hunter` |
 | 5.37 | EditMode | `edge-case-hunter`, `verification-gap` |

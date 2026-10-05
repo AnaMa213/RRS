@@ -1,0 +1,12 @@
+route 0 : 11 traversees accordees, 4217 pas, 0 pas avec JunctionEntry active
+route 1 : 11 traversees accordees, 3451 pas, 0 pas avec JunctionEntry active
+route 2 : 7 traversees accordees, 2500 pas, 0 pas avec JunctionEntry active
+route 3 : 7 traversees accordees, 2709 pas, 0 pas avec JunctionEntry active
+route 4 : 9 traversees accordees, 3767 pas, 0 pas avec JunctionEntry active
+route 5 : 5 traversees accordees, 2017 pas, 0 pas avec JunctionEntry active
+route 6 : 9 traversees accordees, 3430 pas, 0 pas avec JunctionEntry active
+route 7 : 7 traversees accordees, 2821 pas, 0 pas avec JunctionEntry active
+route 8 : 9 traversees accordees, 3356 pas, 0 pas avec JunctionEntry active
+route 9 : 7 traversees accordees, 2820 pas, 0 pas avec JunctionEntry active
+route 10 : 9 traversees accordees, 3425 pas, 0 pas avec JunctionEntry active
+

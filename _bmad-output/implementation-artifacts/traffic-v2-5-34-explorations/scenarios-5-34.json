@@ -1,0 +1,206 @@
+{
+    "Format": 1,
+    "RoadModelVersion": "v4:46e91057b9f6e8a970fe7952639805a6",
+    "VehicleLengthMeters": 4.440000057220459,
+    "MinimumGapMeters": 2.0,
+    "MinimumObstacleDistanceMeters": 8.0,
+    "Parking": {
+        "x": 197.5563507080078,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "Scenarios": [
+        {
+            "Label": "C",
+            "MaxPopulation": 2,
+            "MaxSteps": 9000,
+            "Insertions": [
+                {
+                    "Entry": "4882b42dcf37410f4f629825c30f5f99",
+                    "Exit": "49d29d3fd771ae4966aca755b3442cbc",
+                    "Seed": 0,
+                    "EarliestStep": 0,
+                    "Elements": [
+                        "4f3543b1218b82af65b5b8fc58457fb3",
+                        "452ee31e83feea5ebc05406c271424a9",
+                        "4ec40e5f82f7a65bed1dc3d9679f8693",
+                        "4ac98ed2e41d83c91f0714135aa67ba7",
+                        "4db6ebc158e0dff4369373f117f51690",
+                        "40ca7f10a97f50a918e8c3a2a1e58493",
+                        "40e937a99618cac3ce12d56586514283",
+                        "4cec0461fb9fd74541d5772b2264b88f",
+                        "427041528b28cda9499c4ab5aafe0d9c",
+                        "45607ec286d32b63e09ca677f22031ba",
+                        "456446f0213cdfedcbcb6d32f7ee7db6"
+                    ]
+                },
+                {
+                    "Entry": "4ce14124d3729e5b3ad1174c8653a99d",
+                    "Exit": "49d29d3fd771ae4966aca755b3442cbc",
+                    "Seed": 0,
+                    "EarliestStep": 0,
+                    "Elements": [
+                        "4feeebdeeefd1a0f872a7e456b3a5287",
+                        "4439e11d9c47c1d09aad97b8f5dd1cbe",
+                        "4c3fbf9d31b3efe44c908138001098b8",
+                        "401b55e11b401435eb1bdd8dde7caa94",
+                        "4bc86d56e68c64ed3454e51566dd43bc",
+                        "46b3a813f373f17148f435776c7e69bc",
+                        "4680aaa6ee1678ef03909266658047b6",
+                        "4bcc0e116de75d2480ac6c52948e3996",
+                        "4f56ef8aae6bfffcbc337d463dd2fd9f",
+                        "4e437f94525852d3a072a538537c2093",
+                        "40e937a99618cac3ce12d56586514283",
+                        "4cec0461fb9fd74541d5772b2264b88f",
+                        "427041528b28cda9499c4ab5aafe0d9c",
+                        "45607ec286d32b63e09ca677f22031ba",
+                        "456446f0213cdfedcbcb6d32f7ee7db6"
+                    ]
+                }
+            ],
+            "Obstacles": [
+                {
+                    "Label": "attente-est",
+                    "ElementId": "4db6ebc158e0dff4369373f117f51690",
+                    "RouteDistanceMeters": 33.72663497924805,
+                    "Center": {
+                        "x": -34.0,
+                        "y": 0.75,
+                        "z": 15.5
+                    },
+                    "Forward": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": -1.0
+                    },
+                    "Size": {
+                        "x": 2.0,
+                        "y": 1.5,
+                        "z": 1.0
+                    },
+                    "FromStep": 0,
+                    "UntilStep": -1
+                },
+                {
+                    "Label": "attente-sud",
+                    "ElementId": "4f56ef8aae6bfffcbc337d463dd2fd9f",
+                    "RouteDistanceMeters": 92.16665649414063,
+                    "Center": {
+                        "x": -16.5,
+                        "y": 0.75,
+                        "z": 2.000000238418579
+                    },
+                    "Forward": {
+                        "x": -1.0,
+                        "y": 0.0,
+                        "z": 1.1548399214689198e-7
+                    },
+                    "Size": {
+                        "x": 2.0,
+                        "y": 1.5,
+                        "z": 1.0
+                    },
+                    "FromStep": 0,
+                    "UntilStep": -1
+                }
+            ],
+            "Pushes": []
+        },
+        {
+            "Label": "D",
+            "MaxPopulation": 2,
+            "MaxSteps": 9000,
+            "Insertions": [
+                {
+                    "Entry": "4882b42dcf37410f4f629825c30f5f99",
+                    "Exit": "49d29d3fd771ae4966aca755b3442cbc",
+                    "Seed": 0,
+                    "EarliestStep": 0,
+                    "Elements": [
+                        "4f3543b1218b82af65b5b8fc58457fb3",
+                        "452ee31e83feea5ebc05406c271424a9",
+                        "4ec40e5f82f7a65bed1dc3d9679f8693",
+                        "4ac98ed2e41d83c91f0714135aa67ba7",
+                        "4db6ebc158e0dff4369373f117f51690",
+                        "40ca7f10a97f50a918e8c3a2a1e58493",
+                        "40e937a99618cac3ce12d56586514283",
+                        "4cec0461fb9fd74541d5772b2264b88f",
+                        "427041528b28cda9499c4ab5aafe0d9c",
+                        "45607ec286d32b63e09ca677f22031ba",
+                        "456446f0213cdfedcbcb6d32f7ee7db6"
+                    ]
+                },
+                {
+                    "Entry": "4ce14124d3729e5b3ad1174c8653a99d",
+                    "Exit": "49d29d3fd771ae4966aca755b3442cbc",
+                    "Seed": 0,
+                    "EarliestStep": 0,
+                    "Elements": [
+                        "4feeebdeeefd1a0f872a7e456b3a5287",
+                        "4439e11d9c47c1d09aad97b8f5dd1cbe",
+                        "4c3fbf9d31b3efe44c908138001098b8",
+                        "401b55e11b401435eb1bdd8dde7caa94",
+                        "4bc86d56e68c64ed3454e51566dd43bc",
+                        "46b3a813f373f17148f435776c7e69bc",
+                        "4680aaa6ee1678ef03909266658047b6",
+                        "4bcc0e116de75d2480ac6c52948e3996",
+                        "4f56ef8aae6bfffcbc337d463dd2fd9f",
+                        "4e437f94525852d3a072a538537c2093",
+                        "40e937a99618cac3ce12d56586514283",
+                        "4cec0461fb9fd74541d5772b2264b88f",
+                        "427041528b28cda9499c4ab5aafe0d9c",
+                        "45607ec286d32b63e09ca677f22031ba",
+                        "456446f0213cdfedcbcb6d32f7ee7db6"
+                    ]
+                }
+            ],
+            "Obstacles": [
+                {
+                    "Label": "sortie-tenue",
+                    "ElementId": "40e937a99618cac3ce12d56586514283",
+                    "RouteDistanceMeters": 67.78663635253906,
+                    "Center": {
+                        "x": -34.0,
+                        "y": 0.75,
+                        "z": -18.560001373291016
+                    },
+                    "Forward": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": -1.0
+                    },
+                    "Size": {
+                        "x": 2.0,
+                        "y": 1.5,
+                        "z": 1.0
+                    },
+                    "FromStep": 0,
+                    "UntilStep": -1
+                },
+                {
+                    "Label": "attente-sud",
+                    "ElementId": "4f56ef8aae6bfffcbc337d463dd2fd9f",
+                    "RouteDistanceMeters": 92.16665649414063,
+                    "Center": {
+                        "x": -16.5,
+                        "y": 0.75,
+                        "z": 2.000000238418579
+                    },
+                    "Forward": {
+                        "x": -1.0,
+                        "y": 0.0,
+                        "z": 1.1548399214689198e-7
+                    },
+                    "Size": {
+                        "x": 2.0,
+                        "y": 1.5,
+                        "z": 1.0
+                    },
+                    "FromStep": 0,
+                    "UntilStep": -1
+                }
+            ],
+            "Pushes": []
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+# scenario-C 20261005-091826
+
+- Scenario C, population 2, fixedDeltaTime 0.02 s, pas hote 2678, lots 2677 dont refuses 0
+- Insertions : #0 00000000000000000000000000000001 au pas 1 ; #1 00000000000000000000000000000002 au pas 2
+- Retraits au portail : 2/2
+- Sequence :
+  - obstacles d'attente retires ensemble au pas hote 1386
+  - 1. demandes actives au meme lot 1496 sur 40ca7f10 (00000000000000000000000000000001) et 4e437f94 (00000000000000000000000000000002)
+  - 2. un seul grant : 00000000000000000000000000000002 Held(Pending) 442bd8af1793e34f2d407ec98f9e6581 traversee 4e437f94525852d3a072a538537c2093 [4e437f94525852d3a072a538537c2093] depuis 1495 source 1496 effectif 1497 expire apres 1497
+  - 3. refus : 00000000000000000000000000000001 Denied(ConflictGranted) 442bd8af1793e34f2d407ec98f9e6581 traversee 40ca7f10a97f50a918e8c3a2a1e58493 [40ca7f10a97f50a918e8c3a2a1e58493] depuis 1496 source 1496 effectif 1497 expire apres 1497 cause @00000000000000000000000000000002 zone 4258af5419bba1365a3f0ad6ed3d44aa
+  -    arret du second au pas hote 1760 a d = 0.348 m, distance minimale sans grant 0.348 m, blocker JunctionGrant:00000000000000000000000000000002
+  - 4. Released(Cleared) du premier au lot 1838
+  - 5. Granted du second au lot 1892 (O12 : sortie suffisante au lot 1892, 6.557 m >= 6.44 m ; 54 lots apres Released(Cleared))
+  - 6. entree du second au pas hote 2006, sortie au portail : True
+  - 7. O14 : arret a d = 0.348 m, bande [0.23 ; 0.352] m ; grant effectif au pas hote 1893, entree au pas hote 2006 (2.26 s, 2.615 m/s)
+- Coordination : grants incompatibles simultanes 0, EnteredWithoutGrant 0, IncompatibleOccupancy 0
+- Cout du coordinateur : moyenne 0.018 / mediane 0.017 / p95 0.022 / max 3.131 ms (2676 pas) ; pas hote moyenne 1.285 / mediane 1.172 / p95 2.03 / max 14.456 ms (2676 pas)
+- Contacts entre vehicules 0, obstacles 0, autres 0
+- d max au pas : 00000000000000000000000000000001 0.1535, 00000000000000000000000000000002 0.2491
+- Couverture : aucun TrackingToleranceExceeded
+- Invariants : verts
+- Trace brute : `scenario-C-20261005-091826-steps.tsv` ; journal de coordination : `scenario-C-20261005-091826-junction.txt`

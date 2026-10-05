@@ -15,6 +15,7 @@ using RoadRage.Features.Online;
 using RoadRage.Features.Players;
 using RoadRage.Features.UI;
 using RoadRage.Features.Vehicles.Traffic;
+using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Perception;
@@ -100,10 +101,11 @@ namespace RoadRage.Tests.PlayMode
             public ScenarioRecord[] Scenarios;
         }
 
-        public static ScenarioRecord Load(TrafficV2Admission admission, string label, out ScenarioFile file)
+        /// <param name="path">Fichier de scenarios ; celui de la 5.33 par defaut (la 5.34 ecrit le sien).</param>
+        public static ScenarioRecord Load(TrafficV2Admission admission, string label, out ScenarioFile file, string path = ScenarioPath)
         {
-            Assert.That(File.Exists(ScenarioPath), Is.True, "fichier de scenarios absent : lancer d'abord Story533 EditMode");
-            file = JsonUtility.FromJson<ScenarioFile>(File.ReadAllText(ScenarioPath));
+            Assert.That(File.Exists(path), Is.True, "fichier de scenarios absent : lancer d'abord le constructeur EditMode (" + path + ")");
+            file = JsonUtility.FromJson<ScenarioFile>(File.ReadAllText(path));
             Assert.That(file.RoadModelVersion, Is.EqualTo(admission.Model.Version.ToString()), "fichier de scenarios perime");
             var record = file.Scenarios.FirstOrDefault(s => s.Label == label);
             Assert.That(record, Is.Not.Null, "scenario " + label);
@@ -312,61 +314,98 @@ namespace RoadRage.Tests.PlayMode
             /// </summary>
             public string ToleranceLatch;
             public ulong ContaminationFrame;
+
+            // Verdicts O6 de la Story 5.34 (la regle D12 de la 5.33 est retiree) : compteurs publies, assertes par les
+            // scenarios 5.34 et les campagnes, jamais ajoutes aux violations des scenarios A et B de la 5.33.
+
+            /// <summary>Lots du coordinateur observes (un par pas hote) et lots resolus sur une frame refusee.</summary>
+            public int Batches, RefusedBatches;
+            /// <summary>Pas ou deux grants effectifs incompatibles d'acteurs distincts coexistent : echec 5.34.</summary>
+            public int IncompatibleGrantSteps;
+            public string FirstIncompatibleGrants;
+            /// <summary>Sommes des compteurs de lot ; EnteredWithoutGrant &gt; 0 est un echec 5.34.</summary>
+            public long EnteredWithoutGrant, IncompatibleOccupancy;
+            /// <summary>Cout des pas hote avec vehicule : pas Traffic V2 total et lot du coordinateur (ms).</summary>
+            public readonly List<double> HostStepMilliseconds = new List<double>();
+            public readonly List<double> CoordinatorMilliseconds = new List<double>();
+            /// <summary>Pas hote en population pleine seulement : base du p95 D13, comme dans Story533Perf.</summary>
+            public readonly List<double> FullPopulationHostStepMilliseconds = new List<double>();
+            /// <summary>Changements de decision du coordinateur par (vehicule, traversee), dans l'ordre des lots (borne).</summary>
+            public readonly List<string> JunctionLog = new List<string>();
+            private const int JunctionLogLimit = 20000;
             /// <summary>
-            /// Verrou classe pre-5.34 (decision proprietaire du 2026-10-02) : le vehicule verrouille a eu un contact de caisse
-            /// avec un autre vehicule V2 au plus <see cref="JunctionContactWindowSteps"/> pas avant le verrou, et au pas du
-            /// contact les deux etaient sur deux mouvements de carrefour distincts d'une meme zone de conflit authoree, que rien
-            /// ne coordonne avant la 5.34. Nul sinon : tout autre verrou nominal reste un echec. Regle a retirer par la 5.34.
+            /// Constats 5.35, publies et non bloquants : a une fusion d'anneau, une entree servie avant une continuation. En 5.34
+            /// l'ordre de service est le FIFO generique, jamais une priorite d'anneau.
             /// </summary>
-            public string PreJunctionConflict;
-            public const int JunctionContactWindowSteps = 50;
-            private readonly CompiledRoadModel model;
+            public readonly List<string> RingMergeFindings = new List<string>();
+            private readonly Dictionary<string, string> lastDecision = new Dictionary<string, string>();
+            private readonly HashSet<string> ringMergeSeen = new HashSet<string>();
+            private Dictionary<RoadId, IReadOnlyList<RoadId>> zoneMembers;
 
             public Observer(PortalTrafficSpawner spawner, int maxPopulation, CompiledRoadModel model = null)
             {
                 this.spawner = spawner;
                 this.maxPopulation = maxPopulation;
-                this.model = model;
+                if (model != null) zoneMembers = model.ConflictZones.ToDictionary(z => z.Id, z => z.MemberMovementIds);
             }
 
-            private string JunctionConflictBefore(TrafficV2VehicleDriver latched)
+            /// <summary>Lot publie a ce pas : compteurs, grants incompatibles simultanes, journal et constats de fusion d'anneau.</summary>
+            private void ObserveJunctions(TrafficV2StepRunner runner)
             {
-                if (model == null || latched.Trace.Count == 0) return null;
-                ulong latchStep = latched.Trace[latched.Trace.Count - 1].Step;
-                foreach (var contact in latched.ContactEpisodes)
-                {
-                    if (!contact.ColliderPath.Contains("AI_VehicleV2_Portal_") || contact.FirstStep > latchStep
-                        || latchStep - contact.FirstStep > JunctionContactWindowSteps)
-                        continue;
-                    V2StepRecord atContact;
-                    if (!TryRecordAt(latched.Trace, r => r.Step == contact.FirstStep, out atContact)) continue;
-                    ulong frame = atContact.Interaction.FrameId;
-                    foreach (var networkObject in spawner.LiveV2Vehicles)
+                var snapshot = runner.JunctionSnapshot;
+                if (snapshot == null || runner.Coordinator == null || snapshot.SourceFrame != runner.FrameId) return;
+                var index = runner.Coordinator.Index;
+                if (zoneMembers == null) zoneMembers = index.Model.ConflictZones.ToDictionary(z => z.Id, z => z.MemberMovementIds);
+                Batches++;
+                if (!snapshot.Counters.FrameValid) RefusedBatches++;
+                EnteredWithoutGrant += snapshot.Counters.EnteredWithoutGrant;
+                IncompatibleOccupancy += snapshot.Counters.IncompatibleOccupancy;
+                var effective = snapshot.Records.Where(r => r.IsEffectiveGrant).ToList();
+                bool clash = false;
+                for (int i = 0; i < effective.Count; i++)
+                    for (int j = i + 1; j < effective.Count; j++)
                     {
-                        var other = networkObject.GetComponent<TrafficV2VehicleDriver>();
-                        if (other == null || other == latched) continue;
-                        string root = "/" + other.name;
-                        if (!contact.ColliderPath.EndsWith(root) && !contact.ColliderPath.Contains(root + "/")) continue;
-                        V2StepRecord otherAtContact;
-                        if (!TryRecordAt(other.Trace, r => r.Interaction.FrameId == frame, out otherAtContact)) continue;
-                        RoadId a = atContact.ElementId, b = otherAtContact.ElementId;
-                        if (a == b) continue;
-                        foreach (var zone in model.ConflictZones)
-                            if (zone.MemberMovementIds.Contains(a) && zone.MemberMovementIds.Contains(b))
-                                return "contact " + latched.TrafficId + " / " + other.TrafficId + " au pas hote " + frame + " sur les mouvements "
-                                    + a + " et " + b + " de la zone de conflit " + zone.Id + " (impulsion "
-                                    + contact.MaxImpulseNewtonSeconds.ToString("0.#", CultureInfo.InvariantCulture) + " N.s)";
+                        if (effective[i].TrafficId == effective[j].TrafficId) continue;
+                        foreach (var a in effective[i].MovementIds)
+                            foreach (var b in effective[j].MovementIds)
+                            {
+                                RoadId zone;
+                                if (!index.TryGetConflict(a, b, out zone)) continue;
+                                if (!clash && FirstIncompatibleGrants == null)
+                                    FirstIncompatibleGrants = "lot " + snapshot.SourceFrame + " : " + effective[i].ToText() + " / "
+                                        + effective[j].ToText() + " zone " + zone;
+                                clash = true;
+                            }
                     }
+                if (clash) IncompatibleGrantSteps++;
+                foreach (var record in snapshot.Records)
+                {
+                    string key = record.TrafficId + "|" + record.TraversalId;
+                    string value = record.Status + "(" + record.Reason + ")" + (record.CauseActorId.IsEmpty ? "" : " @" + record.CauseActorId)
+                        + (record.ZoneId.IsEmpty ? "" : " zone " + record.ZoneId) + " " + record.MovementIds.Count;
+                    string previous;
+                    if (lastDecision.TryGetValue(key, out previous) && previous == value) continue;
+                    lastDecision[key] = value;
+                    if (JunctionLog.Count < JunctionLogLimit) JunctionLog.Add(record.ToText());
+                    else if (JunctionLog.Count == JunctionLogLimit) JunctionLog.Add("journal tronque a " + JunctionLogLimit + " lignes");
+                    if (record.Status == JunctionGrantStatus.Denied) RingMerge(record, snapshot, index);
                 }
-                return null;
             }
 
-            private static bool TryRecordAt(IReadOnlyList<V2StepRecord> trace, Func<V2StepRecord, bool> match, out V2StepRecord record)
+            /// <summary>Fusion d'anneau : la continuation de la traversee refusee attend l'entree servie au titulaire.</summary>
+            private void RingMerge(JunctionRecord denied, JunctionSnapshot snapshot, JunctionConflictIndex index)
             {
-                for (int i = trace.Count - 1; i >= 0; i--)
-                    if (match(trace[i])) { record = trace[i]; return true; }
-                record = default(V2StepRecord);
-                return false;
+                IReadOnlyList<RoadId> members;
+                if (denied.ZoneId.IsEmpty || denied.CauseActorId.IsEmpty || !zoneMembers.TryGetValue(denied.ZoneId, out members)
+                    || members.Count != 2) return;
+                RoadId mine = denied.Contains(members[0]) ? members[0] : members[1];
+                RoadId other = mine == members[0] ? members[1] : members[0];
+                if (!denied.Contains(mine)) return;
+                bool continuation = !index.EntersJunction(mine) && index.SameJunctionSuccessors(mine).Count > 0;
+                bool entry = index.EntersJunction(other) && index.SameJunctionSuccessors(other).Count > 0;
+                if (!continuation || !entry || !ringMergeSeen.Add(denied.ZoneId + "|" + denied.TrafficId)) return;
+                RingMergeFindings.Add("lot " + snapshot.SourceFrame + " : fusion " + denied.ZoneId + ", entree " + other + " de "
+                    + denied.CauseActorId + " servie avant la continuation " + mine + " de " + denied.TrafficId + " (" + denied.Reason + ")");
             }
 
             private void Violation(string text)
@@ -425,12 +464,19 @@ namespace RoadRage.Tests.PlayMode
                         ToleranceLatch = "pas hote " + runner.FrameId.ToString(CultureInfo.InvariantCulture) + " : " + driver.TrafficId
                             + " TrackingToleranceExceeded, d max " + driver.MaxStepDisplacementMeters.ToString("0.####", CultureInfo.InvariantCulture)
                             + " m (epsilon_t " + TrafficV2Settings.DeclaredTrackingTolerance.Meters.ToString("0.##", CultureInfo.InvariantCulture) + " m)";
-                        PreJunctionConflict = JunctionConflictBefore(driver);
                     }
                 }
                 if (spawner.V2Removals != spawner.RetiredV2Runs.Count) Violation("retrait hors du chemin de retrait");
                 if (spawner.RetiredV2Runs.Any(r => !r.HasReachedExitPortal)) Violation("retrait hors portail de sortie");
                 if (spawner.V2Insertions != live.Count + spawner.V2Removals) Violation("vehicule disparu hors portail");
+                var cost = runner.LastCost;
+                if (cost.Vehicles > 0)
+                {
+                    HostStepMilliseconds.Add(cost.TotalMilliseconds);
+                    CoordinatorMilliseconds.Add(cost.CoordinatorMilliseconds);
+                    if (cost.Vehicles == maxPopulation) FullPopulationHostStepMilliseconds.Add(cost.TotalMilliseconds);
+                }
+                ObserveJunctions(runner);
             }
         }
 
@@ -472,16 +518,24 @@ namespace RoadRage.Tests.PlayMode
             return float.IsNaN(value) ? "nan" : float.IsInfinity(value) ? "inf" : value.ToString("0.#####", CultureInfo.InvariantCulture);
         }
 
-        /// <summary>Trace brute par pas et par vehicule, triee par (FrameId, rang d'insertion).</summary>
-        public static string WriteTrace(string label, string stamp, List<VehicleRun> runs)
+        /// <summary>
+        /// Trace brute par pas et par vehicule, triee par (FrameId, rang d'insertion). Les colonnes junction_* (Story 5.34) portent
+        /// la demande de la frame et la decision du coordinateur lue dans l'instantane.
+        /// </summary>
+        /// <param name="folder">Dossier de publication ; celui de la 5.33 par defaut.</param>
+        public static string WriteTrace(string label, string stamp, List<VehicleRun> runs, string folder = Folder)
         {
-            Directory.CreateDirectory(Folder);
-            string path = Folder + "/" + label + "-" + stamp + "-steps.tsv";
+            Directory.CreateDirectory(folder);
+            string path = folder + "/" + label + "-" + stamp + "-steps.tsv";
             var text = new StringBuilder();
             text.Append("frame\tinsertion\ttraffic_id\tstep\telement\ts_route_m\tv\tvstar\td_step_m\tbinding_kind\tbinding\tplan_binding\t"
                 + "limiting\ttarget_a\tapplied_a\tsmoothed\tperception\tleader\tleader_gap_m\tleader_v\tobstacle\tobstacle_kind\t"
                 + "obstacle_near_m\tobstacle_facts\twalking_player_facts\tblockers\tdominant\thazard_hits\thazard_saturated\tfallback\t"
-                + "reason\tthrottle\tsteer\tbrake_reverse\thandbrake\tx\ty\tz\thold\thold_cause\thold_source\thold_gap_m\thold_release\n");
+                + "reason\tthrottle\tsteer\tbrake_reverse\thandbrake\tx\ty\tz\thold\thold_cause\thold_source\thold_gap_m\thold_release\t"
+                + "junction_traversal\tjunction_movements\tjunction_d_m\tjunction_d_stop\tjunction_d_engage\tjunction_d_request\tjunction_head\t"
+                + "junction_engaged\tjunction_grant\tjunction_request_valid\tjunction_rejection\tjunction_entry_active\tjunction_stale\t"
+                + "junction_occupied\tjunction_status\tjunction_reason\tjunction_cause\tjunction_zone\tjunction_since\tjunction_exit_free_m\t"
+                + "junction_exit_required_m\tjunction_exit_bound\n");
             var rows = new List<KeyValuePair<ulong, string>>();
             foreach (var run in runs)
                 foreach (var r in run.Record.Trace)
@@ -504,8 +558,17 @@ namespace RoadRage.Tests.PlayMode
                         .Append('\t').Append(F(r.State.Position.z)).Append('\t').Append(i.Hold.Phase)
                         .Append('\t').Append(i.Hold.Phase == StopHoldPhase.None ? "-" : i.Hold.Cause.ToString())
                         .Append('\t').Append(i.Hold.Phase == StopHoldPhase.None ? "-" : i.Hold.SourceId.ToString())
-                        .Append('\t').Append(F(i.Hold.Phase == StopHoldPhase.None ? float.NaN : i.Hold.GapMeters)).Append('\t').Append(i.Hold.Release)
-                        .Append('\n');
+                        .Append('\t').Append(F(i.Hold.Phase == StopHoldPhase.None ? float.NaN : i.Hold.GapMeters)).Append('\t').Append(i.Hold.Release);
+                    var j = i.Junction;
+                    line.Append('\t').Append(j.HasRequest ? j.TraversalId.ToString() : "-").Append('\t').Append(j.MovementCount)
+                        .Append('\t').Append(F(j.DistanceMeters)).Append('\t').Append(F(j.StopMeters)).Append('\t').Append(F(j.EngageMeters))
+                        .Append('\t').Append(F(j.RequestMeters)).Append('\t').Append(j.HeadOfQueue ? 1 : 0).Append('\t').Append(j.Engaged ? 1 : 0)
+                        .Append('\t').Append(j.GrantEffective ? 1 : 0).Append('\t').Append(j.RequestValid ? 1 : 0).Append('\t').Append(j.Rejection)
+                        .Append('\t').Append(j.EntryActive ? 1 : 0).Append('\t').Append(j.SnapshotStale ? 1 : 0).Append('\t').Append(j.OccupiedMovements)
+                        .Append('\t').Append(j.HasDecision ? j.Status.ToString() : "-").Append('\t').Append(j.HasDecision ? j.Reason.ToString() : "-")
+                        .Append('\t').Append(j.CauseActorId.IsEmpty ? "-" : j.CauseActorId.ToString())
+                        .Append('\t').Append(j.ZoneId.IsEmpty ? "-" : j.ZoneId.ToString()).Append('\t').Append(j.HasDecision ? j.RequestSinceFrame.ToString(CultureInfo.InvariantCulture) : "-")
+                        .Append('\t').Append(F(j.ExitFreeMeters)).Append('\t').Append(F(j.ExitRequiredMeters)).Append('\t').Append(j.ExitBound).Append('\n');
                     rows.Add(new KeyValuePair<ulong, string>(i.FrameId * 16UL + (ulong)Math.Max(0, run.Index), line.ToString()));
                 }
             foreach (var row in rows.OrderBy(r => r.Key)) text.Append(row.Value);
@@ -628,6 +691,74 @@ namespace RoadRage.Tests.PlayMode
                 lines.Add(text.ToString());
             }
             return lines;
+        }
+
+        /// <summary>Journal des changements de decision du coordinateur, un record par ligne.</summary>
+        public static string WriteJunctionLog(string label, string stamp, Observer observer, string folder = Folder)
+        {
+            Directory.CreateDirectory(folder);
+            string path = folder + "/" + label + "-" + stamp + "-junction.txt";
+            File.WriteAllText(path, string.Join("\n", observer.JunctionLog) + "\n");
+            return path;
+        }
+
+        public static double Percentile(List<double> values, double p)
+        {
+            if (values == null || values.Count == 0) return double.NaN;
+            var sorted = values.OrderBy(v => v).ToList();
+            return sorted[Math.Min(sorted.Count - 1, (int)Math.Floor(p * (sorted.Count - 1) + 0.5))];
+        }
+
+        /// <summary>« moyenne / mediane / p95 / max ms (n pas) », invariant de culture.</summary>
+        public static string PercentileText(List<double> values)
+        {
+            if (values == null || values.Count == 0) return "aucun pas";
+            return string.Format(CultureInfo.InvariantCulture, "moyenne {0:0.###} / mediane {1:0.###} / p95 {2:0.###} / max {3:0.###} ms ({4} pas)",
+                values.Average(), Percentile(values, 0.5), Percentile(values, 0.95), values.Max(), values.Count);
+        }
+
+        private const string V2VehicleName = "AI_VehicleV2_Portal_";
+
+        /// <summary>
+        /// Verdicts O6 des contacts entre vehicules V2 (Story 5.34), classes a leur premier pas depuis les elements des deux
+        /// vehicules : deux mouvements distincts d'une meme zone de conflit -> echec 5.34 (giratoires compris) ; tout autre
+        /// contact V2-V2 -> echec « autre ». Un contact vu par les deux vehicules n'est compte qu'une fois.
+        /// </summary>
+        public static void ClassifyVehicleContacts(List<VehicleRun> runs, CompiledRoadModel model, out List<string> junction534,
+            out List<string> other)
+        {
+            junction534 = new List<string>();
+            other = new List<string>();
+            var zones = new Dictionary<string, RoadId>();
+            foreach (var zone in model.ConflictZones)
+                foreach (var a in zone.MemberMovementIds)
+                    foreach (var b in zone.MemberMovementIds)
+                        if (a != b && !zones.ContainsKey(a + "|" + b)) zones.Add(a + "|" + b, zone.Id);
+            var byCounter = new Dictionary<ulong, VehicleRun>();
+            foreach (var run in runs) byCounter[run.TrafficId.Low] = run;
+            var seen = new HashSet<string>();
+            foreach (var run in runs)
+                foreach (var contact in run.Record.ContactEpisodes)
+                {
+                    int at = contact.ColliderPath.LastIndexOf(V2VehicleName, StringComparison.Ordinal);
+                    if (at < 0) continue;
+                    var digits = new string(contact.ColliderPath.Substring(at + V2VehicleName.Length).TakeWhile(char.IsDigit).ToArray());
+                    ulong counter;
+                    VehicleRun hit;
+                    if (!ulong.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out counter)) continue;
+                    var mine = run.Record.Trace.LastOrDefault(t => t.Step == contact.FirstStep);
+                    ulong frame = mine.Interaction.FrameId;
+                    var theirs = byCounter.TryGetValue(counter, out hit) ? hit.Record.Trace.LastOrDefault(t => t.Interaction.FrameId == frame)
+                        : default(V2StepRecord);
+                    RoadId self = run.TrafficId, peer = hit != null ? hit.TrafficId : RoadId.None;
+                    string pair = (self.CompareTo(peer) < 0 ? self + "|" + peer : peer + "|" + self) + "|" + frame;
+                    if (!seen.Add(pair)) continue;
+                    RoadId zoneId = RoadId.None;
+                    bool inZone = mine.ElementId != theirs.ElementId && zones.TryGetValue(mine.ElementId + "|" + theirs.ElementId, out zoneId);
+                    string line = "pas hote " + frame + " : " + self + " sur " + mine.ElementId + " / " + peer + " sur " + theirs.ElementId
+                        + (inZone ? " (zone " + zoneId + ")" : "") + ", impulsion " + F(contact.MaxImpulseNewtonSeconds) + " N.s";
+                    (inZone ? junction534 : other).Add(line);
+                }
         }
 
         /// <summary>Episodes de contact de caisse classes : entre vehicules V2, avec un obstacle de test, autres.</summary>

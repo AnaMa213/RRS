@@ -148,6 +148,7 @@ __pycache__/
 /_bmad-output/implementation-artifacts/traffic-v2-*-explorations/perf-*-steps.tsv
 /_bmad-output/implementation-artifacts/traffic-v2-*-explorations/perf-*-frames.tsv
 /_bmad-output/implementation-artifacts/traffic-v2-*-explorations/acceptance-*-steps.tsv
+/_bmad-output/implementation-artifacts/traffic-v2-*-explorations/scenario-*-steps.tsv
 
 # Third-party paid asset packs. Synty EULA / Unity Asset Store Extension Asset licence forbids
 # redistribution, and this repository is public, so the raw pack must never be committed.

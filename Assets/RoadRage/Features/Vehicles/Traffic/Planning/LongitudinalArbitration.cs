@@ -9,19 +9,24 @@ using UnityEngine;
 
 namespace RoadRage.Features.Vehicles.Traffic.Planning
 {
-    /// <summary>Genre d'un candidat longitudinal (5.33). L'ordre des valeurs est l'ordre d'egalite de l'arbitrage.</summary>
+    /// <summary>
+    /// Genre d'un candidat longitudinal (5.33). L'ordre d'egalite de l'arbitrage est le rang explicite
+    /// <see cref="LongitudinalArbitration.TieRank"/> : les valeurs ne sont jamais renumerotees (5.34 ajoute JunctionEntry).
+    /// </summary>
     public enum LongitudinalCandidateKind
     {
         SteeringCeilingUnreachable = 0,
         PerceptionUnavailable = 1,
-        /// <summary>Maintien a l'arret D11 : nomme par sa cause (LeaderFollowing ou Obstacle) et sa source.</summary>
+        /// <summary>Maintien a l'arret D11 : nomme par sa cause (LeaderFollowing, Obstacle ou JunctionEntry) et sa source.</summary>
         StopHold = 2,
         Obstacle = 3,
         LeaderFollowing = 4,
         /// <summary>Suivi du profil spatial 5.31, nomme par sa contrainte limitante.</summary>
         Profile = 5,
         /// <summary>IDM route libre.</summary>
-        DesiredSpeed = 6
+        DesiredSpeed = 6,
+        /// <summary>Entree d'une traversee sans grant effectif (5.34) : rang d'egalite entre StopHold et Obstacle.</summary>
+        JunctionEntry = 7
     }
 
     /// <summary>
@@ -68,7 +73,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         /// <summary>Le jeu de la source atteint s0 + Delta_release.</summary>
         GapOpened = 2,
         /// <summary>La source roule au moins a la vitesse de depart et le jeu depasse s0 + Delta_hold.</summary>
-        SourceDeparted = 3
+        SourceDeparted = 3,
+        /// <summary>Maintien a l'entree d'une traversee (5.34) : son grant est devenu effectif.</summary>
+        GrantEffective = 4
     }
 
     /// <summary>Etat publie du maintien a l'arret d'un pas : phase, cause, source et jeu.</summary>
@@ -113,6 +120,39 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         ChannelSaturated = 2,
         /// <summary>La requete du collecteur de dangers emise pour ce vehicule est saturee.</summary>
         HazardCollectorSaturated = 3
+    }
+
+    /// <summary>
+    /// Entree de carrefour lue par l'arbitrage (Story 5.34) : traversee de la demande de la frame, distance d du pare-chocs
+    /// avant a son entree, D_engage, m_ctrl, grant effectif lu dans l'instantane de la frame et D_stop a la vitesse de la frame.
+    /// La contrainte JunctionEntry s'applique si la traversee n'a pas de grant effectif, que le vehicule n'y est pas entre et
+    /// que d &lt;= D_engage.
+    /// </summary>
+    public readonly struct JunctionEntryInput
+    {
+        public readonly bool HasTraversal;
+        /// <summary>Premier mouvement de la traversee (identite) ; source de la contrainte et d'un maintien.</summary>
+        public readonly RoadId TraversalId;
+        public readonly float DistanceMeters;
+        public readonly float EngageDistanceMeters;
+        public readonly float ControlMarginMeters;
+        public readonly bool GrantEffective;
+        /// <summary>D_stop a la vitesse de la frame : en deca seulement, a_kin entre dans le candidat (decision O13).</summary>
+        public readonly float StopDistanceMeters;
+
+        public JunctionEntryInput(RoadId traversalId, float distanceMeters, float engageDistanceMeters, float controlMarginMeters,
+            bool grantEffective, float stopDistanceMeters)
+        {
+            HasTraversal = !traversalId.IsEmpty;
+            TraversalId = traversalId; DistanceMeters = distanceMeters; EngageDistanceMeters = engageDistanceMeters;
+            ControlMarginMeters = controlMarginMeters; GrantEffective = grantEffective; StopDistanceMeters = stopDistanceMeters;
+        }
+
+        /// <summary>Sans grant effectif, pas encore entre, et d &lt;= D_engage.</summary>
+        public bool Active
+        {
+            get { return HasTraversal && !GrantEffective && DistanceMeters > 0f && DistanceMeters <= EngageDistanceMeters; }
+        }
     }
 
     /// <summary>Leader percu : jeu d'arc pare-chocs a pare-chocs et vitesse.</summary>
@@ -408,8 +448,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         /// <param name="plan">Plan accepte du pas.</param>
         /// <param name="previous">Etat du pas precedent ; <see cref="LongitudinalMemory.None"/> au premier pas ou apres un repli.</param>
         /// <param name="stopHold">Maintien a l'arret D11 ; <see cref="StopHoldParameters.Disabled"/> pour l'IDM seul.</param>
+        /// <param name="junction">Entree de carrefour (5.34) ; sans traversee, l'arbitrage est celui de la 5.33 au bit pres.</param>
         public static LongitudinalDecision Decide(SpeedPlan plan, DriverProfile driver, float speedMetersPerSecond,
-            float deltaTimeSeconds, LongitudinalPerception perception, LongitudinalMemory previous, StopHoldParameters stopHold)
+            float deltaTimeSeconds, LongitudinalPerception perception, LongitudinalMemory previous, StopHoldParameters stopHold,
+            JunctionEntryInput junction = default(JunctionEntryInput))
         {
             if (plan == null) throw new ArgumentNullException("plan");
             if (perception == null) throw new ArgumentNullException("perception");
@@ -446,6 +488,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             if (perception.UnavailableReason != PerceptionUnavailableReason.None)
                 candidates.Add(new LongitudinalCandidate(LongitudinalCandidateKind.PerceptionUnavailable,
                     SpeedConstraint.PerceptionUnavailable, 0f));
+            if (junction.Active)
+                candidates.Add(new LongitudinalCandidate(LongitudinalCandidateKind.JunctionEntry, SpeedConstraint.JunctionEntry,
+                    JunctionEntryAcceleration(driver, speed, junction.DistanceMeters, junction.ControlMarginMeters, junction.StopDistanceMeters),
+                    junction.TraversalId, junction.DistanceMeters, 0f));
             if (obstacles.Count > 0) candidates.Add(obstacles[0]);
             if (perception.HasLeader)
             {
@@ -471,7 +517,19 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             if (stopHold.Enabled && previous.Valid && previous.Holding)
             {
                 sourceSeen = TryFindSource(previous.HoldCause, previous.HoldSourceId, candidates, obstacles, out source);
-                if (!sourceSeen)
+                if (previous.HoldCause == LongitudinalCandidateKind.JunctionEntry)
+                {
+                    // Entree de carrefour (5.34) : maintenu tant que la traversee attend son grant sans y etre entre, libere
+                    // quand le grant devient effectif ; une perception indisponible ne libere jamais.
+                    bool same = junction.HasTraversal && junction.TraversalId == previous.HoldSourceId;
+                    bool waiting = same && !junction.GrantEffective && junction.DistanceMeters > 0f;
+                    hold = waiting || perception.UnavailableReason != PerceptionUnavailableReason.None
+                        ? new StopHoldState(StopHoldPhase.Holding, previous.HoldCause, previous.HoldSourceId,
+                            same ? junction.DistanceMeters : float.NaN, 0f, StopHoldRelease.None)
+                        : Released(previous, same ? junction.DistanceMeters : float.NaN, 0f,
+                            same && junction.GrantEffective ? StopHoldRelease.GrantEffective : StopHoldRelease.SourceGone);
+                }
+                else if (!sourceSeen)
                     // Perception indisponible : l'absence de la source n'est pas un fait, le maintien tient.
                     hold = perception.UnavailableReason != PerceptionUnavailableReason.None
                         ? new StopHoldState(StopHoldPhase.Holding, previous.HoldCause, previous.HoldSourceId, float.NaN, float.NaN,
@@ -489,8 +547,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                         source.SourceSpeedMetersPerSecond, StopHoldRelease.None);
             }
             if (stopHold.Enabled && !hold.Active && speed <= stopHold.EntrySpeedMetersPerSecond
-                && (binding.Kind == LongitudinalCandidateKind.Obstacle || binding.Kind == LongitudinalCandidateKind.LeaderFollowing)
-                && binding.GapMeters <= s0 + stopHold.HoldGapMarginMeters)
+                && (binding.Kind == LongitudinalCandidateKind.Obstacle || binding.Kind == LongitudinalCandidateKind.LeaderFollowing
+                    || binding.Kind == LongitudinalCandidateKind.JunctionEntry)
+                && binding.GapMeters <= HoldWindowMeters(binding.Kind, driver, deltaTimeSeconds, junction.ControlMarginMeters, stopHold))
             {
                 source = binding;
                 sourceSeen = true;
@@ -505,17 +564,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                 // un maintien au frein a main a l'arret et jamais une roue libre.
                 float holding = -driver.ComfortableDeceleration;
                 if (!(holding < 0f) || float.IsInfinity(holding)) holding = -driver.SafeBrakingLimit;
-                var held = new LongitudinalCandidate(LongitudinalCandidateKind.StopHold,
-                    hold.Cause == LongitudinalCandidateKind.Obstacle ? SpeedConstraint.Obstacle : SpeedConstraint.LeaderFollowing,
+                var held = new LongitudinalCandidate(LongitudinalCandidateKind.StopHold, ConstraintOf(hold.Cause),
                     sourceSeen ? Math.Min(source.AccelerationMetersPerSecondSquared, holding) : holding, hold.SourceId, hold.GapMeters,
                     hold.SourceSpeedMetersPerSecond, sourceSeen ? source.ObstacleKind : PerceivedObstacleKind.Obstacle);
                 int at = 0;
-                while (at < candidates.Count && candidates[at].Kind < LongitudinalCandidateKind.StopHold) at++;
+                while (at < candidates.Count && TieRank(candidates[at].Kind) < TieRank(LongitudinalCandidateKind.StopHold)) at++;
                 candidates.Insert(at, held);
                 binding = Bind(candidates, out target);
                 causes.Add(held);
-                foreach (var other in candidates.Where(c => c.Kind == LongitudinalCandidateKind.LeaderFollowing).Concat(obstacles))
-                    if (!(other.Kind == hold.Cause && other.SourceId == hold.SourceId) && other.GapMeters <= s0 + stopHold.HoldGapMarginMeters)
+                foreach (var other in candidates.Where(c => c.Kind == LongitudinalCandidateKind.LeaderFollowing
+                    || c.Kind == LongitudinalCandidateKind.JunctionEntry).Concat(obstacles))
+                    if (!(other.Kind == hold.Cause && other.SourceId == hold.SourceId)
+                        && other.GapMeters <= HoldWindowMeters(other.Kind, driver, deltaTimeSeconds, junction.ControlMarginMeters, stopHold))
                         causes.Add(other);
             }
 
@@ -567,11 +627,81 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             return new StopHoldState(StopHoldPhase.Released, previous.HoldCause, previous.HoldSourceId, gap, sourceSpeed, reason);
         }
 
+        /// <summary>Contrainte publiee d'un maintien selon sa cause.</summary>
+        private static SpeedConstraint ConstraintOf(LongitudinalCandidateKind cause)
+        {
+            return cause == LongitudinalCandidateKind.Obstacle ? SpeedConstraint.Obstacle
+                : cause == LongitudinalCandidateKind.JunctionEntry ? SpeedConstraint.JunctionEntry : SpeedConstraint.LeaderFollowing;
+        }
+
+        /// <summary>
+        /// Rang d'egalite explicite des genres (5.34) : SteeringCeilingUnreachable, PerceptionUnavailable, StopHold, JunctionEntry,
+        /// Obstacle, LeaderFollowing, Profile, DesiredSpeed. L'ordre relatif des genres 5.33 est inchange.
+        /// </summary>
+        public static int TieRank(LongitudinalCandidateKind kind)
+        {
+            switch (kind)
+            {
+                case LongitudinalCandidateKind.SteeringCeilingUnreachable: return 0;
+                case LongitudinalCandidateKind.PerceptionUnavailable: return 1;
+                case LongitudinalCandidateKind.StopHold: return 2;
+                case LongitudinalCandidateKind.JunctionEntry: return 3;
+                case LongitudinalCandidateKind.Obstacle: return 4;
+                case LongitudinalCandidateKind.LeaderFollowing: return 5;
+                case LongitudinalCandidateKind.Profile: return 6;
+                default: return 7;
+            }
+        }
+
+        /// <summary>
+        /// a_kin = −v² / (2 max(d − m_ctrl, ε)) : deceleration qui arrete le vehicule a m_ctrl de l'entree ; 0 a l'arret, toujours
+        /// finie (Story 5.34).
+        /// </summary>
+        public static float KinematicStopAcceleration(float speedMetersPerSecond, float distanceMeters, float controlMarginMeters)
+        {
+            float v = float.IsNaN(speedMetersPerSecond) || float.IsInfinity(speedMetersPerSecond) ? 0f : Math.Max(0f, speedMetersPerSecond);
+            if (v <= 0f) return 0f;
+            float room = float.IsNaN(distanceMeters) || float.IsInfinity(distanceMeters) ? 0f : distanceMeters - controlMarginMeters;
+            return -v * v / (2f * Math.Max(room, KinematicEpsilonMeters));
+        }
+
+        /// <summary>Plancher du denominateur de a_kin (m) : garde de finitude, pas un reglage.</summary>
+        public const float KinematicEpsilonMeters = 1e-3f;
+
+        /// <summary>
+        /// Candidat JunctionEntry (5.34, decisions O13 et O14) : IDM vers un obstacle fixe virtuel place a s0 au-dela de l'entree,
+        /// et, en deca de D_stop seulement, min avec a_kin. L'entree est une ligne, pas un vehicule : l'IDM garde le confort de
+        /// l'approche avec son equilibre sur la ligne, sans ecart s0. a_kin, deceleration constante qui s'annule a m_ctrl de
+        /// l'entree, conduit la fin de l'approche et rend l'arret en temps fini (pas de rampement asymptotique) ; il assure aussi
+        /// la garantie d'arret quand un refus survient tard (d &lt;= D_stop). Au-dela, a_kin (toujours &lt;= 0, nul a l'arret) ne
+        /// doit ni freiner l'approche des D_engage ni figer un vehicule arrete a sa position. D_stop NaN : a_kin toujours retenu.
+        /// </summary>
+        public static float JunctionEntryAcceleration(DriverProfile driver, float speedMetersPerSecond, float distanceMeters,
+            float controlMarginMeters, float stopDistanceMeters)
+        {
+            float idm = DriverModel.ComputeAcceleration(driver, speedMetersPerSecond, 0f, distanceMeters + driver.MinimumGap);
+            return distanceMeters > stopDistanceMeters ? idm
+                : Math.Min(idm, KinematicStopAcceleration(speedMetersPerSecond, distanceMeters, controlMarginMeters));
+        }
+
+        /// <summary>
+        /// Fenetre de maintien D11 d'une source (m) : s0 + Δhold devant un leader ou un obstacle ; devant une entree de carrefour,
+        /// D_stop a la vitesse d'entree du maintien (decision O14), soit la distance ou l'arret confortable depuis cette vitesse
+        /// tombe encore avant m_ctrl.
+        /// </summary>
+        public static float HoldWindowMeters(LongitudinalCandidateKind kind, DriverProfile driver, float deltaTimeSeconds,
+            float controlMarginMeters, StopHoldParameters stopHold)
+        {
+            return kind == LongitudinalCandidateKind.JunctionEntry
+                ? Coordination.JunctionDistances.For(driver, 0f, deltaTimeSeconds, controlMarginMeters, stopHold.EntrySpeedMetersPerSecond).HoldWindowMeters
+                : driver.MinimumGap + stopHold.HoldGapMarginMeters;
+        }
+
         /// <summary>Contraintes d'interaction dont la reprise est lissee (D5).</summary>
         public static bool IsInteraction(SpeedConstraint constraint)
         {
             return constraint == SpeedConstraint.LeaderFollowing || constraint == SpeedConstraint.Obstacle
-                || constraint == SpeedConstraint.PerceptionUnavailable;
+                || constraint == SpeedConstraint.PerceptionUnavailable || constraint == SpeedConstraint.JunctionEntry;
         }
 
         internal static string F(float value)

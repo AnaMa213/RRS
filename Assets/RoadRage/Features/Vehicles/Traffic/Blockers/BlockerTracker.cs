@@ -24,8 +24,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Blockers
         /// (genre, bloqueur) present au pas precedent, sinon il vaut <paramref name="frameId"/> : une absence d'un pas
         /// reinitialise la continuite.
         /// </summary>
+        /// <param name="junction">Cause de coordination d'un maintien a l'entree d'une traversee (5.34) ; sans objet sinon.</param>
         public static IReadOnlyList<Blocker> Update(IReadOnlyList<Blocker> previous, LongitudinalDecision decision,
-            DriverProfile driver, ulong frameId)
+            DriverProfile driver, ulong frameId, JunctionBlockerCause junction = default(JunctionBlockerCause))
         {
             if (decision == null) return Empty;
             var current = new List<Blocker>();
@@ -36,7 +37,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Blockers
                 if (cause.Kind == LongitudinalCandidateKind.StopHold && float.IsNaN(cause.GapMeters)) unseenHold = current.Count;
                 bool leader = cause.Kind == LongitudinalCandidateKind.LeaderFollowing
                     || (cause.Kind == LongitudinalCandidateKind.StopHold && cause.Constraint == SpeedConstraint.LeaderFollowing);
-                current.Add(leader
+                bool entry = cause.Kind == LongitudinalCandidateKind.JunctionEntry
+                    || (cause.Kind == LongitudinalCandidateKind.StopHold && cause.Constraint == SpeedConstraint.JunctionEntry);
+                current.Add(entry ? BlockerRules.Junction(junction, cause.SourceId.ToString(), cause.AccelerationMetersPerSecondSquared, frameId)
+                    : leader
                     ? BlockerRules.Leader(cause.SourceId, cause.GapMeters, driver.MinimumGap, cause.AccelerationMetersPerSecondSquared, frameId)
                     : BlockerRules.Obstacle(cause.SourceId, cause.ObstacleKind, cause.AccelerationMetersPerSecondSquared, frameId));
             }

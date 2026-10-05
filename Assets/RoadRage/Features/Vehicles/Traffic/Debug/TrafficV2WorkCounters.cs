@@ -30,6 +30,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
             ZoneSpans;
         /// <summary>MotionPlan.VerifySpeedProfile : verifications et noeuds evalues.</summary>
         public long VerifyCalls, VerifyKnots;
+        /// <summary>
+        /// Coordination de carrefour (Story 5.34) : index construits (un par modele), rapports d'acteur construits,
+        /// lots resolus, demandes examinees et paires de mouvements testees. Le travail d'un lot depend des demandes, des
+        /// grants tenus et des occupants du carrefour concerne, jamais du nombre de mouvements ou de zones du modele.
+        /// </summary>
+        public long JunctionIndexBuilds, JunctionReports, JunctionBatches, JunctionRequests, JunctionPairChecks;
     }
 
     public static class TrafficV2WorkCounters

@@ -28,7 +28,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         /// <summary>Obstacle du couloir balaye (5.33) : IDM a la distance de sa face proche.</summary>
         Obstacle = 11,
         /// <summary>Perception indisponible ou tronquee (5.33) : aucune acceleration.</summary>
-        PerceptionUnavailable = 12
+        PerceptionUnavailable = 12,
+        /// <summary>Entree d'une traversee sans grant effectif (5.34) : min(IDM vers l'entree, a_kin).</summary>
+        JunctionEntry = 13
     }
 
     /// <summary>

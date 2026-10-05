@@ -110,6 +110,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         /// </summary>
         public const float StopHoldReleaseGapMarginMeters = 2f;
 
+        /// <summary>
+        /// m_ctrl, marge de controle longitudinal de l'arret avant une traversee sans grant (Story 5.34) : seule valeur declaree
+        /// des distances de coordination. Elle couvre la montee du frein et l'ecart de suivi longitudinal, absents du modele
+        /// point-masse ; declaree avant mesure, les scenarios C et D publient la distance minimale a l'entree pendant un refus.
+        /// Toute revision est une decision proprietaire (Ask First). Decision O14 (2026-10-03) : 0,5 -> 0,25 m, arret a la limite
+        /// de l'entree, a_kin conduisant la fin de l'approche.
+        /// </summary>
+        public const float JunctionStopControlMarginMeters = 0.25f;
+
         public static PerceptionLimits PerceptionLimits
         {
             get

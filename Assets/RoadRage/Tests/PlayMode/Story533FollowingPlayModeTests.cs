@@ -9,6 +9,7 @@ using NUnit.Framework;
 using RoadRage.App.Run;
 using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Blockers;
+using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using UnityEngine;
@@ -132,13 +133,31 @@ namespace RoadRage.Tests.PlayMode
                 Assert.That(insertion.FrameId, Is.GreaterThanOrEqualTo(record.Insertions[insertion.Index].EarliestStep));
         }
 
-        /// <summary>Jeu percu a l'arret : premier vehicule face a l'obstacle, suiveurs face a leur leader.</summary>
+        /// <summary>
+        /// Jeu percu a l'arret : premier vehicule face a l'obstacle, suiveurs face a leur leader. Amendement 5.34 (O11) : un
+        /// suiveur tenu avant l'entree d'un carrefour par un blocker de coordination legitime (JunctionGrant ou BlockedExit),
+        /// a 0 &lt; d &lt;= fenetre de maintien de cette entree (D_stop a la vitesse d'entree du maintien, O14), occupe une position de
+        /// file valide.
+        /// </summary>
         private static string QueueReport(List<TrafficV2VehicleDriver> drivers, float s0)
         {
             var text = new StringBuilder();
             for (int i = 0; i < drivers.Count; i++)
             {
                 var interaction = Last(drivers[i]);
+                var junction = interaction.Junction;
+                bool junctionHeld = i > 0 && junction.HasRequest && junction.DistanceMeters > 0f
+                    && junction.DistanceMeters <= JunctionDistances.For(drivers[i].DriverProfileDefinition.Profile, 0f, Time.fixedDeltaTime,
+                        TrafficV2Settings.JunctionStopControlMarginMeters, TrafficV2Settings.StopHold.EntrySpeedMetersPerSecond).HoldWindowMeters
+                    && drivers[i].Blockers.Any(b => b.Legitimate && b.Source == BlockerSource.JunctionCoordination
+                        && (b.Kind == BlockerKind.JunctionGrant || b.Kind == BlockerKind.BlockedExit));
+                if (junctionHeld)
+                {
+                    text.Append("entree ").Append(drivers[i].TrafficId).Append(" distance ")
+                        .Append(junction.DistanceMeters.ToString("0.###", CultureInfo.InvariantCulture)).Append(" ok (O11)")
+                        .Append(" dominant ").Append(interaction.DominantBlocker ?? "-").Append(" ; ");
+                    continue;
+                }
                 float gap = i == 0 ? interaction.ObstacleNearMeters : interaction.LeaderGapMeters;
                 bool inside = !float.IsNaN(gap) && gap >= s0 - BelowMinimumGap && gap <= s0 + AboveMinimumGap;
                 bool expected = i == 0 ? interaction.ObstacleId != RoadId.None : interaction.LeaderId == drivers[i - 1].TrafficId;

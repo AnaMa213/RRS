@@ -43,7 +43,8 @@ namespace RoadRage.Tests.PlayMode
             "TrafficV2.Driver.Prepare", "TrafficV2.Driver.Localize", "TrafficV2.Driver.Spine", "TrafficV2.Spine.Route",
             "TrafficV2.Spine.Horizon", "TrafficV2.Spine.Motion", "TrafficV2.Spine.Projection", "TrafficV2.Driver.Perception",
             "TrafficV2.Driver.SpeedPlan", "TrafficV2.Driver.Arbitration", "TrafficV2.Driver.Compose",
-            "TrafficV2.Driver.MotionCommand", "TrafficV2.Driver.Instrumentation", "Story533.Harness.Observe"
+            "TrafficV2.Driver.MotionCommand", "TrafficV2.Driver.Instrumentation", "Story533.Harness.Observe",
+            "TrafficV2.Coordinate", "TrafficV2.Driver.Junction"
         };
 
         private static readonly Dictionary<int, PopulationResult> Results = new Dictionary<int, PopulationResult>();
@@ -73,8 +74,8 @@ namespace RoadRage.Tests.PlayMode
         [UnityTest, Order(4), Timeout(1800000)] public IEnumerator DiagnoseFourVehicles() { yield return Diagnose(ScenarioLabel, 4); }
 
         /// <summary>
-        /// N = 8 (cible D13 : moins de 10 ms par pas hote) sur explore-8, quatre entrees et deux vagues. Un verrou pre-5.34
-        /// (D12, contact en zone de conflit) arrete la mesure : le cout est celui de la fenetre propre.
+        /// N = 8 (cible D13 : p95 du pas hote sous 10 ms, lecture proprietaire du 2026-10-03) sur explore-8, quatre entrees et deux
+        /// vagues, coordination de carrefour branchee (5.34). Aucune exemption : D12 est retiree et les verdicts O6 s'appliquent.
         /// </summary>
         [UnityTest, Order(5), Timeout(1800000)]
         public IEnumerator DiagnoseEightVehiclesAndCompare()
@@ -390,8 +391,16 @@ namespace RoadRage.Tests.PlayMode
             var failures = D13Failures(population, full.Count,
                 full.Count == 0 ? double.NaN : full.Average(s => s.Cost.TotalMilliseconds),
                 probe.Frames.Count, probe.Frames.Count == 0 ? 0 : probe.Frames.Max(f => f.FixedSteps),
-                probe.Frames.All(EpochsAligned));
+                probe.Frames.All(EpochsAligned), Percentile(full.Select(s => s.Cost.TotalMilliseconds).ToList(), 0.95));
             Assert.That(failures, Is.Empty, string.Join(" | ", failures));
+            // Verdicts O6 (Story 5.34) : aucun verrou nominal, aucune exemption, coordination saine, aucun contact V2-V2.
+            List<string> junctionFailures, otherVehicleContacts;
+            Story533Harness.ClassifyVehicleContacts(runs, admission.Model, out junctionFailures, out otherVehicleContacts);
+            Assert.That(observer.ToleranceLatch, Is.Null, "verrou 2a nominal : " + observer.ToleranceLatch);
+            Assert.That(observer.IncompatibleGrantSteps, Is.Zero, "echec 5.34 : " + observer.FirstIncompatibleGrants);
+            Assert.That(observer.EnteredWithoutGrant, Is.Zero, "echec 5.34 : EnteredWithoutGrant");
+            Assert.That(junctionFailures, Is.Empty, "echec 5.34 : " + string.Join(" | ", junctionFailures));
+            Assert.That(otherVehicleContacts, Is.Empty, "contact V2-V2 autre : " + string.Join(" | ", otherVehicleContacts));
         }
 
         // ------------------------------------------------------------------ publication
@@ -471,9 +480,12 @@ namespace RoadRage.Tests.PlayMode
             return measuredSteps == 0 ? double.NaN : total / measuredSteps;
         }
 
-        /// <summary>Cibles D13 declarees : moyennes en population pleine, maximum de pas sur toute la fenetre N4.</summary>
+        /// <summary>
+        /// Cibles D13 declarees : moyennes en population pleine, maximum de pas sur toute la fenetre N4 ; a N = 8, p95 du pas hote
+        /// en population pleine sous 10 ms (lecture proprietaire du 2026-10-03, Story 5.34), sans objet si le p95 n'est pas fourni.
+        /// </summary>
         internal static List<string> D13Failures(int population, int fullSteps, double fullMeanMilliseconds,
-            int frames, int maxFixedSteps, bool epochsAligned = true)
+            int frames, int maxFixedSteps, bool epochsAligned = true, double fullP95Milliseconds = double.NaN)
         {
             var failures = new List<string>();
             if (fullSteps == 0 || double.IsNaN(fullMeanMilliseconds) || double.IsInfinity(fullMeanMilliseconds))
@@ -482,6 +494,8 @@ namespace RoadRage.Tests.PlayMode
             {
                 if (fullMeanMilliseconds / population > 1d) failures.Add("D13 : cout moyen en population pleine > 1 ms par vehicule");
                 if (population == 8 && fullMeanMilliseconds >= 10d) failures.Add("D13 : N8 doit rester sous 10 ms par pas hote");
+                if (population == 8 && !double.IsNaN(fullP95Milliseconds) && fullP95Milliseconds >= 10d)
+                    failures.Add("D13 : p95 du pas hote a N8 >= 10 ms");
             }
             if (frames == 0) failures.Add("D13 : fenetre de frames vide");
             if (!epochsAligned) failures.Add("D13 : epoques hote et pas physiques non alignes");
@@ -496,8 +510,10 @@ namespace RoadRage.Tests.PlayMode
             var driven = steps.Where(s => s.Vehicles > 0).ToList();
             var full = driven.Where(s => s.Vehicles == population).ToList();
             double fullMean = full.Count == 0 ? double.NaN : full.Average(s => s.Cost.TotalMilliseconds);
+            double fullP95 = Percentile(full.Select(s => s.Cost.TotalMilliseconds).ToList(), 0.95);
+            double coordinatorP95 = Percentile(full.Select(s => s.Cost.CoordinatorMilliseconds).ToList(), 0.95);
             int maxFixed = frames.Count == 0 ? 0 : frames.Max(f => f.FixedSteps);
-            var d13 = D13Failures(population, full.Count, fullMean, frames.Count, maxFixed, frames.All(EpochsAligned));
+            var d13 = D13Failures(population, full.Count, fullMean, frames.Count, maxFixed, frames.All(EpochsAligned), fullP95);
             var result = new PopulationResult { Population = population, HostSteps = steps.Count, WallSeconds = wallSeconds,
                 Collections = collections, CollectionsPerMinute = wallSeconds > 0 ? collections * 60.0 / wallSeconds : 0 };
             Func<Func<StepSample, double>, List<double>> per = f => driven.Select(f).ToList();
@@ -517,6 +533,8 @@ namespace RoadRage.Tests.PlayMode
                 new KeyValuePair<string, List<double>>("    MotionCommand", per(s => s.Track)),
                 new KeyValuePair<string, List<double>>("    composition + application", per(s => s.Compose)),
                 new KeyValuePair<string, List<double>>("    instrumentation (blockers, trace, projection)", per(s => s.Instrumentation)),
+                // Story 5.34 : lot du coordinateur de carrefour, publie a part (inclus dans le pas Traffic V2 total).
+                new KeyValuePair<string, List<double>>("  coordinateur de carrefour (lot)", per(s => s.Cost.CoordinatorMilliseconds)),
                 new KeyValuePair<string, List<double>>("harnais : observateur par pas", per(s => s.ObserverMilliseconds))
             };
             var vehicleCounts = driven.Select(s => s.Vehicles).ToArray();
@@ -561,8 +579,12 @@ namespace RoadRage.Tests.PlayMode
             text.Append("- Ecriture de la trace TSV en fin de run : ").Append(Ms(traceMilliseconds)).Append(" ms (aucune ecriture disque pendant le run)\n\n");
 
             text.Append("## Porte D13\n\n- Population pleine : ").Append(full.Count).Append(" pas ; cout moyen ")
-                .Append(Ms(fullMean)).Append(" ms/pas hote, ").Append(Ms(fullMean / population)).Append(" ms/vehicule (cible <= 1).\n")
-                .Append("- N8 : cible < 10 ms/pas hote en population pleine.\n- Maximum sur toute la fenetre : ")
+                .Append(Ms(fullMean)).Append(" ms/pas hote, ").Append(Ms(fullMean / population)).Append(" ms/vehicule (cible <= 1) ; p95 ")
+                .Append(Ms(fullP95)).Append(" ms/pas hote ; coordinateur de carrefour p95 ").Append(Ms(coordinatorP95)).Append(" ms.\n")
+                .Append("- N8 : cible < 10 ms/pas hote en population pleine, en moyenne et au p95 (5.34).\n")
+                .Append("- Coordination (verdicts O6) : grants incompatibles simultanes ").Append(observer.IncompatibleGrantSteps)
+                .Append(", EnteredWithoutGrant ").Append(observer.EnteredWithoutGrant).Append(", lots ").Append(observer.Batches).Append(".\n")
+                .Append("- Maximum sur toute la fenetre : ")
                 .Append(maxFixed).Append(" FixedUpdate/frame (cible N4 <= 2, transitions et bords partiels inclus).\n")
                 .Append("- Alignement compteur physique / epoques hote : ").Append(frames.All(EpochsAligned) ? "verifie" : "ECHEC")
                 .Append(".\n- Verdict : ").Append(d13.Count == 0 ? "vert" : string.Join(" | ", d13)).Append("\n\n")

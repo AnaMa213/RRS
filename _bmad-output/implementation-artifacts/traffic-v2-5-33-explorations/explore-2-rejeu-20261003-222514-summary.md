@@ -1,0 +1,23 @@
+# explore-2-rejeu 20261003-222514 (exploratoire : constats publies, jamais juges)
+
+- Scenario explore-2 : 2 insertions, population maximale 2, pas hote 1831 / 6000, fixedDeltaTime 0.02 s
+- Insertions reelles : #0 au plus tot 0, reelle 1 ; #1 au plus tot 0, reelle 284
+- Sorties atteintes : 2/2, vehicules encore presents : 0
+- Frame : 1829 construites, 0 refusees, population maximale observee 2
+- Files : jusqu'a 0 vehicules avec blocker, 1 arretes simultanement ; jeu percu minimal 9.782 m
+- Collecteur : 76 colliders au plus par requete (capacite 256), 0 pas-vehicule satures
+- PerceptionUnavailable : aucun
+- Repli 2a (TrackingToleranceExceeded) : 0 vehicule(s)
+- Coordination (verdicts O6) : 1830 lots, 0 sur frame refusee ; grants incompatibles simultanes 0 ; EnteredWithoutGrant 0 ; IncompatibleOccupancy 0
+- Contacts V2-V2 classes : echec 5.34 0, autres 0
+- Constats 5.35 (fusion d'anneau, non bloquants) : aucun
+- Pas hote Traffic V2 (N = 2) : moyenne 1.196 / mediane 1.284 / p95 1.699 / max 9.453 ms (1829 pas) ; en population pleine : moyenne 1.434 / mediane 1.408 / p95 1.75 / max 9.453 ms (1209 pas) ; coordinateur : moyenne 0.019 / mediane 0.019 / p95 0.027 / max 0.122 ms (1829 pas)
+- Maintien a l'arret (D11) :
+  - #0 00000000000000000000000000000001 : aucun maintien ; rampement apres arret 0 m ; fin d'approche lente poussee 0 m en 0 pas (d max 0 m) ; d max 0.1994 m ; TrackingToleranceExceeded non
+  - #1 00000000000000000000000000000002 : aucun maintien ; rampement apres arret 0 m ; fin d'approche lente poussee 0 m en 0 pas (d max 0 m) ; d max 0.19975 m ; TrackingToleranceExceeded non
+- Contacts entre vehicules : 0, avec un obstacle : 0, autres : 0
+- Reproductibilite physique : ecart maximal 0.0012 m sur 3038 pas-vehicule compares
+- Cout par vehicule et par pas (N = 2) : frame 0.284 ms / perception 0.082 ms / spine 0.13 ms / plan+arbitrage 0.144 ms / composition 0.012 ms / total 0.652 ms
+- Constats :
+- Invariants : verts
+- Trace brute : `explore-2-rejeu-20261003-222514-steps.tsv` ; journal de coordination : `explore-2-rejeu-20261003-222514-junction.txt`

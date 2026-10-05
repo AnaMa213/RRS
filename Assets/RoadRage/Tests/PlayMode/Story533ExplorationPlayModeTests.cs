@@ -18,16 +18,18 @@ namespace RoadRage.Tests.PlayMode
 {
     /// <summary>
     /// Story 5.33 : campagne exploratoire multi-vehicules V2 dans MVP_Run (2, 4 et 8 vehicules, plus un rejeu a 2 pour la
-    /// reproductibilite physique mesuree). Elle publie des constats sans les juger : suivi, files et resorption,
-    /// vehicule arrete devant, sortie occupee, carrefour en croix, giratoires, stabilite de la frame, saturations, cout par
-    /// etape selon N. Les campagnes 2/4/8 sont nominales (politique pre-5.39) : aucune poussee, et un TrackingToleranceExceeded
-    /// y est un echec immediat, comme un invariant viole (NaN, intent manquant ou double, frame multiple par pas, retrait
-    /// hors portail, population au-dela du maximum, joueur hote dans un fait V2) ou une anomalie de cout D7. Seule exception
-    /// (decision du 2026-10-02, a retirer par la 5.34) : un verrou qui suit un contact entre deux vehicules V2 sur deux
-    /// mouvements d'une meme zone de conflit est un constat pre-5.34 qui clot la fenetre fonctionnelle. La poussee vit
-    /// dans un scenario exploratoire separe : son premier verrou marque le point de contamination, clot la fenetre
-    /// d'observation fonctionnelle et arrete le scenario. Les contacts et interblocages aux carrefours et giratoires sont
-    /// des constats pour 5.34/5.35.
+    /// reproductibilite physique mesuree). Elle publie des constats : suivi, files et resorption, vehicule arrete devant,
+    /// sortie occupee, carrefour en croix, giratoires, stabilite de la frame, saturations, cout par etape selon N. Les
+    /// campagnes 2/4/8 sont nominales (politique pre-5.39) : aucune poussee, et un TrackingToleranceExceeded y est un echec
+    /// immediat, comme un invariant viole (NaN, intent manquant ou double, frame multiple par pas, retrait hors portail,
+    /// population au-dela du maximum, joueur hote dans un fait V2) ou une anomalie de cout D7.
+    /// Story 5.34 : la coordination de carrefour est branchee et l'exemption D12 est retiree, sans successeur. Verdicts O6 des
+    /// campagnes nominales : chaque contact V2-V2 est classe a son premier pas ; deux mouvements distincts d'une meme zone de
+    /// conflit, deux grants incompatibles effectifs ou EnteredWithoutGrant &gt; 0 sont un echec 5.34 ; tout autre contact V2-V2
+    /// est un echec. L'ordre de service a une fusion d'anneau qui differe de « l'anneau d'abord » est un constat 5.35 publie,
+    /// sans effet sur le verdict. Le pas hote et le coordinateur sont publies par N (moyenne, mediane, p95, max) ; a N = 8 le
+    /// p95 du pas hote reste sous 10 ms (D13). La poussee vit dans un scenario exploratoire separe : son premier verrou marque
+    /// le point de contamination, clot la fenetre d'observation fonctionnelle et arrete le scenario.
     /// </summary>
     [Explicit]
     [Category("Story533Exploration")]
@@ -151,15 +153,8 @@ namespace RoadRage.Tests.PlayMode
                 if (observer.PlayerFacts > 0) break;
                 if (observer.ToleranceLatch != null)
                 {
-                    // Nominal : echec immediat, sauf verrou pre-5.34 (contact en zone de conflit) qui clot la fenetre.
-                    // Perturbe : point de contamination, fenetre fonctionnelle close.
-                    if (!perturbed)
-                    {
-                        if (observer.PreJunctionConflict != null)
-                            findings.Add("point de contamination pre-5.34 : " + observer.ToleranceLatch + " apres " + observer.PreJunctionConflict
-                                + " ; fenetre d'observation fonctionnelle close, cout D7 juge sur la fenetre propre ; constat pour la 5.34");
-                        break;
-                    }
+                    // Nominal : echec immediat, sans exemption (D12 retiree par la 5.34). Perturbe : point de contamination.
+                    if (!perturbed) break;
                     if (closeAt < 0)
                     {
                         closeAt = step + StepsAfterContamination;
@@ -190,10 +185,14 @@ namespace RoadRage.Tests.PlayMode
             var runs = Story533Harness.Runs(spawner);
             string stamp = Story533Harness.Stamp();
             string trace = Story533Harness.WriteTrace(runLabel, stamp, runs);
+            string journal = Story533Harness.WriteJunctionLog(runLabel, stamp, observer);
             var cost = Story533Harness.CostPerVehicleStep(runs);
             Costs[runLabel] = cost;
             List<string> vehicleContacts, obstacleContacts, otherContacts;
             Story533Harness.Contacts(runs, out vehicleContacts, out obstacleContacts, out otherContacts);
+            List<string> junctionFailures, otherVehicleContacts;
+            Story533Harness.ClassifyVehicleContacts(runs, admission.Model, out junctionFailures, out otherVehicleContacts);
+            double hostP95 = Story533Harness.Percentile(observer.FullPopulationHostStepMilliseconds, 0.95);
 
             // Reproductibilite : ecart maximal de position, meme vehicule et meme pas propre, entre deux executions.
             var trajectory = runs.ToDictionary(r => r.TrafficId.ToString(), r => r.Record.Trace.Select(t => t.State.Position).ToArray());
@@ -244,8 +243,20 @@ namespace RoadRage.Tests.PlayMode
                 : string.Join(", ", observer.Unavailable.Select(p => p.Key + " " + p.Value).ToArray())).Append('\n');
             text.Append("- Repli 2a (TrackingToleranceExceeded) : ").Append(latched).Append(" vehicule(s)")
                 .Append(observer.ToleranceLatch == null ? "" : perturbed ? ", constat attendu pre-5.39 (" + observer.ToleranceLatch + ")"
-                    : observer.PreJunctionConflict != null ? ", constat pre-5.34 (" + observer.ToleranceLatch + " apres " + observer.PreJunctionConflict + ")"
                     : ", ECHEC nominal (" + observer.ToleranceLatch + ")").Append('\n');
+            text.Append("- Coordination (verdicts O6) : ").Append(observer.Batches).Append(" lots, ").Append(observer.RefusedBatches)
+                .Append(" sur frame refusee ; grants incompatibles simultanes ").Append(observer.IncompatibleGrantSteps)
+                .Append(observer.FirstIncompatibleGrants == null ? "" : " (" + observer.FirstIncompatibleGrants + ")")
+                .Append(" ; EnteredWithoutGrant ").Append(observer.EnteredWithoutGrant).Append(" ; IncompatibleOccupancy ")
+                .Append(observer.IncompatibleOccupancy).Append('\n');
+            text.Append("- Contacts V2-V2 classes : echec 5.34 ").Append(junctionFailures.Count).Append(", autres ").Append(otherVehicleContacts.Count).Append('\n');
+            foreach (var line in junctionFailures) text.Append("  - echec 5.34 : ").Append(line).Append('\n');
+            foreach (var line in otherVehicleContacts) text.Append("  - autre : ").Append(line).Append('\n');
+            text.Append("- Constats 5.35 (fusion d'anneau, non bloquants) : ").Append(observer.RingMergeFindings.Count == 0 ? "aucun" : "").Append('\n');
+            foreach (var line in observer.RingMergeFindings) text.Append("  - ").Append(line).Append('\n');
+            text.Append("- Pas hote Traffic V2 (N = ").Append(record.MaxPopulation).Append(") : ").Append(Story533Harness.PercentileText(observer.HostStepMilliseconds))
+                .Append(" ; en population pleine : ").Append(Story533Harness.PercentileText(observer.FullPopulationHostStepMilliseconds))
+                .Append(" ; coordinateur : ").Append(Story533Harness.PercentileText(observer.CoordinatorMilliseconds)).Append('\n');
             float crawl;
             text.Append("- Maintien a l'arret (D11) :\n");
             foreach (var line in Story533Harness.StopHoldReport(runs, 0UL, out crawl)) text.Append("  - ").Append(line).Append('\n');
@@ -258,14 +269,23 @@ namespace RoadRage.Tests.PlayMode
             foreach (var finding in findings) text.Append("  - ").Append(finding).Append('\n');
             text.Append("- Invariants : ").Append(observer.Violations.Count == 0 && observer.PlayerFacts == 0 ? "verts"
                 : string.Join(" | ", observer.Violations) + (observer.PlayerFacts > 0 ? " | joueur hote dans un fait V2" : "")).Append('\n');
-            text.Append("- Trace brute : `").Append(Path.GetFileName(trace)).Append("`\n");
+            text.Append("- Trace brute : `").Append(Path.GetFileName(trace)).Append("` ; journal de coordination : `")
+                .Append(Path.GetFileName(journal)).Append("`\n");
             File.WriteAllText(Story533Harness.Folder + "/" + runLabel + "-" + stamp + "-summary.md", text.ToString());
             Debug.Log("[Story533] " + runLabel + " : " + text.ToString().Replace("\n", " "));
 
             Assert.That(observer.PlayerFacts, Is.Zero, "invariant : joueur hote dans un fait leader ou obstacle V2");
-            Assert.That(perturbed || observer.ToleranceLatch == null || observer.PreJunctionConflict != null, Is.True,
-                "campagne nominale sortie de couverture hors contact en zone de conflit : " + observer.ToleranceLatch);
             Assert.That(observer.Violations, Is.Empty, string.Join("\n", observer.Violations));
+            if (perturbed) yield break;
+            // Verdicts O6 (Story 5.34) : aucune exemption, D12 n'a pas de successeur.
+            Assert.That(observer.ToleranceLatch, Is.Null, "verrou 2a nominal : " + observer.ToleranceLatch);
+            Assert.That(observer.IncompatibleGrantSteps, Is.Zero, "echec 5.34 : " + observer.FirstIncompatibleGrants);
+            Assert.That(observer.EnteredWithoutGrant, Is.Zero, "echec 5.34 : EnteredWithoutGrant");
+            Assert.That(junctionFailures, Is.Empty, "echec 5.34 : " + string.Join(" | ", junctionFailures));
+            Assert.That(otherVehicleContacts, Is.Empty, "contact V2-V2 autre : " + string.Join(" | ", otherVehicleContacts));
+            if (record.MaxPopulation == 8)
+                Assert.That(hostP95, Is.LessThan(10.0), "D13 : p95 du pas hote Traffic V2 en population pleine a N = 8 sous 10 ms ("
+                    + Story533Harness.PercentileText(observer.FullPopulationHostStepMilliseconds) + ")");
         }
     }
 }

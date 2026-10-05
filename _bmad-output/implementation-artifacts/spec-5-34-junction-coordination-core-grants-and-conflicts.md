@@ -2,7 +2,8 @@
 title: 'Story 5.34 -- Coordination de carrefour : demandes, grants, zones de conflit, sortie bloquee et traversee engagee, avec premier branchement runtime'
 type: 'feature'
 created: '2026-10-03'
-status: 'ready-for-dev'
+status: 'done'
+baseline_commit: '55c205faf04555e8d80be811b1c27bc795ca6497'
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
@@ -226,15 +227,15 @@ context:
 **Execution** -- quatre phases, chacune close par un checkpoint vert, sinon HALT.
 
 *Phase 0 -- prealables*
-- [ ] `_bmad-output/planning-artifacts/epics.md` -- amender la Story 5.34 (index, fiche, table des revues) : grants de traversee, branchement runtime, arret avant la traversee, PlayMode au niveau story (scenarios C et D, retrait de D12), verification `Both`. Citer O1 et O6. La 5.35 garde stop/yield/priorite/priorite d'anneau et la Gate C.
+- [x] `_bmad-output/planning-artifacts/epics.md` -- amender la Story 5.34 (index, fiche, table des revues) : grants de traversee, branchement runtime, arret avant la traversee, PlayMode au niveau story (scenarios C et D, retrait de D12), verification `Both`. Citer O1 et O6. La 5.35 garde stop/yield/priorite/priorite d'anneau et la Gate C.
 
 *Phase 1 -- coordinateur pur (EditMode)*
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionConflictIndex.cs` (nouveau) -- incompatibilites precalculees, zone en cause par paire, chaines de traversee par modele.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionRecords.cs` (nouveau) -- demande, grant de traversee, statut, raison stable, instantane immuable a `EffectiveFrame`, compteurs.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs` (nouveau) -- protection des occupants, etat, anciennete, lot deterministe, sortie bornee, engagement, liberation, cycle de vie, lot fail-closed.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionDistances.cs` (nouveau, pur) -- `t_lat`, `v_ref`, `b_plan`, `D_stop`, `D_engage`, `D_request`, `a_kin`.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionRequestBuilder.cs` (nouveau, pur) -- traversee, `d`, tete de file par occupation structuree, engagement, recherche de sortie bornee.
-- [ ] `Assets/RoadRage/Tests/EditMode/Story534JunctionCoordinatorTests.cs` `[Core][Story534]` -- la matrice, plus :
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionConflictIndex.cs` (nouveau) -- incompatibilites precalculees, zone en cause par paire, chaines de traversee par modele.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionRecords.cs` (nouveau) -- demande, grant de traversee, statut, raison stable, instantane immuable a `EffectiveFrame`, compteurs.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs` (nouveau) -- protection des occupants, etat, anciennete, lot deterministe, sortie bornee, engagement, liberation, cycle de vie, lot fail-closed.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionDistances.cs` (nouveau, pur) -- `t_lat`, `v_ref`, `b_plan`, `D_stop`, `D_engage`, `D_request`, `a_kin`.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionRequestBuilder.cs` (nouveau, pur) -- traversee, `d`, tete de file par occupation structuree, engagement, recherche de sortie bornee.
+- [x] `Assets/RoadRage/Tests/EditMode/Story534JunctionCoordinatorTests.cs` `[Core][Story534]` -- la matrice, plus :
   - sur chaque paire de traversees de la croix et des 4 T de `MVP_Run` : incompatibles jamais tenues ensemble, compatibles jamais refusees pour conflit ;
   - fait de modele : chaines de longueur 1 en croix et en T, ≥ 2 depuis toute entree de giratoire ;
   - cas 0,87 m sur `43605e56` ;
@@ -249,13 +250,13 @@ context:
 - Checkpoint 1 : `Story534` EditMode vert.
 
 *Phase 2 -- branchement runtime*
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs`, `SpeedPlan.cs` -- candidat `JunctionEntry` = min(IDM, `a_kin`) et entree optionnelle, rang explicite, cause StopHold, reprise D5 ; sans entree, 5.33 au bit pres.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Blockers/Blocker.cs`, `BlockerTracker.cs` -- `JunctionGrant`, `BlockedExit`, source `JunctionCoordination`.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2StepRunner.cs` -- coordinateur, instantane par pas, resolution apres les pas, lot fail-closed, `CoordinatorMilliseconds`, diagnostics.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs` -- lecture de l'instantane verifie, demande, entree d'arbitrage, champs de trace.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs` -- `JunctionStopControlMarginMeters`.
-- [ ] `Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs`, `TrafficV2WorkCounters.cs` -- partie carrefour et compteurs, par ajout.
-- [ ] `Assets/RoadRage/Tests/EditMode/Story534JunctionEntryTests.cs` `[Core][Story534]` -- couvrir :
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs`, `SpeedPlan.cs` -- candidat `JunctionEntry` = min(IDM, `a_kin`) et entree optionnelle, rang explicite, cause StopHold, reprise D5 ; sans entree, 5.33 au bit pres.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Blockers/Blocker.cs`, `BlockerTracker.cs` -- `JunctionGrant`, `BlockedExit`, source `JunctionCoordination`.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2StepRunner.cs` -- coordinateur, instantane par pas, resolution apres les pas, lot fail-closed, `CoordinatorMilliseconds`, diagnostics.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs` -- lecture de l'instantane verifie, demande, entree d'arbitrage, champs de trace.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs` -- `JunctionStopControlMarginMeters`.
+- [x] `Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs`, `TrafficV2WorkCounters.cs` -- partie carrefour et compteurs, par ajout.
+- [x] `Assets/RoadRage/Tests/EditMode/Story534JunctionEntryTests.cs` `[Core][Story534]` -- couvrir :
   - demande valide et non-demande, dont le leader qui masque l'entree avec un autre prochain mouvement ;
   - engagement ;
   - distances : valeurs du profil par defaut a 0, 4 et 8 m/s publiees ; monotonie en v ; recalcul pour un autre Δt ;
@@ -273,18 +274,18 @@ context:
   - Rouge ou budget depasse : HALT.
 
 *Phase 3 -- scenarios cibles, phase 4 -- retrait de D12 et campagne*
-- [ ] `_bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenarios-5-34.json` (nouveau) -- C et D, construits de facon deterministe par un constructeur EditMode, comme en 5.33.
-- [ ] `Assets/RoadRage/Tests/PlayMode/Story534JunctionPlayModeTests.cs` `[Story534]` :
+- [x] `_bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenarios-5-34.json` (nouveau) -- C et D, construits de facon deterministe par un constructeur EditMode, comme en 5.33.
+- [x] `Assets/RoadRage/Tests/PlayMode/Story534JunctionPlayModeTests.cs` `[Story534]` :
   - scenario C ;
   - scenario D ;
   - test de saturation du collecteur : `new TrafficV2StepRunner(new TrafficV2HazardCollector(3, rayon))`, deux vehicules, `HazardCollectorSaturated` pour le seul vehicule sature. Reouverture `deferred-work.md:532`, declenchee par la modification du runner.
-- [ ] `Assets/RoadRage/Tests/PlayMode/Story533Harness.cs`, `Story533ExplorationPlayModeTests.cs`, `Story533PerformanceDiagnosticPlayModeTests.cs` -- retirer D12 et appliquer les verdicts O6 :
+- [x] `Assets/RoadRage/Tests/PlayMode/Story533Harness.cs`, `Story533ExplorationPlayModeTests.cs`, `Story533PerformanceDiagnosticPlayModeTests.cs` -- retirer D12 et appliquer les verdicts O6 :
   - aucun grant effectif incompatible simultane ;
   - classement de chaque contact ;
   - `EnteredWithoutGrant` = 0 ;
   - p95 du pas hote et `CoordinatorMilliseconds` publies par N.
   Les records de coordination entrent dans les traces.
-- [ ] `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml` (5.34 seulement) -- solder la partie 5.34 de `:519` (la recuperation reste a la 5.39) et l'entree `:532` ; consigner les constats 5.35. Puis `graphify update .`.
+- [x] `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml` (5.34 seulement) -- solder la partie 5.34 de `:519` (la recuperation reste a la 5.39) et l'entree `:532` ; consigner les constats 5.35. Puis `graphify update .`.
 
 **Acceptance Criteria:**
 
@@ -306,6 +307,61 @@ context:
 - Given toute fixture `Story534`, when la suite tourne, then chaque grant, refus, revocation et liberation porte une raison stable assertable.
 
 ## Spec Change Log
+
+- **2026-10-03 -- implementation, avant le constructeur de demandes, decision proprietaire O8 (traversee demandee).**
+  - Constat mesure sur `MVP_Run`. Corridors de sortie : 13,5 m (T), 16 m (croix), 9,5 a 13,5 m (giratoires). D'une entree de traversee a l'entree de la suivante : 23,4 a 32,0 m.
+  - Vitesses d'entree relevees dans les traces 5.33 (`perf-N8-20261003-175604`, `acceptance-B-20261003-174756`) : 6,3 a 6,55 m/s sur les T tout droit, 5,75 m/s en tourne-a-gauche, 4,4 a 4,9 m/s en entree de giratoire.
+  - Formules du bloc fige : `D_engage` 24,5 m et `D_request` 24,8 m a 6,5 m/s ; 33,2 m et 33,5 m a 8 m/s.
+  - Lecture litterale (« premiere traversee a ou devant le pare-chocs avant ») : la traversee suivante B n'est demandable qu'une fois le pare-chocs sorti de A, a `d_B` ≤ 13,5 m < `D_engage`. `JunctionEntry` lierait a chaque enchainement et le controle « carrefour libre » echouerait (HALT du bloc fige).
+  - **Decision O8 :** la demande porte sur la premiere traversee de la route restante a ou devant le pare-chocs avant **pour laquelle le vehicule ne tient pas de grant engage**. B devient demandable des que A est engage (`d_A < D_stop(v)` ou entree franchie), donc a `d_B` ≥ `D_stop` + 23,4 m, soit au moins 7 m de marge meme a v0 = 8 m/s.
+  - Le coordinateur recoit, a cote de la demande, les faits d'engagement des traversees tenues (`d`, `D_stop`, entree franchie). La regle d'engagement reste celle du bloc fige ; elle est evaluee par le coordinateur depuis ces faits.
+  - La contrainte `JunctionEntry` porte sur la meme traversee que la demande. Une demande reste au plus une par vehicule et par frame ; le reste du bloc fige est inchange.
+  - Alternatives ecartees : la lecture litterale (echec certain du controle) et « premiere traversee dont l'entree est devant le pare-chocs » (marge de 3,9 a 4,7 m aux vitesses mesurees, echec a 8 m/s sur la croix tout droit : 32 m < 33,5 m).
+  - Consequence sur l'invariant par lot : un grant engage dont le titulaire approche sans etre entre n'est plus porte par sa demande (elle est passee a la traversee suivante) mais par ses faits d'engagement, rapportes par le constructeur. L'invariant se lit donc : chaque grant a un acteur present, demandeur, occupant ou engage sur sa traversee.
+- **2026-10-03 -- implementation, arbitrage de l'entree, decision proprietaire O9 (attente dans la fenetre de maintien).**
+  - Mesure sur le modele point-masse du banc 5.33 (IDM, `a_kin`, StopHold D11, roue libre sous 0,41 m/s), depart a 4, 6 et 8 m/s sans grant : le vehicule entre en StopHold a d ≤ s0 + Δhold = 2,5 m et s'arrete a d ≈ 2,42 m de l'entree.
+  - A l'arret, les formules du bloc fige donnent `D_engage` = 2,093 m et `D_request` = 2,096 m : la demande deviendrait invalide (`TooFar`), l'anciennete O2 serait perdue a chaque arret et le vehicule ne serait jamais servi. Liberer le maintien quand `JunctionEntry` devient inactive reintroduirait le rampement sous 0,5 m/s supprime par D11.
+  - **Decision O9 :** un vehicule dans la fenetre de maintien reste demandeur et contraint. Demande valide si d ≤ max(`D_request(v)`, s0 + Δhold) ; `JunctionEntry` active si d ≤ max(`D_engage(v)`, s0 + Δhold). Le maintien a l'entree ne se libere qu'au grant effectif (ou a un changement de traversee). Les formules derivees, `D_stop` et l'engagement sont inchanges ; le plancher n'agit que sous ~0,3 m/s.
+  - Alternatives ecartees : fenetre de maintien reduite a `D_request(0)` − s0 ≈ 0,1 m (rampement de 2,5 a 2,1 m sous 0,5 m/s, risque de derive laterale mesure en 5.33) ; pas de StopHold a l'entree (contraire au bloc fige, rampement indefini).
+- **2026-10-03 -- implementation, controle « carrefour libre », decision proprietaire O10 (distance de demande sous acceleration).**
+  - Mesure par `Story534JunctionEntryTests.AVehicleAloneNeverMeetsAnActiveEntryConstraintOnTheElevenCampaignRoutes` : vehicule seul, 11 routes de `campaign-5-31.json`, pipeline reel du driver en point-masse (frame, spine, perception, plan de vitesse, rapport, arbitrage, lot), depart a l'arret au portail.
+  - Avec la formule du bloc fige (`D_request` = `D_engage(v)` + `v_ref·t_lat`) : 19 pas isoles sur environ 31 000, tous en acceleration (v de 1,8 a 4,4 m/s), ou `JunctionEntry` lie a −0,30 / −0,69 m/s² pendant une frame. Exemple a l'insertion : d = 5,822 m, fenetre [`D_engage` 5,840 ; `D_request` 5,914] sautee. Cause : l'ecart `v_ref·t_lat` ne couvre pas la croissance de `D_engage` en un pas a l'acceleration a.
+  - **Decision O10 :** `D_request(v)` = `D_engage(v_ref)` + `v_ref·t_lat`, soit `D_engage` evalue a la vitesse atteignable pendant la latence. Condition suffisante : `D_request(v)` ≥ `D_engage(v + a·Δt)` + (v + a·Δt)·Δt, vraie des que l'acceleration appliquee reste ≤ a (garanti par l'arbitrage : route libre et profil bornes par a). Mesure avec O10 : 0 pas actif sur les 11 routes. `D_stop`, `D_engage`, l'engagement et le plancher O9 sont inchanges ; `D_request` passe de 33,49 a 33,86 m a 8 m/s.
+  - Sans rapport avec O10, la meme mesure a revele un defaut d'implementation corrige : une route de mesure qui repasse par un carrefour (objectif intermediaire) confondait ses deux passages dans la position des mouvements. Les positions sont desormais bornees de la traversee la plus recente derriere le vehicule a la traversee demandee, et un mouvement repete n'est « derriere » que si toutes ses occurrences le sont.
+- **2026-10-03 -- checkpoint 2, non-regression `Story533` A, decision proprietaire O11 (file tenue a l'entree d'un carrefour).**
+  - Resultats : `Story531` 50/50 EditMode et 13/13 PlayMode, `Story552` 4/4, `Story533` 69/69 EditMode et 10/11 PlayMode. Seul le scenario A echoue (`acceptance-A-20261003-211821`).
+  - Constat : l'obstacle de A est a 0,5 m dans le corridor de sortie `47de8d1a` (13,5 m) d'un giratoire. En 5.33, la file de trois se formait dans l'anneau. En 5.34, les vehicules 1 et 2 recoivent la traversee (l'obstacle non V2 n'est pas compte dans la recherche de sortie, conforme au bloc fige). Le vehicule 3 est refuse `ExitBlocked` (13,5 − 2 × 6,44 m reserves < 6,44 m) et tenu a 2,497 m de l'entree `452ee31e`, blocker `BlockedExit` legitime, a 16,15 m de son leader. Apres retrait : liberation `GrantEffective`, 3/3 sorties, 0 contact, aucun `TrackingToleranceExceeded`, aucun rampement. Seule l'assertion « chaque suiveur a [s0 − 0,10 ; s0 + 0,50] m de son leader » echoue.
+  - Aucun corridor de `MVP_Run` ne depasse 16 m : une file de trois (≈ 21 m) recouvre toujours un carrefour.
+  - **Decision O11 :** le controle de file de A est amende. Un suiveur arrete avant l'entree d'un carrefour par un blocker de coordination legitime (`JunctionGrant` ou `BlockedExit`), a 0 < d ≤ s0 + Δhold de cette entree, occupe une position de file valide. Le premier vehicule et les suiveurs hors carrefour gardent l'intervalle [s0 − 0,10 ; s0 + 0,50] m. Les autres assertions de A et toutes celles de B sont inchangees. Cette decision amende, pour A seulement, le critere « `Story533` A et B rejoues sans modification de leurs assertions ».
+- **2026-10-03 -- scenario C, decision proprietaire O12 (service apres une sortie commune).**
+  - Mesure (`scenario-C-20261003-212947`) : `40ca7f10` et `4e437f94` debouchent toutes deux sur `40e937a9`, le corridor de sortie du scenario D. Le titulaire est `Released(Cleared)` au lot 1838 alors que son arriere occupe encore le debut de cette sortie (0 m libre). Le second est donc refuse `ExitBlocked` (borne `Occupant`), par la regle de sortie du bloc fige. Il est servi au lot 1892, le premier ou sa sortie libre atteint L + s0 = 6,44 m (6,434 m au lot 1891, 6,557 m au lot 1892), soit 54 lots apres le `Cleared`. Les etapes 1 a 4 de la sequence C sont vertes.
+  - Le critere C.5 (« `Granted` du second au meme lot ou au suivant ») et la regle de sortie sont incompatibles dans cette geometrie.
+  - **Decision O12 :** le second est servi au premier lot ou sa sortie devient suffisante (≥ L + s0), ou au lot suivant. Entre le `Released(Cleared)` et ce lot, seuls des refus `ExitBlocked(Occupant)` sont permis, sans nouveau refus pour conflit. Les criteres C.1 a C.4 et C.6 sont inchanges. La trace de carrefour publie desormais la longueur exigee (`junction_exit_required_m`).
+  - Correction de test sans decision : la fixture de saturation du collecteur fixait une capacite de 3, or la caisse d'un vehicule compte elle-meme 3 colliders. Les deux requetes saturaient donc a tout rayon. La capacite est desormais le compte mesure du vehicule sature, au plus petit rayon ou il depasse strictement celui du vehicule epargne.
+- **2026-10-03 -- revue (blind-hunter, edge-case-hunter, verification-gap), patchs appliques.**
+  - Etape 1, grant non engage : il est desormais aussi revoque `Revoked(ConflictOccupied, occupant, zone)` quand un occupant protege incompatible est present (vehicule entre sans grant). Lecture unique de l'etape 0 (« bloque les mouvements incompatibles ») ; un grant engage reste tenu. Test : `APendingGrantDoesNotSurviveAnIncompatibleVehicleThatEnteredWithoutGrant`.
+  - Tests ajoutes : invalidation « hors repli » (`AReportInFallbackIsAnInvalidRequestAndWithdrawsItsPendingGrant`) et porte p95 D13 a N = 8 (`D13RejectsAnN8HostStepP95OfTenMillisecondsOrMore`).
+  - Campagne : le p95 D13 ne compte plus que les pas en population pleine, comme `Story533Perf` ; le journal de coordination signale sa troncature.
+  - Differes (deferred-work) : vehicule non localise et coordination (5.39) ; rapport d'occupation du runner pour un vehicule sans pas.
+- **2026-10-03 -- apres revue, defaut signale par le proprietaire (videos C et D), decision proprietaire O13 (point d'arret sans grant).**
+  - Perimetre : position d'attente et frontiere de maintien seulement. La priorite (qui recoit le grant) est inchangee et reste aux stories de regles de circulation.
+  - Constat mesure (`scenario-C-20261003-223818`, `scenario-D-20261003-224427`) : le vehicule refuse s'arrete a d = 2,448 m du debut de son mouvement, d etant mesure du pare-chocs avant (`SMax` de l'empreinte) a `s = 0` du premier mouvement de la traversee. La frontiere de carrefour (AABB) deborde de 2 m avant ce point. Decomposition : l'IDM du bloc fige vise un obstacle virtuel a l'entree, donc un equilibre a s0 = 2 m ; le maintien D11 se declenche a d ≤ s0 + Δhold = 2,5 m. Second defaut : `a_kin` (≤ 0, nul a l'arret) entre toujours dans le minimum. Le candidat ne peut donc jamais accelerer : en D, `a_kin` lie a −0,44 m/s² des d = 7,6 m, et un vehicule arrete entre la fenetre et `D_engage` y reste fige.
+  - **Decision O13, qui amende la ligne « Candidat = min(IDM…, a_kin)… equilibre a s0 » du bloc fige :** l'entree est une ligne, pas un vehicule. Le candidat est l'IDM vers un obstacle virtuel place a s0 − `m_ctrl` au-dela de l'entree, d'ou un equilibre du pare-chocs avant a `m_ctrl` de l'entree. `a_kin`, qui vise le meme point, n'entre dans le minimum qu'a d ≤ `D_stop(v)`, ou il assure la garantie d'arret en cas de refus tardif. La fenetre de maintien d'une entree devient `m_ctrl` + Δhold = 1,0 m, et le plancher O9 suit. Bande d'arret declaree : [`m_ctrl` − 0,02 ; `m_ctrl` + Δhold] = [0,48 ; 1,0] m. Aucune nouvelle constante : `m_ctrl` et Δhold sont inchanges.
+  - Mesures sur le banc point-masse (`o13-stop-band.txt`, `o13-worst-case.txt`, `o13-resume.txt`), v0 de 0 a 8 m/s, refus de `D_stop` a 40 m : arret a 0,946..0,955 m pour tout refus a d ≥ (`D_stop` + `D_engage`)/2, a 0,50..0,58 m pour un refus a `D_stop` exactement ; minimum global 0,501 m, aucun franchissement. Apres le grant : liberation `GrantEffective`, entree franchie en 1,38 s (depart libre 1,12 s), sans nouveau maintien.
+  - Geometrie (`o13-clearance.txt`) : sur les 48 entrees de traversee de `MVP_Run`, l'empreinte arretee a d = `m_ctrl` reste a au moins 1,98 m de tout mouvement en conflit.
+  - Tests ajoutes : `ARefusedVehicleStopsInTheDeclaredBandBeforeTheEntryWhateverItsSpeedAndTheRefusalDistance`, `AVehicleHeldBeforeTheEntryLeavesNormallyOnceItsGrantIsEffective`, `TheFootprintHeldAtTheControlMarginStaysClearOfEveryConflictingMovementOfMvpRun`. Les tests d'equilibre et d'egalite sont adaptes.
+  - PlayMode prepare mais non execute (validation par le proprietaire) : C et D assertent la bande d'arret, puis une reprise sans maintien ni `JunctionEntry` jusqu'a l'entree, en au plus 3 s apres le premier pas a grant effectif. La condition O11 de `Story533` A suit la nouvelle fenetre (d ≤ `m_ctrl` + Δhold).
+  - Validation du proprietaire (`scenario-C-20261003-231258`) : arret a d = 0,949 m, entree 2,48 s apres le grant. La position reste en retrait du bord interieur des passages pietons, de ~3 m au bras nord et de ~7 m au bras est de TJunction_West, parce que le debut des mouvements (s = 0, import V1) ne coincide pas avec ce bord. Aucune donnee du modele ne porte cette limite. **Decision proprietaire :** pas de `StopLine` authoree en 5.34 ; la limite visuelle releve de la 5.35 (controles authores). Mesures et pistes ecartees consignees dans deferred-work.
+- **2026-10-03 -- decision proprietaire O14 (arret au plus pres de l'entree, ~0,25 m).**
+  - Constat : avec O13, l'arret a ~0,95 m vient de `m_ctrl` (0,5 m), puis d'environ 0,45 m d'approche asymptotique de l'IDM, que le maintien D11 coupe des d ≤ `m_ctrl` + Δhold. Baisser `m_ctrl` seul aurait donne ~0,70 m.
+  - **Decision O14 :**
+    - `m_ctrl` passe de 0,5 a 0,25 m (revision proprietaire de la seule valeur declaree ; D_stop baisse de 0,25 m a toute vitesse, D_engage et D_request sont inchanges au-dela de ~1 m/s).
+    - L'IDM de `JunctionEntry` vise la ligne d'entree (obstacle virtuel a s0 au-dela).
+    - La fin de l'approche est conduite par `a_kin` (deceleration constante qui s'annule a `m_ctrl`, retenue a d ≤ `D_stop`) : l'arret se fait en temps fini, sans rampement.
+    - La fenetre de maintien d'une entree devient `D_stop` a la vitesse d'entree du maintien (0,5 m/s), soit 0,352 m : une valeur derivee, sans nouvelle constante. Le plancher O9 suit.
+    - Bande d'arret declaree : [`m_ctrl` − 0,02 ; fenetre] = [0,23 ; 0,352] m.
+  - Mesures du banc (`o13-*.txt`, regeneres) : arret a 0,341..0,348 m pour tout refus a d ≥ (`D_stop` + `D_engage`)/2, de v0 = 0 a 8 m/s ; 0,25..0,33 m pour un refus a `D_stop` exactement. Minimum global 0,251 m, aucun franchissement. Reprise : entree franchie 0,9 s apres le grant (0,68 s pour un depart libre). Degagement geometrique a d = `m_ctrl` : 1,95 m au moins sur les 48 entrees.
+  - L'exemple calcule de la spec passe a `D_stop` = 16,95 m a 8 m/s (17,2 m avant). Les assertions PlayMode (C, D, condition O11 de `Story533` A) suivent la nouvelle fenetre ; elles sont preparees mais non executees (validation par le proprietaire).
 
 ## Design Notes
 
@@ -369,3 +425,103 @@ A ces vitesses, `s*` domine : la contrainte s'applique tot et doucement (IDM), e
 - `.\scripts\validate.ps1 -Profile Story -Story 5.33 -TestMode Both`, puis `-Story 5.31 -TestMode Both`, puis `-Story 5.52 -TestMode PlayMode` -- expected: verts, assertions inchangees.
 - `.\scripts\validate.ps1 -TestMode PlayMode -TestFilter Story533Perf -TestFilterType category -IncludeExplicit` -- expected: au plus 2 FixedUpdate par frame a N = 4, cout du coordinateur publie.
 - `.\scripts\validate.ps1 -TestMode PlayMode -TestFilter Story533Exploration -TestFilterType category -IncludeExplicit` -- expected: verdicts O6 verts, p95 a N = 8 < 10 ms, rapports ecrits.
+
+## Suggested Review Order
+
+**Coordinateur : lot, grants et conflits**
+
+- Point d'entree : un lot par pas, etapes 0 (occupants), 1 (grants anterieurs), 2 (demandes).
+  [`JunctionCoordinator.cs:74`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L74)
+
+- Etape 0 : les occupants reels bloquent les mouvements incompatibles, sans memoire.
+  [`JunctionCoordinator.cs:118`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L118)
+
+- Patch de revue : grant non engage revoque face a un occupant entre sans grant.
+  [`JunctionCoordinator.cs:219`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L219)
+
+- Etape 2 : demandes par (anciennete, TrafficId), sortie evaluee avant tout conflit.
+  [`JunctionCoordinator.cs:234`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L234)
+
+- Engagement : entree franchie ou d < D_stop ; un grant engage reste tenu.
+  [`JunctionCoordinator.cs:336`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L336)
+
+- Sortie suffisante : L + s0, moins les grants deja emis vers le meme corridor.
+  [`JunctionCoordinator.cs:350`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L350)
+
+- Liberation : arriere au-dela du mouvement ; boundary seulement sans localisation.
+  [`JunctionCoordinator.cs:321`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L321)
+
+- Paires de conflit compilees une fois depuis les ConflictZones du modele.
+  [`JunctionConflictIndex.cs:141`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionConflictIndex.cs#L141)
+
+
+**Demande d'un vehicule : rapport, distances, sortie**
+
+- Rapport par acteur : occupation, approches (O8), demande unique et motif de rejet.
+  [`JunctionRequestBuilder.cs:42`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionRequestBuilder.cs#L42)
+
+- O8 : une traversee engagee est tenue, la demande passe a la suivante.
+  [`JunctionRequestBuilder.cs:96`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionRequestBuilder.cs#L96)
+
+- Tete de file : aucun occupant V2 entre le pare-chocs et l'entree.
+  [`JunctionRequestBuilder.cs:225`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionRequestBuilder.cs#L225)
+
+- Recherche de sortie bornee : premier occupant, mouvement suivant, portail ou fin de route.
+  [`JunctionRequestBuilder.cs:258`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionRequestBuilder.cs#L258)
+
+- Distances derivees D_stop, D_engage, D_request (O10) et fenetre de maintien (O14).
+  [`JunctionDistances.cs:78`](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionDistances.cs#L78)
+
+
+**Arbitrage : contrainte JunctionEntry et point d'arret (O13, O14)**
+
+- Candidat : IDM vers la ligne, a_kin seulement en deca de D_stop ; arret a m_ctrl.
+  [`LongitudinalArbitration.cs:679`](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs#L679)
+
+- Fenetre de maintien d'une entree : D_stop a la vitesse d'entree du maintien.
+  [`LongitudinalArbitration.cs:692`](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs#L692)
+
+- Contrainte active sans grant effectif, avant l'entree, a d <= D_engage.
+  [`LongitudinalArbitration.cs:491`](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs#L491)
+
+- Maintien a l'entree libere seulement au grant effectif ; perception indisponible ne libere pas.
+  [`LongitudinalArbitration.cs:520`](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/LongitudinalArbitration.cs#L520)
+
+- m_ctrl, seule valeur declaree : 0,25 m (decision O14).
+  [`TrafficV2Composition.cs:120`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2Composition.cs#L120)
+
+
+**Branchement runtime**
+
+- Le runner resout un lot par pas ; frame refusee : seuls les grants engages survivent.
+  [`TrafficV2StepRunner.cs:211`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2StepRunner.cs#L211)
+
+- Le driver construit son rapport et l'entree d'arbitrage sur la route a jour.
+  [`TrafficV2VehicleDriver.cs:738`](../../Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs#L738)
+
+- Blockers JunctionGrant et BlockedExit, nommes depuis le record de la traversee.
+  [`BlockerTracker.cs:40`](../../Assets/RoadRage/Features/Vehicles/Traffic/Blockers/BlockerTracker.cs#L40)
+
+
+**Tests**
+
+- Bande d'arret declaree, de v0 = 0 a 8 m/s, quelle que soit la distance du refus.
+  [`Story534JunctionEntryTests.cs:462`](../../Assets/RoadRage/Tests/EditMode/Story534JunctionEntryTests.cs#L462)
+
+- Reprise apres grant, comparee a un depart libre.
+  [`Story534JunctionEntryTests.cs:514`](../../Assets/RoadRage/Tests/EditMode/Story534JunctionEntryTests.cs#L514)
+
+- Empreinte arretee hors de tout mouvement en conflit sur les 48 entrees de MVP_Run.
+  [`Story534JunctionEntryTests.cs:550`](../../Assets/RoadRage/Tests/EditMode/Story534JunctionEntryTests.cs#L550)
+
+- Pire cas avec latence : jamais au-dela de l'entree.
+  [`Story534JunctionEntryTests.cs:247`](../../Assets/RoadRage/Tests/EditMode/Story534JunctionEntryTests.cs#L247)
+
+- Regles du coordinateur sur frames reelles.
+  [`Story534JunctionCoordinatorTests.cs:221`](../../Assets/RoadRage/Tests/EditMode/Story534JunctionCoordinatorTests.cs#L221)
+
+- PlayMode C et D, avec l'assertion O14 d'arret et de reprise.
+  [`Story534JunctionPlayModeTests.cs:167`](../../Assets/RoadRage/Tests/PlayMode/Story534JunctionPlayModeTests.cs#L167)
+
+- Amendement O11 du controle de file de Story533 A.
+  [`Story533FollowingPlayModeTests.cs:149`](../../Assets/RoadRage/Tests/PlayMode/Story533FollowingPlayModeTests.cs#L149)

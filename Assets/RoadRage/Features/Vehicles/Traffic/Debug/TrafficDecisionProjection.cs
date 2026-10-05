@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using RoadRage.Features.Vehicles.Traffic.Blockers;
+using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Routing;
@@ -103,6 +104,55 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
     }
 
     /// <summary>
+    /// Partie coordination de carrefour d'une decision (5.34) : demande de la frame (traversee, d, D_stop, D_engage, D_request,
+    /// tete de file, engagement), records de l'instantane lu pour ce vehicule (statut, raison, titulaire, occupant ou zone,
+    /// anciennete) et compteurs du lot, dont EnteredWithoutGrant et IncompatibleOccupancy. Hote seul.
+    /// </summary>
+    public sealed class TrafficJunctionOutcome
+    {
+        private static readonly JunctionRecord[] NoRecords = new JunctionRecord[0];
+
+        public ulong FrameId { get; }
+        /// <summary>Rapport de la frame ; nul sans frame ni localisation exploitable.</summary>
+        public JunctionActorReport Report { get; }
+        /// <summary>Records de ce vehicule dans l'instantane lu a cette frame.</summary>
+        public IReadOnlyList<JunctionRecord> Records { get; }
+        public JunctionBatchCounters Counters { get; }
+        /// <summary>EffectiveFrame de l'instantane lu ; un instantane decale vaut « aucun grant ».</summary>
+        public ulong SnapshotEffectiveFrame { get; }
+        public bool SnapshotStale { get; }
+        /// <summary>La contrainte JunctionEntry etait active a ce pas.</summary>
+        public bool EntryActive { get; }
+
+        public TrafficJunctionOutcome(ulong frameId, JunctionActorReport report, JunctionSnapshot snapshot, bool entryActive)
+        {
+            FrameId = frameId; Report = report; EntryActive = entryActive;
+            var mine = new List<JunctionRecord>();
+            if (snapshot != null && report != null)
+                foreach (var record in snapshot.Records)
+                    if (record.TrafficId == report.TrafficId) mine.Add(record);
+            Records = mine.Count == 0 ? Array.AsReadOnly(NoRecords) : mine.AsReadOnly();
+            Counters = snapshot != null ? snapshot.Counters : default(JunctionBatchCounters);
+            SnapshotEffectiveFrame = snapshot != null ? snapshot.EffectiveFrame : 0UL;
+            SnapshotStale = snapshot == null || snapshot.EffectiveFrame != frameId;
+        }
+
+        /// <summary>Texte deterministe et invariant de culture.</summary>
+        public string ToText()
+        {
+            var text = new StringBuilder();
+            text.Append("Junction snapshot effectif ").Append(SnapshotEffectiveFrame.ToString(CultureInfo.InvariantCulture))
+                .Append(SnapshotStale ? " (decale : aucun grant)" : "").Append(" / entree ").Append(EntryActive ? "active" : "inactive")
+                .Append('\n');
+            text.Append(Report == null ? "Junction report aucun" : Report.ToText()).Append('\n');
+            text.Append("Junction records ").Append(Records.Count.ToString(CultureInfo.InvariantCulture));
+            for (int i = 0; i < Records.Count; i++) text.Append("\n  ").Append(Records[i].ToText());
+            text.Append('\n').Append("Junction batch ").Append(Counters.ToText());
+            return text.ToString();
+        }
+    }
+
+    /// <summary>
     /// Partie conduite d'une decision (5.31) : contraintes appliquees et reportees, liante, epoques,
     /// intent final en quatre flottants, repli et raison, couverture vehicule et etiquette de mesure.
     /// Hote seul : elle ne cree aucun chemin de synchronisation client.
@@ -174,6 +224,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         public TrafficDriveOutcome Drive { get; private set; }
         /// <summary>Partie perception, arbitrage et blockers (5.33) ; nulle sans perception ni arbitrage a ce pas.</summary>
         public TrafficLongitudinalOutcome Longitudinal { get; private set; }
+        /// <summary>Partie coordination de carrefour (5.34) ; nulle sans rapport de coordination a ce pas.</summary>
+        public TrafficJunctionOutcome Junction { get; private set; }
 
         internal TrafficDecisionProjection(ulong frameId, RoadModelVersion version, RoadId trafficId,
             RoadLocation location, RouteResult route, MotionPlan motion, string code)
@@ -227,6 +279,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
             return copy;
         }
 
+        /// <summary>Copie immuable portant la partie coordination de carrefour (5.34) ; nulle l'efface.</summary>
+        public TrafficDecisionProjection WithJunction(TrafficJunctionOutcome junction)
+        {
+            var copy = (TrafficDecisionProjection)MemberwiseClone();
+            copy.Junction = junction;
+            return copy;
+        }
+
         private static string F(float value) { return value.ToString("R", CultureInfo.InvariantCulture); }
 
         private static RouteOccurrence[] Copy(IReadOnlyList<RouteOccurrence> source)
@@ -271,6 +331,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
                     .Append(" / measurement ").Append(Drive.MeasurementLabel ?? "hors mesure");
             }
             if (Longitudinal != null) text.Append('\n').Append(Longitudinal.ToText());
+            if (Junction != null) text.Append('\n').Append(Junction.ToText());
             return text.ToString();
         }
     }

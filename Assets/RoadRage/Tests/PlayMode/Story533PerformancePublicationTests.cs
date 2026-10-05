@@ -137,6 +137,17 @@ namespace RoadRage.Tests.PlayMode
         }
 
         [Test]
+        public void D13RejectsAnN8HostStepP95OfTenMillisecondsOrMore()
+        {
+            // Lecture proprietaire du 2026-10-03 (Story 5.34) : p95 du pas hote en population pleine sous 10 ms a N = 8.
+            var p95 = Story533PerformanceDiagnosticPlayModeTests.D13Failures(8, 10, 8.0, 100, 2, true, 10.0);
+            Assert.That(p95, Has.Count.EqualTo(1));
+            StringAssert.Contains("p95", p95[0]);
+            Assert.That(Story533PerformanceDiagnosticPlayModeTests.D13Failures(8, 10, 8.0, 100, 2, true, 9.99), Is.Empty);
+            Assert.That(Story533PerformanceDiagnosticPlayModeTests.D13Failures(4, 10, 2.0, 100, 2, true, 12.0), Is.Empty, "sans objet hors N = 8");
+        }
+
+        [Test]
         public void ComparisonNormalizesEachMeasuredStepByItsActualVehicleCount()
         {
             var result = new Story533PerformanceDiagnosticPlayModeTests.PopulationResult { Population = 8 };

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using RoadRage.Features.Vehicles.Traffic.Blockers;
+using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Intent;
@@ -15,6 +16,65 @@ using UnityEngine;
 
 namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
 {
+    /// <summary>
+    /// Faits de coordination de carrefour d'un pas (Story 5.34) : demande de la frame (traversee, d, distances, tete de file,
+    /// engagement, sortie) et decision du coordinateur lue dans l'instantane de la frame. HasRequest faux sans traversee demandee.
+    /// </summary>
+    public readonly struct V2JunctionTrace
+    {
+        public readonly bool HasRequest;
+        public readonly RoadId TraversalId;
+        public readonly int MovementCount;
+        public readonly float DistanceMeters, StopMeters, EngageMeters, RequestMeters;
+        public readonly bool HeadOfQueue, Engaged, GrantEffective, RequestValid;
+        public readonly JunctionRequestRejection Rejection;
+        /// <summary>Traversees devant le pare-chocs dont le vehicule tient un grant engage (decision O8).</summary>
+        public readonly int EngagedTraversals;
+        public readonly int OccupiedMovements;
+        public readonly float ExitFreeMeters;
+        /// <summary>L + s0 exige du demandeur ; sortie suffisante si ExitFreeMeters &gt;= ExitRequiredMeters hors reservations.</summary>
+        public readonly float ExitRequiredMeters;
+        public readonly JunctionExitBound ExitBound;
+        public readonly bool EntryActive;
+        /// <summary>Instantane lu a une autre frame que son EffectiveFrame : lu comme aucun grant.</summary>
+        public readonly bool SnapshotStale;
+        public readonly bool HasDecision;
+        public readonly JunctionGrantStatus Status;
+        public readonly JunctionReason Reason;
+        public readonly RoadId CauseActorId, ZoneId;
+        public readonly ulong RequestSinceFrame;
+
+        public V2JunctionTrace(JunctionActorReport report, JunctionSnapshot snapshot, ulong frameId, bool entryActive)
+        {
+            HasRequest = report != null && report.HasRequest;
+            var request = HasRequest ? report.Request : default(JunctionApproach);
+            TraversalId = HasRequest ? request.Traversal.FirstMovementId : RoadId.None;
+            MovementCount = HasRequest ? request.Traversal.MovementIds.Count : 0;
+            DistanceMeters = HasRequest ? request.DistanceMeters : float.NaN;
+            StopMeters = HasRequest ? request.Distances.StopMeters : float.NaN;
+            EngageMeters = HasRequest ? request.Distances.EngageMeters : float.NaN;
+            RequestMeters = HasRequest ? request.Distances.RequestMeters : float.NaN;
+            HeadOfQueue = HasRequest && request.HeadOfQueue;
+            Engaged = HasRequest && request.Engaged;
+            GrantEffective = HasRequest && request.GrantEffective;
+            RequestValid = report != null && report.RequestValid;
+            Rejection = report != null ? report.Rejection : JunctionRequestRejection.None;
+            ExitFreeMeters = HasRequest ? request.Exit.FreeLengthMeters : float.NaN;
+            ExitRequiredMeters = HasRequest ? request.Exit.RequiredMeters : float.NaN;
+            ExitBound = HasRequest ? request.Exit.Bound : JunctionExitBound.None;
+            int engaged = 0;
+            if (report != null) foreach (var approach in report.Approaches) if (approach.Engaged) engaged++;
+            EngagedTraversals = engaged;
+            OccupiedMovements = report != null ? report.OccupiedMovements.Count : 0;
+            EntryActive = entryActive;
+            SnapshotStale = snapshot == null || snapshot.EffectiveFrame != frameId;
+            JunctionRecord decision = default(JunctionRecord);
+            HasDecision = HasRequest && snapshot != null && snapshot.TryGetDecision(report.TrafficId, TraversalId, out decision);
+            Status = decision.Status; Reason = decision.Reason; CauseActorId = decision.CauseActorId; ZoneId = decision.ZoneId;
+            RequestSinceFrame = decision.RequestSinceFrame;
+        }
+    }
+
     /// <summary>
     /// Faits d'interaction d'un pas (Story 5.33) : frame partagee, liante longitudinale, leader, obstacle du couloir
     /// balaye, blockers et requete du collecteur. Valeurs NaN ou vides quand le pas n'a ni perception ni arbitrage.
@@ -50,11 +110,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public readonly bool HazardQuerySaturated;
         /// <summary>Maintien a l'arret D11 du pas ; Phase None sans arbitrage ou hors maintien.</summary>
         public readonly StopHoldState Hold;
+        /// <summary>Coordination de carrefour du pas (Story 5.34).</summary>
+        public readonly V2JunctionTrace Junction;
 
         public V2InteractionRecord(ulong frameId, AgentObservation observation, LongitudinalDecision decision,
-            IReadOnlyList<Blocker> blockers, HazardQueryReport hazardQuery)
+            IReadOnlyList<Blocker> blockers, HazardQueryReport hazardQuery, V2JunctionTrace junction = default(V2JunctionTrace))
         {
             FrameId = frameId;
+            Junction = junction;
             Arbitrated = decision != null;
             BindingKind = decision != null ? decision.Binding.Kind : default(LongitudinalCandidateKind);
             BindingConstraint = decision != null ? decision.Binding.Constraint : SpeedConstraint.None;
@@ -322,6 +385,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private static readonly ProfilerMarker ComposeMarker = new ProfilerMarker("TrafficV2.Driver.Compose");
         private static readonly ProfilerMarker MotionCommandMarker = new ProfilerMarker("TrafficV2.Driver.MotionCommand");
         private static readonly ProfilerMarker InstrumentationMarker = new ProfilerMarker("TrafficV2.Driver.Instrumentation");
+        private static readonly ProfilerMarker JunctionMarker = new ProfilerMarker("TrafficV2.Driver.Junction");
 
         /// <summary>Debut d'une etape mesuree : marqueur, chronometre et compteur d'allocation du thread.</summary>
         private void BeginStage(ProfilerMarker marker)
@@ -371,6 +435,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public IReadOnlyList<Blocker> Blockers { get { return blockers; } }
         /// <summary>Requete du collecteur emise pour ce vehicule au dernier pas.</summary>
         public HazardQueryReport LastHazardQuery { get; private set; }
+        /// <summary>Rapport de coordination de carrefour du dernier pas (5.34) ; nul sans frame ou sans index.</summary>
+        public JunctionActorReport LastJunctionReport { get; private set; }
+        /// <summary>FrameId du rapport <see cref="LastJunctionReport"/>.</summary>
+        public ulong LastJunctionReportFrameId { get; private set; }
+        /// <summary>Route courante du vehicule (rapport d'occupation seul d'un vehicule sans pas).</summary>
+        internal RoutePlan CurrentRoute { get { return route; } }
         /// <summary>Vrai entre la phase 1 et la phase 2 d'un pas hote.</summary>
         internal bool StepPrepared { get { return stepPrepared; } }
         /// <summary>Requete de dangers du pas prepare : centree sur le point de reference, corps propre ecarte.</summary>
@@ -569,8 +639,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         /// exactement un intent. Frame nulle (construction refusee) : repli V2, raison FrameUnavailable.
         /// </summary>
         /// <param name="frameShareMilliseconds">Part du vehicule dans le temps de la frame partagee, collecteur compris.</param>
+        /// <param name="junctions">Instantane de coordination lu a ce pas ; un instantane decale vaut « aucun grant » (5.34).</param>
+        /// <param name="junctionIndex">Index de coordination du modele ; nul : ni demande ni contrainte d'entree.</param>
         internal void Step(ulong frameId, TrafficFrame frame, HazardQueryReport hazardQuery,
-            TrafficHazardCollectorCounters collector, double frameShareMilliseconds)
+            TrafficHazardCollectorCounters collector, double frameShareMilliseconds, JunctionSnapshot junctions = null,
+            JunctionConflictIndex junctionIndex = null)
         {
             if (!stepPrepared) return;
             stepPrepared = false;
@@ -654,6 +727,27 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 }
                 catch (ArgumentException) { observation = default(AgentObservation); }
             }
+            // Coordination de carrefour (5.34) : occupation, approches et demande de la frame, sur la route a jour du pas. Un
+            // vehicule en repli 2a ne demande rien mais reste un occupant.
+            JunctionActorReport junctionReport = null;
+            if (located && junctionIndex != null && route != null)
+            {
+                JunctionMarker.Begin();
+                try
+                {
+                    junctionReport = JunctionRequestBuilder.Build(frame, junctionIndex, insertion.TrafficId, route,
+                        toleranceResponse.Latched ? (DriverProfile?)null : driver, dt, TrafficV2Settings.JunctionStopControlMarginMeters,
+                        junctions, frameId, TrafficV2Settings.StopHold.EntrySpeedMetersPerSecond);
+                }
+                catch (ArgumentException) { junctionReport = null; }
+                JunctionMarker.End();
+            }
+            // Seuil effectif max(D_engage, fenetre de maintien) (decisions O9, O14) : un vehicule maintenu a l'entree reste contraint.
+            var entry = junctionReport != null && junctionReport.HasRequest
+                ? new JunctionEntryInput(junctionReport.Request.Traversal.FirstMovementId, junctionReport.Request.DistanceMeters,
+                    junctionReport.Request.Distances.EngageThresholdMeters, TrafficV2Settings.JunctionStopControlMarginMeters,
+                    junctionReport.Request.GrantEffective, junctionReport.Request.Distances.StopMeters)
+                : default(JunctionEntryInput);
             double perceptionMs;
             long perceptionBytes = EndStage(PerceptionMarker, out perceptionMs);
 
@@ -682,7 +776,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                     var perceived = LongitudinalPerception.From(observation, decision.PerceptionPath,
                         LongitudinalPerception.FrontDistanceMeters(frame, insertion.TrafficId, decision.PerceptionPath), hazardQuery.Saturated);
                     longitudinal = LongitudinalArbitration.Decide(plan, driver, speed, dt, perceived, longitudinalMemory,
-                        TrafficV2Settings.StopHold);
+                        TrafficV2Settings.StopHold, entry);
                     arbitrationMs = detailWatch.Elapsed.TotalMilliseconds;
                     ArbitrationMarker.End();
                 }
@@ -739,22 +833,64 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             // Seul etat de l'arbitrage (D5) et ensemble de blockers : ceux d'une commande effectivement composee.
             bool commanded = longitudinal != null && command.HasValue && !composed.Fallback;
             longitudinalMemory = commanded ? longitudinal.Memory : LongitudinalMemory.None;
-            blockers = BlockerTracker.Update(blockers, commanded ? longitudinal : null, driver, frameId);
+            // « Hors repli » (5.34) : la demande d'un pas qui aboutit au repli n'est pas valide.
+            if (junctionReport != null) junctionReport = junctionReport.WithFallback(composed.Fallback);
+            LastJunctionReport = junctionReport;
+            LastJunctionReportFrameId = frameId;
+            blockers = BlockerTracker.Update(blockers, commanded ? longitudinal : null, driver, frameId,
+                JunctionCause(junctionReport, junctions));
             LastObservation = observation;
             LastLongitudinal = commanded ? longitudinal : null;
 
             Monitor(stepCounter, state, speed, actor.Location.Flags, actor.Location.OutsideWidthEnvelope, composed, command, plan,
-                observedDisplacement, new V2InteractionRecord(frameId, observation, LastLongitudinal, blockers, hazardQuery));
+                observedDisplacement, new V2InteractionRecord(frameId, observation, LastLongitudinal, blockers, hazardQuery,
+                    new V2JunctionTrace(junctionReport, junctions, frameId, commanded && entry.Active)));
             var projection = decision != null ? decision.Projection : LastProjection;
             if (projection != null)
                 LastProjection = projection.WithDrive(DriveOutcome(frameId, composed, plan, driver)).WithLongitudinal(decision == null
                     ? null : new TrafficLongitudinalOutcome(frameId, observation, LastLongitudinal, plan == null ? null : plan.RoadLimits,
-                        blockers, hazardQuery.Hits, hazardQuery.Saturated, collector));
+                        blockers, hazardQuery.Hits, hazardQuery.Saturated, collector))
+                    .WithJunction(junctionReport == null ? null
+                        : new TrafficJunctionOutcome(frameId, junctionReport, junctions, commanded && entry.Active));
             lastIntent = composed.Intent;
             double instrumentationMs;
             long instrumentationBytes = EndStage(InstrumentationMarker, out instrumentationMs);
             Timings.AddDetail(arbitrationMs, trackMs, instrumentationMs, frameBytes, spineBytes, perceptionBytes, planBytes,
                 composeBytes, instrumentationBytes);
+        }
+
+        /// <summary>
+        /// Cause de coordination d'un maintien a l'entree (5.34), lue dans le dernier record du coordinateur sur la traversee
+        /// demandee : BlockedExit pour une sortie insuffisante (bloqueur : corridor de sortie), JunctionGrant sinon (titulaire,
+        /// occupant ou demandeur plus ancien en cause, a defaut la traversee).
+        /// </summary>
+        private static JunctionBlockerCause JunctionCause(JunctionActorReport report, JunctionSnapshot snapshot)
+        {
+            if (report == null || !report.HasRequest) return default(JunctionBlockerCause);
+            var traversal = report.Request.Traversal;
+            JunctionRecord record;
+            if (snapshot == null || !snapshot.TryGetDecision(report.TrafficId, traversal.FirstMovementId, out record))
+                return new JunctionBlockerCause(BlockerKind.JunctionGrant, traversal.FirstMovementId.ToString());
+            if (record.Reason == JunctionReason.ExitBlocked)
+                return new JunctionBlockerCause(BlockerKind.BlockedExit, traversal.ExitCorridorId.ToString());
+            return new JunctionBlockerCause(BlockerKind.JunctionGrant,
+                record.CauseActorId.IsEmpty ? traversal.FirstMovementId.ToString() : record.CauseActorId.ToString());
+        }
+
+        /// <summary>
+        /// Rapport d'occupation seul (aucune demande) d'un vehicule present dans la frame sans pas a ce pas hote (5.34) : il reste
+        /// un occupant protege des mouvements qu'il chevauche.
+        /// </summary>
+        internal JunctionActorReport BuildOccupancyReport(TrafficFrame frame, JunctionConflictIndex index, JunctionSnapshot snapshot,
+            ulong frameId)
+        {
+            if (frame == null || index == null || insertion == null) return null;
+            try
+            {
+                return JunctionRequestBuilder.Build(frame, index, insertion.TrafficId, route, null, Time.fixedDeltaTime,
+                    TrafficV2Settings.JunctionStopControlMarginMeters, snapshot, frameId);
+            }
+            catch (ArgumentException) { return null; }
         }
 
         private float ObserveTrackingTolerance(ulong step, BodyState state, ReferenceTrack track, float distance)

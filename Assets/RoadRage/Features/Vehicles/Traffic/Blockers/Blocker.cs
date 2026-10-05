@@ -8,7 +8,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Blockers
     {
         Obstacle = 0,
         Leader = 1,
-        PolicyImmobilization = 2
+        PolicyImmobilization = 2,
+        /// <summary>Traversee refusee pour conflit (5.34) : titulaire ou occupant en cause.</summary>
+        JunctionGrant = 3,
+        /// <summary>Traversee refusee pour sortie insuffisante (5.34).</summary>
+        BlockedExit = 4
     }
 
     /// <summary>Fait d'origine d'un blocker.</summary>
@@ -16,7 +20,26 @@ namespace RoadRage.Features.Vehicles.Traffic.Blockers
     {
         LeaderObservation = 0,
         ObstacleObservation = 1,
-        DrivingPolicy = 2
+        DrivingPolicy = 2,
+        /// <summary>Coordination de carrefour (5.34).</summary>
+        JunctionCoordination = 3
+    }
+
+    /// <summary>
+    /// Cause de coordination d'un maintien a l'entree d'une traversee (5.34), lue dans le dernier record du coordinateur sur
+    /// cette traversee : genre (JunctionGrant ou BlockedExit) et bloqueur (titulaire, occupant ou demandeur plus ancien, sinon
+    /// la traversee ; corridor de sortie pour BlockedExit).
+    /// </summary>
+    public readonly struct JunctionBlockerCause
+    {
+        public readonly BlockerKind Kind;
+        public readonly string BlockingActorOrRule;
+
+        public JunctionBlockerCause(BlockerKind kind, string blockingActorOrRule)
+        {
+            Kind = kind == BlockerKind.BlockedExit ? BlockerKind.BlockedExit : BlockerKind.JunctionGrant;
+            BlockingActorOrRule = blockingActorOrRule;
+        }
     }
 
     /// <summary>
@@ -108,6 +131,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Blockers
         {
             return new Blocker(BlockerSource.DrivingPolicy, BlockerKind.PolicyImmobilization, PolicyImmobilizationRule, true,
                 false, false, sinceFrame, candidate);
+        }
+
+        /// <summary>Attente d'un grant de carrefour (5.34) : legitime, liberation attendue, non recouvrable.</summary>
+        public static Blocker Junction(JunctionBlockerCause cause, string fallbackRule, float candidate, ulong sinceFrame)
+        {
+            var kind = cause.Kind == BlockerKind.BlockedExit ? BlockerKind.BlockedExit : BlockerKind.JunctionGrant;
+            return new Blocker(BlockerSource.JunctionCoordination, kind,
+                string.IsNullOrEmpty(cause.BlockingActorOrRule) ? fallbackRule : cause.BlockingActorOrRule, true, true, false,
+                sinceFrame, candidate);
         }
 
         /// <summary>Joueur, pieton, vehicule et acteur de trafic sont mobiles ; un obstacle non classe est fixe.</summary>

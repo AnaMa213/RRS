@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Frame;
 using Unity.Profiling;
 
@@ -17,20 +18,28 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public double TotalMilliseconds, PrepareMilliseconds, CollectorMilliseconds, OverlapMilliseconds, FrameBuildMilliseconds,
             DriveMilliseconds;
         public long TotalBytes, PrepareBytes, CollectorBytes, FrameBuildBytes, DriveBytes;
+        /// <summary>Lot du coordinateur de carrefour (5.34), rapports d'occupation des vehicules sans pas compris ; publie a part.</summary>
+        public double CoordinatorMilliseconds;
+        public long CoordinatorBytes;
     }
 
     /// <summary>
-    /// Ordonnanceur hote V2 (Story 5.33), sans etat de decision. A chaque pas physique : FrameId = compteur de pas
-    /// hote global ; chaque vehicule V2 lie fournit son entree d'acteur (pose, empreinte, vitesse) ; le collecteur rend
-    /// les dangers ; une seule TrafficFrame est construite, avant tout pas de conduite ; puis chaque vehicule recoit
-    /// exactement un pas, donc un intent, par TrafficId croissant, depuis cette frame et aucune autre. Les horizons
-    /// d'intention publies ne sont pas alimentes (5.34).
+    /// Ordonnanceur hote V2 (Story 5.33) : il n'a d'autre etat de decision que le coordinateur de carrefour qu'il possede
+    /// (5.34). A chaque pas physique : FrameId = compteur de pas hote global ; chaque vehicule V2 lie fournit son entree
+    /// d'acteur (pose, empreinte, vitesse) ; le collecteur rend les dangers ; une seule TrafficFrame N est construite, avant
+    /// tout pas de conduite ; puis chaque vehicule recoit exactement un pas, donc un intent, par TrafficId croissant, depuis
+    /// cette frame et l'instantane de coordination effectif a N, et aucun autre ; enfin le coordinateur resout les demandes
+    /// de N et publie l'instantane effectif a N+1. Une frame refusee donne un lot fail-closed. Les horizons d'intention
+    /// publies ne sont pas alimentes.
     /// </summary>
     public sealed class TrafficV2StepRunner
     {
         private readonly TrafficV2HazardCollector collector;
         private readonly List<TrafficV2VehicleDriver> ordered = new List<TrafficV2VehicleDriver>();
         private readonly List<TrafficV2VehicleDriver> prepared = new List<TrafficV2VehicleDriver>();
+        private readonly List<TrafficV2VehicleDriver> actorsInFrame = new List<TrafficV2VehicleDriver>();
+        private readonly List<JunctionActorReport> reports = new List<JunctionActorReport>();
+        private JunctionCoordinator coordinator;
         private readonly List<TrafficActorInput> inputs = new List<TrafficActorInput>();
         private readonly List<HazardQuery> queries = new List<HazardQuery>();
         private readonly HashSet<RoadId> actorIds = new HashSet<RoadId>();
@@ -43,6 +52,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private static readonly ProfilerMarker CollectMarker = new ProfilerMarker("TrafficV2.Collect");
         private static readonly ProfilerMarker FrameBuildMarker = new ProfilerMarker("TrafficV2.FrameBuild");
         private static readonly ProfilerMarker DriveMarker = new ProfilerMarker("TrafficV2.Drive");
+        private static readonly ProfilerMarker CoordinateMarker = new ProfilerMarker("TrafficV2.Coordinate");
 
         public TrafficV2StepRunner()
             : this(new TrafficV2HazardCollector(TrafficV2Settings.HazardQueryCapacity, TrafficV2Settings.HazardQueryRadiusMeters)) { }
@@ -70,6 +80,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public double LastCollectorMilliseconds { get; private set; }
         /// <summary>Cout du dernier pas hote par section (diagnostic de performance).</summary>
         public TrafficV2StepCost LastCost { get; private set; }
+        /// <summary>Coordinateur de carrefour hote unique (5.34) ; nul avant le premier pas sur un modele.</summary>
+        public JunctionCoordinator Coordinator { get { return coordinator; } }
+        /// <summary>Dernier instantane publie : effectif au pas hote suivant (EffectiveFrame = FrameId + 1).</summary>
+        public JunctionSnapshot JunctionSnapshot { get { return coordinator != null ? coordinator.Current : null; } }
 
         public void Step(CompiledRoadModel model, IEnumerable<TrafficV2VehicleDriver> drivers)
         {
@@ -95,12 +109,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             LastFrameMilliseconds = 0d;
             LastCollectorMilliseconds = 0d;
             if (model == null || drivers == null) return;
+            // Un coordinateur par modele ; son instantane initial, vide, est effectif a ce pas.
+            if (coordinator == null || coordinator.Model != model) coordinator = new JunctionCoordinator(model, FrameId);
+            var snapshot = coordinator.Current;
             ordered.Clear();
             foreach (var driver in drivers)
                 if (driver != null && driver.IsBound) ordered.Add(driver);
             ordered.Sort((a, b) => a.TrafficId.CompareTo(b.TrafficId));
 
-            inputs.Clear(); prepared.Clear(); queries.Clear(); actorIds.Clear();
+            inputs.Clear(); prepared.Clear(); queries.Clear(); actorIds.Clear(); actorsInFrame.Clear();
             long allocated = GC.GetAllocatedBytesForCurrentThread();
             sectionWatch.Restart();
             PrepareMarker.Begin();
@@ -111,6 +128,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 if (!ordered[i].TryPrepareStep(out input)) continue;
                 inputs.Add(input);
                 actorIds.Add(input.TrafficId);
+                actorsInFrame.Add(ordered[i]);
                 if (!ordered[i].StepPrepared) continue;
                 prepared.Add(ordered[i]);
                 queries.Add(ordered[i].HazardQuery);
@@ -118,7 +136,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             PrepareMarker.End();
             cost.PrepareMilliseconds = sectionWatch.Elapsed.TotalMilliseconds;
             cost.PrepareBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
-            if (inputs.Count == 0) return;
+            if (inputs.Count == 0)
+            {
+                // Aucun acteur : lot valide vide, les grants des absents sont revoques (ActorGone).
+                reports.Clear();
+                Coordinate(null, ref cost);
+                return;
+            }
 
             stopwatch.Restart();
             allocated = GC.GetAllocatedBytesForCurrentThread();
@@ -156,13 +180,39 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             {
                 HazardQueryReport report;
                 collector.TryGetReport(prepared[i].TrafficId, out report);
-                prepared[i].Step(FrameId, frame, report, collector.Counters, share);
+                prepared[i].Step(FrameId, frame, report, collector.Counters, share, snapshot, coordinator.Index);
             }
             DriveMarker.End();
             cost.DriveMilliseconds = sectionWatch.Elapsed.TotalMilliseconds;
             cost.DriveBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
             cost.Vehicles = prepared.Count;
             LastSteppedCount = prepared.Count;
+
+            // Resolution des demandes de N apres tous les pas : instantane effectif a N+1 seulement.
+            reports.Clear();
+            if (frame != null)
+                for (int i = 0; i < actorsInFrame.Count; i++)
+                {
+                    var driver = actorsInFrame[i];
+                    var report = driver.LastJunctionReportFrameId == FrameId && driver.LastJunctionReport != null
+                        ? driver.LastJunctionReport : driver.BuildOccupancyReport(frame, coordinator.Index, snapshot, FrameId);
+                    if (report != null) reports.Add(report);
+                }
+            Coordinate(frame, ref cost);
+        }
+
+        /// <summary>Lot du coordinateur : frame construite, ou fail-closed si sa construction a ete refusee.</summary>
+        private void Coordinate(TrafficFrame frame, ref TrafficV2StepCost cost)
+        {
+            long allocated = GC.GetAllocatedBytesForCurrentThread();
+            sectionWatch.Restart();
+            CoordinateMarker.Begin();
+            bool refused = frame == null && inputs.Count > 0;
+            if (refused) coordinator.ResolveUnavailableFrame(FrameId);
+            else coordinator.Resolve(FrameId, reports);
+            CoordinateMarker.End();
+            cost.CoordinatorMilliseconds = sectionWatch.Elapsed.TotalMilliseconds;
+            cost.CoordinatorBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
         }
     }
 }
