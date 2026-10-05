@@ -450,6 +450,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     throw new InvalidOperationException("Politique 5.50 non deterministe : les deux plans different.");
                 }
 
+                // Les decisions planifiees doivent compiler le modele complet avant toute ecriture.
+                var compiled = AuthoredRoadModel.Run(V1SourceSet.Extract(scene), AuthoredRoadModel.ReadIfExists(MigrationReport.LineageFullPath),
+                    first.DecisionsText, GateAEvidenceParameters.Declared());
+                if (!compiled.Succeeded)
+                    throw new InvalidOperationException("le pipeline refuse les decisions planifiees : " + string.Join(" ; ", compiled.Failures.ToArray()));
+
                 string error;
                 if (!TryApply(first, run.PairSweeps.Count, out error))
                 {
@@ -532,7 +538,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 decision = ConflictDecisionKind.Rejected.ToString();
                 reasonCode = "refined-disjoint";
                 reason = "Apres raffinement, chaque feuille possede une borne de separation strictement superieure a la tolerance.";
-                active = false;
+                // La paire reste candidate au balayage : le rapprochement exige une decision, ici un rejet sans zone.
+                active = true;
                 separation = refinement.MinimumSeparationMeters;
             }
             else if (refinement != null && refinement.Outcome == RefinementOutcome.Witness)
@@ -597,7 +604,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             string evidenceHash = Hash(evidence);
-            var typing = TypeZone(refinement, a, b, classification, active, keys[sweep.MovementA] == pair.Split('\n')[0]);
+            var typing = TypeZone(refinement, a, b, classification, active && decision == ConflictDecisionKind.Accepted.ToString(),
+                keys[sweep.MovementA] == pair.Split('\n')[0]);
             string typingCanonical = policyVersion >= RefinedDecisionPolicyVersion ? typing.Canonical(refinement) : string.Empty;
             string revision = Revision(pair, geometry, decision, classification.ToString(), evidenceHash, policyVersion, typingCanonical);
             string supersedes = prior.DecisionRevisionId;
@@ -726,7 +734,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         Outcome = record.RefinementOutcome,
                         Complete = record.RefinementComplete,
                         Classification = record.Classification,
-                        Kind = record.Active ? record.ConflictKind : "-"
+                        Kind = IsZone(record) ? record.ConflictKind : "-"
                     });
                 }
                 if (was == AutomatedPairClassification.ConservativeConflict.ToString() && old.ReasonCode == "continuous-contact-possible")
@@ -870,8 +878,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     .Append(" | ").Append(F(record.ExactSlackMeters)).Append(" / ").Append(F(record.MinimumSeparationMeters))
                     .Append(" | ").Append(string.IsNullOrEmpty(record.RefinementOutcome) ? "-" : record.RefinementLeaves + " / " + record.RefinementLeavesAtDecision
                         + (record.RefinementComplete ? string.Empty : " (incomplet)"))
-                    .Append(" | ").Append(record.Active ? record.ConflictKind : "-")
-                    .Append(" | ").Append(record.Active ? F(record.ContactStartSMetersA) + " / " + F(record.ContactStartSMetersB) : "-")
+                    .Append(" | ").Append(IsZone(record) ? record.ConflictKind : "-")
+                    .Append(" | ").Append(IsZone(record) ? F(record.ContactStartSMetersA) + " / " + F(record.ContactStartSMetersB) : "-")
                     .Append(" |\n");
             }
 
@@ -887,6 +895,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             return null;
+        }
+
+        private static bool IsZone(AutomatedPairDecisionRecord record)
+        {
+            return record.Active && record.Decision == ConflictDecisionKind.Accepted.ToString();
         }
 
         private static Dictionary<string, AutomatedPairDecisionRecord> ByPair(AutomatedPairDecisionManifest manifest)
