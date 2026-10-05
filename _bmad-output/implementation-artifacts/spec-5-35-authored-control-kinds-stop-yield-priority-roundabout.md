@@ -2,7 +2,7 @@
 title: 'Story 5.35 -- Genres de controle authores : stop, cedez-le-passage, priorite routiere, priorite a droite et entree de giratoire, lignes d''arret, Gate C'
 type: 'feature'
 created: '2026-10-05'
-status: 'ready-for-dev'
+status: 'draft'
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
@@ -13,13 +13,13 @@ context:
 
 ## Intent
 
-**Problem:** Les 40 controles de `MVP_Run` sont `Uncontrolled`. Le coordinateur 5.34 sert donc tout conflit en FIFO (anciennete, puis `TrafficId`), quel que soit le design de la route. `StopLine` n'est authoree nulle part : un vehicule refuse s'arrete jusqu'a ~7 m avant le bord du passage pieton (`TJunction_West`, constat 5.34). La Gate C n'est pas fermee.
+**Problem:** Les 40 controles de `MVP_Run` sont `Uncontrolled`. Le coordinateur 5.34 sert donc tout conflit en FIFO (anciennete, puis `TrafficId`), quel que soit le design de la route. `StopLine` n'est authoree nulle part : un vehicule refuse s'arrete jusqu'a ~7 m avant le bord du passage pieton (`TJunction_West`, constat 5.34). La Gate C n'est pas fermee. Audit du 2026-10-05 (`traffic-v2-5-35-explorations/conflict-zone-audit-20261005.md`) : 94 des 136 zones sont des conflits acceptes par prudence ; dans chaque T, toutes les paires inter-approches sont en conflit, et en giratoire une entree est en conflit avec l'entree d'un autre bras et la sortie de son propre bras. Avec le grant de traversee 5.34, un vehicule engage n'importe ou dans l'anneau bloque une entree.
 
 **Approach:** Authorer la verite routiere de la map, sans rien inventer pour la couverture de test :
 - giratoires : entrees `Yield`, anneau `Priority` ;
 - T : axe traversant `Priority`, branche `Yield` ;
 - croix : `Uncontrolled`, lu comme une priorite a droite.
-Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 recoit une preseance compilee une fois par modele et une acceptation de creneau derivee de la cinematique. Re-signer Gate A, puis fermer la Gate C (jalon PlayMode 2, cout multi-agents).
+Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 recoit une preseance compilee une fois par modele et une acceptation de creneau derivee de la cinematique. Garantir la compatibilite reelle des mouvements (P9) et une priorite locale d'anneau par creneau (P10). Re-signer Gate A, puis fermer la Gate C (jalon PlayMode 2, cout multi-agents).
 
 ## Boundaries & Constraints
 
@@ -34,6 +34,15 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
   - `Signalized` reste refuse (5.36).
 - **`Uncontrolled` = absence de controle authore = priorite a droite (P3).**
   - Un carrefour qui melange `Uncontrolled` et un autre genre est un echec de validation.
+- **Compatibilite reelle (P9), invariant :** `Compatible traversals must not deny each other solely because they belong to the same Junction.`
+  - L'incompatibilite reste la seule co-appartenance a une `ConflictZone` compilee (5.34) ; aucune regle de carrefour exclusif, aucun refus par seule appartenance au meme `JunctionId`.
+  - Priorite (`Priority`, `Yield`, `Stop`, priorite a droite), creneau et briseur n'interviennent qu'entre traversees incompatibles.
+  - Une zone trop conservatrice se corrige dans les donnees compilees par la voie decidee en P9, jamais par une exception runtime.
+- **Priorite locale d'anneau (P10).** La presence d'un vehicule dans le giratoire n'interdit jamais l'entree par elle-meme. Une entree `Yield` ne cede qu'a un vehicule dont la trajectoire restante est incompatible avec sa traversee et dont l'ETA vers la zone de fusion rend le creneau insuffisant :
+  - un vehicule qui a depasse la zone pertinente ne bloque pas (mouvement deja libere, 5.34) ;
+  - un vehicule present ailleurs dans l'anneau ne bloque pas s'il ne menace pas le creneau ;
+  - sans vehicule prioritaire pertinent, entree sans arret obligatoire.
+  - Le verdict depend de la trajectoire incompatible et de l'ETA vers la fusion, jamais d'un booleen « giratoire occupe ».
 - **Preseance entre deux traversees incompatibles d'un meme carrefour.** Elle se decide sur les controles de leur premier mouvement (le controle d'approche), dans cet ordre :
   1. `Priority` passe avant `Yield` et `Stop` ;
   2. deux `Uncontrolled` : l'approche venant de la droite passe d'abord ;
@@ -88,6 +97,9 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 
 **Ask First:**
 
+- **BLOQUANT avant `ready-for-dev` -- P9 (zones trop conservatrices).** L'audit identifie 16 paires (groupe A, axes >= 7 m) et 54 paires (groupe B, axes ~4 m, voies voisines) classees `ConservativeConflict` par `AutomatedPairDecisionPolicy.cs:491-497`, qui n'essaie jamais de prouver la separation d'une paire `Candidate`. Cause dans les donnees compilees (preuve Gate A), pas dans le coordinateur : HALT, voie de correction a decider par le proprietaire.
+- **BLOQUANT avant `ready-for-dev` -- P10 (fusion d'anneau et invariant 5.34).** Le grant de traversee (O7) reserve toute la traversee ; « deux traversees incompatibles ne tiennent jamais de grants simultanes » (epics 5.34). Une entree servie devant un vehicule d'anneau engage mais lointain exige d'amender cet invariant : decision proprietaire.
+
 - **P8 (tranchee le 2026-10-05, option a)** : `CandidateModel` inclut les controles, donc sa version change et `AutomatedPairDecisionPolicy.SameInputs` echoue. L'exception `5.50-AUTO-DECISIONS-v1` est etendue a la 5.35 par une proposition de changement de sprint redigee en phase 0 et approuvee par le proprietaire avant tout nouveau run, sous toutes ses conditions (build rules §6). Preuve exigee : a geometrie inchangee, chaque paire garde sa classification, sa raison et sa preuve ; seuls changent les identifiants de run et de revision. Toute classification differente : HALT. L'extension n'autorise ni la revue ni la signature de Gate A.
 - Un verdict de preuve Gate A, une decision de paire ou un ensemble de raccords signes qui change.
 - Un T dont l'instance ne correspond pas au prefab (axe traversant douteux), une relation `Ambiguous`, une `StopLine` sans separation positive, ou un `Stop` que la map semblerait justifier : remonter les elements, ne rien authorer.
@@ -121,6 +133,14 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 | Ligne dans le mouvement | b = 6,4 m (`TJunction_West`, branche) | Arret pare-chocs a [`m_ctrl` − 0,02 ; fenetre] de b ; non occupant, non engage avant b | N/A |
 | Sans ligne | Entree de giratoire | b = 0, comportement 5.34 | Disposition au rapport |
 | Rotation | Carrefour synthetique tourne de 0 a 345° par 15°, et miroir | Relation invariante en rotation, gauche/droite echangees en miroir | `Ambiguous` dans la bande |
+| Traversees compatibles | Meme carrefour, aucune `ConflictZone` commune (ex. tout-droit et virage qui ne se croisent pas, opposes compatibles) | Grants simultanes, aucun refus, aucune priorite evaluee | N/A |
+| Anneau, avant la sortie precedente | Vehicule d'anneau dont la traversee sort a la sortie precedente | Ne bloque pas l'entree | N/A |
+| Anneau, avant la sortie precedente | Meme position, traversee qui continue vers la fusion | Bloque seulement si ETA < t_gap | N/A |
+| Anneau, entre sortie precedente et entree | Continuation vers la fusion | Bloque si ETA < t_gap, sinon entree servie | N/A |
+| Anneau, proche de la fusion | Occupant ou ETA court | L'entrant attend | N/A |
+| Anneau, apres l'entree | Fusion depassee, mouvement libere | Ne bloque pas | N/A |
+| Anneau, secteur oppose | ETA vers la fusion ≥ t_gap | Entree servie | N/A |
+| Plusieurs vehicules d'anneau | Aucun ne menace le creneau | Entree servie sans arret | N/A |
 | Melange interdit | `Uncontrolled` + `Yield` dans un carrefour | Validation en echec | Diagnostic |
 
 </frozen-after-approval>
@@ -226,6 +246,8 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
   - p95 du pas hote < 10 ms a N = 8 ;
   - briseurs et cout par frontiere publies, observationnels.
 - Given `Story531`, `Story552`, `Story533` A/B et `Story534` C/D rejoues apres re-signature, when ils tournent, then ils restent verts, sauf decision proprietaire consignee.
+- Given deux traversees d'un meme carrefour sans `ConflictZone` commune (croix, T et giratoires de `MVP_Run` apres P9, et fixture synthetique : tout-droit et virage qui ne se croisent pas, mouvements opposes compatibles), when elles demandent au meme lot, then elles recoivent des grants simultanes ; aucun refus, aucune preseance ni creneau n'est evalue entre elles ; une recherche exhaustive sur toutes les paires compatibles de `MVP_Run` le prouve.
+- Given une entree `Yield` de giratoire et un vehicule d'anneau place tour a tour avant la sortie precedente, entre la sortie precedente et l'entree, proche de la fusion, apres l'entree et dans le secteur oppose, when l'entrant demande, then le verdict depend seulement de l'incompatibilite de la trajectoire restante et de l'ETA vers la zone de fusion (matrice), jamais de l'occupation globale de l'anneau. Plusieurs vehicules d'anneau qui ne menacent pas le creneau ne bloquent pas, et sans vehicule prioritaire pertinent l'entree se fait sans arret. Couverture EditMode sur `Roundabout_SouthWest` reel et PlayMode (scenario G etendu).
 - Given toute fixture `Story535`, when la suite tourne, then chaque grant, refus, revocation et liberation porte une raison stable.
 
 ## Spec Change Log
@@ -242,6 +264,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - **P5** `StopLine` authoree si l'intention est claire, sinon repli explicite. Ligne de controle distincte de l'occupation.
 - **P6** Creneau = degagement + `t_lat` + marge declaree. Stop = arret marque, puis creneau ; Yield sans arret obligatoire.
 - **P7** L, cinq phases, PlayMode execute par le proprietaire.
+- **Ajout proprietaire du 2026-10-05 (avant implementation) :** compatibilite reelle des mouvements et priorite locale d'anneau par creneau ; ni l'une ni l'autre n'est reportee a la 5.41.
 - **P8** Option a : exception `5.50-AUTO-DECISIONS-v1` etendue a la 5.35 par proposition de changement ; classifications identiques exigees a geometrie inchangee.
 
 **Preseance par controle d'approche, pas par paire de mouvements.** Une traversee de giratoire contient une entree (`Yield`) et des continuations (`Priority`). Comparer paire par paire rendrait deux traversees d'entrees differentes mutuellement prioritaires (contradiction). Le controle d'approche est la regle reelle : on cede la ou l'on entre. La priorite de l'anneau s'exerce sur les vehicules deja engages, que la 5.34 protege deja.
