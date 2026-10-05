@@ -2,7 +2,7 @@
 title: 'Story 5.35 -- Genres de controle authores : stop, cedez-le-passage, priorite routiere, priorite a droite et entree de giratoire, lignes d''arret, Gate C'
 type: 'feature'
 created: '2026-10-05'
-status: 'draft'
+status: 'ready-for-dev'
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
@@ -88,7 +88,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 
 **Ask First:**
 
-- **P8 (pre-identifiee, avant la phase 2)** : `CandidateModel` inclut les controles, donc sa version change et `AutomatedPairDecisionPolicy.SameInputs` echoue. L'exception `5.50-AUTO-DECISIONS-v1` ne couvre pas la 5.35 (build rules §6). Ne rien relancer sans decision.
+- **P8 (tranchee le 2026-10-05, option a)** : `CandidateModel` inclut les controles, donc sa version change et `AutomatedPairDecisionPolicy.SameInputs` echoue. L'exception `5.50-AUTO-DECISIONS-v1` est etendue a la 5.35 par une proposition de changement de sprint redigee en phase 0 et approuvee par le proprietaire avant tout nouveau run, sous toutes ses conditions (build rules §6). Preuve exigee : a geometrie inchangee, chaque paire garde sa classification, sa raison et sa preuve ; seuls changent les identifiants de run et de revision. Toute classification differente : HALT. L'extension n'autorise ni la revue ni la signature de Gate A.
 - Un verdict de preuve Gate A, une decision de paire ou un ensemble de raccords signes qui change.
 - Un T dont l'instance ne correspond pas au prefab (axe traversant douteux), une relation `Ambiguous`, une `StopLine` sans separation positive, ou un `Stop` que la map semblerait justifier : remonter les elements, ne rien authorer.
 - Revision de `m_gap`, `StopHaltSpeedMetersPerSecond`, `RightOfWayAmbiguityDegrees`, `m_ctrl` ou des formules ; toute hysteresis ou minuterie.
@@ -169,7 +169,8 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 **Execution** -- cinq phases, chacune fermee par un checkpoint vert, sinon HALT.
 
 *Phase 0*
-- [ ] `_bmad-output/planning-artifacts/epics.md` -- amender la 5.35 (index L, fiche, revues) : P1-P7, `Stop` en fixture synthetique, P8 si tranchee.
+- [ ] `_bmad-output/planning-artifacts/epics.md` -- amender la 5.35 (index L, fiche, revues) : P1-P8, `Stop` en fixture synthetique.
+- [ ] `_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-05.md` (nouveau), `docs/setup/build-workflow-rules.md` §6 -- extension P8 de l'exception 5.50 a la 5.35, sous toutes ses conditions. Approbation proprietaire avant la phase 2.
 
 *Phase 1 -- authoring, schema, compilation*
 - [ ] `AuthoringDecisions.cs` -- format 5, `StopLine` optionnelle par controle, nouvelle disposition `Ligne` « repli entree generique ».
@@ -178,10 +179,10 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - [ ] `Junction/RightOfWay.cs` (nouveau, pur) -- relation versionnee, secteurs, bande `Ambiguous`.
 - [ ] `MVP_Run.road-authoring.json` -- genres P2, lignes des 4 branches de T, dispositions. Avant d'ecrire : verification d'instance des 4 T et separation positive de chaque ligne, publiees.
 - [ ] `Tests/EditMode/Story535ControlAuthoringTests.cs` `[Core][Story535]` -- format 5, refus (melange, `Signalized`, ligne sans croisement), projection, relation sur rotations et miroir, `Ambiguous`, fait de modele P2, separation des lignes.
-- Checkpoint 1 : `Story535` EditMode vert ; P8 tranchee.
+- Checkpoint 1 : `Story535` EditMode vert ; extension P8 approuvee.
 
 *Phase 2 -- Gate A*
-- [ ] Regenerer modele, rapport, preuves et diff sur la nouvelle version, par le chemin 5.52. Verdicts, decisions et raccords identiques, sinon HALT.
+- [ ] Regenerer modele, rapport, preuves et diff sur la nouvelle version, par le chemin 5.52, avec le run de paires autorise par P8. Verdicts, classifications de paires et raccords identiques, sinon HALT.
 - [ ] `GateAEvidenceBinding.cs`, signoff de `AuthoredRoadModel.cs`, `TrafficV2Composition.cs` -- hash de relation de droite lie et verifie a l'admission.
 - Checkpoint 2 : **HALT, re-signature proprietaire.**
 
@@ -241,6 +242,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - **P5** `StopLine` authoree si l'intention est claire, sinon repli explicite. Ligne de controle distincte de l'occupation.
 - **P6** Creneau = degagement + `t_lat` + marge declaree. Stop = arret marque, puis creneau ; Yield sans arret obligatoire.
 - **P7** L, cinq phases, PlayMode execute par le proprietaire.
+- **P8** Option a : exception `5.50-AUTO-DECISIONS-v1` etendue a la 5.35 par proposition de changement ; classifications identiques exigees a geometrie inchangee.
 
 **Preseance par controle d'approche, pas par paire de mouvements.** Une traversee de giratoire contient une entree (`Yield`) et des continuations (`Priority`). Comparer paire par paire rendrait deux traversees d'entrees differentes mutuellement prioritaires (contradiction). Le controle d'approche est la regle reelle : on cede la ou l'on entre. La priorite de l'anneau s'exerce sur les vehicules deja engages, que la 5.34 protege deja.
 
@@ -249,7 +251,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 **Exemple (profil par defaut, Δt = 0,02 s), a titre indicatif.** Branche arretee (v = 0), traversee de ~12 m jusqu'a la fin du dernier mouvement en conflit, L = 4,44 m, a = 1,5 m/s² : t_clear ≈ √(2·16,4/1,5) ≈ 4,7 s, donc t_gap ≈ 4,7 + 0,04 + 1,0 ≈ 5,7 s. Un vehicule d'axe a 8 m/s cede le creneau au-dela d'environ 45 m.
 
 **Hypotheses non verifiees.**
-- P8 : effet reel de `SameInputs` sur la regeneration (refus ou nouveau run), a mesurer en phase 1.
+- P8 : effet reel de `SameInputs` sur la regeneration (refus ou nouveau run), a mesurer en phase 1 ; l'identite des classifications a geometrie inchangee est attendue, pas prouvee.
 - Le plafond √(a_lat/κmax) suppose a_lat disponible par profil ; sinon HALT.
 - Le debit de la croix sous priorite a droite et la frequence du briseur ne sont pas mesures.
 - Le cout par vehicule du creneau n'est pas mesure, avec une marge D13 de 0,7 a 1,7 ms.
