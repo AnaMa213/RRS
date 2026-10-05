@@ -195,6 +195,10 @@ development_status:
   5-32-perception-boundary-occupancy-leader-and-hazards: done
   5-33-vehicle-following-through-named-speed-constraints: done
   5-34-junction-coordination-core-grants-and-conflicts: review
+  # Inserted 2026-10-05 (owner decision P9, spec-5-35 / spec-5-53): conflict-pair
+  # classification refined and conflict zones typed Crossing/Merge before 5.35.
+  # Formal sprint-change-proposal-2026-10-05.md is phase 0 of 5.53.
+  5-53-conflict-pair-separation-proof-and-conflict-kinds: backlog
   5-35-authored-control-kinds-stop-yield-priority-roundabout: backlog
   5-36-signal-phase-runtime-and-coordinator-integration: backlog
   5-37-safety-filter-narrow-veto-and-clamp-boundary: backlog

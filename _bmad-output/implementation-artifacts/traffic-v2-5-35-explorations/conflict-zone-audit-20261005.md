@@ -6,14 +6,14 @@ Modele `v4:46e91057b9f6e8a970fe7952639805a6`, decisions `2e290408351c1b6d8af536d
 
 - Distance minimale entre les axes (echantillons `Samples`, pas max 0,104 m, erreur <= ~0,05 m) des deux mouvements de chaque zone. Classification et raison lues dans `MVP_Run.road-authoring.json`.
 - Demi-gabarit gonfle de reference : demi-largeur 1.03 + marge 0.25 + a_e 0,34 = 1,62 m, soit 3,24 m pour deux vehicules alignes sur leurs axes ; en virage, le cap decale (pose cinematique) elargit l'emprise laterale.
-- Mecanisme (`AutomatedPairDecisionPolicy.cs:491-497`) : une paire `Candidate` (enveloppes grossieres qui se recouvrent) sans temoin ponctuel de contact est acceptee `ConservativeConflict` (`continuous-contact-possible`). La politique ne tente jamais de prouver la separation des rectangles orientes pour une paire `Candidate`.
-- Une distance d'axes n'est PAS une preuve de separation : elle indique seulement les paires a soumettre a une preuve.
+- Mecanisme (`ConflictSweep.cs:701-752`, `AutomatedPairDecisionPolicy.cs:483-497`) : le balayage borne la distance des empreintes gonflees sur des intervalles de poses, restes de continuite compris. Une paire est `Candidate` quand cette borne autorise un contact ; la politique cherche alors un temoin (une paire de poses reelles dont les rectangles se recouvrent). Sans temoin, elle accepte la paire `ConservativeConflict` (`continuous-contact-possible`) sans raffiner les intervalles pour tenter de prouver la separation. Corrige le 2026-10-05 : une premiere redaction affirmait a tort qu'aucune separation n'etait tentee.
+- Une distance d'axes n'est PAS une preuve de separation : elle indique seulement les paires a soumettre a une preuve. Elle ignore le porte-a-faux de la caisse (2,25 m de demi-longueur) au-dela des extremites des mouvements, la ou les mouvements de giratoire se rejoignent par des corridors d'anneau de 0,87 et 5,58 m : le groupe A n'est donc qu'une presomption.
 
 ## Synthese
 
 | Groupe | Zones | Lecture |
 |---|---|---|
-| A (axes >= 7 m) | 16 | tres probablement faux conflit : axes separes de plus de deux fois le demi-gabarit gonfle |
+| A (axes >= 7 m) | 16 | presomption de faux conflit (axes separes de plus de deux fois le demi-gabarit gonfle, porte-a-faux non compte) |
 | B (axes ~4 m, voies voisines) | 54 | a prouver : voies voisines de sens oppose ; separation attendue positive en ligne droite (4,0 - 3,24 = 0,76 m), incertaine en virage |
 | C (axes < 0,1 m, croisement reel) | 24 | conflit plausible (les axes se croisent), classe par prudence |
 | P (contact prouve) | 42 | conflit reel (temoin de recouvrement) |

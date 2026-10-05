@@ -19,7 +19,7 @@ context:
 - giratoires : entrees `Yield`, anneau `Priority` ;
 - T : axe traversant `Priority`, branche `Yield` ;
 - croix : `Uncontrolled`, lu comme une priorite a droite.
-Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 recoit une preseance compilee une fois par modele et une acceptation de creneau derivee de la cinematique. Garantir la compatibilite reelle des mouvements (P9) et une priorite locale d'anneau par creneau (P10). Re-signer Gate A, puis fermer la Gate C (jalon PlayMode 2, cout multi-agents).
+Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 recoit une preseance compilee une fois par modele et une acceptation de creneau derivee de la cinematique. Prerequis : la Story 5.53 (classification des paires corrigee, zones typees `Crossing`/`Merge`). Garantir la compatibilite reelle des mouvements (P9) et une priorite locale d'anneau par creneau, limitee aux fusions (P10). Re-signer Gate A, puis fermer la Gate C (jalon PlayMode 2, cout multi-agents).
 
 ## Boundaries & Constraints
 
@@ -37,7 +37,21 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - **Compatibilite reelle (P9), invariant :** `Compatible traversals must not deny each other solely because they belong to the same Junction.`
   - L'incompatibilite reste la seule co-appartenance a une `ConflictZone` compilee (5.34) ; aucune regle de carrefour exclusif, aucun refus par seule appartenance au meme `JunctionId`.
   - Priorite (`Priority`, `Yield`, `Stop`, priorite a droite), creneau et briseur n'interviennent qu'entre traversees incompatibles.
-  - Une zone trop conservatrice se corrige dans les donnees compilees par la voie decidee en P9, jamais par une exception runtime.
+  - Une zone trop conservatrice se corrige dans les donnees compilees par la Story 5.53 (P9), jamais par une exception runtime de la 5.35.
+- **Genres de conflit (P10)**, lus dans le modele compile (5.53), jamais inferes en runtime :
+  - `Crossing` : exclusivite stricte (invariant 5.34 inchange) ;
+  - `Merge` (fusion prouvee vers le meme corridor de depart) : admission possible par creneau ;
+  - non prouve ou ambigu : `Crossing`, donc strict ;
+  - suivi et meme approche : regles existantes (aucune zone).
+- **`GrantedMergeGap`.** Une demande R peut etre servie alors qu'un titulaire H tient un grant incompatible, seulement si toutes ces conditions sont vraies :
+  - chaque zone entre la traversee de R et les mouvements non liberes de H est `Merge` ;
+  - H n'occupe pas encore son mouvement de fusion ;
+  - H est localise, hors repli, et son rapport est celui de la frame courante ;
+  - l'ETA de H jusqu'a son `ContactStartSMeters` est ≥ t_gap_R, avec t_clear_R calcule jusqu'au degagement de la zone de fusion par R ;
+  - aucune autre zone `Crossing`, aucun occupant protege et aucun grant strict ne bloque la traversee de R.
+  - Rapport incomplet, perime ou ambigu -> refus `ConflictGranted`, conservateur.
+  - Une fois R engage, H reste prioritaire au sens des regles ; physiquement, le suivi longitudinal 5.33 le fait suivre R.
+  - Amendement de l'invariant 5.34 et des verdicts O6 : deux grants incompatibles effectifs simultanes ne sont admis que sur des zones `Merge` avec un `GrantedMergeGap` enregistre. Tout contact reste un echec.
 - **Priorite locale d'anneau (P10).** La presence d'un vehicule dans le giratoire n'interdit jamais l'entree par elle-meme. Une entree `Yield` ne cede qu'a un vehicule dont la trajectoire restante est incompatible avec sa traversee et dont l'ETA vers la zone de fusion rend le creneau insuffisant :
   - un vehicule qui a depasse la zone pertinente ne bloque pas (mouvement deja libere, 5.34) ;
   - un vehicule present ailleurs dans l'anneau ne bloque pas s'il ne menace pas le creneau ;
@@ -74,7 +88,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
   1. arret marque : vitesse tangentielle ≤ `StopHaltSpeedMetersPerSecond` (0,05 m/s, declaree), pare-chocs dans la fenetre d'arret de b ;
   2. ensuite seulement, acceptation de creneau.
   - Avant 1 : `Denied(StopRequired)`. L'etat « arret marque » vit dans le coordinateur, avec la duree de vie de l'anciennete O2 : jamais de minuterie.
-- **Ordre du lot, par demande.** sortie -> `StopRequired` -> occupant protege -> grant incompatible -> `YieldToPriority` -> reservation de l'ancien -> `Granted`.
+- **Ordre du lot, par demande.** sortie -> `StopRequired` -> occupant protege -> grant incompatible (`Crossing` strict ; `Merge` admis seulement par `GrantedMergeGap`) -> `YieldToPriority` -> reservation de l'ancien -> `Granted`.
   - La sortie est toujours evaluee avant toute priorite.
   - Une reservation d'ancien ne bloque jamais un plus jeune qui a preseance sur elle.
   - Un grant non engage n'est pas revoque pour priorite.
@@ -97,8 +111,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 
 **Ask First:**
 
-- **BLOQUANT avant `ready-for-dev` -- P9 (zones trop conservatrices).** L'audit identifie 16 paires (groupe A, axes >= 7 m) et 54 paires (groupe B, axes ~4 m, voies voisines) classees `ConservativeConflict` par `AutomatedPairDecisionPolicy.cs:491-497`, qui n'essaie jamais de prouver la separation d'une paire `Candidate`. Cause dans les donnees compilees (preuve Gate A), pas dans le coordinateur : HALT, voie de correction a decider par le proprietaire.
-- **BLOQUANT avant `ready-for-dev` -- P10 (fusion d'anneau et invariant 5.34).** Le grant de traversee (O7) reserve toute la traversee ; « deux traversees incompatibles ne tiennent jamais de grants simultanes » (epics 5.34). Une entree servie devant un vehicule d'anneau engage mais lointain exige d'amender cet invariant : decision proprietaire.
+- **Dependance 5.53.** La 5.35 demarre quand la 5.53 a publie son diff et que le proprietaire l'a revu. Si une paire necessaire aux criteres de la 5.35 reste `Crossing`/conservative apres la 5.53, HALT avant d'ecrire du code. Cela vaut pour l'entree et la sortie d'un meme bras, l'entree et l'entree de deux bras, et les tout-droit opposes. Jamais d'exception runtime.
 
 - **P8 (tranchee le 2026-10-05, option a)** : `CandidateModel` inclut les controles, donc sa version change et `AutomatedPairDecisionPolicy.SameInputs` echoue. L'exception `5.50-AUTO-DECISIONS-v1` est etendue a la 5.35 par une proposition de changement de sprint redigee en phase 0 et approuvee par le proprietaire avant tout nouveau run, sous toutes ses conditions (build rules §6). Preuve exigee : a geometrie inchangee, chaque paire garde sa classification, sa raison et sa preuve ; seuls changent les identifiants de run et de revision. Toute classification differente : HALT. L'extension n'autorise ni la revue ni la signature de Gate A.
 - Un verdict de preuve Gate A, une decision de paire ou un ensemble de raccords signes qui change.
@@ -134,13 +147,14 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 | Sans ligne | Entree de giratoire | b = 0, comportement 5.34 | Disposition au rapport |
 | Rotation | Carrefour synthetique tourne de 0 a 345° par 15°, et miroir | Relation invariante en rotation, gauche/droite echangees en miroir | `Ambiguous` dans la bande |
 | Traversees compatibles | Meme carrefour, aucune `ConflictZone` commune (ex. tout-droit et virage qui ne se croisent pas, opposes compatibles) | Grants simultanes, aucun refus, aucune priorite evaluee | N/A |
-| Anneau, avant la sortie precedente | Vehicule d'anneau dont la traversee sort a la sortie precedente | Ne bloque pas l'entree | N/A |
-| Anneau, avant la sortie precedente | Meme position, traversee qui continue vers la fusion | Bloque seulement si ETA < t_gap | N/A |
-| Anneau, entre sortie precedente et entree | Continuation vers la fusion | Bloque si ETA < t_gap, sinon entree servie | N/A |
-| Anneau, proche de la fusion | Occupant ou ETA court | L'entrant attend | N/A |
-| Anneau, apres l'entree | Fusion depassee, mouvement libere | Ne bloque pas | N/A |
-| Anneau, secteur oppose | ETA vers la fusion ≥ t_gap | Entree servie | N/A |
+| Anneau, juste avant la fusion | H continue vers la fusion, ETA < t_gap | Refus, l'entrant cede (`Yield`) | N/A |
+| Anneau, loin avant la fusion | H continue vers la fusion, ETA ≥ t_gap, zone `Merge` | `GrantedMergeGap` ; H suit ensuite l'entrant | N/A |
+| Anneau, apres la fusion | Mouvement de fusion de H libere | Ne bloque pas | N/A |
+| Anneau, secteur oppose | Trajectoire restante de H sans zone avec l'entree, ou ETA ≥ t_gap | Ne bloque pas | N/A |
+| Anneau, en train de sortir avant l'entree | Trajectoire restante de H ne rejoint plus la fusion | Ne bloque pas | N/A |
 | Plusieurs vehicules d'anneau | Aucun ne menace le creneau | Entree servie sans arret | N/A |
+| Fusion, rapport perime | H non localise, en repli ou rapport d'une autre frame | Refus conservateur | Compteur |
+| Croisement | Zone `Crossing` avec un grant tenu, H lointain | Refus strict, jamais `GrantedMergeGap` | N/A |
 | Melange interdit | `Uncontrolled` + `Yield` dans un carrefour | Validation en echec | Diagnostic |
 
 </frozen-after-approval>
@@ -190,7 +204,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 
 *Phase 0*
 - [ ] `_bmad-output/planning-artifacts/epics.md` -- amender la 5.35 (index L, fiche, revues) : P1-P8, `Stop` en fixture synthetique.
-- [ ] `_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-05.md` (nouveau), `docs/setup/build-workflow-rules.md` §6 -- extension P8 de l'exception 5.50 a la 5.35, sous toutes ses conditions. Approbation proprietaire avant la phase 2.
+- [ ] `_bmad-output/planning-artifacts/epics.md` -- amender l'invariant de grant 5.34 et les verdicts O6 pour les seules zones `Merge` (P10). L'extension P8 de l'exception §6 est portee par la proposition de changement de la 5.53 : verifier qu'elle est approuvee.
 
 *Phase 1 -- authoring, schema, compilation*
 - [ ] `AuthoringDecisions.cs` -- format 5, `StopLine` optionnelle par controle, nouvelle disposition `Ligne` « repli entree generique ».
@@ -199,21 +213,23 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - [ ] `Junction/RightOfWay.cs` (nouveau, pur) -- relation versionnee, secteurs, bande `Ambiguous`.
 - [ ] `MVP_Run.road-authoring.json` -- genres P2, lignes des 4 branches de T, dispositions. Avant d'ecrire : verification d'instance des 4 T et separation positive de chaque ligne, publiees.
 - [ ] `Tests/EditMode/Story535ControlAuthoringTests.cs` `[Core][Story535]` -- format 5, refus (melange, `Signalized`, ligne sans croisement), projection, relation sur rotations et miroir, `Ambiguous`, fait de modele P2, separation des lignes.
-- Checkpoint 1 : `Story535` EditMode vert ; extension P8 approuvee.
+- Checkpoint 1 : `Story535` EditMode vert.
 
 *Phase 2 -- Gate A*
 - [ ] Regenerer modele, rapport, preuves et diff sur la nouvelle version, par le chemin 5.52, avec le run de paires autorise par P8. Verdicts, classifications de paires et raccords identiques, sinon HALT.
 - [ ] `GateAEvidenceBinding.cs`, signoff de `AuthoredRoadModel.cs`, `TrafficV2Composition.cs` -- hash de relation de droite lie et verifie a l'admission.
-- Checkpoint 2 : **HALT, re-signature proprietaire.**
+- Checkpoint 2 : **HALT, re-signature proprietaire.** Si la signature de la 5.53 a ete differee, c'est une signature combinee. Le proprietaire rejoue alors les PlayMode 5.31, 5.52, 5.33 et 5.34 avant la phase 3 : c'est la non-regression de la 5.53.
 
 *Phase 3 -- regles pures*
 - [ ] `JunctionConflictIndex.cs` -- precalculs par modele, compteur de construction.
-- [ ] `JunctionPriority.cs` (nouveau, pur) -- `t_clear`, `ETA`, `t_gap`, preseance de traversees.
+- [ ] `JunctionPriority.cs` (nouveau, pur) -- `t_clear`, `ETA` (vers `ContactStartSMeters`), `t_gap`, preseance de traversees, admission `GrantedMergeGap`.
 - [ ] `JunctionCoordinator.cs`, `JunctionRecords.cs` -- ordre du lot, `StopRequired`, `YieldToPriority`, reservation filtree, arret marque, briseur, compteurs et raisons par ajout.
 - [ ] `Tests/EditMode/Story535JunctionRulesTests.cs` `[Core][Story535]` -- la matrice, plus :
   - fixture synthetique `Stop` ;
   - permutations priorite routiere et priorite a droite ;
   - arrivees simultanees sous ordres melanges ;
+  - recherche exhaustive sur `MVP_Run` : toute paire de traversees sans zone commune recoit des grants simultanes ;
+  - les positions d'anneau de la matrice sur `Roundabout_SouthWest` reel, `Crossing` jamais admis par creneau, rapport perime refuse ;
   - cas limites de `t_gap`/`ETA` (v = 0, plafond, distances nulles) ;
   - aucun service avant creneau ;
   - travail par lot independant de la taille du modele ;
@@ -229,7 +245,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - [ ] `traffic-v2-5-35-explorations/scenarios-5-35.json` et `Tests/PlayMode/Story535JunctionPlayModeTests.cs` `[Story535]` -- trois scenarios :
   - E : rencontre ZC23, la branche cede, arret a la ligne, puis service ;
   - F : priorite a droite a la croix ;
-  - G : entree de giratoire face a la circulation.
+  - G : entree de giratoire, vehicule d'anneau juste avant la fusion, loin avant la fusion, apres la fusion, dans le secteur oppose, en train de sortir avant l'entree, et plusieurs vehicules d'anneau.
 - [ ] Campagne Gate C `[Explicit]` (`Story535GateC`) a N = 2, 4 et 8 : croix, ≥ 1 T, ≥ 1 giratoire ; cout par frontiere publie (frame, coordinateur, priorite, pas vehicule) ; adaptation des verdicts `Story533Exploration`.
 - [ ] `deferred-work.md`, `sprint-status.yaml` (5.35 seulement) -- solder « StopLine » et « Constats 5.35 », reevaluer les dettes rouvertes avec mesure, puis `graphify update .`.
 
@@ -247,7 +263,15 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
   - briseurs et cout par frontiere publies, observationnels.
 - Given `Story531`, `Story552`, `Story533` A/B et `Story534` C/D rejoues apres re-signature, when ils tournent, then ils restent verts, sauf decision proprietaire consignee.
 - Given deux traversees d'un meme carrefour sans `ConflictZone` commune (croix, T et giratoires de `MVP_Run` apres P9, et fixture synthetique : tout-droit et virage qui ne se croisent pas, mouvements opposes compatibles), when elles demandent au meme lot, then elles recoivent des grants simultanes ; aucun refus, aucune preseance ni creneau n'est evalue entre elles ; une recherche exhaustive sur toutes les paires compatibles de `MVP_Run` le prouve.
-- Given une entree `Yield` de giratoire et un vehicule d'anneau place tour a tour avant la sortie precedente, entre la sortie precedente et l'entree, proche de la fusion, apres l'entree et dans le secteur oppose, when l'entrant demande, then le verdict depend seulement de l'incompatibilite de la trajectoire restante et de l'ETA vers la zone de fusion (matrice), jamais de l'occupation globale de l'anneau. Plusieurs vehicules d'anneau qui ne menacent pas le creneau ne bloquent pas, et sans vehicule prioritaire pertinent l'entree se fait sans arret. Couverture EditMode sur `Roundabout_SouthWest` reel et PlayMode (scenario G etendu).
+- Given une entree `Yield` de giratoire et un vehicule d'anneau prioritaire H, when l'entrant demande, then :
+  - H juste avant la fusion -> refus, l'entrant cede ;
+  - H suffisamment loin avant la fusion, zone `Merge` -> `GrantedMergeGap`, entree autorisee, H suit ensuite l'entrant ;
+  - H apres la fusion -> ne bloque pas ;
+  - H dans un secteur oppose -> ne bloque pas ;
+  - H en train de sortir avant l'entree consideree -> ne bloque pas si sa trajectoire restante ne rejoint plus la fusion.
+  - Plusieurs vehicules d'anneau qui ne menacent pas le creneau ne bloquent pas ; sans vehicule prioritaire pertinent, l'entree se fait sans arret.
+  - Le verdict ne depend que de la zone de fusion pertinente et de l'ETA, jamais de l'occupation globale de l'anneau. Une zone `Crossing` n'est jamais admise par creneau.
+  - Couverture EditMode sur `Roundabout_SouthWest` reel, PlayMode (scenario G).
 - Given toute fixture `Story535`, when la suite tourne, then chaque grant, refus, revocation et liberation porte une raison stable.
 
 ## Spec Change Log
@@ -265,6 +289,8 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - **P6** Creneau = degagement + `t_lat` + marge declaree. Stop = arret marque, puis creneau ; Yield sans arret obligatoire.
 - **P7** L, cinq phases, PlayMode execute par le proprietaire.
 - **Ajout proprietaire du 2026-10-05 (avant implementation) :** compatibilite reelle des mouvements et priorite locale d'anneau par creneau ; ni l'une ni l'autre n'est reportee a la 5.41.
+- **P9 (2026-10-05) : (b).** Story dediee 5.53 avant la 5.35 : la classification des paires est un probleme de modele et de preuve Gate A, pas de regles de circulation. Aucune exception runtime en 5.35.
+- **P10 (2026-10-05) : (a), limite aux fusions.** Conflits types par le modele compile : `Crossing` strict, `Merge` admissible par creneau, non prouve -> strict. `GrantedMergeGap` exige une zone `Merge` compilee.
 - **P8** Option a : exception `5.50-AUTO-DECISIONS-v1` etendue a la 5.35 par proposition de changement ; classifications identiques exigees a geometrie inchangee.
 
 **Preseance par controle d'approche, pas par paire de mouvements.** Une traversee de giratoire contient une entree (`Yield`) et des continuations (`Priority`). Comparer paire par paire rendrait deux traversees d'entrees differentes mutuellement prioritaires (contradiction). Le controle d'approche est la regle reelle : on cede la ou l'on entre. La priorite de l'anneau s'exerce sur les vehicules deja engages, que la 5.34 protege deja.
@@ -274,6 +300,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 **Exemple (profil par defaut, Δt = 0,02 s), a titre indicatif.** Branche arretee (v = 0), traversee de ~12 m jusqu'a la fin du dernier mouvement en conflit, L = 4,44 m, a = 1,5 m/s² : t_clear ≈ √(2·16,4/1,5) ≈ 4,7 s, donc t_gap ≈ 4,7 + 0,04 + 1,0 ≈ 5,7 s. Un vehicule d'axe a 8 m/s cede le creneau au-dela d'environ 45 m.
 
 **Hypotheses non verifiees.**
+- Le nombre de zones que la 5.53 prouvera disjointes, donc l'atteignabilite des criteres « secteur oppose » et « en train de sortir », est inconnu (HALT prevu).
 - P8 : effet reel de `SameInputs` sur la regeneration (refus ou nouveau run), a mesurer en phase 1 ; l'identite des classifications a geometrie inchangee est attendue, pas prouvee.
 - Le plafond √(a_lat/κmax) suppose a_lat disponible par profil ; sinon HALT.
 - Le debit de la croix sous priorite a droite et la frequence du briseur ne sont pas mesures.
