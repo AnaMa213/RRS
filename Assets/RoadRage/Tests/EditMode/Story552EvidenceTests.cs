@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using RoadRage.Features.Vehicles.Traffic;
@@ -388,7 +389,8 @@ namespace RoadRage.Tests.EditMode
             var history = JsonUtility.FromJson<InMemorySignoffHistory>(File.ReadAllText(AuthoredRoadModel.SignoffHistoryPath));
             Assert.That(history.Format, Is.EqualTo(1));
             // Chaque re-signature (5.52, 5.53, ...) ajoute la precedente ; la premiere reste archivee verbatim en tete.
-            Assert.That(history.Superseded, Is.Not.Empty);
+            Assert.That(history.Superseded.Length, Is.GreaterThanOrEqualTo(2), "5.51 puis 5.52 au moins, depuis la re-signature 5.53.");
+            Assert.That(history.Superseded.Distinct().Count(), Is.EqualTo(history.Superseded.Length), "Aucune signature archivee deux fois.");
             Assert.That(history.Superseded[0], Is.EqualTo(File.ReadAllText(HistoricalSignedDirectory + "MVP_Run.road-signoff.json")),
                 "L'ancienne signature est archivee verbatim.");
             Assert.That(history.Superseded, Does.Not.Contain(signoff), "La signature courante n'est jamais dans l'historique.");

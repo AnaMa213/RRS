@@ -29,7 +29,76 @@ namespace RoadRage.Tests.EditMode
         private sealed class Archive
         {
             public int DecisionPolicyVersion;
+            public string DecisionRunId;
             public string SupersededManifestText;
+            public Record[] Records;
+        }
+
+        [System.Serializable]
+        private sealed class Record
+        {
+            public string PairKey;
+            public string RoadId;
+            public string MovementAId;
+            public string Classification;
+            public string ReasonCode;
+            public string Decision;
+            public bool Active;
+            public bool RefinementComplete;
+            public string TypingCanonical;
+        }
+
+        [Test]
+        public void TheCommittedPlanRevalidatesAndEveryRefinedRejectionIsADecision()
+        {
+            string decisionsText = File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath));
+            var archive = UnityEngine.JsonUtility.FromJson<Archive>(After);
+            var plan = new AutomatedPairDecisionPlan { DecisionRunId = archive.DecisionRunId, DecisionsText = decisionsText, ManifestText = After };
+            Assert.DoesNotThrow(() => AutomatedPairDecisionPolicy.ValidatePlan(plan, archive.Records.Length),
+                "Revision, preuve, typage et decisions lies, relus depuis les artefacts committes.");
+
+            var decisions = AuthoringDecisions.Parse(decisionsText);
+            var decided = decisions.Conflicts.ToDictionary(c => AuthoredRoadModel.PairKey(c.MovementKeyA, c.MovementKeyB), c => c);
+            int refined = 0;
+            foreach (var record in archive.Records.Where(r => r.ReasonCode == "refined-disjoint"))
+            {
+                refined++;
+                Assert.That(record.Active, Is.True, "Un rejet raffine reste candidat : sa decision est ecrite.");
+                Assert.That(decided.ContainsKey(record.PairKey), Is.True);
+                Assert.That(decided[record.PairKey].Decision, Is.EqualTo(ConflictDecisionKind.Rejected));
+            }
+
+            Assert.That(refined, Is.EqualTo(22));
+        }
+
+        [Test]
+        public void EachCompiledContactStartBelongsToItsOwnMemberInTheProof()
+        {
+            var archive = UnityEngine.JsonUtility.FromJson<Archive>(After);
+            var byZone = archive.Records.Where(r => !string.IsNullOrEmpty(r.RoadId)).ToDictionary(r => r.RoadId, r => r);
+            var pattern = new System.Text.RegularExpressions.Regex(@"\|A((?:\[[^\]]*\])*)\|B((?:\[[^\]]*\])*)$");
+            int checkedZones = 0;
+            foreach (var zone in Model.ConflictZones)
+            {
+                var record = byZone[zone.Id.ToString()];
+                var match = pattern.Match(record.TypingCanonical);
+                Assert.That(match.Success, Is.True, record.TypingCanonical);
+                for (int m = 0; m < zone.MemberMovementIds.Count; m++)
+                {
+                    CompiledJunctionMovement movement;
+                    Model.TryGetMovement(zone.MemberMovementIds[m], out movement);
+                    string intervals = zone.MemberMovementIds[m].ToString() == record.MovementAId ? match.Groups[1].Value : match.Groups[2].Value;
+                    float expected = !record.RefinementComplete || intervals.Length == 0 ? 0f
+                        : UnityEngine.Mathf.Clamp(float.Parse(intervals.Substring(1, intervals.IndexOf(',') - 1),
+                            System.Globalization.CultureInfo.InvariantCulture), 0f, movement.LengthMeters);
+                    Assert.That(zone.ContactStartSMeters[m], Is.EqualTo(expected).Within(1e-5f),
+                        "Debut de contact du membre " + zone.MemberMovementIds[m] + " dans la zone " + zone.Id);
+                }
+
+                checkedZones++;
+            }
+
+            Assert.That(checkedZones, Is.EqualTo(Model.ConflictZones.Count));
         }
 
         private static string _after;

@@ -276,9 +276,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                         : ParseEnum<ConflictKind>(record.ConflictKind, "genre de conflit " + pair);
                     conflict.ContactStartSMetersA = NonNegative(record.ContactStartSMetersA, "debut de contact A " + pair);
                     conflict.ContactStartSMetersB = NonNegative(record.ContactStartSMetersB, "debut de contact B " + pair);
-                    if (conflict.Kind == ConflictKind.Merge && conflict.Decision != ConflictDecisionKind.Accepted)
+                    if (conflict.Kind == ConflictKind.Merge && (conflict.Decision != ConflictDecisionKind.Accepted
+                        || conflict.Classification != AutomatedPairClassification.ConflictProven || conflict.DecisionPolicyVersion < 3))
                     {
-                        throw new FormatException("Decisions : Merge sur une paire rejetee " + pair + ".");
+                        throw new FormatException("Decisions : Merge sans preuve de fusion v3 (paire rejetee, non prouvee ou politique anterieure) " + pair + ".");
                     }
                 }
                 if (conflict.Decision == ConflictDecisionKind.Accepted)

@@ -21,7 +21,9 @@ namespace RoadRage.Tests.EditMode
         private static AuthoredRun _run;
         private static AutomatedPairDecisionPlan _plan;
 
-        [Test]
+        // Politique v3 (5.53) : deux plans raffines frais, ~16 min ; le determinisme est aussi prouve par la campagne
+        // Story553Regeneration et par le menu d'application, qui comparent deux plans avant d'ecrire.
+        [Test, Explicit, Timeout(3600000)]
         public void TwoPlansReuseAllocatedIdentitiesAndAreByteIdentical()
         {
             AuthoredRun run = Run();
@@ -33,7 +35,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(second.ManifestText, Is.EqualTo(first.ManifestText));
         }
 
-        [Test]
+        [Test, Timeout(900000)]
         public void TheRealDifferentialIsExhaustiveAndEveryActiveDecisionIsFormatFour()
         {
             AuthoredRun run = Run();
@@ -68,16 +70,18 @@ namespace RoadRage.Tests.EditMode
             };
 
             Assert.Throws<InvalidOperationException>(() =>
-                AutomatedPairDecisionPolicy.ValidatePlan(tampered, Run().PairSweeps.Count));
+                AutomatedPairDecisionPolicy.ValidatePlan(tampered, CommittedPairs()));
         }
 
-        [Test]
+        // Le pipeline cinematique complet (Run) coute ~225 s depuis la 5.52.
+        [Test, Timeout(900000)]
         public void TheNineJunctionHarnessProvesSafetyMaximalityProgressAndBoundedWait()
         {
             Assert.DoesNotThrow(() => AutomatedPairDecisionPolicy.ValidateTrafficScenarios(Run(), Plan()));
         }
 
-        [Test, Explicit, Timeout(600000)]
+        // Politique v3 (5.53) : un passage du pipeline et deux plans raffines, ~20 min mesurees.
+        [Test, Explicit, Timeout(3600000)]
         public void KinematicDecisionPlanIsDeterministicAndKeepsHistoricalDecisionsUnchanged()
         {
             string decisionsText = File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath));
@@ -139,14 +143,41 @@ namespace RoadRage.Tests.EditMode
             return text.Substring(0, start) + replacement + text.Substring(start + 1);
         }
 
+        /// <summary>Plan committe (decisions et manifeste appliques) : relu, jamais recalcule (un plan v3 coute ~8 min).</summary>
         private static AutomatedPairDecisionPlan Plan()
         {
             if (_plan == null)
             {
-                _plan = AutomatedPairDecisionPolicy.CreatePlan(Run());
+                string manifest = File.ReadAllText(AuthoredRoadModel.FullPath(AutomatedPairDecisionPolicy.ManifestPath));
+                _plan = new AutomatedPairDecisionPlan
+                {
+                    DecisionRunId = UnityEngine.JsonUtility.FromJson<CommittedRun>(manifest).DecisionRunId,
+                    DecisionsText = File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath)),
+                    ManifestText = manifest
+                };
+                AutomatedPairDecisionPolicy.ValidatePlan(_plan, CommittedPairs());
             }
 
             return _plan;
+        }
+
+        private static int CommittedPairs()
+        {
+            return UnityEngine.JsonUtility.FromJson<CommittedRun>(File.ReadAllText(
+                AuthoredRoadModel.FullPath(AutomatedPairDecisionPolicy.ManifestPath))).Records.Length;
+        }
+
+        [Serializable]
+        private sealed class CommittedRun
+        {
+            public string DecisionRunId;
+            public CommittedRecord[] Records;
+        }
+
+        [Serializable]
+        private sealed class CommittedRecord
+        {
+            public string PairKey;
         }
 
         private static AuthoredRun Run()

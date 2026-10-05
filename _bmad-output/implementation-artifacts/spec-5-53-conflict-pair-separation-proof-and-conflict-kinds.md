@@ -159,6 +159,18 @@ context:
   - **Diff approuve par le proprietaire (2026-10-05) ; analyse ciblee des 12 paires au plafond, sans nouveau run.** Seules les 4 paires continuation ouest x entree ouest (une par giratoire) ont un corridor aval commun (`Ring_Merge_West`) et relevent de `GrantedMergeGap` ; les 8 paires entree x sortie d'un meme bras sortent par des corridors differents et ne peuvent jamais etre `Merge`. Pour les 4 paires utiles, la preuve publiee s'arrete au budget (65 536 feuilles, temoin acquis a 60-233 feuilles) sans projection de contact : ni la zone terminale ni l'absence de contact en amont ne sont etablies. Les 12 restent `Crossing`, debuts de contact a 0. Impact 5.35 publie au proprietaire (entree ouest des 4 giratoires sans creneau de fusion ; sortie au meme bras toujours bloquante).
   - **Application (2026-10-05).** Menu transactionnel sur le moteur `a9baf8a` (le premier essai sur `d23ae10` a omis les 22 rejets raffines, restes candidats au balayage : decisions restaurees, correctif et garde de compilation avant ecriture). Run `41405085...` : 136 decisions (82 `Crossing`, 32 `Merge`, 22 rejets raffines), modele `v5:51ecff8ec9dd75568e5fbcf6bc25649a` (format 3), rapport 5.28 et overlay regeneres, rapport 5.27 regenere (schema 4 -> 5 seulement, lignee inchangee). Tests derives du modele : `Story534JunctionCoordinatorTests` (nombre de zones), `Story528` (format 3, prefixe `v5:`), `Story550` explicite (chaine d'archives des manifestes). `Story553` EditMode 15/15. Admission V2 en `GateAEvidenceStale` jusqu'a la re-signature dediee 5.53 : HALT.
   - **Re-signature Gate A dediee 5.53 (proprietaire, 2026-10-05, `9780c57`) et non-regressions.** Signoff lie a `v5:51ecff8e...`. EditMode : 5.34 48/48, 5.31 50/50, 5.33 69/69, 5.52 26/26 (apres mise a jour du fait d'historique des signatures : la premiere reste archivee verbatim en tete), 5.27 35/35, 5.53 15/15 ; PlayMode : 5.31 13/13, 5.52 4/4, 5.33 12/12, 5.34 3/3 ; 0 erreur Console. Fixture 5.28 : 28/32, quatre echecs anterieurs a la 5.53 consignes dans `deferred-work.md` (fin d'epic).
+  - **Revue (2026-10-05) : blind-hunter (en ligne), edge-case-hunter et verification-gap (sous-agents) ; security-review inactive (aucune frontiere reseau).** Aucun intent_gap ni bad_spec. Correctifs (patch), sans changement des artefacts signes :
+    - garde de trajectoires vides dans `Refine` ;
+    - `Merge` refuse au parse sans `ConflictProven` v3 ;
+    - `ValidatePlan` lie genre et debuts de contact au typage revise et aux decisions ;
+    - `Summarize` signale une paire disparue ;
+    - paire non prouvee en contact typee `Crossing` a 0 ;
+    - ordre de subdivision verifie au parse du manifeste v3 ;
+    - `Story553MvpRunClassificationTests` : `ValidatePlan` sur les artefacts committes, rejets raffines ecrits, correspondance membre / debut de contact contre la preuve ;
+    - historique des signatures (5.52) au moins deux, distinctes ;
+    - fixture 5.50 : plan committe relu au lieu d'un plan v3 frais (~8 min), test de determinisme a deux plans frais passe `[Explicit]` (delai 1 h), delais explicites pour les deux tests qui construisent le pipeline (~225 s).
+    - Differes (`deferred-work.md`) : constantes de typage hors de l'identite du run, rejeu contre les artefacts committes non execute.
+    - Verification : `Story553` 17/17, `Story552` 26/26, fixture `Story550AutomatedPairDecisionTests` 3/3, 0 erreur Console.
   - **Base de revue.** `baseline_commit` reste `b8e7165`. Le commit `90d7a06` (archive des runs intermediaires 5.33/5.34) est anterieur a toute implementation 5.53 et hors perimetre de revue.
 
 ## Design Notes

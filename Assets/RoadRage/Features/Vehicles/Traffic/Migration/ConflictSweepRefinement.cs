@@ -103,7 +103,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public static ZoneTyping Of(PairRefinement refinement, float lengthA, float lengthB, bool commonExitCorridor, bool conflictProven)
         {
-            if (refinement == null || !refinement.Complete)
+            // Paire non prouvee en contact (conservative, ambigue) ou preuve incomplete : Crossing a 0.
+            if (refinement == null || !refinement.Complete || !conflictProven)
             {
                 return Conservative;
             }
@@ -189,6 +190,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             if (parameters == null || !parameters.Kinematic || bounds == null || graph == null)
             {
                 throw new ArgumentException("Raffinement : parametres cinematiques, bornes et graphe requis.");
+            }
+
+            if (pathsA == null || pathsB == null || pathsA.Count == 0 || pathsB.Count == 0)
+            {
+                // Sans trajectoire, aucune feuille : jamais une disjonction vide.
+                return new PairRefinement { Outcome = RefinementOutcome.Unresolved };
             }
 
             var result = new PairRefinement();

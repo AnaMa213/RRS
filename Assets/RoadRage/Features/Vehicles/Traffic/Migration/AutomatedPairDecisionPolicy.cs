@@ -346,6 +346,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     throw new InvalidOperationException("Politique v3 : Merge sans preuve complete de fusion pour " + Display(record.PairKey) + ".");
                 }
 
+                if (manifest.DecisionPolicyVersion >= RefinedDecisionPolicyVersion && !TypingMatches(record))
+                {
+                    throw new InvalidOperationException("Politique v3 : genre ou debuts de contact non lies au typage revise pour " + Display(record.PairKey) + ".");
+                }
+
                 if (record.Classification == AutomatedPairClassification.ProvenDisjoint.ToString()
                     && (!(record.MinimumSeparationMeters > ProofToleranceMeters) || record.Decision != ConflictDecisionKind.Rejected.ToString()))
                 {
@@ -371,7 +376,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     || decision.DecisionRevisionId != record.DecisionRevisionId
                     || decision.EvidenceHash != record.EvidenceHash
                     || decision.DecisionRunId != manifest.DecisionRunId
-                    || decision.GeometryFingerprint != record.GeometryFingerprint)
+                    || decision.GeometryFingerprint != record.GeometryFingerprint
+                    || (manifest.DecisionPolicyVersion >= RefinedDecisionPolicyVersion
+                        && (decision.Kind.ToString() != record.ConflictKind
+                            || decision.ContactStartSMetersA != record.ContactStartSMetersA
+                            || decision.ContactStartSMetersB != record.ContactStartSMetersB)))
                 {
                     throw new InvalidOperationException("Politique 5.50 : decision active non liee au manifeste pour " + Display(pair) + ".");
                 }
@@ -758,6 +767,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 else if (was == AutomatedPairClassification.ConflictProven.ToString()) summary.ProvenUnchanged++;
             }
 
+            // Une paire disparue du nouveau manifeste est un changement, jamais un silence.
+            var afterKeys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var record in after.Records) afterKeys.Add(record.PairKey);
+            foreach (var key in before.Keys)
+            {
+                if (!afterKeys.Contains(key)) summary.ChangedOutsideConservative.Add(key);
+            }
+
             foreach (var junction in model.Junctions)
             {
                 var ids = model.GetMovementsInJunction(junction.Id);
@@ -895,6 +912,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             return null;
+        }
+
+        /// <summary>Le genre et les debuts publies sont ceux du typage lie a la revision (« typing-v1|genre|A|B|... »).</summary>
+        private static bool TypingMatches(AutomatedPairDecisionRecord record)
+        {
+            string[] parts = (record.TypingCanonical ?? string.Empty).Split('|');
+            float startA;
+            float startB;
+            return parts.Length >= 4 && parts[0] == "typing-v1" && parts[1] == record.ConflictKind
+                && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out startA)
+                && float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out startB)
+                && Same(startA, record.ContactStartSMetersA) && Same(startB, record.ContactStartSMetersB);
+        }
+
+        private static bool Same(float a, float b)
+        {
+            return Math.Abs(a - b) <= 1e-6f * Math.Max(1f, Math.Abs(a));
         }
 
         private static bool IsZone(AutomatedPairDecisionRecord record)
@@ -1189,6 +1223,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 && manifest.FingerprintSchemaVersion == PairGeometryFingerprint.EvidenceFingerprintSchemaVersion
                 && manifest.ConflictSweepAlgorithmVersion == ConflictSweep.KinematicAlgorithmVersion
                 && manifest.RefinementLeafBudget == RefinementLeafBudget
+                && manifest.SubdivisionOrder == ConflictSweep.RefinementOrder
                 && !string.IsNullOrEmpty(manifest.EvidenceParametersCanonical)
                 && manifest.EvidenceParametersHash == Hash(manifest.EvidenceParametersCanonical);
             if (!legacy && !kinematic && !refined)
