@@ -137,9 +137,8 @@ __pycache__/
 /graphify-out/manifest.json
 /graphify-out/.graph.*
 /graphify-out/.vocab.txt
-# Dated snapshots: same rule, only graph.json and GRAPH_REPORT.md are versioned.
-/graphify-out/*/.graphify_*
-/graphify-out/*/manifest.json
+# Dated Graphify backups are local; Git history preserves the versioned main graph.
+/graphify-out/20??-??-??/
 
 # Traffic V2 campaign raw per-step output: exploratory runs stay local (5-10 MB each);
 # acceptance runs are committed as closing evidence.

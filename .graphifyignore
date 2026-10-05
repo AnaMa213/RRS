@@ -45,6 +45,15 @@ Assets/Awbmecreations/
 Assets/TextMesh Pro/
 Assets/Editor/
 
+# --- Code hors runtime ---
+# Les fixtures representent les contrats, pas le code applicatif a naviguer.
+# DevTools contient des lanceurs et vues de diagnostic propres au developpement.
+Assets/RoadRage/Tests/
+Assets/RoadRage/DevTools/
+
+# Artefacts d'auteur de la scene MVP, pas des sources applicatives.
+Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-*.json
+
 # --- Regles et configuration a la racine ---
 AGENTS.md
 CLAUDE.md
