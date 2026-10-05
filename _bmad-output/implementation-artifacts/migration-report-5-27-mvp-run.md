@@ -1,10 +1,10 @@
 <!-- rrs-migration-binding
 source-hash: b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc
 importer-version: 2
-compiler-schema-version: 4
+compiler-schema-version: 5
 model-id: 419bd12ec9b5fe710e8a3719692c7982
 lineage-hash: f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4
-body-hash: 1da0b93c02f717cf20a27be77ba8f58b7325e1a585347babf6e1db751258c5d5
+body-hash: b737343584ebd936763f59b8f5a809b31e24ad53073e05ae43b80f593966a684
 -->
 # Rapport de migration V1 -> V2 : MVP_Run (Story 5.27)
 
@@ -16,7 +16,7 @@ Genere par le menu `RoadRage/Traffic V2/Migrer MVP_Run`. Ne pas editer : un rapp
 |---|---|
 | Hash de la source V1 extraite | `b3064424c2b3ba22f0893eea36ed25f5cc4f85e4582a2a45d211899fbd8292fc` |
 | Version de l'importeur | 2 |
-| CompilerSchemaVersion | 4 |
+| CompilerSchemaVersion | 5 |
 | RoadModelId | `419bd12ec9b5fe710e8a3719692c7982` |
 | Hash de la lignee | `f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json`) |
 | RoadModelVersion | absente -- Compile refuse : 72 erreurs (MovementControlCoverageInvalid (9) : 72) |

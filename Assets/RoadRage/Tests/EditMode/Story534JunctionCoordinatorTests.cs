@@ -9,6 +9,7 @@ using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
+using RoadRage.Features.Vehicles.Traffic.Migration;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 using UnityEditor;
@@ -685,7 +686,9 @@ namespace RoadRage.Tests.EditMode
             Assert.That(linked, Is.EqualTo(24), "entrees et continuations suivies d'un mouvement du meme giratoire");
             Assert.That(exits, Is.EqualTo(12));
             Assert.That(Model.Movements.Count, Is.EqualTo(72));
-            Assert.That(Model.ConflictZones.Count, Is.EqualTo(136));
+            // Fait de modele derive des decisions (Story 5.53) : une zone par decision acceptee.
+            var decisions = AuthoringDecisions.Parse(File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath)));
+            Assert.That(Model.ConflictZones.Count, Is.EqualTo(decisions.Conflicts.Count(c => c.Decision == ConflictDecisionKind.Accepted)));
         }
 
         [Test]
@@ -698,7 +701,7 @@ namespace RoadRage.Tests.EditMode
             JunctionConflictIndex.For(copy);
             Assert.That(TrafficV2WorkCounters.Work.JunctionIndexBuilds - before, Is.EqualTo(1), "un index par modele");
 
-            // Un demandeur seul, puis avec un titulaire d'un autre carrefour : aucune paire testee malgre 136 zones.
+            // Un demandeur seul, puis avec un titulaire d'un autre carrefour : aucune paire testee malgre les zones du modele.
             var alone = Batch(new JunctionCoordinator(Model, 1), 1, Requesting(Id(1), Traversal(EastStraight)));
             Assert.That(alone.Counters.PairChecks, Is.Zero);
             var coordinator = new JunctionCoordinator(Model, 1);

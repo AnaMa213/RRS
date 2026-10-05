@@ -368,13 +368,13 @@ namespace RoadRage.Tests.EditMode
             Assert.That(label, Is.Not.EqualTo(model));
             Assert.That(Assert.Throws<FormatException>(() => RoadModelDocument.Load(label)).Message, Does.Contain("integrite"));
 
-            string spaced = model.Replace("{\"Format\":2,", "{\"Format\": 2,");
+            string spaced = model.Replace("{\"Format\":3,", "{\"Format\": 3,");
             Assert.That(Assert.Throws<FormatException>(() => RoadModelDocument.Load(spaced)).Message, Does.Contain("non canonique"));
 
             // Chaque champ de liaison, un par un : un caractere de chaque hash ou de la version, chaque entier.
             foreach (var field in new[] { "ModelVersion", "SourceHash", "LineageHash", "DecisionsHash", "IntegrityHash" })
             {
-                var match = Regex.Match(model, "\"" + field + "\":\"(v4:)?([0-9a-f])");
+                var match = Regex.Match(model, "\"" + field + "\":\"(v5:)?([0-9a-f])");
                 Assert.That(match.Success, Is.True, field);
                 int at = match.Groups[2].Index;
                 string edited = model.Substring(0, at) + (model[at] == '0' ? '1' : '0') + model.Substring(at + 1);
@@ -452,7 +452,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(RoadModelDocument.Serialize(source, provenance), Is.EqualTo(text));
             var reloaded = RoadModelDocument.Load(RoadModelDocument.Serialize(source, provenance));
             Assert.That(RoadModelCompiler.Compile(reloaded).Version, Is.EqualTo(RoadModelCompiler.Compile(source).Version));
-            Assert.That(RoadModelCompiler.Compile(source).Version.ToString(), Is.EqualTo(Regex.Match(text, "\"ModelVersion\":\"(v4:[0-9a-f]{32})\"").Groups[1].Value));
+            Assert.That(RoadModelCompiler.Compile(source).Version.ToString(), Is.EqualTo(Regex.Match(text, "\"ModelVersion\":\"(v5:[0-9a-f]{32})\"").Groups[1].Value));
             Assert.That(provenance.DecisionsHash, Is.EqualTo(V1SourceSet.Sha256Hex(Committed(AuthoredRoadModel.DecisionsPath))));
             Assert.That(provenance.LineageHash, Is.EqualTo(V1SourceSet.Sha256Hex(Committed(MigrationReport.LineagePath))));
         }

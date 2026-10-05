@@ -100,9 +100,17 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(first.ManifestText, Does.Contain("\"ConflictSweepAlgorithmVersion\": 2"));
                 Assert.That(first.ManifestText, Does.Contain("\"EvidenceParametersHash\""));
                 var archive = UnityEngine.JsonUtility.FromJson<ArchivedManifest>(first.ManifestText);
-                Assert.That(archive.SupersededManifestText, Is.EqualTo(historicalManifest), "Le manifeste 5.50 reste verbatim dans l'audit 5.52.");
+                Assert.That(archive.SupersededManifestText, Is.EqualTo(historicalManifest), "Le manifeste remplace reste verbatim dans l'audit.");
                 Assert.That(archive.SupersededManifestHash, Is.EqualTo(V1SourceSet.Sha256Hex(historicalManifest)));
-                Assert.That(archive.SupersededManifestHash, Is.EqualTo("32507cb57f33171bfa2a0e9476b2beff53d70fd3fed0866d886aac9d6e56efb8"));
+                // La chaine d'archives (5.53 -> 5.52 -> 5.50) garde le manifeste 5.50 verbatim.
+                bool found = false;
+                for (var link = archive; link != null && !string.IsNullOrEmpty(link.SupersededManifestText);
+                    link = UnityEngine.JsonUtility.FromJson<ArchivedManifest>(link.SupersededManifestText))
+                {
+                    found |= link.SupersededManifestHash == "32507cb57f33171bfa2a0e9476b2beff53d70fd3fed0866d886aac9d6e56efb8";
+                }
+
+                Assert.That(found, Is.True, "Le manifeste 5.50 reste archive dans la chaine.");
                 if (!string.IsNullOrEmpty(currentArchive.SupersededManifestText))
                 {
                     Assert.That(first.DecisionsText, Is.EqualTo(decisionsText), "Second passage : aucune decision nouvelle.");
