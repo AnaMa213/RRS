@@ -119,6 +119,10 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 
 **Ask First:**
 
+- **EN ATTENTE -- P12 (decision proprietaire du 2026-10-05 : correction ciblee avant la 5.35).** Spec non approuvable tant que les 4 paires `continuation ouest x entree ouest` ne sont pas typees par une procedure deterministe approuvee (`Crossing`, ou `Merge` avec `ContactStartSMeters`).
+  - Interdits : campagne globale 5.53, hausse du budget de 65 536, changement de tolerance, h_e, gonflement ou critere de conflit, reouverture du verdict `ConflictProven`, `Merge` force a la main.
+  - Les criteres d'anneau sont actualises sur le modele reel ensuite, avant le checkpoint d'approbation. Aucune implementation runtime avant.
+
 - **Dependance 5.53 (satisfaite le 2026-10-05).** La 5.35 lit le modele type sans le modifier. Une paire dont la 5.35 aurait besoin autrement que prouvee releve d'une story de modele, jamais d'une exception runtime : P11 et P12 en sont les cas connus.
 - **Scenario C de la 5.34** : depuis sa cloture, la branche (`FromSouth`, plus petit `TrafficId`) gagne le departage. Sous la 5.35, l'axe `Priority` passe d'abord : l'issue de C change. Le scenario E le remplace pour le verdict, et C n'est modifie que par decision proprietaire consignee. D reste inchange.
 
@@ -306,8 +310,8 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - **Ajout proprietaire du 2026-10-05 (avant implementation) :** compatibilite reelle des mouvements et priorite locale d'anneau par creneau ; ni l'une ni l'autre n'est reportee a la 5.41.
 - **P9 (2026-10-05) : (b).** Story dediee 5.53 avant la 5.35 : la classification des paires est un probleme de modele et de preuve Gate A, pas de regles de circulation. Aucune exception runtime en 5.35.
 - **P10 (2026-10-05) : (a), limite aux fusions.** Conflits types par le modele compile : `Crossing` strict, `Merge` admissible par creneau, non prouve -> strict. `GrantedMergeGap` exige une zone `Merge` compilee.
-- **P11 (proposee 2026-10-05, a confirmer)** : sortie au bras de l'entree = `Crossing` prouve, donc refus strict. Une admission temporelle des croisements est ecartee : sa surete reposerait sur la seule prediction d'ETA, car un vehicule V2 ne percoit pas un autre vehicule V2 hors de sa route (collecteur 5.33). La duree de reservation de ces sorties (grant de traversee O7) est differee a une story qui revise la granularite des grants.
-- **P12 (proposee 2026-10-05, a confirmer)** : entree ouest sans creneau de fusion tant que le modele type ces 4 paires `Crossing`. Correction dans une story de modele (typage des 4 paires au plafond) ; la 5.35 en beneficie sans changement de code.
+- **P11 (decidee 2026-10-05) : (a)** : sortie au bras de l'entree = `Crossing` prouve, donc refus strict. Une admission temporelle des croisements est ecartee : sa surete reposerait sur la seule prediction d'ETA, car un vehicule V2 ne percoit pas un autre vehicule V2 hors de sa route (collecteur 5.33). La duree de reservation de ces sorties (grant de traversee O7) est une dette consignee dans `deferred-work.md`, a traiter par une story qui revise la granularite des grants. Un vehicule qui sort au bras precedent reste non bloquant quand sa trajectoire restante ne touche plus la fusion.
+- **P12 (decidee 2026-10-05) : (b), correction strictement ciblee avant la 5.35.** Typage des 4 paires ouest seulement, sans changer les garanties globales. Methode proposee et integration Gate A : voir « P12 : typage cible des fusions ouest ».
 - **P8** Option a : exception `5.50-AUTO-DECISIONS-v1` etendue a la 5.35 par proposition de changement ; classifications identiques exigees a geometrie inchangee.
 
 **Preseance par controle d'approche, pas par paire de mouvements.** Une traversee de giratoire contient une entree (`Yield`) et des continuations (`Priority`). Comparer paire par paire rendrait deux traversees d'entrees differentes mutuellement prioritaires (contradiction). Le controle d'approche est la regle reelle : on cede la ou l'on entre. La priorite de l'anneau s'exerce sur les vehicules deja engages, que la 5.34 protege deja.
@@ -316,7 +320,21 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 
 **Exemple (profil par defaut, Δt = 0,02 s), a titre indicatif.** Branche arretee (v = 0), traversee de ~12 m jusqu'a la fin du dernier mouvement en conflit, L = 4,44 m, a = 1,5 m/s² : t_clear ≈ √(2·16,4/1,5) ≈ 4,7 s, donc t_gap ≈ 4,7 + 0,04 + 1,0 ≈ 5,7 s. Un vehicule d'axe a 8 m/s cede le creneau au-dela d'environ 45 m.
 
+**P12 : typage cible des fusions ouest (proposition du 2026-10-05, en attente d'approbation).**
+- *Faits.*
+  - Les quatre bras de chaque giratoire sont geometriquement identiques (entree 6,57 m, kmax 0,248 ; continuation 8,56 m, kmax 0,167). Pourtant la fusion diagonale est typee en 28 236 feuilles, la sud en 57 194, et l'ouest epuise 65 536 sur les 4 giratoires.
+  - Le test « prouve » de `EvaluateLeaf` (`ConflictSweepRefinement.cs:451-475`) borne la distance par des boites alignees sur les axes du monde (`AabbDistance`). Son serrage depend donc de l'orientation du bras.
+  - Le typage exige un raffinement complet (`ZoneTyping.Of`), alors que la boucle (`:249-285`) subdivise encore des feuilles dont la projection est deja contenue dans la zone de contact.
+- *Methode proposee (typing-v2, typage seul).* Une feuille non prouvee dont les deux intervalles projetes sont entierement contenus dans l'union de contact deja projetee est terminale : projetee telle quelle, sans subdivision.
+  - Effet : l'union ne peut que grossir. Le debut de contact obtenu est donc ≤ au vrai debut (conservatif), et `Merge` reste conditionne a une union unique et terminale, et a l'absence de contact prouvee en amont.
+  - Inchanges : classification, budget, profondeur, tolerances, h_e, gonflement, resolution, ordre de subdivision. Version de typage publiee (`typing-v2`).
+- *Perimetre d'application.* Les seules paires `ConflictProven` a corridor aval commun dont le typage v1 est incomplet, soit exactement les 4 paires ouest. Les 8 paires entree x sortie n'ont pas de corridor aval commun : `Crossing` par definition.
+- *Verification.* Fixture EditMode deterministe qui publie, pour les 4 paires et les 8 `Merge` deja types des giratoires, les feuilles par etat. Sur les 8, typing-v2 doit retrouver `Merge` avec des debuts ≤ aux debuts publies, sans les reecrire. Si une paire ouest epuise encore le budget ou n'est pas terminale : `Crossing` inchange, HALT.
+- *Gate A.* Le modele modifie change de version : l'admission V2 passe en `GateAEvidenceStale` jusqu'a une signature, donc aucune execution V2 sur un modele non signe. Le coordinateur 5.34 ne lit pas `Kind` : le correctif n'a aucun effet runtime avant la phase 3 de la 5.35. Il peut donc etre couvert par la signature dediee 5.35 (phase 2), sans signature intermediaire.
+  - Condition : etendre le perimetre P8 de `sprint-change-proposal-2026-10-05.md` a cette application de typing-v2. P8 ne couvre aujourd'hui que la regeneration due aux controles.
+
 **Hypotheses non verifiees.**
+- L'explication par l'orientation des boites et par la subdivision interne n'est pas mesuree ; la fixture de diagnostic la verifie avant toute application.
 - Le gain de debit des giratoires est limite par P11 et P12 ; il n'est pas mesure.
 - P8 : effet reel de `SameInputs` sur la regeneration (refus ou nouveau run), a mesurer en phase 1 ; l'identite des classifications a geometrie inchangee est attendue, pas prouvee.
 - Le plafond √(a_lat/κmax) suppose a_lat disponible par profil ; sinon HALT.
