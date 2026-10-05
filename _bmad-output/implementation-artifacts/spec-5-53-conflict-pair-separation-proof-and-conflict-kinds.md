@@ -2,7 +2,7 @@
 title: 'Story 5.53 -- Classification des paires de conflit : preuve de separation raffinee des ConservativeConflict et typage croisement / fusion'
 type: 'bugfix'
 created: '2026-10-05'
-status: 'in-review'
+status: 'done'
 baseline_commit: 'b8e7165c639c27f86d907cb27e25c6c1faaeef7a'
 review_loop_iteration: 0
 context:
@@ -204,3 +204,68 @@ context:
 
 **Manual checks (proprietaire):**
 - Revue du diff paire par paire au checkpoint 2, puis decision de signature (combinee ou dediee).
+
+## Suggested Review Order
+
+**Raffinement borne (coeur de la politique v3)**
+
+- Point d'entree : racines criblees, subdivision dyadique, budget dur, projection du contact.
+  [`ConflictSweepRefinement.cs:177`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L177)
+- Resolution du modele rho.h_e, derivee des parametres et justifiee.
+  [`ConflictSweepRefinement.cs:163`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L163)
+- Feuille : preuve stricte, temoin acquis, arret a la resolution.
+  [`ConflictSweepRefinement.cs:451`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L451)
+- Cote au plus grand terme d'intervalle, egalite exacte vers A.
+  [`ConflictSweepRefinement.cs:536`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L536)
+- Criblage : meme borne que le balayage cinematique, aucune borne modifiee.
+  [`ConflictSweepRefinement.cs:401`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L401)
+
+**Typage Crossing / Merge**
+
+- Merge : ConflictProven, preuve complete, corridor aval commun, contact terminal unique.
+  [`ConflictSweepRefinement.cs:91`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L91)
+- Abscisse de contact projetee sur le mouvement : 0 avant, L apres.
+  [`ConflictSweepRefinement.cs:387`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L387)
+- Ordre des membres ramene a la cle de paire.
+  [`AutomatedPairDecisionPolicy.cs:1045`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L1045)
+- Decision vers zone : genre et debuts dans l'ordre des membres.
+  [`AuthoredRoadModel.cs:861`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoredRoadModel.cs#L861)
+
+**Classification et invariance**
+
+- Temoin v2 conserve tel quel ; seules les candidates sans temoin changent.
+  [`AutomatedPairDecisionPolicy.cs:511`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L511)
+- Rejet raffine ecrit comme decision active : la paire reste candidate.
+  [`AutomatedPairDecisionPolicy.cs:548`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L548)
+- Revision v3 liee au typage canonique.
+  [`AutomatedPairDecisionPolicy.cs:1124`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L1124)
+- Validation : genre et debuts lies au typage revise.
+  [`AutomatedPairDecisionPolicy.cs:918`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L918)
+- Garde : le pipeline compile les decisions planifiees avant toute ecriture.
+  [`AutomatedPairDecisionPolicy.cs:466`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L466)
+- Diff et compteurs publies, traversees compatibles par carrefour.
+  [`AutomatedPairDecisionPolicy.cs:712`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L712)
+
+**Schema 5 et compatibilite historique**
+
+- Genre et debuts de contact par ajout dans le record.
+  [`RoadModelRecords.cs:531`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelRecords.cs#L531)
+- Schema effectif : courant, ou 4 relu pour une preuve signee.
+  [`RoadModelCompiler.cs:44`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelCompiler.cs#L44)
+- Charge canonique : typage ecrit seulement en schema 5.
+  [`RoadModelCanonicalWriter.cs:346`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelCanonicalWriter.cs#L346)
+- Validation : Merge a corridor aval commun, debuts dans [0, L].
+  [`RoadModelValidator.cs:619`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs#L619)
+- Document format 3 ; format 2 relu, jamais ecrit.
+  [`RoadModelDocument.cs:114`](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelDocument.cs#L114)
+- Decisions : typage optionnel, Merge seulement ConflictProven v3.
+  [`AuthoringDecisions.cs:273`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AuthoringDecisions.cs#L273)
+
+**Tests**
+
+- Matrice I/O sur fixtures synthetiques et schema 5.
+  [`Story553ConflictClassificationTests.cs:81`](../../Assets/RoadRage/Tests/EditMode/Story553ConflictClassificationTests.cs#L81)
+- Faits de MVP_Run appliques, sans recalcul.
+  [`Story553MvpRunClassificationTests.cs:75`](../../Assets/RoadRage/Tests/EditMode/Story553MvpRunClassificationTests.cs#L75)
+- Campagne explicite : diff, cout, determinisme.
+  [`Story553RegenerationTests.cs:26`](../../Assets/RoadRage/Tests/EditMode/Story553RegenerationTests.cs#L26)
