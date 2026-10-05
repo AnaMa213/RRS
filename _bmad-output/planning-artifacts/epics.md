@@ -1702,7 +1702,7 @@ Therefore: **prove trajectory, curvature, speed, topology, identity, versioning 
                                                                                            │
                                                          ┌─────────────────────────────────┴─────────────────┐
                                                          ▼                                                   ▼
-                                                      5.32 ─► 5.33                                     5.34 ─► 5.35 ═GATE C═
+                                                      5.32 ─► 5.33                                     5.34 ─► 5.53 ─► 5.35 ═GATE C═
                                                          │                                                   │
                                                          └────────────────────┬──────────────────────────────┘
                                                                               ▼
@@ -1733,7 +1733,7 @@ Therefore: **prove trajectory, curvature, speed, topology, identity, versioning 
 
 > `5.28✓` — the 5.28 authoring pipeline is delivered before 5.49; its overlay re-review and owner signature resume after 5.49, 5.50 and 5.51 and close Gate A. 5.49 (2026-09-23 course correction) and 5.50–5.51 (2026-09-25 course correction) are numbered after 5.48 because 5.17–5.23 are burned and 5.24–5.48 were taken when the need arose; their position in the chain, not their number, sets their order.
 
-**Critical path:** 5.25 → 5.26 → 5.27 → 5.28 → 5.49 → 5.50 → 5.51 → 5.28 sign-off → 5.29 → 5.30 → 5.31 → 5.34 → 5.35 → 5.37 → 5.38 → 5.41 → 5.42 → 5.43 → 5.44 → 5.46 → *(5.47 only if triggered)* → 5.48.
+**Critical path:** 5.25 → 5.26 → 5.27 → 5.28 → 5.49 → 5.50 → 5.51 → 5.28 sign-off → 5.29 → 5.30 → 5.31 → 5.34 → 5.53 → 5.35 → 5.37 → 5.38 → 5.41 → 5.42 → 5.43 → 5.44 → 5.46 → *(5.47 only if triggered)* → 5.48.
 
 **Genuine parallel opportunities:** 5.24 runs beside 5.25–5.26; the 5.32/5.33 branch runs beside the 5.34/5.35 branch after Gate B; 5.36 and 5.40 are leaves that may float.
 
@@ -1757,6 +1757,7 @@ Therefore: **prove trajectory, curvature, speed, topology, identity, versioning 
 | 5.32 | Perception boundary: occupancy index, leader and hazard observations | FOUNDATION | Facts | L |
 | 5.33 | Vehicle following through named speed constraints *(reclassified M → L, owner decision D1 of 2026-10-02)* | VERTICAL | Longitudinal | L |
 | 5.34 | Junction coordination core: grants, conflicts, blocked exit, committed traversal *(scope B with first runtime wiring and story-level PlayMode, owner decisions O1–O8 of 2026-10-03)* | FOUNDATION | Permissions | L |
+| 5.53 | Conflict-pair separation proof and conflict kinds *(inserted 2026-10-05, owner decision P9; precedes 5.35)* | FOUNDATION | Road model evidence | M |
 | 5.35 | Authored control kinds: stop, yield, priority and roundabout entry | VERTICAL | Traffic rules | M |
 | 5.36 | Signal phase runtime and coordinator integration | VERTICAL | Signals | M |
 | 5.37 | `SafetyFilter`: narrow veto and clamp boundary | FOUNDATION | Invariants | M |
@@ -2977,6 +2978,32 @@ So that priority is never an emergent consequence of component update order or o
 
 ---
 
+### Story 5.53: Conflict-Pair Separation Proof and Conflict Kinds
+
+**Type:** FOUNDATION (evidence) · **Boundary:** Road model evidence · **Complexity:** M
+**Implements:** AD-46, Road World Model contract §8 (Gate A evidence lifecycle)
+*Inserted 2026-10-05 (sprint-change-proposal-2026-10-05.md, owner decision P9): the 2026-10-05 audit found 94 of the 136 `MVP_Run` conflict zones accepted as `ConservativeConflict` because the decision policy stops at the continuous bound without refining it, which makes every T junction and most of the crossroads exclusive.*
+
+As the owner,
+I want every conservative conflict pair either proven disjoint, proven in conflict, or kept with a published reason, and every accepted zone typed as a crossing or a merge,
+So that compatible traversals are not denied by the model and Story 5.35 can grant merge gaps only where the compiled model proves a merge.
+
+**Prerequisites:** 5.34.
+
+**Capability delivered:** decision policy v3 refines, under a declared hard leaf budget (`RefinementLeafBudget` = 65,536 leaves per pair, `MaxSubdivisionDepth` = 20), only the `ConservativeConflict` pairs without a witness, with the existing sweep machinery (inflation, kinematic pose set, offset grid, remainders, tolerance) unchanged. The compiled model (`CompilerSchemaVersion` 5) types every `ConflictZone` as `Crossing` or `Merge` with a per-member `ContactStartSMeters` derived from the proof. Gate A evidence is regenerated through the Story 5.52 path with a complete pair-by-pair diff and the per-pair refinement cost.
+
+**Rules:**
+- `ConflictProven`, `ProvenDisjoint` and `FailClosed` pairs keep classification, reason and proof; a conservative pair may only become `ProvenDisjoint` (strictly positive separation on every leaf) or `ConflictProven` (witness). An exhausted budget never yields `ProvenDisjoint`.
+- `Merge` requires a common exit corridor (`CommonExitCorridor`, the downstream corridor both movements converge into; a shared entry corridor is following, never a merge) and, on each member, a single terminal contact-possible interval reaching the end of the movement, with no upstream contact-possible interval. Any unproven, conservative or ambiguous pair is `Crossing` with `ContactStartSMeters` = 0.
+- No pair is classified by hand or by LLM judgment; no runtime exception; no Stop/Yield/Priority.
+- Gate A is signed only by the owner.
+
+**Non-goals:** traffic rules and controls (5.35); coordinator changes; geometry, inflation, tolerance or profile changes.
+
+**Unlocks:** 5.35 (merge gaps on compiled `Merge` zones only, P10).
+
+---
+
 ### Story 5.35: Authored Control Kinds — Stop, Yield, Priority and Roundabout Entry
 
 **Type:** VERTICAL BEHAVIOR · **Boundary:** Traffic rules · **Complexity:** M
@@ -3826,6 +3853,7 @@ Test routing follows `docs/setup/build-workflow-rules.md` section 2, applied to 
 | 5.32 | EditMode | `edge-case-hunter` |
 | **5.33** | **Both** *(amended 2026-10-02, owner decision D1)* | `edge-case-hunter` |
 | **5.34** | **Both** *(amended 2026-10-03, owner decision O1)* | `edge-case-hunter`, `verification-gap` |
+| 5.53 | EditMode | `edge-case-hunter`, `verification-gap` — dense proof logic, and the story claims a reclassification of Gate A evidence |
 | **5.35** | **Both** | `edge-case-hunter`, `verification-gap` |
 | 5.36 | EditMode | `edge-case-hunter` |
 | 5.37 | EditMode | `edge-case-hunter`, `verification-gap` |

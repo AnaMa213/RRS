@@ -103,7 +103,18 @@ namespace RoadRage.Features.Vehicles.Traffic
         DrivabilityTangentCurvatureMismatch = 40,
         DrivabilityEnvelopeFold = 41,
         DrivabilityInnerRadiusFold = 42,
-        DrivabilityEnvelopeSeamBroken = 43
+        DrivabilityEnvelopeSeamBroken = 43,
+
+        // ---------------------------------------------------------------- zones typees (Story 5.53)
+
+        /// <summary>
+        /// Genre ou abscisses de debut de contact invalides : genre inconnu, abscisses en nombre different des
+        /// membres, hors de [0, L], Merge sans corridor aval commun ni abscisses, typage dans une source de schema 4.
+        /// </summary>
+        ConflictZoneTypingInvalid = 44,
+
+        /// <summary>Schema de compilation de la source ni courant ni encore lisible.</summary>
+        UnsupportedCompilerSchema = 45
     }
 
     /// <summary>Un echec de validation : son code stable, l'identifiant fautif et un message.</summary>
@@ -204,6 +215,16 @@ namespace RoadRage.Features.Vehicles.Traffic
             var conflictZones = Safe(source.ConflictZones);
             var signalPlans = Safe(source.SignalPlans);
             var portals = Safe(source.Portals);
+
+            int schema = RoadModelCompiler.SchemaVersionOf(source);
+            if (schema < RoadModelCompiler.MinimumReadableSchemaVersion || schema > RoadModelCompiler.CompilerSchemaVersion)
+            {
+                issues.Add(new RoadModelValidationIssue(
+                    RoadModelValidationCode.UnsupportedCompilerSchema,
+                    source.ModelId,
+                    "Schema de compilation " + schema + " non pris en charge (lisibles : "
+                    + RoadModelCompiler.MinimumReadableSchemaVersion + " a " + RoadModelCompiler.CompilerSchemaVersion + ")."));
+            }
 
             // ------------------------------------------------ identite : vide, duplique, portee
             var kindById = new Dictionary<RoadId, RoadRecordKind>();
@@ -489,6 +510,12 @@ namespace RoadRage.Features.Vehicles.Traffic
             }
 
             // ------------------------------------------------ zones de conflit
+            var movementById = new Dictionary<RoadId, JunctionMovement>();
+            for (int i = 0; i < movements.Length; i++)
+            {
+                movementById[movements[i].Id] = movements[i];
+            }
+
             for (int i = 0; i < conflictZones.Length; i++)
             {
                 var zone = conflictZones[i];
@@ -536,6 +563,8 @@ namespace RoadRage.Features.Vehicles.Traffic
                             "Membre d'une ConflictZone du carrefour " + zone.JunctionId + " alors qu'il appartient au carrefour " + ownerJunction + "."));
                     }
                 }
+
+                ValidateZoneTyping(issues, zone, members, movementById, schema);
             }
 
             // ------------------------------------------------ plans de signal
@@ -585,6 +614,82 @@ namespace RoadRage.Features.Vehicles.Traffic
         }
 
         // ------------------------------------------------------------------ helpers
+
+        /// <summary>Genre et abscisses de debut de contact d'une zone (Story 5.53).</summary>
+        private static void ValidateZoneTyping(List<RoadModelValidationIssue> issues, ConflictZone zone, RoadId[] members,
+            Dictionary<RoadId, JunctionMovement> movementById, int schema)
+        {
+            var starts = zone.ContactStartSMeters ?? new float[0];
+            if (zone.Kind != ConflictKind.Crossing && zone.Kind != ConflictKind.Merge)
+            {
+                issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.ConflictZoneTypingInvalid, zone.Id,
+                    "ConflictZone de genre inconnu (" + (int)zone.Kind + ")."));
+                return;
+            }
+
+            if (schema < 5)
+            {
+                if (zone.Kind != ConflictKind.Crossing || starts.Length > 0)
+                {
+                    issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.ConflictZoneTypingInvalid, zone.Id,
+                        "Typage de zone dans une source de schema " + schema + " : non encodable, refuse."));
+                }
+
+                return;
+            }
+
+            if (starts.Length > 0 && starts.Length != members.Length)
+            {
+                issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.ConflictZoneTypingInvalid, zone.Id,
+                    "ConflictZone : " + starts.Length + " abscisse(s) de debut de contact pour " + members.Length + " membre(s)."));
+                return;
+            }
+
+            for (int m = 0; m < starts.Length; m++)
+            {
+                JunctionMovement movement;
+                if (!movementById.TryGetValue(members[m], out movement))
+                {
+                    continue;
+                }
+
+                if (float.IsNaN(starts[m]) || float.IsInfinity(starts[m]) || starts[m] < 0f || starts[m] > movement.LengthMeters)
+                {
+                    issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.ConflictZoneTypingInvalid, zone.Id,
+                        "ConflictZone : debut de contact " + starts[m] + " m hors de [0, " + movement.LengthMeters + "] pour le membre " + members[m] + "."));
+                }
+            }
+
+            if (zone.Kind != ConflictKind.Merge)
+            {
+                return;
+            }
+
+            if (starts.Length == 0)
+            {
+                issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.ConflictZoneTypingInvalid, zone.Id,
+                    "Merge sans abscisse de debut de contact."));
+            }
+
+            RoadId exit = RoadId.None;
+            for (int m = 0; m < members.Length; m++)
+            {
+                JunctionMovement movement;
+                if (!movementById.TryGetValue(members[m], out movement))
+                {
+                    continue;
+                }
+
+                if (m > 0 && movement.ToCorridorId != exit)
+                {
+                    issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.ConflictZoneTypingInvalid, zone.Id,
+                        "Merge sans corridor aval commun : les membres sortent par des corridors differents."));
+                    return;
+                }
+
+                exit = movement.ToCorridorId;
+            }
+        }
 
         private static T[] Safe<T>(T[] values)
         {

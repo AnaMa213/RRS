@@ -28,7 +28,11 @@ namespace RoadRage.Features.Vehicles.Traffic
     /// </summary>
     public static class RoadModelDocument
     {
-        public const int Format = 2;
+        /// <summary>Format courant : schema de compilation 5, zones typees (Story 5.53).</summary>
+        public const int Format = 3;
+
+        /// <summary>Format historique, schema 4 : relu pour verifier une preuve signee, jamais ecrit.</summary>
+        public const int HistoricalFormat = 2;
 
         /// <summary>
         /// Compile la source (seul un modele compilable est persiste) et rend le document. Deux
@@ -42,21 +46,31 @@ namespace RoadRage.Features.Vehicles.Traffic
                 throw new FormatException("Document de modele format 2 : profil de conduisibilite non declare.");
             }
 
-            var compiled = RoadModelCompiler.Compile(source);
-            var model = ToDto(source);
+            if (RoadModelCompiler.SchemaVersionOf(source) != RoadModelCompiler.CompilerSchemaVersion)
+            {
+                throw new FormatException("Document de modele : seul le schema courant s'ecrit ; un schema historique se relit seulement.");
+            }
 
-            var document = new DocumentDto();
+            var compiled = RoadModelCompiler.Compile(source);
+            var model = new TypedModelDto();
+            ToDto(source, model);
+            model.ConflictZoneTypes = Map(source.ConflictZones, delegate(ConflictZone r)
+            {
+                return new ZoneTypeDto { Kind = r.Kind.ToString(), ContactStartSMeters = r.ContactStartSMeters ?? new float[0] };
+            });
+
+            var document = new TypedDocumentDto();
             document.Format = Format;
             document.Binding = new BindingDto();
             document.Binding.ModelVersion = compiled.Version.ToString();
-            document.Binding.CompilerSchemaVersion = RoadModelCompiler.CompilerSchemaVersion;
+            document.Binding.CompilerSchemaVersion = compiled.Version.SchemaVersion;
             document.Binding.SourceHash = provenance.SourceHash ?? string.Empty;
             document.Binding.LineageHash = provenance.LineageHash ?? string.Empty;
             document.Binding.DecisionsHash = provenance.DecisionsHash ?? string.Empty;
             document.Binding.ImporterVersion = provenance.ImporterVersion;
             document.Binding.PipelineVersion = provenance.PipelineVersion;
             document.Model = model;
-            document.Binding.IntegrityHash = IntegrityHash(document);
+            document.Binding.IntegrityHash = IntegrityHash(document.Binding, document.Model);
             return Write(document);
         }
 
@@ -82,16 +96,25 @@ namespace RoadRage.Features.Vehicles.Traffic
             }
 
             DocumentDto document;
+            TypedDocumentDto typed = null;
             try
             {
                 document = JsonUtility.FromJson<DocumentDto>(text);
+                if (document != null && document.Format == Format)
+                {
+                    typed = JsonUtility.FromJson<TypedDocumentDto>(text);
+                }
             }
             catch (ArgumentException exception)
             {
                 throw new FormatException("Document de modele illisible : " + exception.Message);
             }
 
-            if (document == null || document.Format != Format || document.Binding == null || document.Model == null)
+            // Format 2 (schema 4) : relu tel quel pour qu'une preuve historique signee reste verifiable.
+            bool historical = document != null && document.Format == HistoricalFormat;
+            BindingDto binding = typed != null ? typed.Binding : historical ? document.Binding : null;
+            ModelDto body = typed != null ? typed.Model : historical ? document.Model : null;
+            if (binding == null || body == null)
             {
                 throw new FormatException("Document de modele : format absent ou inconnu.");
             }
@@ -99,53 +122,78 @@ namespace RoadRage.Features.Vehicles.Traffic
             // Forme canonique : tout octet hors de la forme ecrite par Serialize (espace, champ
             // absent ou en trop, ordre) est un refus. Le hash d'integrite couvre ensuite toutes les
             // valeurs, liaison et labels compris, que la version ne couvre pas.
-            if (Write(document) != text)
+            if ((typed != null ? Write(typed) : Write(document)) != text)
             {
                 throw new FormatException("Document de modele non canonique : modifie depuis sa generation.");
             }
 
-            if (document.Binding.IntegrityHash != IntegrityHash(document))
+            if (binding.IntegrityHash != IntegrityHash(binding, body))
             {
                 throw new FormatException("Document de modele altere : hash d'integrite different (liaison ou corps modifie).");
             }
 
-            if (document.Binding.CompilerSchemaVersion != RoadModelCompiler.CompilerSchemaVersion)
+            int expectedSchema = historical ? RoadModelCompiler.MinimumReadableSchemaVersion : RoadModelCompiler.CompilerSchemaVersion;
+            if (binding.CompilerSchemaVersion != expectedSchema)
             {
                 throw new FormatException("Document de modele d'un autre schema de compilation ("
-                    + document.Binding.CompilerSchemaVersion + ", attendu " + RoadModelCompiler.CompilerSchemaVersion + ").");
+                    + binding.CompilerSchemaVersion + ", attendu " + expectedSchema + ").");
             }
 
-            var source = FromDto(document.Model);
+            var source = FromDto(body);
+            if (historical)
+            {
+                source.CompilerSchemaVersion = RoadModelCompiler.MinimumReadableSchemaVersion;
+            }
+            else
+            {
+                ApplyZoneTypes(source, typed.Model.ConflictZoneTypes);
+            }
+
             if (!source.DrivabilityProfile.Declared)
             {
-                throw new FormatException("Document de modele format 2 : profil de conduisibilite non declare.");
+                throw new FormatException("Document de modele : profil de conduisibilite non declare.");
             }
             var compiled = RoadModelCompiler.Compile(source);
-            if (compiled.Version.ToString() != document.Binding.ModelVersion)
+            if (compiled.Version.ToString() != binding.ModelVersion)
             {
-                throw new FormatException("Version divergente : le document lie " + document.Binding.ModelVersion
+                throw new FormatException("Version divergente : le document lie " + binding.ModelVersion
                     + ", la recompilation donne " + compiled.Version + ". Chargement refuse, jamais repare.");
             }
 
             provenance = new RoadModelProvenance();
-            provenance.SourceHash = document.Binding.SourceHash;
-            provenance.LineageHash = document.Binding.LineageHash;
-            provenance.DecisionsHash = document.Binding.DecisionsHash;
-            provenance.ImporterVersion = document.Binding.ImporterVersion;
-            provenance.PipelineVersion = document.Binding.PipelineVersion;
+            provenance.SourceHash = binding.SourceHash;
+            provenance.LineageHash = binding.LineageHash;
+            provenance.DecisionsHash = binding.DecisionsHash;
+            provenance.ImporterVersion = binding.ImporterVersion;
+            provenance.PipelineVersion = binding.PipelineVersion;
             return source;
+        }
+
+        /// <summary>Typage des zones, parallele a ConflictZones : un nombre different ou un genre inconnu est un refus.</summary>
+        private static void ApplyZoneTypes(RoadModelSource source, ZoneTypeDto[] types)
+        {
+            var zones = source.ConflictZones ?? new ConflictZone[0];
+            if ((types == null ? 0 : types.Length) != zones.Length)
+            {
+                throw new FormatException("Document de modele : typage des zones de conflit incomplet.");
+            }
+
+            for (int i = 0; i < zones.Length; i++)
+            {
+                zones[i].Kind = ParseEnum<ConflictKind>(types[i].Kind, "ConflictZone.Kind");
+                zones[i].ContactStartSMeters = types[i].ContactStartSMeters ?? new float[0];
+            }
         }
 
         /// <summary>
         /// Hash d'integrite : chaque champ de liaison (sauf lui-meme) puis le corps. Toute valeur
         /// modifiee, provenance comprise, change ce hash.
         /// </summary>
-        private static string IntegrityHash(DocumentDto document)
+        private static string IntegrityHash(BindingDto binding, ModelDto model)
         {
-            var binding = document.Binding;
             string stored = binding.IntegrityHash;
             binding.IntegrityHash = string.Empty;
-            string covered = Write(binding) + Write(document.Model);
+            string covered = Write(binding) + Write(model);
             binding.IntegrityHash = stored;
             return Sha256Hex(covered);
         }
@@ -212,9 +260,8 @@ namespace RoadRage.Features.Vehicles.Traffic
 
         // ================================================================== conversion
 
-        private static ModelDto ToDto(RoadModelSource source)
+        private static void ToDto(RoadModelSource source, ModelDto model)
         {
-            var model = new ModelDto();
             model.ModelId = Hex(source.ModelId);
             model.Label = source.Label ?? string.Empty;
             model.ValidationProfile = source.ValidationProfile;
@@ -384,7 +431,6 @@ namespace RoadRage.Features.Vehicles.Traffic
                 d.ToId = Hex(r.ToId);
                 return d;
             });
-            return model;
         }
 
         private static RoadModelSource FromDto(ModelDto model)
@@ -651,6 +697,15 @@ namespace RoadRage.Features.Vehicles.Traffic
             public ModelDto Model;
         }
 
+        /// <summary>Format 3 : meme liaison, corps type (Story 5.53).</summary>
+        [Serializable]
+        private sealed class TypedDocumentDto
+        {
+            public int Format;
+            public BindingDto Binding;
+            public TypedModelDto Model;
+        }
+
         [Serializable]
         private sealed class BindingDto
         {
@@ -665,7 +720,7 @@ namespace RoadRage.Features.Vehicles.Traffic
         }
 
         [Serializable]
-        private sealed class ModelDto
+        private class ModelDto
         {
             public string ModelId;
             public string Label;
@@ -683,6 +738,20 @@ namespace RoadRage.Features.Vehicles.Traffic
             public PlanDto[] SignalPlans;
             public PortalDto[] Portals;
             public ManifestDto Manifest;
+        }
+
+        /// <summary>Corps du format 3 : le corps historique puis le typage des zones, parallele a ConflictZones.</summary>
+        [Serializable]
+        private sealed class TypedModelDto : ModelDto
+        {
+            public ZoneTypeDto[] ConflictZoneTypes;
+        }
+
+        [Serializable]
+        private sealed class ZoneTypeDto
+        {
+            public string Kind;
+            public float[] ContactStartSMeters;
         }
 
         [Serializable]

@@ -30,8 +30,21 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// localisation sort du profil de validation et les tolerances geometriques y entrent.
         /// 4 : le seuil d'ancrage au datum (AD-48) entre dans le profil de validation ; il etait une
         /// constante du validateur, donc absent de toute charge canonique.
+        /// 5 (Story 5.53) : genre de chaque zone de conflit et abscisses de debut de contact par membre.
         /// </summary>
-        public const int CompilerSchemaVersion = 4;
+        public const int CompilerSchemaVersion = 5;
+
+        /// <summary>
+        /// Plus ancien schema encore compilable : un document historique signe (schema 4) se relit et redonne sa
+        /// version liee. Sa charge n'encode ni genre ni abscisse ; le validateur refuse qu'une source 4 en porte.
+        /// </summary>
+        public const int MinimumReadableSchemaVersion = 4;
+
+        /// <summary>Schema effectif d'une source : le sien s'il est fixe, sinon le schema courant.</summary>
+        public static int SchemaVersionOf(RoadModelSource source)
+        {
+            return source.CompilerSchemaVersion == 0 ? CompilerSchemaVersion : source.CompilerSchemaVersion;
+        }
 
         /// <summary>Braquage disponible a une vitesse donnee, interpolation lineaire bornee.</summary>
         public static float AvailableLockDegrees(DrivabilityProfile profile, float speedMetersPerSecond)
@@ -126,7 +139,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             var corridors = ResolveEffectiveCorridors(source, sections);
 
             var payload = new RoadModelCanonicalPayload();
-            payload.SchemaVersion = CompilerSchemaVersion;
+            payload.SchemaVersion = SchemaVersionOf(source);
             payload.ModelId = source.ModelId;
             payload.ValidationProfile = source.ValidationProfile;
             payload.LocalizationProfile = source.LocalizationProfile;
@@ -147,7 +160,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             ulong low;
             RoadModelCanonicalWriter.ComputeFingerprint(canonicalBytes, out high, out low);
 
-            var version = new RoadModelVersion(CompilerSchemaVersion, high, low);
+            var version = new RoadModelVersion(payload.SchemaVersion, high, low);
 
             return new CompiledRoadModel(
                 source.ModelId,

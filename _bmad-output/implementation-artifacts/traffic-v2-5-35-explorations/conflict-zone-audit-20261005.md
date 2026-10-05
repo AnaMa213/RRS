@@ -177,3 +177,13 @@ Consequence : dans chaque T, les 12 paires de mouvements d'approches differentes
 | TJunction_West | P | 0.00 | `4258af5419bba1365a3f0ad6ed3d44aa` | Junction_FromEast -> Connector_West_Out (tout droit) | Junction_FromSouth -> Connector_West_Out (gauche) |
 | TJunction_West | P | 0.00 | `470bc18b1824ae1e7e47ac80c41aca9c` | Junction_FromEast -> Connector_South_Out (gauche) | Junction_FromWest -> Connector_South_Out (droite) |
 | TJunction_West | P | 0.00 | `4fbcc8e5f354d981b2a3580b4645f6b7` | Junction_FromWest -> Connector_East_Out (tout droit) | Junction_FromSouth -> Connector_East_Out (droite) |
+
+## Mise a jour Story 5.53 (2026-10-05) : politique v3, diagnostic avant application
+
+Source : `../traffic-v2-5-53-classification/diff-paires-20261005-170241.md` et `regeneration-20261005-170241.md` (run `4b0eab8e...`, deux plans identiques). Rien n'est encore applique au modele.
+
+- Les 94 `ConservativeConflict` : 22 `ProvenDisjoint`, 72 `ConflictProven` (temoin de recouvrement), 0 restees. Les 42 `ConflictProven` d'origine sont inchangees.
+- Groupe A : 8 zones prouvees disjointes (entree contre entree d'un autre bras, continuation contre entree de l'autre bras) ; 8 ont un temoin et restent des conflits (sortie d'anneau du bras ouest contre continuation ou sortie du bras sud) : la presomption ignorait le porte-a-faux sur les corridors d'anneau courts, comme l'avait signale la methode.
+- Groupe B : les voies opposees en ligne droite et les paires de voies voisines sans croisement sont prouvees disjointes ; les entrees et sorties d'un meme bras de giratoire ont un temoin.
+- Traversees compatibles (approches differentes, aucune zone) : croix 6 -> 12 sur 54, chaque T 0 -> 2 sur 12, chaque giratoire 23 -> 25 sur 33.
+- Typage : 82 `Crossing`, 32 `Merge` (12 a la croix, 3 par T, 2 par giratoire). 12 paires de giratoire (entree contre sortie ou continuation du bras ouest, entree contre sortie du bras sud) atteignent le plafond de 65 536 feuilles : `ConflictProven` acquis, typage incomplet, donc `Crossing` avec debuts de contact a 0.

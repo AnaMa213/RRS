@@ -858,6 +858,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     zone.JunctionId = candidate.JunctionId;
                     zone.Volume = candidate.Volume;
                     zone.MemberMovementIds = new[] { candidate.MovementA, candidate.MovementB };
+                    zone.Kind = decision.Kind;
+                    bool aFirst = keyById[candidate.MovementA] == decision.MovementKeyA;
+                    zone.ContactStartSMeters = aFirst
+                        ? new[] { decision.ContactStartSMetersA, decision.ContactStartSMetersB }
+                        : new[] { decision.ContactStartSMetersB, decision.ContactStartSMetersA };
                     zones.Add(zone);
                 }
             }

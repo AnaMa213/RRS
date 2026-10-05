@@ -170,12 +170,20 @@ namespace RoadRage.Features.Vehicles.Traffic
         public readonly RoadBoundsBox Volume;
         public readonly IReadOnlyList<RoadId> MemberMovementIds;
 
+        /// <summary>Genre prouve hors ligne (Story 5.53) ; jamais infere en runtime.</summary>
+        public readonly ConflictKind Kind;
+
+        /// <summary>Debut de contact de chaque membre, parallele a <see cref="MemberMovementIds"/> ; vide = 0 (conservateur).</summary>
+        public readonly IReadOnlyList<float> ContactStartSMeters;
+
         internal CompiledConflictZone(ConflictZone source)
         {
             Id = source.Id;
             JunctionId = source.JunctionId;
             Volume = source.Volume;
             MemberMovementIds = CompiledRoadModel.ReadOnlyCopy(source.MemberMovementIds);
+            Kind = source.Kind;
+            ContactStartSMeters = CompiledRoadModel.ReadOnlyCopy(source.ContactStartSMeters);
         }
     }
 

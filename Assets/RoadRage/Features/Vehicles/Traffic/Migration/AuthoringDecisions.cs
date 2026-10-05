@@ -103,6 +103,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public int FingerprintSchemaVersion;
         public int ConflictSweepAlgorithmVersion;
         public int DecisionPolicyVersion;
+
+        /// <summary>Genre prouve par la politique v3 (Story 5.53) ; Crossing pour toute decision anterieure ou non prouvee.</summary>
+        public ConflictKind Kind;
+
+        /// <summary>Debut de contact, dans [0, L], du mouvement de <see cref="MovementKeyA"/> puis de <see cref="MovementKeyB"/>.</summary>
+        public float ContactStartSMetersA;
+
+        public float ContactStartSMetersB;
     }
 
     public struct WidthDecision
@@ -261,6 +269,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     {
                         throw new FormatException("Decisions : classification incompatible avec la decision " + pair + ".");
                     }
+
+                    // Typage 5.53 : absent des decisions anterieures, il vaut Crossing a 0 (conservateur).
+                    conflict.Kind = string.IsNullOrEmpty(record.ConflictKind)
+                        ? ConflictKind.Crossing
+                        : ParseEnum<ConflictKind>(record.ConflictKind, "genre de conflit " + pair);
+                    conflict.ContactStartSMetersA = NonNegative(record.ContactStartSMetersA, "debut de contact A " + pair);
+                    conflict.ContactStartSMetersB = NonNegative(record.ContactStartSMetersB, "debut de contact B " + pair);
+                    if (conflict.Kind == ConflictKind.Merge && conflict.Decision != ConflictDecisionKind.Accepted)
+                    {
+                        throw new FormatException("Decisions : Merge sur une paire rejetee " + pair + ".");
+                    }
                 }
                 if (conflict.Decision == ConflictDecisionKind.Accepted)
                 {
@@ -366,7 +385,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     CompilerSchemaVersion = c.CompilerSchemaVersion,
                     FingerprintSchemaVersion = c.FingerprintSchemaVersion,
                     ConflictSweepAlgorithmVersion = c.ConflictSweepAlgorithmVersion,
-                    DecisionPolicyVersion = c.DecisionPolicyVersion
+                    DecisionPolicyVersion = c.DecisionPolicyVersion,
+                    ConflictKind = c.Kind.ToString(),
+                    ContactStartSMetersA = c.ContactStartSMetersA,
+                    ContactStartSMetersB = c.ContactStartSMetersB
                 };
             }).ToArray();
             layout.Widths = Widths.ConvertAll(delegate(WidthDecision w)
@@ -618,6 +640,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return id;
         }
 
+        private static float NonNegative(float value, string what)
+        {
+            if (!(value >= 0f) || float.IsInfinity(value))
+            {
+                throw new FormatException("Decisions : " + what + " negative ou non finie.");
+            }
+
+            return value;
+        }
+
         private static float Positive(float value, string what)
         {
             if (!(value > 0f) || float.IsInfinity(value))
@@ -694,6 +726,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public int FingerprintSchemaVersion;
             public int ConflictSweepAlgorithmVersion;
             public int DecisionPolicyVersion;
+            public string ConflictKind;
+            public float ContactStartSMetersA;
+            public float ContactStartSMetersB;
         }
 
         [Serializable]

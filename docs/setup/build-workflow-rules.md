@@ -266,9 +266,26 @@ version differente invalide la revision precedente et impose un nouveau run, jam
 silencieux. L'ambiguite d'une paire ne provoque pas de HALT. Les HALT sont reserves aux changements
 de contrat, aux defauts systemiques non resolus ou a l'absence de politique sure et bornee.
 
-Cette exception ne s'etend a aucune autre story que 5.52 et n'autorise jamais la revue ni la signature de
-Gate A, qui restent des actes proprietaire distincts.
+Cette exception ne s'etend a aucune autre story que 5.52, 5.53 et 5.35 et n'autorise jamais la revue ni la
+signature de Gate A, qui restent des actes proprietaire distincts.
 
 2026-09-29 (`sprint-change-proposal-2026-09-29.md`) : la meme exception, sous toutes ses conditions,
 s'applique a la Story 5.52 pour la reevaluation de toutes les paires dont l'enveloppe gonflee change ;
 elle n'autorise ni la revue ni la signature de Gate A.
+
+2026-10-05 (`sprint-change-proposal-2026-10-05.md`) : la meme exception, sous toutes ses conditions,
+s'applique :
+
+- a la Story 5.53, pour la politique de decision v3 : raffinement borne des seules paires
+  `ConservativeConflict` sans temoin (subdivision dyadique des intervalles, budget declare
+  `RefinementLeafBudget` = 65 536 feuilles par paire, plafond dur ; `MaxSubdivisionDepth` = 20).
+  `ConflictProven`, `ProvenDisjoint` et `FailClosed` gardent classification, raison et preuve ; une
+  `ConservativeConflict` ne peut passer qu'a `ProvenDisjoint` (separation strictement superieure a la
+  tolerance sur chaque feuille) ou a `ConflictProven` (temoin). Tout autre changement de
+  classification est un HALT ; budget epuise sans preuve : conservateur, jamais `ProvenDisjoint` ;
+- a la Story 5.35 (decision P8), pour la regeneration rendue necessaire par l'inclusion des
+  controles dans `CandidateModel` : a geometrie inchangee, chaque paire garde sa classification, sa
+  raison et sa preuve ; seuls changent les identifiants de run et de revision. Toute classification
+  differente est un HALT.
+
+Elle n'autorise ni la revue ni la signature de Gate A, et ne s'etend a aucune autre story.

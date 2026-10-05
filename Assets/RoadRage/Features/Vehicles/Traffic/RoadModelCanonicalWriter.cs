@@ -274,6 +274,10 @@ namespace RoadRage.Features.Vehicles.Traffic
                 WritePosition(writer, zones[i].Volume.Center);
                 WritePosition(writer, zones[i].Volume.Extents);
                 WriteIdSet(writer, zones[i].MemberMovementIds);
+                if (payload.SchemaVersion >= 5)
+                {
+                    WriteZoneTyping(writer, zones[i]);
+                }
             }
 
             var plans = SortedCopy(payload.SignalPlans, delegate(SignalPlan a, SignalPlan b) { return a.Id.CompareTo(b.Id); });
@@ -335,6 +339,31 @@ namespace RoadRage.Features.Vehicles.Traffic
                 WriteCurvature(writer, values[i].CurvaturePerMeter);
                 WriteMeters(writer, values[i].HalfWidthLeftMeters);
                 WriteMeters(writer, values[i].HalfWidthRightMeters);
+            }
+        }
+
+        /// <summary>Genre puis abscisse de debut de contact de chaque membre, dans l'ordre trie des membres (schema 5).</summary>
+        private static void WriteZoneTyping(BinaryWriter writer, ConflictZone zone)
+        {
+            writer.Write((int)zone.Kind);
+            var members = zone.MemberMovementIds ?? new RoadId[0];
+            var starts = zone.ContactStartSMeters ?? new float[0];
+            var order = new int[members.Length];
+            for (int i = 0; i < order.Length; i++)
+            {
+                order[i] = i;
+            }
+
+            Array.Sort(order, delegate(int a, int b) { return members[a].CompareTo(members[b]); });
+            writer.Write(starts.Length == 0 ? 0 : order.Length);
+            if (starts.Length == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < order.Length; i++)
+            {
+                WriteMeters(writer, starts[order[i]]);
             }
         }
 

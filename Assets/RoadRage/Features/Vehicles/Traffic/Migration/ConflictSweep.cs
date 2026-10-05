@@ -222,7 +222,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
     /// distance exacte entre rectangles orientes ; les boites englobantes ne servent qu'a
     /// preselectionner et a publier les paires qu'elles seules retiendraient.
     /// </summary>
-    public static class ConflictSweep
+    public static partial class ConflictSweep
     {
         public const int AlgorithmVersion = 1;
 

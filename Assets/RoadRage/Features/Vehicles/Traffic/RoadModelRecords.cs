@@ -513,6 +513,25 @@ namespace RoadRage.Features.Vehicles.Traffic
 
         /// <summary>Au moins deux mouvements du meme carrefour.</summary>
         public RoadId[] MemberMovementIds;
+
+        /// <summary>Genre prouve hors ligne (Story 5.53, schema 5) ; <see cref="ConflictKind.Crossing"/> par defaut.</summary>
+        public ConflictKind Kind;
+
+        /// <summary>
+        /// Abscisse, dans [0, L] du mouvement, ou un contact devient possible, parallele a
+        /// <see cref="MemberMovementIds"/> (Story 5.53, schema 5). Vide : 0 pour chaque membre (conservateur).
+        /// </summary>
+        public float[] ContactStartSMeters;
+    }
+
+    /// <summary>
+    /// Genre d'une zone de conflit (Story 5.53). Un <see cref="Merge"/> exige un corridor aval commun et une
+    /// preuve que le contact n'est possible que dans la convergence ; toute autre zone est un croisement strict.
+    /// </summary>
+    public enum ConflictKind
+    {
+        Crossing = 0,
+        Merge = 1
     }
 
     /// <summary>
@@ -751,5 +770,11 @@ namespace RoadRage.Features.Vehicles.Traffic
         public SignalPlan[] SignalPlans;
         public Portal[] Portals;
         public ImportManifest Manifest;
+
+        /// <summary>
+        /// Schema de compilation de la source : 0 = schema courant. Seul un document historique lu par
+        /// <see cref="RoadModelDocument"/> le fixe a une valeur anterieure, pour que sa version liee reste verifiable.
+        /// </summary>
+        public int CompilerSchemaVersion;
     }
 }

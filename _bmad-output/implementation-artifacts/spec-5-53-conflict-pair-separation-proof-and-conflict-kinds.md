@@ -2,7 +2,8 @@
 title: 'Story 5.53 -- Classification des paires de conflit : preuve de separation raffinee des ConservativeConflict et typage croisement / fusion'
 type: 'bugfix'
 created: '2026-10-05'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_commit: 'b8e7165c639c27f86d907cb27e25c6c1faaeef7a'
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
@@ -105,13 +106,13 @@ context:
 **Execution:**
 
 *Phase 0*
-- [ ] `_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-05.md` (nouveau), `docs/setup/build-workflow-rules.md` §6 -- insertion de la 5.53 avant la 5.35 ; extension de l'exception 5.50 a la 5.53 (politique v3) et a la 5.35 (P8), sous toutes ses conditions. HALT pour approbation.
-- [ ] `_bmad-output/planning-artifacts/epics.md`, `sprint-status.yaml` -- fiche 5.53, chemin critique 5.34 -> 5.53 -> 5.35, table des revues.
+- [x] `_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-05.md` (nouveau), `docs/setup/build-workflow-rules.md` §6 -- insertion de la 5.53 avant la 5.35 ; extension de l'exception 5.50 a la 5.53 (politique v3) et a la 5.35 (P8), sous toutes ses conditions. HALT pour approbation.
+- [x] `_bmad-output/planning-artifacts/epics.md`, `sprint-status.yaml` -- fiche 5.53, chemin critique 5.34 -> 5.53 -> 5.35, table des revues.
 
 *Phase 1 -- politique et typage*
-- [ ] `ConflictSweep.cs`, `AutomatedPairDecisionPolicy.cs` -- raffinement borne, v3, motifs `refinement-budget` et `refined-disjoint`, invariance des autres classifications.
-- [ ] Schema : `RoadModelRecords.cs`, `CompiledRoadModel.cs`, `RoadModelCanonicalWriter.cs`, `RoadModelDocument.cs`, `RoadModelValidator.cs`, `RoadModelCompiler.cs`, `AuthoringDecisions.cs` -- `Kind`, `ContactStartSMeters`, version 5, validation (`Merge` exige un depart commun ; abscisses dans [0, L]).
-- [ ] `Tests/EditMode/Story553ConflictClassificationTests.cs` `[Geometry][Story553]` -- la matrice ; determinisme sous ordres melanges ; seconde execution sans changement ; invariance des classes non conservatives ; typage sur fixtures synthetiques.
+- [x] `ConflictSweep.cs`, `AutomatedPairDecisionPolicy.cs` -- raffinement borne, v3, motifs `refinement-budget` et `refined-disjoint`, invariance des autres classifications.
+- [x] Schema : `RoadModelRecords.cs`, `CompiledRoadModel.cs`, `RoadModelCanonicalWriter.cs`, `RoadModelDocument.cs`, `RoadModelValidator.cs`, `RoadModelCompiler.cs`, `AuthoringDecisions.cs` -- `Kind`, `ContactStartSMeters`, version 5, validation (`Merge` exige un depart commun ; abscisses dans [0, L]).
+- [x] `Tests/EditMode/Story553ConflictClassificationTests.cs` `[Geometry][Story553]` -- la matrice ; determinisme sous ordres melanges ; seconde execution sans changement ; invariance des classes non conservatives ; typage sur fixtures synthetiques.
 - Checkpoint 1 : `Story553` EditMode vert.
 
 *Phase 2 -- regeneration et diff*
@@ -130,6 +131,33 @@ context:
 - Given la regeneration, when elle s'acheve, then le diff complet paire par paire, les compteurs et la table des traversees compatibles par carrefour sont publies, sans aucune classification manuelle.
 
 ## Spec Change Log
+
+- **2026-10-05 -- Phase 0 approuvee par le proprietaire** (`sprint-change-proposal-2026-10-05.md`, section 8). Precisions qui s'imposent a l'implementation, sans modifier le bloc fige :
+  - **Vocabulaire.** « Corridor de depart » du bloc fige se lit **corridor aval commun** : le corridor dans lequel les deux mouvements convergent (`ToCorridorId` identique). Nom retenu dans le code et les rapports : `CommonExitCorridor`. Un corridor d'entree partage est un suivi (`SameApproach`), jamais un `Merge`.
+  - **Critere `Merge` renforce.** Toutes ces proprietes doivent etre prouvees : meme `CommonExitCorridor` ; pour chaque membre, l'ensemble des poses ou un contact devient possible (feuilles non prouvees apres raffinement complet) forme un seul intervalle terminal ; cet intervalle atteint la fin du mouvement ; aucun autre intervalle de contact possible en amont. Une sequence contact possible -> separation -> convergence reste `Crossing`. Les deux `ContactStartSMeters` sont derives de la preuve et publies. Ambiguite, budget epuise ou preuve incomplete : `Crossing`, `ContactStartSMeters = 0`.
+  - **Budget.** `RefinementLeafBudget` = 65 536 feuilles par paire, plafond dur ; `MaxSubdivisionDepth` = 20 inchange. Arret des qu'une preuve definitive est obtenue. Publier par paire les feuilles consommees, et au global total, mediane, p95, maximum, duree totale et memoire allouee si mesurable. Cout pathologique : HALT avant toute modification du budget. Budget epuise sans preuve : conservateur, jamais `ProvenDisjoint`.
+  - **Implementation phase 1 (2026-10-05), ecarts a valider au checkpoint 2 :**
+    - *Ordre de subdivision.* La precision 5.1 de la proposition disait « dyadic-a-then-b, alterne ». Mesure en fixture : l'alternance subdivise un intervalle deja fin (0,1 m) autant que l'intervalle large (20 m), et le cout depend de l'ordre des membres (M4 x M1 epuise le budget, M1 x M4 non), ce qui viole la ligne « ordre melange » de la matrice. Retenu : dyadique, cote au plus grand delta d'abord, A a egalite (`dyadic-larger-delta-first`, publie dans le manifeste v3). Budget et profondeur inchanges.
+    - *Feuille temoin.* Le premier temoin fixe la classification `ConflictProven`. Une feuille temoin dont le terme d'intervalle (delta_A/2 + delta_B/2) depasse encore 2 x gonflement est subdivisee pour localiser le contact (typage), dans le meme budget ; sinon elle est terminale. Sans cela, une feuille de 10 m projetait tout son segment et le debut de contact tombait a 0. Le temoin utilise la tolerance fixe de `ContactWitness`, jamais la tolerance de preuve passee au raffinement.
+    - *Schema 4 relisible.* `CompilerSchemaVersion` = 5 ; le document passe au format 3 (corps type). Le format 2 / schema 4 reste lisible, jamais ecrit, pour que les preuves historiques signees (`gate-a-5-52/historical-signed-5-51/`, utilisees par les tests 5.28, 5.30, 5.31, 5.52) gardent leur version liee. Consequence : le rapport de migration 5.27 (liaison `compiler-schema-version`) est regenere en phase 2, sans autre changement.
+  - **Campagne `Story553Regeneration` du 2026-10-05 (diagnostic, rien n'est ecrit) -- HALT proprietaire.** Sorties : `traffic-v2-5-53-classification/diff-paires-20261005-163022.md` et `regeneration-20261005-163022.md`.
+    - Verts : determinisme (deux plans identiques, run `4b271e1f...`), 42/42 `ConflictProven` inchangees, aucune autre classification changee.
+    - 94 `ConservativeConflict` -> 22 `ProvenDisjoint`, 22 `ConflictProven`, 50 restees (`refinement-budget`, toutes). Voies opposees en ligne droite : resolues. Rouge : 8 zones du groupe A (giratoires, sortie d'anneau contre continuation ou sortie) restees conservatives.
+    - Cout pathologique : 136 paires raffinees, mediane = p95 = max = 65 536 feuilles (total 7 493 284) ; 954 s par plan. Les 114 zones acceptees ont un typage incomplet : 0 `Merge`, debuts de contact a 0.
+    - Hypothese (a confirmer) : une feuille dont la vraie distance tombe dans la bande (2 x gonflement de base, 2 x gonflement avec reste de grille], large de 2 rho h_e / 2 = 0,0198 m, n'est ni prouvable ni temoin ; elle se subdivise jusqu'a la profondeur 20. Toute frontiere de zone de contact traverse cette bande, d'ou l'epuisement systematique des paires en contact.
+    - Allocation par thread non mesurable sous Mono (0 rapporte) ; tas gere 199 -> 226 Mo.
+  - **Decisions proprietaire au HALT de campagne (2026-10-05) :**
+    - *Arret a la resolution du modele : approuve.* Une feuille indecise dont le terme d'intervalle delta_A/2 + delta_B/2 est <= rho . h_e (derive du profil et des parametres, `ConflictSweep.RefinementResolution`, 0,0198 m aujourd'hui) devient terminale `Unresolved` (contact possible), jamais `ProvenDisjoint`. Justification : le terme rho . h_e de la borne vient de la grille des caps et aucune subdivision ne le reduit ; en dessous, la feuille est decrite a la resolution du modele. Budget, profondeur, gonflement, h_e et tolerance inchanges. Publie dans la preuve (`order=`, `resolution=`, arrets a la resolution).
+    - *Typage :* une feuille `Unresolved` n'est pas un contact prouve. `Merge` seulement si la paire est `ConflictProven`, tout ce qui precede la zone terminale est prouve disjoint et la zone de contact possible est unique, continue et terminale sur les deux mouvements ; au moindre doute `Crossing`.
+    - *Gate A : signature dediee a la 5.53* (la signature combinee 5.53 + 5.35 est abandonnee). Apres approbation du diff : regenerer preuves et signoff, HALT pour re-signature, puis rejouer les non-regressions 5.31, 5.52, 5.33 et 5.34 avant tout demarrage de la 5.35. La recommandation des Design Notes est donc remplacee.
+    - *Ecarts phase 1 approuves :* subdivision du cote au plus grand terme d'intervalle, egalite exacte -> A (`dyadic-larger-delta-first-tie-A`, enregistre dans la preuve) ; un contact prouve fixe `ConflictProven` definitivement, la subdivision suivante ne sert qu'a localiser `ContactStartSMeters` dans les memes bornes ; format 4 lisible et verifiable, aucun artefact historique reinterprete par la v3.
+  - **Rejeu v3 avec arret a la resolution (2026-10-05) -- HALT : revue proprietaire du diff.** `traffic-v2-5-53-classification/diff-paires-20261005-170241.md`, `regeneration-20261005-170241.md` ; campagne 3/3 verte, 0 erreur Console.
+    - 94 `ConservativeConflict` -> 22 `ProvenDisjoint`, 72 `ConflictProven`, 0 restees ; 42/42 `ConflictProven` inchangees ; aucune autre classification changee ; deux plans identiques (run `4b0eab8e...`).
+    - Typage : 82 `Crossing`, 32 `Merge`. 12 paires de giratoire au plafond (classification acquise, typage incomplet -> `Crossing`, debuts a 0).
+    - Cout : feuilles mediane 34 811, p95 = max = 65 536, total 4 550 190 ; duree par paire mediane 1,93 s, p95 20,1 s, max 23,4 s ; 488 s par plan.
+    - Compatibles : croix 6 -> 12 / 54, T 0 -> 2 / 12, giratoires 23 -> 25 / 33.
+  - **Diff approuve par le proprietaire (2026-10-05) ; analyse ciblee des 12 paires au plafond, sans nouveau run.** Seules les 4 paires continuation ouest x entree ouest (une par giratoire) ont un corridor aval commun (`Ring_Merge_West`) et relevent de `GrantedMergeGap` ; les 8 paires entree x sortie d'un meme bras sortent par des corridors differents et ne peuvent jamais etre `Merge`. Pour les 4 paires utiles, la preuve publiee s'arrete au budget (65 536 feuilles, temoin acquis a 60-233 feuilles) sans projection de contact : ni la zone terminale ni l'absence de contact en amont ne sont etablies. Les 12 restent `Crossing`, debuts de contact a 0. Impact 5.35 publie au proprietaire (entree ouest des 4 giratoires sans creneau de fusion ; sortie au meme bras toujours bloquante).
+  - **Base de revue.** `baseline_commit` reste `b8e7165`. Le commit `90d7a06` (archive des runs intermediaires 5.33/5.34) est anterieur a toute implementation 5.53 et hors perimetre de revue.
 
 ## Design Notes
 
