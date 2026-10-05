@@ -194,7 +194,9 @@ development_status:
   5-52-tracking-error-coverage-in-gate-a-evidence-and-owner-re-signature: done
   5-32-perception-boundary-occupancy-leader-and-hazards: done
   5-33-vehicle-following-through-named-speed-constraints: done
-  5-34-junction-coordination-core-grants-and-conflicts: review
+  # 2026-10-05 code review: R1-R4 fixed, C/regressions green; D13 N4 failed twice (max 4, then 3 FixedUpdate).
+  # 2026-10-05 closeout: owner-authorized D13 diagnostic/setup correction; Perf 5/5, Exploration 5/5 green. N4 max 2; N8 p95 9.479 ms.
+  5-34-junction-coordination-core-grants-and-conflicts: done
   # Inserted 2026-10-05 (owner decision P9, spec-5-35 / spec-5-53): conflict-pair
   # classification refined and conflict zones typed Crossing/Merge before 5.35.
   # Formal sprint-change-proposal-2026-10-05.md is phase 0 of 5.53.
