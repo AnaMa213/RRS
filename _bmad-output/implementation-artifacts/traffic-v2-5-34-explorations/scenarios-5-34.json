@@ -1,6 +1,6 @@
 {
     "Format": 1,
-    "RoadModelVersion": "v4:46e91057b9f6e8a970fe7952639805a6",
+    "RoadModelVersion": "v5:51ecff8ec9dd75568e5fbcf6bc25649a",
     "VehicleLengthMeters": 4.440000057220459,
     "MinimumGapMeters": 2.0,
     "MinimumObstacleDistanceMeters": 8.0,
