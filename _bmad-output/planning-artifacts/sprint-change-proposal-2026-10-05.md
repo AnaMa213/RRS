@@ -136,3 +136,13 @@ La spec 5.53 recommande une signature differee et combinee a la phase 2 de la 5.
 
    Les deux `ContactStartSMeters` sont derives de la preuve et publies. Ambiguite, budget epuise ou preuve incomplete : `Crossing`, `ContactStartSMeters = 0`. Aucun `Merge` n'est attribue manuellement.
 5. Les 6 fichiers 5.33 indexes sont commites a part apres inspection (`90d7a06`).
+
+## 9. Amendement P12 (2026-10-05) -- typing-v2 des fusions ouest
+
+Decisions proprietaire du 2026-10-05 (spec 5.35, P12 = b ; addendum `spec-5-53a-west-merge-typing-v2.md`) :
+
+1. **typing-v2 approuve**, pour le seul typage. Une feuille non prouvee dont les deux intervalles projetes sont contenus dans l'union de contact courante est terminale. Classification, tolerances, h_e, gonflement, resolution, ordre de subdivision et critere `Merge` (point 8.4) sont inchanges.
+2. **Extension de l'exception §6.** Le perimetre P8 couvre aussi l'application de typing-v2 par l'addendum 5.53, sous toutes les conditions du §6. Aucune campagne globale.
+3. **Execution en addendum de la 5.53**, sans signature Gate A dediee. Le modele modifie reste en `GateAEvidenceStale` jusqu'a la signature dediee de la 5.35 ; aucune execution V2 sur un modele non signe. La 5.53 reste en `review` jusque-la.
+4. **Plafond 8.2 maintenu** : 65 536 feuilles par paire. Le choix entre l'option B (v2 au lieu de v1 pour les 36 paires `ConflictProven` du balayage a corridor aval commun, resultat identique exige sur les 32 deja typees) et l'option A (seconde passe sur les 4 paires, derogation au plafond) est tranche au checkpoint d'approbation de l'addendum.
+

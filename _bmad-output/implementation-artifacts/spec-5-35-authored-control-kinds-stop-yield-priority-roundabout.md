@@ -119,7 +119,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 
 **Ask First:**
 
-- **EN ATTENTE -- P12 (decision proprietaire du 2026-10-05 : correction ciblee avant la 5.35).** Spec non approuvable tant que les 4 paires `continuation ouest x entree ouest` ne sont pas typees par une procedure deterministe approuvee (`Crossing`, ou `Merge` avec `ContactStartSMeters`).
+- **EN ATTENTE -- P12 (decision proprietaire du 2026-10-05 : correction ciblee avant la 5.35).** Spec non approuvable tant que l'addendum `spec-5-53a-west-merge-typing-v2.md` n'a pas type les 4 paires `continuation ouest x entree ouest` (`Crossing`, ou `Merge` avec `ContactStartSMeters`).
   - Interdits : campagne globale 5.53, hausse du budget de 65 536, changement de tolerance, h_e, gonflement ou critere de conflit, reouverture du verdict `ConflictProven`, `Merge` force a la main.
   - Les criteres d'anneau sont actualises sur le modele reel ensuite, avant le checkpoint d'approbation. Aucune implementation runtime avant.
 
@@ -320,18 +320,19 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 
 **Exemple (profil par defaut, Δt = 0,02 s), a titre indicatif.** Branche arretee (v = 0), traversee de ~12 m jusqu'a la fin du dernier mouvement en conflit, L = 4,44 m, a = 1,5 m/s² : t_clear ≈ √(2·16,4/1,5) ≈ 4,7 s, donc t_gap ≈ 4,7 + 0,04 + 1,0 ≈ 5,7 s. Un vehicule d'axe a 8 m/s cede le creneau au-dela d'environ 45 m.
 
-**P12 : typage cible des fusions ouest (proposition du 2026-10-05, en attente d'approbation).**
+**P12 : typage cible des fusions ouest (methode approuvee le 2026-10-05, executee par l'addendum `spec-5-53a-west-merge-typing-v2.md`).**
 - *Faits.*
   - Les quatre bras de chaque giratoire sont geometriquement identiques (entree 6,57 m, kmax 0,248 ; continuation 8,56 m, kmax 0,167). Pourtant la fusion diagonale est typee en 28 236 feuilles, la sud en 57 194, et l'ouest epuise 65 536 sur les 4 giratoires.
   - Le test « prouve » de `EvaluateLeaf` (`ConflictSweepRefinement.cs:451-475`) borne la distance par des boites alignees sur les axes du monde (`AabbDistance`). Son serrage depend donc de l'orientation du bras.
   - Le typage exige un raffinement complet (`ZoneTyping.Of`), alors que la boucle (`:249-285`) subdivise encore des feuilles dont la projection est deja contenue dans la zone de contact.
-- *Methode proposee (typing-v2, typage seul).* Une feuille non prouvee dont les deux intervalles projetes sont entierement contenus dans l'union de contact deja projetee est terminale : projetee telle quelle, sans subdivision.
+- *Methode approuvee (typing-v2, typage seul).* Une feuille non prouvee dont les deux intervalles projetes sont entierement contenus dans l'union de contact deja projetee est terminale : projetee telle quelle, sans subdivision.
   - Effet : l'union ne peut que grossir. Le debut de contact obtenu est donc ≤ au vrai debut (conservatif), et `Merge` reste conditionne a une union unique et terminale, et a l'absence de contact prouvee en amont.
   - Inchanges : classification, budget, profondeur, tolerances, h_e, gonflement, resolution, ordre de subdivision. Version de typage publiee (`typing-v2`).
 - *Perimetre d'application.* Les seules paires `ConflictProven` a corridor aval commun dont le typage v1 est incomplet, soit exactement les 4 paires ouest. Les 8 paires entree x sortie n'ont pas de corridor aval commun : `Crossing` par definition.
 - *Verification.* Fixture EditMode deterministe qui publie, pour les 4 paires et les 8 `Merge` deja types des giratoires, les feuilles par etat. Sur les 8, typing-v2 doit retrouver `Merge` avec des debuts ≤ aux debuts publies, sans les reecrire. Si une paire ouest epuise encore le budget ou n'est pas terminale : `Crossing` inchange, HALT.
 - *Gate A.* Le modele modifie change de version : l'admission V2 passe en `GateAEvidenceStale` jusqu'a une signature, donc aucune execution V2 sur un modele non signe. Le coordinateur 5.34 ne lit pas `Kind` : le correctif n'a aucun effet runtime avant la phase 3 de la 5.35. Il peut donc etre couvert par la signature dediee 5.35 (phase 2), sans signature intermediaire.
-  - Condition : etendre le perimetre P8 de `sprint-change-proposal-2026-10-05.md` a cette application de typing-v2. P8 ne couvre aujourd'hui que la regeneration due aux controles.
+  - Perimetre P8 etendu a typing-v2 (`sprint-change-proposal-2026-10-05.md`, section 9). La 5.53 reste en `review` jusqu'a la signature 5.35.
+  - typing-v2 vit dans la politique v3 (`TypeZone`) : la regeneration P8 de la phase 2 doit reproduire a l'identique les genres et debuts issus de l'addendum, sinon HALT.
 
 **Hypotheses non verifiees.**
 - L'explication par l'orientation des boites et par la subdivision interne n'est pas mesuree ; la fixture de diagnostic la verifie avant toute application.
