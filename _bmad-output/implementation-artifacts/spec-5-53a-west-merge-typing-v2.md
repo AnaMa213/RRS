@@ -2,7 +2,7 @@
 title: 'Story 5.53 -- addendum P12 : typing-v2, typage des quatre fusions ouest de giratoire'
 type: 'bugfix'
 created: '2026-10-05'
-status: 'draft'
+status: 'ready-for-dev'
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/spec-5-53-conflict-pair-separation-proof-and-conflict-kinds.md'
@@ -20,7 +20,7 @@ context:
 
 **Approach:** typing-v2 (decisions proprietaire du 2026-10-05). Dans la passe de typage, une feuille non prouvee dont les deux intervalles projetes sont deja contenus dans l'union de contact courante devient terminale, sans subdivision.
 - Ses sous-feuilles n'auraient rien ajoute a l'union : le genre et les debuts sont exactement ceux de v1 lorsque v1 aboutit.
-- Perimetre recommande (option B, a confirmer) : typing-v2 remplace v1, en une seule passe de 65 536 feuilles, pour le seul typage des paires `ConflictProven` par le balayage initial (temoin du sweep, classification independante du raffinement) qui ont un corridor aval commun. Dans `MVP_Run` : 36 paires, dont les 32 `Merge` deja types (genre et debuts identiques attendus) et les 4 paires ouest.
+- Perimetre (option B, approuvee le 2026-10-05) : typing-v2 remplace v1, en une seule passe de 65 536 feuilles, pour le seul typage des paires `ConflictProven` par le balayage initial (temoin du sweep, classification independante du raffinement) qui ont un corridor aval commun. Dans `MVP_Run` : 36 paires, dont les 32 `Merge` deja types (genre et debuts identiques attendus) et les 4 paires ouest.
 
 ## Boundaries & Constraints
 
@@ -101,9 +101,9 @@ context:
 - en v2, elle est projetee entiere, toujours a l'interieur de l'union.
 Dans les deux cas l'union ne change pas, et l'etat de la suite du parcours (meme ordre) est identique. Seul le temoin enregistre peut differer, et seulement si une contenance a lieu avant le premier temoin : il n'affecte ni la classification acquise ni le typage.
 
-**Plafond par paire (proposition 8.2) : options a trancher au checkpoint.**
-- **B (recommandee)** : v2 remplace v1 pour le typage des 36 paires `ConflictProven` du balayage a corridor aval commun. Une passe, 65 536 feuilles au plus par paire. Le plafond dur est respecte, mais 32 revisions de plus sont ecrites, a resultat identique exige.
-- **A** : passe v2 apres une passe v1 incomplete, sur les 4 paires seulement. Seulement 4 revisions, mais jusqu'a 2 x 65 536 feuilles par paire : une derogation au plafond 8.2.
+**Plafond par paire (proposition 8.2) : option B approuvee le 2026-10-05.**
+- **B (retenue)** : v2 remplace v1 pour le typage des 36 paires `ConflictProven` du balayage a corridor aval commun. Une passe, 65 536 feuilles au plus par paire. Le plafond dur est respecte, mais 32 revisions de plus sont ecrites, a resultat identique exige.
+- **A (ecartee)** : passe v2 apres une passe v1 incomplete, sur les 4 paires seulement. Seulement 4 revisions, mais jusqu'a 2 x 65 536 feuilles par paire : une derogation au plafond 8.2.
 
 **Hypotheses non verifiees.**
 - Que v2 aboutisse sous 65 536 feuilles sur les 4 paires. L'explication du cout (boites alignees sur le monde, subdivision interne) n'est pas mesuree : le checkpoint 1 la publie avant toute ecriture.
