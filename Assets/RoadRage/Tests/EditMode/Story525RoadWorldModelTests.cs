@@ -731,13 +731,18 @@ namespace RoadRage.Tests.EditMode
                 RoadModelValidationCode.MovementSeamBroken,
                 "Mouvement : comportemental.");
 
-            AssertVersionChanges(
-                delegate(RoadModelSource source)
+            // Story 5.35 : une ligne Stop doit couper ses mouvements une fois ; le genre est donc compare sans ligne de part et d'autre.
+            Action<RoadModelSource> withoutLines = delegate(RoadModelSource source)
+            {
+                source.Controls[ControlC1Index].HasStopLine = false;
+                source.Controls[ControlC2Index].HasStopLine = false;
+            };
+            Assert.That(VersionOf(delegate(RoadModelSource source)
                 {
+                    withoutLines(source);
                     source.Controls[ControlC1Index].Kind = JunctionControlKind.Stop;
                     source.Controls[ControlC2Index].Kind = JunctionControlKind.Stop;
-                },
-                "Genre de controle : comportemental.");
+                }), Is.Not.EqualTo(VersionOf(withoutLines)), "Genre de controle : comportemental.");
 
             AssertVersionChanges(
                 delegate(RoadModelSource source) { source.ConflictZones[0].Volume = Box(new Vector3(0f, 0f, 25f), new Vector3(4f, 2f, 3f)); },

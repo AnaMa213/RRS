@@ -39,7 +39,11 @@ namespace RoadRage.Tests.EditMode
             // Instantane lie : 40 approches, 72 mouvements (assertions de test, pas regles du pipeline).
             Assert.That(model.Controls.Count, Is.EqualTo(40));
             Assert.That(model.Movements.Count, Is.EqualTo(72));
-            Assert.That(model.Controls.All(c => c.Kind == JunctionControlKind.Uncontrolled && !c.HasStopLine), Is.True);
+            // Story 5.35 (P2) : genres authores selon la route ; lignes sur les seules branches de T.
+            Assert.That(model.Controls.Count(c => c.Kind == JunctionControlKind.Uncontrolled), Is.EqualTo(4));
+            Assert.That(model.Controls.Count(c => c.Kind == JunctionControlKind.Priority), Is.EqualTo(20));
+            Assert.That(model.Controls.Count(c => c.Kind == JunctionControlKind.Yield), Is.EqualTo(16));
+            Assert.That(model.Controls.Count(c => c.HasStopLine), Is.EqualTo(4));
 
             var coverage = new Dictionary<RoadId, int>();
             foreach (var control in model.Controls)

@@ -288,6 +288,7 @@ namespace RoadRage.Features.Vehicles.Traffic
         private readonly Dictionary<RoadId, RoadId[]> _predecessorCorridors;
         private readonly Dictionary<RoadId, RoadId[]> _portalsByCorridor;
         private readonly Dictionary<RoadId, RoadId> _controlByMovement = new Dictionary<RoadId, RoadId>();
+        private readonly Dictionary<RoadId, float> _stopLineByMovement = new Dictionary<RoadId, float>();
 
         internal CompiledRoadModel(
             RoadId modelId,
@@ -344,6 +345,22 @@ namespace RoadRage.Features.Vehicles.Traffic
                 for (int m = 0; m < _controls[i].ControlledMovementIds.Count; m++)
                 {
                     _controlByMovement[_controls[i].ControlledMovementIds[m]] = _controls[i].Id;
+                }
+            }
+
+            // Story 5.35 : abscisse de la ligne d'arret sur chaque mouvement controle, projetee une fois (le validateur exige un
+            // croisement unique, donc une projection qui echoue ici ne laisse aucune frontiere : repli s = 0).
+            for (int i = 0; i < _controls.Length; i++)
+            {
+                if (!_controls[i].HasStopLine) continue;
+                for (int m = 0; m < _controls[i].ControlledMovementIds.Count; m++)
+                {
+                    int index;
+                    float sLine;
+                    var movementId = _controls[i].ControlledMovementIds[m];
+                    if (_movementIndex.TryGetValue(movementId, out index)
+                        && StopLineProjection.TryProject(_movements[index].Samples, _movements[index].LengthMeters, _controls[i].StopLine, out sLine))
+                        _stopLineByMovement[movementId] = sLine;
                 }
             }
 
@@ -556,6 +573,15 @@ namespace RoadRage.Features.Vehicles.Traffic
 
             control = default(CompiledJunctionControl);
             return false;
+        }
+
+        /// <summary>
+        /// Abscisse s_line (m) de la ligne d'arret ou de cession du controle du mouvement (Story 5.35), compilee ; faux si le
+        /// controle n'en porte pas (repli explicite sur l'entree generique, s = 0).
+        /// </summary>
+        public bool TryGetStopLine(RoadId movementId, out float sLineMeters)
+        {
+            return _stopLineByMovement.TryGetValue(movementId, out sLineMeters);
         }
 
         // ------------------------------------------------------------------ collections inverses

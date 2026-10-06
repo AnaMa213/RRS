@@ -208,7 +208,7 @@ development_status:
   # 2026-10-06: cloture proprietaire explicite des stories 5.53 et 5.53a.
   5-53-conflict-pair-separation-proof-and-conflict-kinds: done
   5-53a-west-merge-typing-v2: done
-  5-35-authored-control-kinds-stop-yield-priority-roundabout: backlog
+  5-35-authored-control-kinds-stop-yield-priority-roundabout: in-progress
   5-36-signal-phase-runtime-and-coordinator-integration: backlog
   5-37-safety-filter-narrow-veto-and-clamp-boundary: backlog
   5-38-collision-response-physics-yields-tactical-handshake: backlog

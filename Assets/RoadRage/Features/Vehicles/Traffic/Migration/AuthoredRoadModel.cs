@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -138,6 +139,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         /// <summary>Bornes d'ecart de la pose cinematique, calculees sur <see cref="CandidateModel"/> ; nul a pose tangente.</summary>
         public KinematicOffsetBounds OffsetBounds;
+
+        /// <summary>Preuve de separation des lignes d'arret (Story 5.35, P5 amende) ; nulle avant la compilation 2.</summary>
+        public StopLineSeparation.Result StopLines;
 
         public RoadModelSource Source;
         public CompiledRoadModel Compiled;
@@ -303,6 +307,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return run;
             }
 
+            // Story 5.35 (P4) : relation de droite derivee, jamais ambigue dans un modele authore.
+            var rightOfWay = RightOfWayTable.For(run.Compiled);
+            if (rightOfWay.AmbiguousCount > 0)
+            {
+                run.Failures.Add("Relation de droite ambigue (bande de " + RightOfWay.AmbiguityDegrees + " deg autour d'une frontiere de secteur) sur "
+                    + rightOfWay.AmbiguousCount + " paire(s) d'approches `Uncontrolled` : aucune priorite a droite ne peut en etre deduite.");
+                return run;
+            }
+
             RunFixtures(run);
             if (run.Failures.Count > 0)
             {
@@ -312,6 +325,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             run.Roundabouts.AddRange(RoundaboutClearance.Measure(run.Import, run.Compiled, run.Failures, run.EvidenceParameters, run.OffsetBounds));
             if (run.Failures.Count > 0)
             {
+                return run;
+            }
+
+            // Story 5.35 (P5 amende) : aucune ligne n'est ecrite si elle cree un contact ou degrade un contact preexistant.
+            run.StopLines = StopLineSeparation.Measure(run.Compiled, run.EvidenceParameters, run.OffsetBounds);
+            if (!run.StopLines.Passed)
+            {
+                run.Failures.AddRange(run.StopLines.Failures);
                 return run;
             }
 
@@ -356,6 +377,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// Controles, largeurs, dispositions et champs differes. Chaque decision doit trouver son
         /// sujet et chaque sujet sa decision : orphelin ou manque = echec dur nommant la cle.
         /// </summary>
+        /// <summary>Categorie 5.27 des lignes d'arret, disposee par carrefour selon ses controles (Story 5.35).</summary>
+        private const string LineCategory = "Ligne";
+
         private static RoadModelSource ApplyDecisions(AuthoredRun run)
         {
             var import = run.Import;
@@ -397,10 +421,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     continue;
                 }
 
-                if (decision.Kind != JunctionControlKind.Uncontrolled)
+                if (decision.Kind == JunctionControlKind.Signalized)
                 {
-                    failures.Add("Genre de controle non admis pour '" + decision.ApproachKey + "' : " + decision.Kind
-                        + ". Seul Uncontrolled est admis ; Stop, Yield, Priority et Signalized relevent de la Story 5.35.");
+                    failures.Add("Genre de controle non admis pour '" + decision.ApproachKey + "' : Signalized (plans de feux : Story 5.36).");
+                    continue;
+                }
+
+                if (decision.HasStopLine && decision.Kind != JunctionControlKind.Stop && decision.Kind != JunctionControlKind.Yield)
+                {
+                    failures.Add("Ligne d'arret sur le controle " + decision.Kind + " de '" + decision.ApproachKey + "' : seuls Stop et Yield en portent une.");
                     continue;
                 }
 
@@ -412,7 +441,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 control.JunctionId = import.IdOf(junctionOfApproach[decision.ApproachKey].Key);
                 control.Kind = decision.Kind;
                 control.ControlledMovementIds = members.ToArray();
+                control.HasStopLine = decision.HasStopLine;
+                control.StopLine = decision.StopLine;
                 controls.Add(control);
+            }
+
+            // Story 5.35 : la disposition d'une tache Ligne depend des controles authores de son carrefour.
+            var controlsByJunctionKey = new Dictionary<string, List<ControlDecision>>(StringComparer.Ordinal);
+            foreach (var decision in decisions.Controls)
+            {
+                ImportedJunction owner;
+                if (!junctionOfApproach.TryGetValue(decision.ApproachKey, out owner)) continue;
+                List<ControlDecision> list;
+                if (!controlsByJunctionKey.TryGetValue(owner.Key, out list)) controlsByJunctionKey.Add(owner.Key, list = new List<ControlDecision>());
+                list.Add(decision);
             }
 
             var approaches = new List<string>(junctionOfApproach.Keys);
@@ -496,6 +538,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 }
 
                 var expected = AuthoringDecisions.ExpectedKind(task.Category);
+                if (expected != null && task.Category == LineCategory)
+                {
+                    List<ControlDecision> junctionControls;
+                    expected = AuthoringDecisions.ExpectedLineKind(controlsByJunctionKey.TryGetValue(task.SubjectKey, out junctionControls)
+                        ? junctionControls : new List<ControlDecision>());
+                }
+
                 TaskDisposition disposition;
                 if (expected == null)
                 {
@@ -1570,17 +1619,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             text.Append("## Modele authore\n\n| Enregistrement | Nombre |\n|---|---:|\n");
             Row(text, "JunctionMovement", model.Movements.Count.ToString());
-            Row(text, "JunctionControl", model.Controls.Count + " (un par approche, tous `Uncontrolled`)");
+            Row(text, "JunctionControl", model.Controls.Count + " (un par approche : " + ControlKindCounts(model) + ")");
             Row(text, "ConflictZone", model.ConflictZones.Count + " (decisions acceptees seulement)");
             Row(text, "SignalPlan", model.SignalPlans.Count + " (carrefours declares non signalises)");
             Row(text, "LaneAdjacency", model.Adjacencies.Count + " (aucune adjacence authoree)");
-            Row(text, "Ligne d'arret", CountStopLines(model) + " (aucune ligne sous `Uncontrolled`)");
+            Row(text, "Ligne d'arret", CountStopLines(model) + " (controles Stop ou Yield dont la map porte l'intention ; replis : table des controles)");
             text.Append('\n');
 
             // ------------------------------------------------ controles
             text.Append("## Controles par approche\n\n");
-            text.Append("Un `JunctionControl` par corridor d'approche, lie a tous les mouvements partant de cette approche ; seul genre admis : `Uncontrolled` (decision du proprietaire, 2026-09-23). Chaque mouvement a exactement un controle.\n\n");
-            text.Append("| Carrefour | Controle | Genre | Approche | Mouvements |\n|---|---|---|---|---:|\n");
+            text.Append("Un `JunctionControl` par corridor d'approche, lie a tous les mouvements partant de cette approche. Genres authores selon l'intention reelle de la route (Story 5.35, P2) : giratoires `Yield` aux entrees et `Priority` sur l'anneau, T `Priority` sur l'axe traversant et `Yield` sur la branche, croix `Uncontrolled` (priorite a droite). `Signalized` reste refuse (5.36). Chaque mouvement a exactement un controle.\n\n");
+            text.Append("| Carrefour | Controle | Genre | Approche | Mouvements | Ligne (s_line par mouvement) |\n|---|---|---|---|---:|---|\n");
             foreach (var junction in model.Junctions)
             {
                 foreach (var controlId in model.GetControlsInJunction(junction.Id))
@@ -1590,11 +1639,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     CompiledJunctionMovement first;
                     model.TryGetMovement(control.ControlledMovementIds[0], out first);
                     text.Append("| ").Append(Cell(junction.Label)).Append(" | `").Append(control.Id).Append("` | ").Append(control.Kind).Append(" | `")
-                        .Append(first.FromCorridorId).Append("` ").Append(Cell(keyById[first.FromCorridorId])).Append(" | ").Append(control.ControlledMovementIds.Count).Append(" |\n");
+                        .Append(first.FromCorridorId).Append("` ").Append(Cell(keyById[first.FromCorridorId])).Append(" | ").Append(control.ControlledMovementIds.Count)
+                        .Append(" | ").Append(LineCell(model, control)).Append(" |\n");
                 }
             }
 
             text.Append('\n');
+            RenderRightOfWay(text, model);
+            StopLineSeparation.Render(text, model, run.StopLines ?? new StopLineSeparation.Result());
 
             // ------------------------------------------------ candidats
             var decisionByPair = new Dictionary<string, ConflictDecision>(StringComparer.Ordinal);
@@ -1807,7 +1859,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             if (task.Category == AuthoringDecisions.ControlCategory)
             {
                 disposition = "Controles";
-                detail = model.GetControlsInJunction(import.IdOf(task.SubjectKey)).Count + " controles Uncontrolled, un par approche";
+                var ids = model.GetControlsInJunction(import.IdOf(task.SubjectKey));
+                var kinds = new SortedSet<string>(StringComparer.Ordinal);
+                foreach (var id in ids)
+                {
+                    CompiledJunctionControl control;
+                    if (model.TryGetControl(id, out control)) kinds.Add(control.Kind.ToString());
+                }
+
+                detail = ids.Count + " controles (" + string.Join(", ", kinds) + "), un par approche";
                 return;
             }
 
@@ -1861,6 +1921,60 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             return pairs;
+        }
+
+        private static string ControlKindCounts(CompiledRoadModel model)
+        {
+            var counts = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            foreach (var control in model.Controls)
+            {
+                int count;
+                counts.TryGetValue(control.Kind.ToString(), out count);
+                counts[control.Kind.ToString()] = count + 1;
+            }
+
+            var parts = new List<string>();
+            foreach (var pair in counts) parts.Add(pair.Value + " `" + pair.Key + "`");
+            return string.Join(", ", parts);
+        }
+
+        /// <summary>Ligne du controle : s_line compilee par mouvement, ou repli explicite sur l'entree generique.</summary>
+        private static string LineCell(CompiledRoadModel model, CompiledJunctionControl control)
+        {
+            if (!control.HasStopLine)
+            {
+                return control.Kind == JunctionControlKind.Stop || control.Kind == JunctionControlKind.Yield ? "repli entree generique (s = 0)" : "-";
+            }
+
+            var parts = new List<string>();
+            foreach (var movementId in control.ControlledMovementIds)
+            {
+                float sLine;
+                parts.Add(model.TryGetStopLine(movementId, out sLine) ? MigrationFormat.Meters(sLine) + " m" : "non projetee");
+            }
+
+            return string.Join(" / ", parts);
+        }
+
+        /// <summary>Relation de droite (Story 5.35, P4) : version, hash lie a la signature et chaque paire d'approches.</summary>
+        private static void RenderRightOfWay(StringBuilder text, CompiledRoadModel model)
+        {
+            var table = RightOfWayTable.For(model);
+            text.Append("## Relation de droite\n\n");
+            text.Append("Derivee de la geometrie (cap en fin de corridor d'approche, plan route), jamais authoree ; calculee pour les carrefours `Uncontrolled` seulement (priorite a droite). Fonction `right-of-way-v")
+                .Append(RightOfWay.FunctionVersion).Append("`, secteurs de ").Append(2f * RightOfWay.SectorHalfDegrees).Append(" deg, bande ambigue de ")
+                .Append(RightOfWay.AmbiguityDegrees).Append(" deg. Hash `").Append(table.Hash).Append("` (lie a la signature Gate A). Paires ambigues : ")
+                .Append(table.AmbiguousCount).Append(".\n\n");
+            text.Append("| Carrefour | Approche A | Approche B | Angle de B vu de A (deg) | Relation |\n|---|---|---|---:|---|\n");
+            foreach (var entry in table.Entries)
+            {
+                Junction junction;
+                model.TryGetJunction(entry.JunctionId, out junction);
+                text.Append("| ").Append(Cell(junction.Label)).Append(" | `").Append(entry.ControlA).Append("` | `").Append(entry.ControlB).Append("` | ")
+                    .Append(entry.Degrees.ToString("0.0", CultureInfo.InvariantCulture)).Append(" | ").Append(entry.Relation).Append(" |\n");
+            }
+
+            text.Append('\n');
         }
 
         private static int CountStopLines(CompiledRoadModel model)
@@ -2081,10 +2195,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public int ConflictSweepAlgorithmVersion;
             public int FingerprintSchemaVersion;
             public string[] SignedRingSeams;
+
+            /// <summary>Format 4 (5.35) : hash de la relation de droite derivee (P4), liee a la signature.</summary>
+            public string RightOfWayHash;
         }
 
         public const int LegacySignoffFormat = 2;
-        public const int SignoffFormat = 3;
+
+        /// <summary>Format 3 (5.52) : preuve cinematique sans relation de droite ; historique depuis la 5.35.</summary>
+        public const int KinematicSignoffFormat = 3;
+
+        /// <summary>Format 4 (5.35) : format 3 plus le hash de la relation de droite.</summary>
+        public const int SignoffFormat = 4;
 
         /// <summary>
         /// Texte d'un sign-off lie au pipeline frais. Seul <see cref="GateAReviewWindow"/> l'ecrit sur
@@ -2123,6 +2245,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 layout.ConflictSweepAlgorithmVersion = ConflictSweep.AlgorithmVersionFor(fresh.EvidenceParameters);
                 layout.FingerprintSchemaVersion = PairGeometryFingerprint.SchemaVersionFor(fresh.EvidenceParameters);
                 layout.SignedRingSeams = fresh.SignedRingSeams.ToArray();
+                layout.RightOfWayHash = RightOfWayTable.For(fresh.Compiled).Hash;
             }
             return JsonUtility.ToJson(layout, true).Replace("\r\n", "\n") + "\n";
         }
@@ -2148,7 +2271,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return reasons;
             }
 
-            if (layout == null || (layout.Format != LegacySignoffFormat && layout.Format != SignoffFormat))
+            if (layout == null || (layout.Format != LegacySignoffFormat && layout.Format != KinematicSignoffFormat && layout.Format != SignoffFormat))
             {
                 reasons.Add("Sign-off : format absent ou inconnu.");
                 return reasons;
@@ -2212,6 +2335,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 Stale(reasons, "fingerprint-version", layout.FingerprintSchemaVersion.ToString(), PairGeometryFingerprint.SchemaVersionFor(fresh.EvidenceParameters).ToString());
                 Stale(reasons, "raccords-signes", string.Join("\n", layout.SignedRingSeams ?? new string[0]),
                     string.Join("\n", fresh.SignedRingSeams.ToArray()));
+                Stale(reasons, "right-of-way-hash", layout.RightOfWayHash, RightOfWayTable.For(fresh.Compiled).Hash);
             }
             return reasons;
         }

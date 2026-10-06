@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using RoadRage.Features.Vehicles.Traffic.Coordination;
 using UnityEngine;
 
 namespace RoadRage.Features.Vehicles.Traffic.Planning
@@ -52,6 +53,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             public int ConflictSweepAlgorithmVersion;
             public int FingerprintSchemaVersion;
             public string[] SignedRingSeams;
+            /// <summary>Format 4 (Story 5.35) : hash de la relation de droite derivee, recalcule et compare a l'admission.</summary>
+            public string RightOfWayHash;
         }
 
         public static GateAEvidenceResult Bind(CompiledRoadModel model, string modelText,
@@ -92,8 +95,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                 || !string.Equals(signoff.ModelHash, Hash(modelText), StringComparison.OrdinalIgnoreCase)
                 || !string.Equals(signoff.ClearanceHash, Hash(block), StringComparison.OrdinalIgnoreCase))
                 return new GateAEvidenceResult(GateAEvidenceStatus.GateAEvidenceStale, allowance);
-            if (signoff.Format == 3)
+            if (signoff.Format == 3 || signoff.Format == 4)
             {
+                // Story 5.35 (P4) : la relation de droite n'entre pas dans RoadModelVersion ; sa fonction est liee a la signature.
+                // Un format 3 n'en porte pas : perime des qu'un carrefour `Uncontrolled` la lit.
+                var rightOfWay = RightOfWayTable.For(model);
+                if (signoff.Format == 3 ? rightOfWay.Entries.Count > 0
+                    : !string.Equals(signoff.RightOfWayHash, rightOfWay.Hash, StringComparison.Ordinal)
+                        || !normalized.Contains("Hash `" + rightOfWay.Hash + "` (lie a la signature Gate A)"))
+                    return new GateAEvidenceResult(GateAEvidenceStatus.GateAEvidenceStale, allowance);
                 if (signoff.PoseModel != "kinematic-v1" || signoff.TrackingAllowanceMeters != allowance
                     || signoff.TrackingToleranceMeters + signoff.MaximumAbsolutePlanningOffsetMeters != allowance
                     || string.IsNullOrEmpty(signoff.EvidenceParametersHash)

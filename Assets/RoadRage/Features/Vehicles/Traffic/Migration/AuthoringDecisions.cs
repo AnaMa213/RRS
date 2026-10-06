@@ -36,14 +36,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Frontiere ou portail : revu a l'overlay Gate A.</summary>
         Reviewed = 0,
 
-        /// <summary>Ligne : aucune ligne sous `Uncontrolled` ; reouverture 5.35.</summary>
+        /// <summary>Ligne : carrefour sans controle Stop ni Yield (aucune ligne n'a de sens).</summary>
         NotRequiredForCurrentControlKind = 1,
 
         /// <summary>Signal : carrefour declare non signalise, sans plan.</summary>
         Unsignalized = 2,
 
         /// <summary>Section : champs differes, chacun avec sa reouverture.</summary>
-        Deferred = 3
+        Deferred = 3,
+
+        /// <summary>
+        /// Ligne (Story 5.35, P5) : au moins un controle Stop ou Yield sans ligne, la map n'en portant pas l'intention ; repli
+        /// explicite sur l'entree generique du mouvement (s = 0).
+        /// </summary>
+        GenericEntryFallback = 4,
+
+        /// <summary>Ligne (Story 5.35, P5) : chaque controle Stop ou Yield du carrefour porte sa ligne authoree.</summary>
+        AuthoredOnControls = 5
     }
 
     /// <summary>
@@ -73,6 +82,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public string ApproachKey;
 
         public JunctionControlKind Kind;
+
+        /// <summary>Ligne d'arret ou de cession authoree (format 5, Stop ou Yield seulement).</summary>
+        public bool HasStopLine;
+
+        public RoadLineSegment StopLine;
     }
 
     public struct ConflictDecision
@@ -155,7 +169,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
     public sealed class AuthoringDecisions
     {
-        public const int FormatVersion = 4;
+        /// <summary>Format 5 (Story 5.35) : ligne d'arret optionnelle par controle.</summary>
+        public const int FormatVersion = 5;
+
+        /// <summary>Format 4 (Story 5.50) : decisions de paires automatisees, lu sans ligne.</summary>
+        public const int AutomatedFormatVersion = 4;
         public const int HistoricalFormatVersion = 3;
         public const int LegacyFormatVersion = 2;
 
@@ -169,6 +187,29 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         public readonly List<WidthDecision> Widths = new List<WidthDecision>();
         public readonly List<TaskDisposition> Dispositions = new List<TaskDisposition>();
         public readonly List<DeferredField> DeferredFields = new List<DeferredField>();
+
+        /// <summary>
+        /// Disposition attendue d'une tache Ligne d'un carrefour (Story 5.35) : aucune sans Stop ni Yield, repli generique si un
+        /// controle Stop ou Yield n'a pas de ligne, sinon lignes authorees sur les controles.
+        /// </summary>
+        public static TaskDispositionKind ExpectedLineKind(IEnumerable<ControlDecision> junctionControls)
+        {
+            bool any = false, missing = false;
+            foreach (var control in junctionControls)
+            {
+                if (control.Kind != JunctionControlKind.Stop && control.Kind != JunctionControlKind.Yield) continue;
+                any = true;
+                missing |= !control.HasStopLine;
+            }
+            return !any ? TaskDispositionKind.NotRequiredForCurrentControlKind
+                : missing ? TaskDispositionKind.GenericEntryFallback : TaskDispositionKind.AuthoredOnControls;
+        }
+
+        /// <summary>Note canonique d'une disposition.</summary>
+        public static string NoteFor(TaskDispositionKind kind)
+        {
+            return Note(kind);
+        }
 
         /// <summary>Disposition attendue d'une categorie de tache libre ; nul = categorie non disposable ici.</summary>
         public static TaskDispositionKind? ExpectedKind(string category)
@@ -209,8 +250,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 throw new FormatException("Decisions illisibles : " + exception.Message);
             }
 
-            if (layout == null || (layout.Format != FormatVersion && layout.Format != HistoricalFormatVersion
-                && layout.Format != LegacyFormatVersion))
+            if (layout == null || (layout.Format != FormatVersion && layout.Format != AutomatedFormatVersion
+                && layout.Format != HistoricalFormatVersion && layout.Format != LegacyFormatVersion))
             {
                 throw new FormatException("Decisions : format absent ou inconnu.");
             }
@@ -224,6 +265,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 control.Id = RequiredId(record.Id, "controle " + record.ApproachKey);
                 control.ApproachKey = Required(record.ApproachKey, "Controls.ApproachKey");
                 control.Kind = ParseEnum<JunctionControlKind>(record.Kind, "controle " + record.ApproachKey);
+                if (layout.Format >= FormatVersion && record.HasStopLine)
+                {
+                    control.HasStopLine = true;
+                    control.StopLine = new RoadLineSegment { Start = FiniteVector(record.StopLineStart, "ligne " + record.ApproachKey),
+                        End = FiniteVector(record.StopLineEnd, "ligne " + record.ApproachKey) };
+                    if ((control.StopLine.End - control.StopLine.Start).sqrMagnitude <= 0f)
+                    {
+                        throw new FormatException("Decisions : ligne d'arret de longueur nulle (" + record.ApproachKey + ").");
+                    }
+                }
                 if (!ids.Add(control.Id))
                 {
                     throw new FormatException("Decisions : identifiant " + control.Id + " porte deux fois.");
@@ -250,7 +301,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 conflict.GeometryFingerprint = layout.Format >= HistoricalFormatVersion
                     ? OptionalFingerprint(record.GeometryFingerprint, pair)
                     : string.Empty;
-                if (layout.Format == FormatVersion)
+                if (layout.Format >= AutomatedFormatVersion)
                 {
                     conflict.DecisionRevisionId = RequiredSha256(record.DecisionRevisionId, "revision " + pair);
                     conflict.EvidenceHash = RequiredSha256(record.EvidenceHash, "preuve " + pair);
@@ -363,7 +414,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             layout.Format = format;
             layout.Controls = Controls.ConvertAll(delegate(ControlDecision c)
             {
-                return new ControlRecord { Id = c.Id.ToString(), ApproachKey = c.ApproachKey, Kind = c.Kind.ToString() };
+                return new ControlRecord { Id = c.Id.ToString(), ApproachKey = c.ApproachKey, Kind = c.Kind.ToString(),
+                    HasStopLine = c.HasStopLine, StopLineStart = c.HasStopLine ? c.StopLine.Start : Vector3.zero,
+                    StopLineEnd = c.HasStopLine ? c.StopLine.End : Vector3.zero };
             }).ToArray();
             layout.Conflicts = Conflicts.ConvertAll(delegate(ConflictDecision c)
             {
@@ -521,7 +574,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 case TaskDispositionKind.Reviewed:
                     return "Revue a l'overlay Gate A (sign-off du proprietaire).";
                 case TaskDispositionKind.NotRequiredForCurrentControlKind:
-                    return "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority.";
+                    return "Aucun controle Stop ni Yield : aucune ligne.";
+                case TaskDispositionKind.GenericEntryFallback:
+                    return "Aucune ligne dans la map pour ces controles Yield ou Stop : repli explicite sur l'entree generique du mouvement (s = 0).";
+                case TaskDispositionKind.AuthoredOnControls:
+                    return "Ligne authoree sur chaque controle Stop ou Yield du carrefour.";
                 case TaskDispositionKind.Unsignalized:
                     return "Carrefour declare non signalise : aucun SignalPlan, aucun vert implicite.";
                 default:
@@ -651,6 +708,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return value;
         }
 
+        private static Vector3 FiniteVector(Vector3 value, string what)
+        {
+            if (float.IsNaN(value.x) || float.IsNaN(value.y) || float.IsNaN(value.z)
+                || float.IsInfinity(value.x) || float.IsInfinity(value.y) || float.IsInfinity(value.z))
+            {
+                throw new FormatException("Decisions : " + what + " non finie.");
+            }
+
+            return value;
+        }
+
         private static float Positive(float value, string what)
         {
             if (!(value > 0f) || float.IsInfinity(value))
@@ -704,6 +772,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public string Id;
             public string ApproachKey;
             public string Kind;
+            public bool HasStopLine;
+            public Vector3 StopLineStart;
+            public Vector3 StopLineEnd;
         }
 
         [Serializable]

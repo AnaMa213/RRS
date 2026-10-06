@@ -1758,7 +1758,7 @@ Therefore: **prove trajectory, curvature, speed, topology, identity, versioning 
 | 5.33 | Vehicle following through named speed constraints *(reclassified M → L, owner decision D1 of 2026-10-02)* | VERTICAL | Longitudinal | L |
 | 5.34 | Junction coordination core: grants, conflicts, blocked exit, committed traversal *(scope B with first runtime wiring and story-level PlayMode, owner decisions O1–O8 of 2026-10-03)* | FOUNDATION | Permissions | L |
 | 5.53 | Conflict-pair separation proof and conflict kinds *(inserted 2026-10-05, owner decision P9; precedes 5.35)* | FOUNDATION | Road model evidence | M |
-| 5.35 | Authored control kinds: stop, yield, priority and roundabout entry | VERTICAL | Traffic rules | M |
+| 5.35 | Authored control kinds: stop, yield, priority and roundabout entry *(reclassified M → L, five phases, owner decisions P1–P12 of 2026-10-05)* | VERTICAL | Traffic rules | L |
 | 5.36 | Signal phase runtime and coordinator integration | VERTICAL | Signals | M |
 | 5.37 | `SafetyFilter`: narrow veto and clamp boundary | FOUNDATION | Invariants | M |
 | 5.38 | Collision response: physics yields, tactical handshake | VERTICAL | `ANO-5.10-03` AC1–4, AC8 | L |
@@ -2924,6 +2924,7 @@ So that the road reads as traffic rather than as independent vehicles that happe
 - *Story-level PlayMode is added (scenarios C and D, see below) and the 5.33 pre-5.34 campaign exemption D12 is removed. Verification mode becomes `Both`; this replaces "PlayMode verification: none at story level" below, and the epic does not diverge silently from the spec.*
 - *O6 sets the 5.34 / 5.35 boundary in campaign verdicts. A contact between two distinct movements of one conflict zone, simultaneous incompatible effective grants, or an entry without grant is a 5.34 failure. A ring-merge service order that differs from "ring first" is a published 5.35 finding, never a 5.34 rule.*
 - *Story 5.35 keeps stop, yield, road priority, roundabout (ring) priority and Gate C; signals stay with 5.36.*
+- *Amended 2026-10-05 by Story 5.35 (owner decision P10, merges only): conflict zones are typed by the compiled model (Story 5.53). On a `Crossing` zone the exclusivity below is unchanged. Two incompatible effective grants may coexist only when every zone between them is a compiled `Merge` and the later grant was issued as a recorded `GrantedMergeGap` (slot acceptance against the holder's ETA to its contact start). The O6 verdict "simultaneous incompatible effective grants" is read with this single exception; any contact remains a failure.*
 
 As a solo developer,
 I want one authority that decides, per frame and deterministically, which vehicles may enter a junction,
@@ -3006,8 +3007,17 @@ So that compatible traversals are not denied by the model and Story 5.35 can gra
 
 ### Story 5.35: Authored Control Kinds — Stop, Yield, Priority and Roundabout Entry
 
-**Type:** VERTICAL BEHAVIOR · **Boundary:** Traffic rules · **Complexity:** M
+**Type:** VERTICAL BEHAVIOR · **Boundary:** Traffic rules · **Complexity:** ~~M~~ L
 **Implements:** FR6, FR24, FR25, FR27, AD-46, BC-7, NFR4
+
+*Amended 2026-10-05 (owner decisions P1–P12 recorded in `spec-5-35-authored-control-kinds-stop-yield-priority-roundabout.md`). Reclassified M → L: one story in five phases, each closed by a green checkpoint (P7).*
+- *Authoring is the road's real intent (P2): roundabout entries `Yield`, ring movements `Priority`; each T junction through axis `Priority`, branch `Yield`; crossroads `Uncontrolled`. No `Stop` is authored in `MVP_Run` (no sign or marking supports one): `Stop` is covered by a deterministic synthetic EditMode fixture. `Signalized` stays refused (5.36).*
+- *`Uncontrolled` means priority to the right (P3); mixing `Uncontrolled` with another kind in one junction fails validation. The "comes from the right" relation is derived from geometry once per model, versioned, published in the migration report and bound to the Gate A signature, never authored (P4).*
+- *A stop/yield line is authored only where the map carries the intent (the inner pedestrian-crossing edge of each T branch); elsewhere the entry falls back explicitly to the movement start (P5). The control boundary drives the entry stop, engagement and request distances; the stretch before it is never occupancy.*
+- *Gap acceptance (P6): clearance time + pipeline latency + declared margin `JunctionGapMarginSeconds` = 1.0 s. `Stop` = marked halt, then gap; `Yield` has no mandatory stop. A deadlock breaker grants at most one traversal only when no progress is possible.*
+- *Compatible traversals never deny each other for sharing a junction (P9, via Story 5.53). Merge gaps (`GrantedMergeGap`) are admitted only on compiled `Merge` zones (P10); a `Crossing` is never admitted by slot. Same-arm entry × exit on roundabouts is a proven `Crossing`, hence a strict refusal (P11). The west roundabout merges, typed by the 5.53a addendum, have the same slot as the south and diagonal ones (P12).*
+- *Gate A is regenerated at unchanged geometry and re-signed by the owner on a new record (P1); controls enter the candidate model, so the `5.50-AUTO-DECISIONS-v1` exception covers that regeneration with identical classifications required (P8).*
+- *The roundabout criteria below are read as local ring priority by slot: presence in the ring never forbids entry by itself; an entry yields only to a ring vehicle whose remaining trajectory is incompatible and whose ETA to the merge makes the slot insufficient.*
 
 As a player,
 I want AI vehicles to stop, yield and give way at the district's junctions and roundabouts,
@@ -3017,7 +3027,7 @@ So that the city reads as ordered before rage makes it chaotic.
 
 **Why here:** it is the first story where a rule and the runtime that obeys it exist together. Story 5.28 deliberately deferred authoring these bindings to this point, so that no rule is authored that nothing reads.
 
-**Prerequisites:** 5.34.
+**Prerequisites:** 5.34, 5.53 (and its 5.53a addendum).
 
 **Non-goals:** no signals (5.36); no rule-bending ladder (5.40 and 5.41); no deadlock escalation; no lane change.
 

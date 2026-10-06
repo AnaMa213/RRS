@@ -1041,7 +1041,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 + "|resolution=rho.h_e=" + ConflictSweep.RefinementResolution(run.CandidateModel.ValidationProfile, run.EvidenceParameters)
                     .ToString("R", CultureInfo.InvariantCulture)
                 + "|tolerance=" + ProofToleranceMeters.ToString("R", CultureInfo.InvariantCulture)
-                + "|typing-v2=containment-terminal,exact-root-dedup,sweep-witness,common-exit-corridor";
+                + "|typing-v2=containment-terminal,exact-root-dedup,sweep-witness,common-exit-corridor"
+                // Story 5.35 (entree differee 5.53) : constantes de typage et regle du temoin, hors identite jusque-la.
+                + "|typing-end-tolerance=" + ZoneTyping.EndToleranceMeters.ToString("R", CultureInfo.InvariantCulture)
+                + "|min-refined-length=" + ConflictSweep.MinimumRefinedLengthMeters.ToString("R", CultureInfo.InvariantCulture)
+                + "|witness=exact<=2.base-inflation+tolerance,split=half-deltas>2.inflation";
         }
 
         /// <summary>Graphe et trajectoires prolongees du modele des candidats, construits une fois par plan.</summary>

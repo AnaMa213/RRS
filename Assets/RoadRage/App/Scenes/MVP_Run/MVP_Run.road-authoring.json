@@ -1,205 +1,645 @@
 {
-    "Format": 4,
+    "Format": 5,
     "Controls": [
         {
             "Id": "4aeddcba2f3223edb3ec477c2638bea8",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "48d729046272166df666b735d860ff85",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4e578eb71bb93361716c13717c771faa",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "481a5e58c50d4c4a68188022a32041a9",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "494595a32d7821f3022e012e6e6b6a94",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1227312198>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1227312198",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4258e4997d604bdaddd64f90730258ae",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1335115730>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1335115730",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4b5be59852dbf8c943063c130a89abbe",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1375911139>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1375911139",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4c44e8caec8bc2c8291581b575127a8d",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1461432457>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1461432457",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": true,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 27.399999618530273
+            },
+            "StopLineEnd": {
+                "x": 4.0,
+                "y": 0.0,
+                "z": 27.399999618530273
+            }
         },
         {
             "Id": "4c4d0695610e00bb74583d4b6163728a",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1516681040>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1516681040",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4575f7c642af9766e86aebffaec3cfb3",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1812162174>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1812162174",
-            "Kind": "Uncontrolled"
+            "Kind": "Uncontrolled",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "44924805a30ee7ba97a11b1d9b92919e",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-235211969>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-235211969",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4370991f7408a41ba87432f030daf299",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-531979442>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-531979442",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": true,
+            "StopLineStart": {
+                "x": 27.399999618530273,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 27.399999618530273,
+                "y": 0.0,
+                "z": -4.0
+            }
         },
         {
             "Id": "4ce3fd28fd4195f1d5cbe44f4e66fb87",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-539479367>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-539479367",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "43fe03f1814155e96d6d1d49b9f2ffa4",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-656642079>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-656642079",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "48bec7b12bfc173be79c7ff6dc888e82",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-972045385>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-972045385",
-            "Kind": "Uncontrolled"
+            "Kind": "Uncontrolled",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4538b544fa7443645e9f0b55dfd20c81",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-981631451>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-981631451",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4e6af9f2c3ccc0a6b1f0ef739679ccac",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1227312198>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1227312198",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4e342ab49e0487a48fc599a311150694",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1335115730>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1335115730",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4997c37d1df9457fd9b6d871b5d9f580",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1375911139>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1375911139",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4b0592bd1e8ddf114991c13fb4632285",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1461432457>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1461432457",
-            "Kind": "Uncontrolled"
+            "Kind": "Uncontrolled",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4cf54317710e5723de29224b473fd89f",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1516681040>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1516681040",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4fa7a31c8eaaa03cd839e636079b349e",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1812162174>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1812162174",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": true,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -27.399999618530273
+            },
+            "StopLineEnd": {
+                "x": -4.0,
+                "y": 0.0,
+                "z": -27.399999618530273
+            }
         },
         {
             "Id": "456fc7aec92eae3a031351a23bee3fa7",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-235211969>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-235211969",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "413075398038b1e09d306528753f6b9e",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-531979442>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-531979442",
-            "Kind": "Uncontrolled"
+            "Kind": "Uncontrolled",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4125ec30a583176d1fbb06c776fa858f",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-539479367>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-539479367",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4f0d2476b2d1a607c40bf041509af48e",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-656642079>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-656642079",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "48171f4957d3bd8970fed52ff8b47a83",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-972045385>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-972045385",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": true,
+            "StopLineStart": {
+                "x": -27.399999618530273,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": -27.399999618530273,
+                "y": 0.0,
+                "z": 4.0
+            }
         },
         {
             "Id": "4df2f2bab0514361bd8aaa81b0e0049f",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-981631451>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-981631451",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "47ef2473ecfa0206cc2301cc291f7886",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "42f3d162d75e244896863e1711a77287",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "469dd39290081f19c5f45716e14fa988",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "480071f81c9ce0ded1b93c6a043d7787",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "45e4596d6aa585a2517bee9c8fb834be",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-1045154302>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-1045154302",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4b8f1772f907da8ab8daecc656395b8b",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-1574439523>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-1574439523",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4fcbd57e6baa66a28b0732836bc2e880",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-234956567>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-234956567",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4b9dc3fe78d50ce0ed024b340d1a5c9c",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-75338410>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-75338410",
-            "Kind": "Uncontrolled"
+            "Kind": "Yield",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4d6b68fe5f6aaa73f9d436e8c46044a2",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4332ef31bc230cb1e928d17c87c2b2a4",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4df5972c8018084b60d1e41cee091db6",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         },
         {
             "Id": "4cce28bd136319d98afaa9f310a74dbe",
             "ApproachKey": "corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077",
-            "Kind": "Uncontrolled"
+            "Kind": "Priority",
+            "HasStopLine": false,
+            "StopLineStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "StopLineEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
         }
     ],
     "Conflicts": [
@@ -3614,56 +4054,56 @@
         {
             "Category": "Ligne",
             "SubjectKey": "junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953",
-            "Kind": "NotRequiredForCurrentControlKind",
-            "Note": "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority."
+            "Kind": "AuthoredOnControls",
+            "Note": "Ligne authoree sur chaque controle Stop ou Yield du carrefour."
         },
         {
             "Category": "Ligne",
             "SubjectKey": "junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037",
-            "Kind": "NotRequiredForCurrentControlKind",
-            "Note": "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority."
+            "Kind": "AuthoredOnControls",
+            "Note": "Ligne authoree sur chaque controle Stop ou Yield du carrefour."
         },
         {
             "Category": "Ligne",
             "SubjectKey": "junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690",
-            "Kind": "NotRequiredForCurrentControlKind",
-            "Note": "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority."
+            "Kind": "AuthoredOnControls",
+            "Note": "Ligne authoree sur chaque controle Stop ou Yield du carrefour."
         },
         {
             "Category": "Ligne",
             "SubjectKey": "junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-525617468",
-            "Kind": "NotRequiredForCurrentControlKind",
-            "Note": "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority."
+            "Kind": "AuthoredOnControls",
+            "Note": "Ligne authoree sur chaque controle Stop ou Yield du carrefour."
         },
         {
             "Category": "Ligne",
             "SubjectKey": "junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3237468531753948436-2089303282",
             "Kind": "NotRequiredForCurrentControlKind",
-            "Note": "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority."
+            "Note": "Aucun controle Stop ni Yield : aucune ligne."
         },
         {
             "Category": "Ligne",
             "SubjectKey": "junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495",
-            "Kind": "NotRequiredForCurrentControlKind",
-            "Note": "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority."
+            "Kind": "GenericEntryFallback",
+            "Note": "Aucune ligne dans la map pour ces controles Yield ou Stop : repli explicite sur l'entree generique du mouvement (s = 0)."
         },
         {
             "Category": "Ligne",
             "SubjectKey": "junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255",
-            "Kind": "NotRequiredForCurrentControlKind",
-            "Note": "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority."
+            "Kind": "GenericEntryFallback",
+            "Note": "Aucune ligne dans la map pour ces controles Yield ou Stop : repli explicite sur l'entree generique du mouvement (s = 0)."
         },
         {
             "Category": "Ligne",
             "SubjectKey": "junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718",
-            "Kind": "NotRequiredForCurrentControlKind",
-            "Note": "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority."
+            "Kind": "GenericEntryFallback",
+            "Note": "Aucune ligne dans la map pour ces controles Yield ou Stop : repli explicite sur l'entree generique du mouvement (s = 0)."
         },
         {
             "Category": "Ligne",
             "SubjectKey": "junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077",
-            "Kind": "NotRequiredForCurrentControlKind",
-            "Note": "Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority."
+            "Kind": "GenericEntryFallback",
+            "Note": "Aucune ligne dans la map pour ces controles Yield ou Stop : repli explicite sur l'entree generique du mouvement (s = 0)."
         },
         {
             "Category": "Portail",

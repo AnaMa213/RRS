@@ -114,7 +114,15 @@ namespace RoadRage.Features.Vehicles.Traffic
         ConflictZoneTypingInvalid = 44,
 
         /// <summary>Schema de compilation de la source ni courant ni encore lisible.</summary>
-        UnsupportedCompilerSchema = 45
+        UnsupportedCompilerSchema = 45,
+
+        // ---------------------------------------------------------------- controles authores (Story 5.35)
+
+        /// <summary>Carrefour qui melange `Uncontrolled` (priorite a droite) et un autre genre de controle.</summary>
+        JunctionControlKindsMixed = 46,
+
+        /// <summary>Ligne d'arret sur un controle `Uncontrolled` ou `Priority`, ou ligne `Stop`/`Yield` dont le croisement avec un mouvement controle est absent, multiple ou au bord.</summary>
+        StopLineInvalid = 47
     }
 
     /// <summary>Un echec de validation : son code stable, l'identifiant fautif et un message.</summary>
@@ -508,6 +516,8 @@ namespace RoadRage.Features.Vehicles.Traffic
                     movementId,
                     "Mouvement sans JunctionControl ; Uncontrolled est un choix explicite, pas un repli."));
             }
+
+            CheckControlKindsAndLines(issues, controls, movements);
 
             // ------------------------------------------------ zones de conflit
             var movementById = new Dictionary<RoadId, JunctionMovement>();
@@ -1001,6 +1011,63 @@ namespace RoadRage.Features.Vehicles.Traffic
                         sectionId,
                         "RoadSection de " + group.Count + " corridor(s) sans LateralOrder " + order
                             + " : la coupe transversale doit etre contigue depuis 0."));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Story 5.35 : `Uncontrolled` (priorite a droite) ne se melange a aucun autre genre dans un carrefour ; aucune ligne sur
+        /// `Uncontrolled` ni `Priority` ; une ligne `Stop` ou `Yield` coupe chaque mouvement controle une seule fois, dans ]0, L[.
+        /// </summary>
+        private static void CheckControlKindsAndLines(List<RoadModelValidationIssue> issues, JunctionControl[] controls,
+            JunctionMovement[] movements)
+        {
+            var kindsByJunction = new Dictionary<RoadId, HashSet<JunctionControlKind>>();
+            for (int i = 0; i < controls.Length; i++)
+            {
+                HashSet<JunctionControlKind> kinds;
+                if (!kindsByJunction.TryGetValue(controls[i].JunctionId, out kinds))
+                    kindsByJunction.Add(controls[i].JunctionId, kinds = new HashSet<JunctionControlKind>());
+                kinds.Add(controls[i].Kind);
+            }
+
+            foreach (var pair in kindsByJunction)
+            {
+                if (pair.Value.Contains(JunctionControlKind.Uncontrolled) && pair.Value.Count > 1)
+                {
+                    issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.JunctionControlKindsMixed, pair.Key,
+                        "Carrefour qui melange Uncontrolled (priorite a droite) et un autre genre de controle."));
+                }
+            }
+
+            var movementById = new Dictionary<RoadId, JunctionMovement>();
+            for (int i = 0; i < movements.Length; i++) movementById[movements[i].Id] = movements[i];
+            for (int i = 0; i < controls.Length; i++)
+            {
+                var control = controls[i];
+                if (!control.HasStopLine) continue;
+                if (control.Kind == JunctionControlKind.Uncontrolled || control.Kind == JunctionControlKind.Priority)
+                {
+                    issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.StopLineInvalid, control.Id,
+                        "Ligne d'arret sur un controle " + control.Kind + " : seuls Stop, Yield (et Signalized, 5.36) en portent une."));
+                    continue;
+                }
+
+                // Lignes de feux : projection et usage relevent de la Story 5.36.
+                if (control.Kind == JunctionControlKind.Signalized) continue;
+
+                foreach (var movementId in Safe(control.ControlledMovementIds))
+                {
+                    JunctionMovement movement;
+                    if (!movementById.TryGetValue(movementId, out movement)) continue;
+                    var crossings = StopLineProjection.Crossings(movement.Samples, control.StopLine);
+                    float ignored;
+                    if (!StopLineProjection.TryProject(movement.Samples, movement.LengthMeters, control.StopLine, out ignored))
+                    {
+                        issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.StopLineInvalid, movementId,
+                            "Ligne d'arret du controle " + control.Id + " : " + crossings.Count
+                            + " croisement(s) avec le mouvement ; un seul, strictement dans ]0, L[, est exige."));
+                    }
                 }
             }
         }
