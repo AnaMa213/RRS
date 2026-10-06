@@ -259,6 +259,26 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void TypedZoneVersionsPreserveMemberStartPairsUnderPermutation()
+        {
+            var source = CurrentSchemaSource();
+            source.ConflictZones[0].ContactStartSMeters = new[] { 0.5f, 1f };
+            Assert.That(TypingIssues(source), Is.Empty);
+            var original = RoadModelCompiler.Compile(source).Version;
+
+            System.Array.Reverse(source.ConflictZones[0].MemberMovementIds);
+            System.Array.Reverse(source.ConflictZones[0].ContactStartSMeters);
+            Assert.That(TypingIssues(source), Is.Empty);
+            Assert.That(RoadModelCompiler.Compile(source).Version, Is.EqualTo(original),
+                "Inverser ensemble membres et debuts conserve le meme typage canonique.");
+
+            System.Array.Reverse(source.ConflictZones[0].ContactStartSMeters);
+            Assert.That(TypingIssues(source), Is.Empty);
+            Assert.That(RoadModelCompiler.Compile(source).Version, Is.Not.EqualTo(original),
+                "Echanger seulement les debuts change leur association aux membres et la version.");
+        }
+
+        [Test]
         public void TheValidatorRefusesAMergeWithoutCommonExitAndOutOfRangeContactStarts()
         {
             var source = CurrentSchemaSource();

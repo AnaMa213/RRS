@@ -177,3 +177,22 @@ Dans les deux cas l'union ne change pas, et l'etat de la suite du parcours (meme
   [`Story553MvpRunClassificationTests.cs:54`](../../Assets/RoadRage/Tests/EditMode/Story553MvpRunClassificationTests.cs#L54)
 - Campagne ciblee des 12 fusions de giratoire contre v1 recalcule.
   [`Story553TypingV2CampaignTests.cs:56`](../../Assets/RoadRage/Tests/EditMode/Story553TypingV2CampaignTests.cs#L56)
+
+### Review Findings — independent review 2026-10-06
+
+Scope: `ce8a0b9..59bb0fb`, assessed together with Story 5.53. No additional confirmed defect was found in typing-v2 containment, root deduplication or its option-B scope. Shared validator findings R1 (unbound published refinement diagnostics) and R2 (approximate contact-start binding) are tracked once in the Review Findings section of [Story 5.53](spec-5-53-conflict-pair-separation-proof-and-conflict-kinds.md); R3 tracks the schema-5 permutation verification gap. No code patch was applied; status is in-progress pending those review actions.
+
+Story553 EditMode passed 25/25 and Story534 EditMode passed 48/48 via `scripts/validate.ps1`, with zero Console errors during either validation and clean scene/Git state before review notes were written. The final explicit campaign recomputes 12 roundabout pairs; the other 24 controls have earlier equivalence evidence and the application log's confirmation, not a fresh recomputation in this review. Post-application plan replay remains a previously documented evidence limitation, not a newly demonstrated idempotence defect. Dedicated Gate A signature is authorized by the owner amendment; this review does not alter or sign it.
+
+## Correctifs de revue appliques — 2026-10-06
+
+Les actions partagees R1-R3 de la [spec 5.53](spec-5-53-conflict-pair-separation-proof-and-conflict-kinds.md) sont terminees : diagnostics lies a la preuve canonique, abscisses exactement egales et test du fingerprint sous permutation membres/abscisses. Le test du plafond verifie aussi le refus d'une preuve coherente a 65 537 feuilles. Validations finales via `scripts/validate.ps1` : `Story553` 37/37 et `Story534` 48/48 EditMode, zero erreur Console. Une tentative interrompue avant tests (CLI muet/code 6) puis la relance explicite sont consignees dans la spec 5.53. D1 reste differe ; aucun artefact applique ni signature Gate A modifies. Spec `done`, sprint `review`.
+
+## Suggested Review Order
+
+- Verifier la liaison des diagnostics du typage v2 au raffinement revise.
+  [`AutomatedPairDecisionPolicy.cs:956`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L956)
+- Verifier le refus du depassement sur un plan dont les liaisons concordent.
+  [`Story553MvpRunClassificationTests.cs:133`](../../Assets/RoadRage/Tests/EditMode/Story553MvpRunClassificationTests.cs#L133)
+- Rejeter une alteration d'un pas float dans les deux artefacts concordants.
+  [`Story553MvpRunClassificationTests.cs:169`](../../Assets/RoadRage/Tests/EditMode/Story553MvpRunClassificationTests.cs#L169)

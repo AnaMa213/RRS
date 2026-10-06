@@ -270,3 +270,104 @@ context:
   [`Story553MvpRunClassificationTests.cs:75`](../../Assets/RoadRage/Tests/EditMode/Story553MvpRunClassificationTests.cs#L75)
 - Campagne explicite : diff, cout, determinisme.
   [`Story553RegenerationTests.cs:26`](../../Assets/RoadRage/Tests/EditMode/Story553RegenerationTests.cs#L26)
+
+### Review Findings — independent review 2026-10-06
+
+**Run de correction autorise le 2026-10-06 :** appliquer uniquement R1, R2 et R3 ci-dessous. D1 reste differe. Les phases historiques, campagnes longues et applications/signes du modele sont deja terminees : ce run ne regenere aucune decision, preuve ni signature Gate A. Verification attendue : `Story553` et `Story534` EditMode via `scripts/validate.ps1`, puis `graphify update .` apres les changements source.
+
+Scope: `b8e7165..59bb0fb`, including Story 5.53a and prior review fixes. Owner amendments in both Spec Change Logs were applied. No confirmed geometric defect was found in refinement, containment pruning or exact-root deduplication. Findings below come from source tracing; no new fixture, Editor probe or mutation of applied artifacts was performed.
+
+- [x] [Review][Patch][R1][medium] Reconcile published refinement diagnostics with the revision-bound proof. [`AutomatedPairDecisionPolicy.cs:345`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L345) — `ValidatePlan` hashes `TypingCanonical`, but never compares its refinement suffix with `RefinementOutcome`, `RefinementLeaves`, `RefinementLeavesAtDecision`, `RefinementResolutionLeaves` or `RefinementComplete`. Changing only a record's `RefinementLeaves` to 65,537 therefore leaves the proof/revision valid and is not rejected; changing an incomplete Crossing record's `RefinementComplete` to true is likewise not rejected. `Summarize` and `RenderClassificationDiff` then publish those contradictory values. This weakens the required audit of consumed leaves, hard budget and proof completeness. Validate the duplicated diagnostics against the bound refinement data and reject out-of-budget counts; add targeted tampering tests.
+- [x] [Review][Patch][R2][low] Bind contact starts exactly to the canonical typing. [`AutomatedPairDecisionPolicy.cs:947`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L947) — `Same` accepts a relative difference of `1e-6 * max(1, abs(start))`, although `FormatMeters` writes round-trip float values. For example, canonical `20f` still matches published `20.00001f`. If the manifest record and corresponding authoring decision are changed together, all current checks pass with the original `TypingCanonical` and revision. Use exact equality after parsing the round-trip representation and add a test for a one-float-step alteration. This is a proof-binding defect, not a demonstrated collision or safety-margin regression.
+- [x] [Review][Patch][R3][low] Verify typed-zone member/start permutation in the schema-5 fingerprint. [`Story553ConflictClassificationTests.cs:243`](../../Assets/RoadRage/Tests/EditMode/Story553ConflictClassificationTests.cs#L243) — the roundtrip test uses one fixed order, while the existing Story 5.25 permutation fixture has no contact starts. Replacing `starts[order[i]]` with `starts[i]` in `RoadModelCanonicalWriter.WriteZoneTyping` would escape both checks. Compile two valid typed sources with distinct starts and jointly reversed member/start arrays: their versions must match. Swapping starts alone must change the version. This is a verification gap; the current writer's indexing is correct.
+- [x] [Review][Defer][D1][medium] Compare complete decision semantics with the manifest. [`AutomatedPairDecisionPolicy.cs:378`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L378) — deferred, pre-existing in `b8e7165`. The decision/record comparison omits `Decision`, `Classification` and the zone ID. An accepted Crossing decision can be changed to Rejected/ProvenDisjoint with its ID cleared while retaining its revision and hashes, without failing this comparison. Record this existing integrity gap separately; it is not a regression introduced by 5.53/5.53a.
+
+Review layers completed: blind-hunter, edge-case-hunter, verification-gap and acceptance-auditor. Additional acceptance claims were dismissed where owner amendments or existing Gate A hash binding already cover them. No implementation patches were applied. Story 5.53a shares R1/R2 through the v3 plan validator.
+
+Validation executed through `scripts/validate.ps1` only:
+
+```text
+VALIDATION STORY (Story553)
+Tests EditMode           25/25 passes
+Erreurs Console          0 depuis le curseur 686
+Scenes ouvertes          aucune scene modifiee
+Arbre de travail         propre
+OK
+
+VALIDATION STORY (Story534)
+Tests EditMode           48/48 passes
+Erreurs Console          0 depuis le curseur 696
+Scenes ouvertes          aucune scene modifiee
+Arbre de travail         propre
+OK
+```
+
+Commands: `./scripts/validate.ps1 -Profile Story -Story 5.53 -TestMode EditMode` and `./scripts/validate.ps1 -Profile Story -Story 5.34 -TestMode EditMode`. Full suites, PlayMode and explicit long campaigns were not rerun in this review. The results do not establish the missing checks above.
+
+## Correctifs de revue appliques — 2026-10-06
+
+R1, R2 et R3 sont corriges. `ValidatePlan` compare les diagnostics publies (issue, racines, feuilles, feuilles a la decision, arrets a la resolution, completude) au raffinement canonique lie a la revision ; les compteurs negatifs, depassements de budget et compteurs incoherents sont refuses. Les abscisses doivent egaler exactement les floats relus de la representation round-trip. Le schema 5 dispose d'un test de permutation conjointe membres/abscisses, avec contre-exemple ou seules les abscisses sont permutees.
+
+Douze cas ont ete ajoutes dans les fixtures `Story553` existantes : huit falsifications de diagnostics, deux alterations d'un pas float, une permutation de typage et un depassement de plafond avec preuve et revision coherentes. Ce dernier cas a ete ajoute apres le finding `verification-gap` : le premier test de depassement ne verifiait que la coherence du compteur. Il reconstruit les liaisons de revision en memoire pour que seul le plafond de 65 536 feuilles refuse les 65 537 feuilles.
+
+Revue du patch : `blind-hunter` en ligne, `edge-case-hunter` et `verification-gap` par sous-agents. Le manque de verification du plafond a ete corrige et les checks relances. Aucune nouvelle frontiere reseau (`security-review` inactive), aucun autre finding retenu. D1 reste differe. Aucun artefact de decision, preuve, modele, signature ou scene n'a ete regenere.
+
+Verification executee uniquement par `scripts/validate.ps1`. Premier passage : `Story553` 36/36 et `Story534` 48/48, sans erreur Console. Apres ajout du test de plafond, une tentative a ete interrompue avant les tests ; voici sa sortie brute :
+
+```text
+ECHEC: unity cmd recompile_status : commande muette ou code de sortie 6 (AD-8)
+  VALIDATION STORY (Story553)
+  Tests executes           0 (validation interrompue avant tests)
+  Curseur Console          767 (4 erreur(s) anterieure(s) ignoree(s))
+VALIDATION FAILED / INCOMPLETE
+```
+
+Apres controles en lecture (`unity status=ready`, `recompile_status=completed, failed=false, errors=[]`, `MVP_Run.isDirty=false`), relance explicite. Extraits bruts des validations finales :
+
+```text
+  VALIDATION STORY (Story553)
+  Tests executes           37 au total (37 en EditMode)
+  Recompilation            up_to_date
+  Erreurs Console          0 depuis le curseur 799
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Tests EditMode           37/37 passes
+  Ignores EditMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Scenes ouvertes          aucune scene modifiee
+  Arbre de travail         9 entree(s) modifiee(s) -- voir git status
+OK
+
+  VALIDATION STORY (Story534)
+  Tests executes           48 au total (48 en EditMode)
+  Recompilation            up_to_date
+  Erreurs Console          0 depuis le curseur 807
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Tests EditMode           48/48 passes
+  Ignores EditMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Scenes ouvertes          aucune scene modifiee
+  Arbre de travail         9 entree(s) modifiee(s) -- voir git status
+OK
+```
+
+CLI Unity `1.0.0-beta.8`, Editeur `6000.6.0f1`, port 7801. Campagnes explicites, PlayMode et suites completes non executes dans ce run. `graphify update .` reussi apres la modification runtime : 4 410 noeuds, 10 244 liens, 184 communautes ; le dernier ajout concerne uniquement les tests exclus du corpus. `git diff --check` vert. Specs `done`, suivi sprint `review`.
+
+## Suggested Review Order
+
+**Validation du plan**
+
+- Refuser les diagnostics qui divergent de la preuve liee a la revision.
+  [`AutomatedPairDecisionPolicy.cs:357`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L357)
+- Verifier les compteurs et le plafond sans modifier le format de preuve.
+  [`AutomatedPairDecisionPolicy.cs:956`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L956)
+- Exiger l'egalite exacte des abscisses relues en round-trip.
+  [`AutomatedPairDecisionPolicy.cs:952`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L952)
+
+**Tests de regression**
+
+- Rejeter huit variantes de diagnostics falsifies dans le plan committe.
+  [`Story553MvpRunClassificationTests.cs:104`](../../Assets/RoadRage/Tests/EditMode/Story553MvpRunClassificationTests.cs#L104)
+- Rejeter le depassement meme lorsque preuve, revision et compteur concordent.
+  [`Story553MvpRunClassificationTests.cs:133`](../../Assets/RoadRage/Tests/EditMode/Story553MvpRunClassificationTests.cs#L133)
+- Rejeter une alteration d'un pas float, decision et manifeste concordants.
+  [`Story553MvpRunClassificationTests.cs:169`](../../Assets/RoadRage/Tests/EditMode/Story553MvpRunClassificationTests.cs#L169)
+- Preserver la version lorsque membres et abscisses sont permutes ensemble.
+  [`Story553ConflictClassificationTests.cs:262`](../../Assets/RoadRage/Tests/EditMode/Story553ConflictClassificationTests.cs#L262)

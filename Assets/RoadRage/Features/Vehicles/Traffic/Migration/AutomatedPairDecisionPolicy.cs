@@ -354,6 +354,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     throw new InvalidOperationException("Politique v3 : genre ou debuts de contact non lies au typage revise pour " + Display(record.PairKey) + ".");
                 }
 
+                if (manifest.DecisionPolicyVersion >= RefinedDecisionPolicyVersion && !RefinementMatches(record))
+                {
+                    throw new InvalidOperationException("Politique v3 : diagnostics de raffinement non lies au typage revise ou hors budget pour " + Display(record.PairKey) + ".");
+                }
+
                 if (record.Classification == AutomatedPairClassification.ProvenDisjoint.ToString()
                     && (!(record.MinimumSeparationMeters > ProofToleranceMeters) || record.Decision != ConflictDecisionKind.Rejected.ToString()))
                 {
@@ -944,12 +949,37 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 && parts[1] == record.ConflictKind
                 && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out startA)
                 && float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out startB)
-                && Same(startA, record.ContactStartSMetersA) && Same(startB, record.ContactStartSMetersB);
+                && startA == record.ContactStartSMetersA && startB == record.ContactStartSMetersB;
         }
 
-        private static bool Same(float a, float b)
+        /// <summary>Diagnostics dupliques pour le rapport, verifies contre le raffinement lie a la revision.</summary>
+        private static bool RefinementMatches(AutomatedPairDecisionRecord record)
         {
-            return Math.Abs(a - b) <= 1e-6f * Math.Max(1f, Math.Abs(a));
+            string[] parts = (record.TypingCanonical ?? string.Empty).Split('|');
+            if (parts.Length == 5 && parts[4] == "none")
+            {
+                return string.IsNullOrEmpty(record.RefinementOutcome) && record.RefinementRoots == 0
+                    && record.RefinementLeaves == 0 && record.RefinementLeavesAtDecision == 0
+                    && record.RefinementResolutionLeaves == 0 && !record.RefinementComplete;
+            }
+
+            int roots;
+            int leaves;
+            int atDecision;
+            int resolutionLeaves;
+            RefinementOutcome outcome;
+            return parts.Length >= 17 && parts[4] == "refinement-v1"
+                && Enum.TryParse(parts[8], out outcome) && Enum.IsDefined(typeof(RefinementOutcome), outcome)
+                && parts[8] == record.RefinementOutcome
+                && int.TryParse(parts[7], NumberStyles.None, CultureInfo.InvariantCulture, out resolutionLeaves)
+                && int.TryParse(parts[9], NumberStyles.None, CultureInfo.InvariantCulture, out roots)
+                && int.TryParse(parts[10], NumberStyles.None, CultureInfo.InvariantCulture, out leaves)
+                && int.TryParse(parts[11], NumberStyles.None, CultureInfo.InvariantCulture, out atDecision)
+                && roots == record.RefinementRoots && leaves == record.RefinementLeaves
+                && atDecision == record.RefinementLeavesAtDecision && resolutionLeaves == record.RefinementResolutionLeaves
+                && leaves <= RefinementLeafBudget && atDecision <= leaves && resolutionLeaves <= leaves
+                && (parts[12] == "complete" || parts[12] == "incomplete")
+                && (parts[12] == "complete") == record.RefinementComplete;
         }
 
         private static bool IsZone(AutomatedPairDecisionRecord record)

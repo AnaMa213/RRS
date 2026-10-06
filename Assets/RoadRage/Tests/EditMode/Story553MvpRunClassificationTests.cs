@@ -48,6 +48,13 @@ namespace RoadRage.Tests.EditMode
             public bool CommonExitCorridor;
             public string ConflictKind;
             public string TypingCanonical;
+            public string RefinementOutcome;
+            public int RefinementRoots;
+            public int RefinementLeaves;
+            public int RefinementLeavesAtDecision;
+            public int RefinementResolutionLeaves;
+            public float ContactStartSMetersA;
+            public float ContactStartSMetersB;
         }
 
         [Test]
@@ -84,6 +91,123 @@ namespace RoadRage.Tests.EditMode
                 var error = Assert.Throws<System.InvalidOperationException>(() => AutomatedPairDecisionPolicy.ValidatePlan(plan, archive.Records.Length));
                 StringAssert.Contains("typage revise", error.Message);
             }
+        }
+
+        [TestCase("RefinementOutcome")]
+        [TestCase("RefinementRoots")]
+        [TestCase("RefinementLeaves")]
+        [TestCase("RefinementLeavesAtDecision")]
+        [TestCase("RefinementResolutionLeaves")]
+        [TestCase("RefinementComplete")]
+        [TestCase("OverBudget")]
+        [TestCase("NegativeLeaves")]
+        public void ThePlanRejectsRefinementDiagnosticsThatContradictTheirBoundProof(string field)
+        {
+            var archive = UnityEngine.JsonUtility.FromJson<Archive>(After);
+            var record = archive.Records.First(r => !r.RefinementComplete && r.RefinementLeaves > 0 && r.ConflictKind == "Crossing");
+            string value;
+            switch (field)
+            {
+                case "RefinementOutcome": value = "\"Unresolved\""; break;
+                case "RefinementRoots": value = (record.RefinementRoots + 1).ToString(); break;
+                case "RefinementLeaves": value = (record.RefinementLeaves - 1).ToString(); break;
+                case "RefinementLeavesAtDecision": value = (record.RefinementLeavesAtDecision + 1).ToString(); break;
+                case "RefinementResolutionLeaves": value = (record.RefinementResolutionLeaves + 1).ToString(); break;
+                case "RefinementComplete": value = "true"; break;
+                case "OverBudget": field = "RefinementLeaves"; value = (AutomatedPairDecisionPolicy.RefinementLeafBudget + 1).ToString(); break;
+                default: field = "RefinementLeaves"; value = "-1"; break;
+            }
+
+            Assert.That(record.RefinementOutcome, Is.Not.EqualTo("Unresolved"), "La mutation doit changer le diagnostic.");
+            var plan = new AutomatedPairDecisionPlan
+            {
+                DecisionRunId = archive.DecisionRunId,
+                DecisionsText = File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath)),
+                ManifestText = ReplaceRecordField(After, record.PairKey, field, value)
+            };
+            var error = Assert.Throws<System.InvalidOperationException>(() => AutomatedPairDecisionPolicy.ValidatePlan(plan, archive.Records.Length));
+            StringAssert.Contains("diagnostics de raffinement", error.Message);
+        }
+
+        [Test]
+        public void ThePlanRejectsAnOverBudgetCountEvenWhenItsProofAndRevisionAgree()
+        {
+            var archive = UnityEngine.JsonUtility.FromJson<Archive>(After);
+            var record = archive.Records.First(r => r.Active && !r.RefinementComplete
+                && r.RefinementLeaves == AutomatedPairDecisionPolicy.RefinementLeafBudget && r.ConflictKind == "Crossing");
+            var decisions = AuthoringDecisions.Parse(File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath)));
+            int index = decisions.Conflicts.FindIndex(c => AuthoredRoadModel.PairKey(c.MovementKeyA, c.MovementKeyB) == record.PairKey);
+            var decision = decisions.Conflicts[index];
+            string revisionPrefix = record.PairKey + "\n" + decision.GeometryFingerprint + "\n" + decision.Decision + "\n"
+                + decision.Classification + "\n" + archive.DecisionPolicyVersion + "\n" + decision.EvidenceHash + "\n";
+            Assert.That(V1SourceSet.Sha256Hex(revisionPrefix + V1SourceSet.Sha256Hex(record.TypingCanonical)),
+                Is.EqualTo(decision.DecisionRevisionId), "La revision de depart est reconstruite avec toutes ses liaisons.");
+
+            string overBudget = (AutomatedPairDecisionPolicy.RefinementLeafBudget + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string[] typing = record.TypingCanonical.Split('|');
+            Assert.That(typing[10], Is.EqualTo(record.RefinementLeaves.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            typing[10] = overBudget;
+            string canonical = string.Join("|", typing);
+            decision.DecisionRevisionId = V1SourceSet.Sha256Hex(revisionPrefix + V1SourceSet.Sha256Hex(canonical));
+            decisions.Conflicts[index] = decision;
+            string manifest = ReplaceRecordField(After, record.PairKey, "RefinementLeaves", overBudget);
+            manifest = ReplaceRecordField(manifest, record.PairKey, "TypingCanonical", "\"" + canonical + "\"");
+            manifest = ReplaceRecordField(manifest, record.PairKey, "DecisionRevisionId", "\"" + decision.DecisionRevisionId + "\"");
+            var plan = new AutomatedPairDecisionPlan
+            {
+                DecisionRunId = archive.DecisionRunId,
+                DecisionsText = decisions.Serialize(),
+                ManifestText = manifest
+            };
+            var error = Assert.Throws<System.InvalidOperationException>(() => AutomatedPairDecisionPolicy.ValidatePlan(plan, archive.Records.Length));
+            StringAssert.Contains("diagnostics de raffinement", error.Message,
+                "Comptes et revision concordent : seul le plafond dur refuse les 65 537 feuilles.");
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ThePlanRejectsAOneFloatStepContactStartChangeEvenWhenTheDecisionAgrees(bool memberA)
+        {
+            var archive = UnityEngine.JsonUtility.FromJson<Archive>(After);
+            var record = archive.Records.First(r => r.Active && (memberA ? r.ContactStartSMetersA : r.ContactStartSMetersB) >= 1f);
+            float start = memberA ? record.ContactStartSMetersA : record.ContactStartSMetersB;
+            int bits = System.BitConverter.ToInt32(System.BitConverter.GetBytes(start), 0);
+            float changed = System.BitConverter.ToSingle(System.BitConverter.GetBytes(bits + 1), 0);
+            Assert.That(changed, Is.Not.EqualTo(start));
+            Assert.That(changed - start, Is.LessThan(1e-6f * start), "Un seul pas float echappait a la comparaison relative.");
+
+            var decisions = AuthoringDecisions.Parse(File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath)));
+            int index = decisions.Conflicts.FindIndex(c => AuthoredRoadModel.PairKey(c.MovementKeyA, c.MovementKeyB) == record.PairKey);
+            var decision = decisions.Conflicts[index];
+            if (memberA) decision.ContactStartSMetersA = changed;
+            else decision.ContactStartSMetersB = changed;
+            decisions.Conflicts[index] = decision;
+            var plan = new AutomatedPairDecisionPlan
+            {
+                DecisionRunId = archive.DecisionRunId,
+                DecisionsText = decisions.Serialize(),
+                ManifestText = ReplaceRecordField(After, record.PairKey, memberA ? "ContactStartSMetersA" : "ContactStartSMetersB",
+                    changed.ToString("R", System.Globalization.CultureInfo.InvariantCulture))
+            };
+            var error = Assert.Throws<System.InvalidOperationException>(() => AutomatedPairDecisionPolicy.ValidatePlan(plan, archive.Records.Length));
+            StringAssert.Contains("genre ou debuts de contact", error.Message);
+        }
+
+        private static string ReplaceRecordField(string manifest, string pair, string field, string jsonValue)
+        {
+            string[] records = manifest.Split(new[] { "\"PairKey\": " }, System.StringSplitOptions.None);
+            string pairJson = "\"" + pair.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n") + "\"";
+            for (int i = 1; i < records.Length; i++)
+            {
+                if (!records[i].StartsWith(pairJson, System.StringComparison.Ordinal)) continue;
+                var pattern = new System.Text.RegularExpressions.Regex("(\"" + field + "\":\\s*)(\"[^\"]*\"|[^,\\r\\n]+)");
+                Assert.That(pattern.Matches(records[i]), Has.Count.EqualTo(1));
+                records[i] = pattern.Replace(records[i], match => match.Groups[1].Value + jsonValue, 1);
+                return string.Join("\"PairKey\": ", records);
+            }
+
+            Assert.Fail("Paire absente : " + pair);
+            return null;
         }
 
         /// <summary>Remplace <paramref name="from"/> dans le premier enregistrement qui contient <paramref name="marker"/> et <paramref name="from"/>.</summary>
