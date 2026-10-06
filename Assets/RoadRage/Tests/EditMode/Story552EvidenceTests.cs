@@ -26,7 +26,9 @@ namespace RoadRage.Tests.EditMode
         [Serializable]
         private sealed class InMemoryFormat3Signoff
         {
-            public int Format = 3;
+            // Format 4 depuis la 5.35 : la table de droite non vide rend un format 3 perime.
+            public int Format = 4;
+            public string RightOfWayHash;
             public string RoadModelVersion;
             public string ModelHash;
             public string ClearanceHash;
@@ -339,7 +341,8 @@ namespace RoadRage.Tests.EditMode
                 ModelHash = V1SourceSet.Sha256Hex(modelText),
                 ClearanceHash = Regex.Match(report, "^clearance-hash: ([0-9a-f]{64})$", RegexOptions.Multiline).Groups[1].Value,
                 EvidenceParametersHash = Regex.Match(report, "parametres-hash = ([0-9a-f]{64})").Groups[1].Value,
-                SignedRingSeams = seams.ToArray()
+                SignedRingSeams = seams.ToArray(),
+                RightOfWayHash = RoadRage.Features.Vehicles.Traffic.Coordination.RightOfWayTable.For(model).Hash
             };
             // Fixture en memoire seulement : seule la revue du proprietaire peut signer sur disque.
             var evidence = GateAEvidenceBinding.Bind(model, modelText, JsonUtility.ToJson(signoff), report);
@@ -350,6 +353,10 @@ namespace RoadRage.Tests.EditMode
             Assert.That(MotionPlan.EvaluateVehicleCoverage(evidence, 0f, TrafficV2Settings.DeclaredTrackingTolerance),
                 Is.EqualTo(VehicleCoverage.Covered));
 
+            signoff.Format = 3;
+            Assert.That(GateAEvidenceBinding.Bind(model, modelText, JsonUtility.ToJson(signoff), report).Status,
+                Is.EqualTo(GateAEvidenceStatus.GateAEvidenceStale), "Un format 3 ignore la relation de droite authoree (5.35).");
+            signoff.Format = 4;
             signoff.SignedRingSeams[0] = "raccord-inconnu:entry";
             Assert.That(GateAEvidenceBinding.Bind(model, modelText, JsonUtility.ToJson(signoff), report).Status,
                 Is.EqualTo(GateAEvidenceStatus.GateAEvidenceStale));

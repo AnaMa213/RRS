@@ -300,7 +300,16 @@ namespace RoadRage.Tests.EditMode
 
         private static string Before
         {
-            get { return _before ?? (_before = UnityEngine.JsonUtility.FromJson<Archive>(After).SupersededManifestText); }
+            get
+            {
+                // Une regeneration P8 ulterieure (5.35) chaine un v3 devant celui de la 5.53 : on remonte jusqu'au v2 de la 5.52.
+                if (_before != null) return _before;
+                string text = UnityEngine.JsonUtility.FromJson<Archive>(After).SupersededManifestText;
+                while (!string.IsNullOrEmpty(text)
+                    && UnityEngine.JsonUtility.FromJson<Archive>(text).DecisionPolicyVersion != AutomatedPairDecisionPolicy.KinematicDecisionPolicyVersion)
+                    text = UnityEngine.JsonUtility.FromJson<Archive>(text).SupersededManifestText;
+                return _before = text;
+            }
         }
 
         private static CompiledRoadModel Model
