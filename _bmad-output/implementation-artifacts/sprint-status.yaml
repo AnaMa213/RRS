@@ -204,7 +204,7 @@ development_status:
   # types the four west roundabout merges; 5.53 stays in review until the
   # dedicated Gate A signature of 5.35 covers the modified model.
   5-53-conflict-pair-separation-proof-and-conflict-kinds: review
-  5-53a-west-merge-typing-v2: ready-for-dev
+  5-53a-west-merge-typing-v2: in-progress
   5-35-authored-control-kinds-stop-yield-priority-roundabout: backlog
   5-36-signal-phase-runtime-and-coordinator-integration: backlog
   5-37-safety-filter-narrow-veto-and-clamp-boundary: backlog

@@ -76,7 +76,7 @@ namespace RoadRage.Tests.EditMode
         {
             var archive = UnityEngine.JsonUtility.FromJson<Archive>(After);
             var byZone = archive.Records.Where(r => !string.IsNullOrEmpty(r.RoadId)).ToDictionary(r => r.RoadId, r => r);
-            var pattern = new System.Text.RegularExpressions.Regex(@"\|A((?:\[[^\]]*\])*)\|B((?:\[[^\]]*\])*)$");
+            var pattern = new System.Text.RegularExpressions.Regex(@"\|A((?:\[[^\]]*\])*)\|B((?:\[[^\]]*\])*)(?:\|v2\|[^\[\]]*)?$");
             int checkedZones = 0;
             foreach (var zone in Model.ConflictZones)
             {

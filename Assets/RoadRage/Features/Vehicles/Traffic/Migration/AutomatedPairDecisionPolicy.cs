@@ -46,6 +46,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public const float ProofToleranceMeters = 0.0001f;
         public const int MaxSubdivisionDepth = 20;
+
+        /// <summary>Motif d'une paire ConflictProven par le temoin du balayage, sans raffinement de classification.</summary>
+        public const string SweepWitnessReasonCode = "inflated-rectangles-overlap";
         public const string ApprovalId = "5.50-AUTO-DECISIONS-v1";
         public const string ApprovalSha256 = "d12de07eb0891b47d24083cd41629e53825d63fbdb43035d3578c3e9b334d2bb";
         public const string ManifestPath = "_bmad-output/implementation-artifacts/v1-regression-5-50/automated-pair-decisions.json";
@@ -512,9 +515,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
             // Politique v3 : toute paire candidate est raffinee, pour la classifier si elle n'a pas de temoin et
             // pour typer la zone si elle en a un. Une paire avec temoin garde sa classification, sa raison et sa preuve.
+            // Typage v2 (Story 5.53a) pour la seule paire a temoin du balayage et corridor aval commun : sa classification
+            // ne depend pas du raffinement, que l'elagage par contenance ne peut donc pas modifier.
             if (refinementInputs != null && sweep.Relation == PairRelation.Candidate)
             {
-                refinement = refinementInputs.Refine(sweep, pair);
+                refinement = refinementInputs.Refine(sweep, pair, witness && a.ToCorridorId == b.ToCorridorId);
             }
 
             if (sweep.Relation == PairRelation.SameApproach || sweep.Relation == PairRelation.Following)
@@ -537,7 +542,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             {
                 classification = AutomatedPairClassification.ConflictProven;
                 decision = ConflictDecisionKind.Accepted.ToString();
-                reasonCode = "inflated-rectangles-overlap";
+                reasonCode = SweepWitnessReasonCode;
                 reason = "Un temoin de poses donne un recouvrement des rectangles orientes gonfles.";
                 active = true;
             }
@@ -914,13 +919,29 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return null;
         }
 
-        /// <summary>Le genre et les debuts publies sont ceux du typage lie a la revision (« typing-v1|genre|A|B|... »).</summary>
+        /// <summary>
+        /// Perimetre du typage v2 (Story 5.53a, option B) : paire ConflictProven par le temoin du balayage, a corridor aval
+        /// commun. Une paire classee par le raffinement garde v1 : un elagage avant son premier temoin changerait sa preuve.
+        /// </summary>
+        public static bool TypingV2Applies(string classification, string reasonCode, bool commonExitCorridor)
+        {
+            return classification == AutomatedPairClassification.ConflictProven.ToString()
+                && reasonCode == SweepWitnessReasonCode && commonExitCorridor;
+        }
+
+        /// <summary>
+        /// Le genre et les debuts publies sont ceux du typage lie a la revision (« typing-v1|genre|A|B|... ») ; « typing-v2 »
+        /// n'est accepte que dans son perimetre.
+        /// </summary>
         private static bool TypingMatches(AutomatedPairDecisionRecord record)
         {
             string[] parts = (record.TypingCanonical ?? string.Empty).Split('|');
             float startA;
             float startB;
-            return parts.Length >= 4 && parts[0] == "typing-v1" && parts[1] == record.ConflictKind
+            return parts.Length >= 4
+                && (parts[0] == "typing-v1"
+                    || (parts[0] == "typing-v2" && TypingV2Applies(record.Classification, record.ReasonCode, record.CommonExitCorridor)))
+                && parts[1] == record.ConflictKind
                 && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out startA)
                 && float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out startB)
                 && Same(startA, record.ContactStartSMetersA) && Same(startB, record.ContactStartSMetersB);
@@ -989,7 +1010,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 + "|depth=" + MaxSubdivisionDepth.ToString(CultureInfo.InvariantCulture) + "|" + ConflictSweep.RefinementOrder
                 + "|resolution=rho.h_e=" + ConflictSweep.RefinementResolution(run.CandidateModel.ValidationProfile, run.EvidenceParameters)
                     .ToString("R", CultureInfo.InvariantCulture)
-                + "|tolerance=" + ProofToleranceMeters.ToString("R", CultureInfo.InvariantCulture);
+                + "|tolerance=" + ProofToleranceMeters.ToString("R", CultureInfo.InvariantCulture)
+                + "|typing-v2=containment-terminal,exact-root-dedup,sweep-witness,common-exit-corridor";
         }
 
         /// <summary>Graphe et trajectoires prolongees du modele des candidats, construits une fois par plan.</summary>
@@ -1012,12 +1034,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 _graph = SweepGraph.FromModel(run.CandidateModel);
             }
 
-            public PairRefinement Refine(PairSweep sweep, string pair)
+            public PairRefinement Refine(PairSweep sweep, string pair, bool containmentTerminal)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 var refinement = ConflictSweep.Refine(_graph, sweep.MovementA, sweep.MovementB, Paths(sweep.MovementA), Paths(sweep.MovementB),
                     _run.CandidateModel.ValidationProfile, _run.EvidenceParameters, _run.OffsetBounds,
-                    ProofToleranceMeters, MaxSubdivisionDepth, RefinementLeafBudget);
+                    ProofToleranceMeters, MaxSubdivisionDepth, RefinementLeafBudget, containmentTerminal);
                 _seconds[pair] = watch.Elapsed.TotalSeconds;
                 return refinement;
             }

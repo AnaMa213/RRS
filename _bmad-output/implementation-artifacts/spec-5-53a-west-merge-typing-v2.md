@@ -2,7 +2,8 @@
 title: 'Story 5.53 -- addendum P12 : typing-v2, typage des quatre fusions ouest de giratoire'
 type: 'bugfix'
 created: '2026-10-05'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_commit: 'ce8a0b9c7a36dc9643e4cbd52724ae0124acc9b2'
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/spec-5-53-conflict-pair-separation-proof-and-conflict-kinds.md'
@@ -93,6 +94,20 @@ context:
 - Given le modele applique, when l'admission V2 est evaluee, then elle reste en `GateAEvidenceStale` jusqu'a la signature 5.35.
 
 ## Spec Change Log
+
+- **2026-10-05 -- Checkpoint 1 : HALT proprietaire (Ask First, « une des 4 paires reste incomplete en v2 »).** Rien n'est ecrit (decisions, manifeste, modele intacts).
+  - Implementation : `ConflictSweep.Refine(..., containmentTerminal)` (union courante incrementale, test de contenance avant `TrySplit`, compteurs par etat publies en suffixe `|v2|...` de la preuve, v1 inchange octet pour octet) ; `TypeZone` via `Classify` : v2 pour `TypingV2Applies` (temoin du balayage `inflated-rectangles-overlap`, corridor aval commun) ; `TypingMatches` accepte `typing-v2` seulement dans ce perimetre ; identite de run liee au typage v2.
+  - Tests : `Story553TypingV2Tests` (equivalence exacte v1/v2 sur fixtures avec elagage effectif, fusion typee sous un budget ou v1 s'arrete, perimetre, determinisme) ; `Story553` EditMode 21/21, 0 erreur Console. Campagne `[Explicit]` `Story553TypingV2CampaignTests` (categorie `Story553TypingV2Campaign`) : `traffic-v2-5-53-classification/typing-v2-20261005-224539.md`.
+  - Verts : perimetre 36 = 32 deja typees + 4 ouest ; 234 autres enregistrements du manifeste inchanges (revision, preuve, genre, debuts, typage) ; 32/32 fusions deja typees : genre et debuts identiques au bit pres, revision renouvelee (`typing-v2`).
+  - Rouge : les 4 fusions ouest restent au plafond en v2 (65 536 feuilles, incompletes, `Crossing` a 0). Feuilles v2 par etat (NorthWest/NorthEast/SouthEast ; SouthWest similaire) : prouvees 1 798, temoins 60 408, resolution 447, contenance 1 093.
+  - Hypothese du spec refutee par la mesure : le cout ne vient pas des feuilles indecises mais de la subdivision des feuilles temoins pour localiser le contact (`WitnessSplit`). Elle domine aussi les fusions typees (sud : 45 686 temoins sur 50 552). L'elagage par contenance ne retire que 1-2 % des feuilles.
+- **2026-10-06 -- Decision proprietaire : option 2 (borne de localisation des temoins), puis dernier diagnostic avant fallback.**
+  - Analyse : la regle demandee est deja la regle v1 (`WitnessSplit` terminal des que 1/2 delta_A + 1/2 delta_B <= 2 iota = 1,30 m ; erreur de debut <= 4 iota = 2,60 m, toujours en avance) ; aucune resolution existante ne justifie un seuil plus grossier. Le plafond est atteint par les racines : 120 530 racines Ouest (trajectoires 2 x 2) > 65 536.
+  - Comptage des racines uniques (campagne `[Explicit]` `Story553RootDuplicationCampaign`, sans raffinement, `racines-dedup-*.md`) : Ouest 120 530 -> 42 879 uniques (64,4 % de doublons exacts, marge 22 657) ; Sud 46 862 -> 23 431 (50 %, la seconde trajectoire ne cree aucune racine nouvelle) ; Diagonale 23 376 (0 %). Subdivisions v1 : Sud 10 332 (5 166 apres dedoublonnage), Diagonale 4 860. Proposition de dedoublonnage exact soumise au proprietaire avant toute application.
+- **2026-10-06 -- Dedoublonnage exact des racines approuve par le proprietaire, implemente et verifie.**
+  - Regle : dans `Refine`, sous le drapeau typing-v2, une racine dont la cle exacte (element, abscisse et pose des deux extremites, intervalle projete, pour A et B) est deja vue est ecartee ; premiere occurrence conservee dans l'ordre du criblage. Budget, tolerances, profondeur, `WitnessSplit` et ordre inchanges. Preuve v2 : `|duplicates=N` ; `Roots` reste le nombre de racines criblees. Identite de run : `exact-root-dedup`. Accesseur et campagne de comptage retires apres archivage du rapport.
+  - Tests : `Story553TypingV2Tests` (fixture a branche aval, deux trajectoires : unions, temoin, genre et debuts identiques a v1, moins de feuilles) ; `Story553` EditMode 22/22, 0 erreur Console.
+  - Campagne ciblee (12 fusions de giratoire, aucun plan global, `typing-v2-giratoires-*.md`) : Ouest x4 `Merge`, debuts 0 / 1,4607 m (entree / continuation, identiques a la Diagonale), 46 235-46 339 feuilles (77 651 doublons ecartes) ; Sud x4 et Diagonale x4 : genre et debuts identiques au bit pres.
 
 ## Design Notes
 

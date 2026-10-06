@@ -59,6 +59,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// <summary>Resolution du modele appliquee : rho . h_e, derivee du profil et des parametres de preuve.</summary>
         public float ResolutionMeters;
 
+        /// <summary>
+        /// Typage v2 (Story 5.53a) : une feuille non prouvee dont les deux intervalles projetes sont deja contenus dans l'union
+        /// de contact courante est terminale, et une racine identique a une racine deja retenue n'est pas evaluee. Ni l'une ni
+        /// l'autre n'ajouterait rien a l'union : genre et debuts identiques a v1.
+        /// </summary>
+        public bool ContainmentTerminal;
+
+        /// <summary>Feuilles par etat : prouvees, temoins (terminaux ou subdivises), terminales par contenance (v2).</summary>
+        public int ProvenLeaves;
+        public int WitnessLeaves;
+        public int ContainedLeaves;
+
+        /// <summary>Racines identiques a une racine deja retenue, venues d'un autre couple de trajectoires (v2), non evaluees.</summary>
+        public int DuplicateRoots;
+
         public string Canonical()
         {
             var text = new StringBuilder();
@@ -69,6 +84,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 .Append(HasWitness ? ConflictSweep.FormatPose(WitnessA) + ";" + ConflictSweep.FormatPose(WitnessB) : "none");
             AppendIntervals(text.Append("|A"), ContactA);
             AppendIntervals(text.Append("|B"), ContactB);
+            if (ContainmentTerminal)
+            {
+                // v1 reste identique octet pour octet : les compteurs par etat ne sont publies qu'en v2.
+                text.Append("|v2|proven=").Append(ProvenLeaves).Append("|witness=").Append(WitnessLeaves)
+                    .Append("|resolution=").Append(ResolutionLeaves).Append("|contained=").Append(ContainedLeaves)
+                    .Append("|duplicates=").Append(DuplicateRoots);
+            }
+
             return text.ToString();
         }
 
@@ -126,7 +149,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         public string Canonical(PairRefinement refinement)
         {
-            return "typing-v1|" + Kind + "|" + ConflictSweep.FormatMeters(StartA) + "|" + ConflictSweep.FormatMeters(StartB) + "|"
+            return (refinement != null && refinement.ContainmentTerminal ? "typing-v2|" : "typing-v1|") + Kind + "|" + ConflictSweep.FormatMeters(StartA) + "|" + ConflictSweep.FormatMeters(StartB) + "|"
                 + (refinement == null ? "none" : refinement.Canonical());
         }
 
@@ -173,6 +196,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         /// Une feuille est prouvee si sa separation depasse strictement <paramref name="tolerance"/> ; elle porte un
         /// temoin si deux de ses poses reelles se recouvrent, gonflees hors restes (tolerance de la politique). Le
         /// raffinement continue apres un temoin pour localiser le contact (typage), dans le meme budget.
+        /// <paramref name="containmentTerminal"/> active le typage v2 (Story 5.53a) : une feuille non prouvee dont les deux
+        /// intervalles projetes sont contenus dans l'union de contact courante est terminale, sans subdivision, et les racines
+        /// en double exact entre couples de trajectoires prolongees sont ecartees.
         /// </summary>
         public static PairRefinement Refine(
             SweepGraph graph,
@@ -185,7 +211,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             KinematicOffsetBounds bounds,
             float tolerance,
             int maxDepth,
-            int leafBudget)
+            int leafBudget,
+            bool containmentTerminal = false)
         {
             if (parameters == null || !parameters.Kinematic || bounds == null || graph == null)
             {
@@ -198,7 +225,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                 return new PairRefinement { Outcome = RefinementOutcome.Unresolved };
             }
 
-            var result = new PairRefinement();
+            var result = new PairRefinement { ContainmentTerminal = containmentTerminal };
             var context = new RefineContext
             {
                 Graph = graph,
@@ -246,6 +273,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             }
 
             result.Roots = roots.Count;
+            if (result.ContainmentTerminal)
+            {
+                // Typage v2 (decision proprietaire du 2026-10-06) : une racine identique a une racine deja retenue (memes poses,
+                // meme projection), venue d'un autre couple de trajectoires prolongees, refait la meme evaluation et le meme
+                // sous-arbre : elle n'ajoute rien a l'union, ne fournit pas de temoin plus tot ni de separation plus faible.
+                var keys = new HashSet<string>(StringComparer.Ordinal);
+                roots = roots.FindAll(root => keys.Add(RootKey(root.A) + "||" + RootKey(root.B)));
+                result.DuplicateRoots = result.Roots - roots.Count;
+            }
+
             bool unresolved = false;
             var stack = new Stack<RefineNode>();
             for (int r = 0; r < roots.Count && !context.Exhausted; r++)
@@ -266,12 +303,27 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
                     LeafState state = EvaluateLeaf(node, context, out deltaA, out deltaB);
                     if (state == LeafState.Proven)
                     {
+                        result.ProvenLeaves++;
                         continue;
+                    }
+
+                    if (state == LeafState.Witness || state == LeafState.WitnessSplit)
+                    {
+                        result.WitnessLeaves++;
+                    }
+
+                    // Typage v2 : contenue dans l'union courante, la feuille est terminale ; ses sous-feuilles, prouvees ou
+                    // projetees a l'interieur d'elle, laisseraient l'union inchangee.
+                    bool contained = result.ContainmentTerminal && (state == LeafState.Split || state == LeafState.WitnessSplit)
+                        && Covers(context.UnionA, Interval(node.A)) && Covers(context.UnionB, Interval(node.B));
+                    if (contained)
+                    {
+                        result.ContainedLeaves++;
                     }
 
                     RefineNode first;
                     RefineNode second;
-                    if (state != LeafState.Witness && state != LeafState.Unresolved && TrySplit(node, context, deltaA, deltaB, out first, out second))
+                    if (!contained && state != LeafState.Witness && state != LeafState.Unresolved && TrySplit(node, context, deltaA, deltaB, out first, out second))
                     {
                         stack.Push(second);
                         stack.Push(first);
@@ -306,6 +358,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return result;
         }
 
+        /// <summary>Cle exacte d'un segment de racine : element, abscisse et pose de chaque extremite, intervalle projete.</summary>
+        private static string RootKey(RefineSegment segment)
+        {
+            Vector2 interval = Interval(segment);
+            return segment.P0.ElementId + "@" + FormatMeters(segment.P0.SMeters) + ":" + FormatPose(segment.P0) + ";"
+                + segment.P1.ElementId + "@" + FormatMeters(segment.P1.SMeters) + ":" + FormatPose(segment.P1)
+                + ";[" + FormatMeters(interval.x) + "," + FormatMeters(interval.y) + "]";
+        }
+
         // ============================================================ etat
 
         /// <summary>
@@ -333,6 +394,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             public PairRefinement Result;
             public readonly List<Vector2> RawA = new List<Vector2>();
             public readonly List<Vector2> RawB = new List<Vector2>();
+
+            /// <summary>Union courante des projections (typage v2 seulement), memes composantes que <see cref="Merge"/>.</summary>
+            public readonly List<Vector2> UnionA = new List<Vector2>();
+            public readonly List<Vector2> UnionB = new List<Vector2>();
         }
 
         /// <summary>Sous-portion d'une combinaison : deux poses d'extremite sur une trajectoire, et sa place sur le mouvement.</summary>
@@ -591,8 +656,44 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
         private static void Project(RefineNode node, RefineContext context)
         {
-            context.RawA.Add(Interval(node.A));
-            context.RawB.Add(Interval(node.B));
+            Vector2 a = Interval(node.A);
+            Vector2 b = Interval(node.B);
+            context.RawA.Add(a);
+            context.RawB.Add(b);
+            if (context.Result.ContainmentTerminal)
+            {
+                Insert(context.UnionA, a);
+                Insert(context.UnionB, b);
+            }
+        }
+
+        /// <summary>Insere un intervalle ferme dans une union triee de composantes disjointes ; toucher suffit a fusionner.</summary>
+        private static void Insert(List<Vector2> union, Vector2 interval)
+        {
+            int first = 0;
+            while (first < union.Count && union[first].y < interval.x) first++;
+            float low = interval.x;
+            float high = interval.y;
+            int last = first;
+            while (last < union.Count && union[last].x <= interval.y)
+            {
+                low = Math.Min(low, union[last].x);
+                high = Math.Max(high, union[last].y);
+                last++;
+            }
+
+            union.RemoveRange(first, last - first);
+            union.Insert(first, new Vector2(low, high));
+        }
+
+        private static bool Covers(List<Vector2> union, Vector2 interval)
+        {
+            foreach (var component in union)
+            {
+                if (component.x <= interval.x && interval.y <= component.y) return true;
+            }
+
+            return false;
         }
 
         private static Vector2 Interval(RefineSegment segment)

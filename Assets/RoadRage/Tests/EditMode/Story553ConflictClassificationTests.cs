@@ -20,16 +20,16 @@ namespace RoadRage.Tests.EditMode
         private const string HistoricalModelPath = "_bmad-output/implementation-artifacts/gate-a-5-52/historical-signed-5-51/MVP_Run.road-model.json";
 
         private static readonly RoadId E1 = new RoadId(53UL, 1UL);
-        private static readonly RoadId M1 = new RoadId(53UL, 2UL);
+        internal static readonly RoadId M1 = new RoadId(53UL, 2UL);
         private static readonly RoadId X1 = new RoadId(53UL, 3UL);
         private static readonly RoadId E2 = new RoadId(53UL, 4UL);
-        private static readonly RoadId M2 = new RoadId(53UL, 5UL);
+        internal static readonly RoadId M2 = new RoadId(53UL, 5UL);
         private static readonly RoadId X2 = new RoadId(53UL, 6UL);
         private static readonly RoadId E3 = new RoadId(53UL, 7UL);
-        private static readonly RoadId M3 = new RoadId(53UL, 8UL);
+        internal static readonly RoadId M3 = new RoadId(53UL, 8UL);
         private static readonly RoadId X3 = new RoadId(53UL, 9UL);
         private static readonly RoadId E4 = new RoadId(53UL, 10UL);
-        private static readonly RoadId M4 = new RoadId(53UL, 11UL);
+        internal static readonly RoadId M4 = new RoadId(53UL, 11UL);
 
         private SweepGraph _graph;
         private KinematicOffsetBounds _bounds;
@@ -331,12 +331,12 @@ namespace RoadRage.Tests.EditMode
             return issues;
         }
 
-        private PairSweep Sweep(RoadId a, RoadId b)
+        internal PairSweep Sweep(RoadId a, RoadId b)
         {
             return ConflictSweep.EvaluateKinematic(Paths(a), Paths(b), Profile(), Parameters(), _bounds);
         }
 
-        private static bool Witness(PairSweep sweep)
+        internal static bool Witness(PairSweep sweep)
         {
             var profile = Profile();
             return sweep.HasWitness && ConflictSweep.RectangleDistance(sweep.WitnessA, sweep.WitnessB,
@@ -355,7 +355,19 @@ namespace RoadRage.Tests.EditMode
             return ConflictSweep.Refine(_graph, a, b, Paths(a), Paths(b), Profile(), Parameters(), _bounds, tolerance, depth, budget);
         }
 
-        private List<List<SweepPose>> Paths(RoadId movement)
+        /// <summary>Raffinement de la politique (tolerance et profondeur declarees), typage v1 ou v2 (Story 5.53a).</summary>
+        internal PairRefinement Refine(RoadId a, RoadId b, List<List<SweepPose>> pathsA, List<List<SweepPose>> pathsB, int budget, bool containmentTerminal)
+        {
+            return ConflictSweep.Refine(_graph, a, b, pathsA, pathsB, Profile(), Parameters(), _bounds,
+                AutomatedPairDecisionPolicy.ProofToleranceMeters, AutomatedPairDecisionPolicy.MaxSubdivisionDepth, budget, containmentTerminal);
+        }
+
+        internal float Length(RoadId movement)
+        {
+            return _graph.Elements[movement].Length;
+        }
+
+        internal List<List<SweepPose>> Paths(RoadId movement)
         {
             string failure;
             var paths = ConflictSweep.Paths(_graph, movement, ConflictSweep.Reach(Profile()), out failure);
@@ -368,7 +380,7 @@ namespace RoadRage.Tests.EditMode
             _graph.Add(id, movement, Arc(ref start, ref heading, 0f, length, step));
         }
 
-        private static RoadModelValidationProfile Profile()
+        internal static RoadModelValidationProfile Profile()
         {
             var profile = new RoadModelValidationProfile();
             profile.MaxVehicleHalfWidthMeters = 1.03f;
@@ -377,7 +389,7 @@ namespace RoadRage.Tests.EditMode
             return profile;
         }
 
-        private static DrivabilityProfile Drivability()
+        internal static DrivabilityProfile Drivability()
         {
             return new DrivabilityProfile
             {
@@ -391,14 +403,14 @@ namespace RoadRage.Tests.EditMode
             };
         }
 
-        private static GateAEvidenceParameters Parameters()
+        internal static GateAEvidenceParameters Parameters()
         {
             return GateAEvidenceParameters.Create(NominalPoseModel.Kinematic, 0.34f, 0.008f, 0.002f, 256,
                 new NominalPoseFeasibilityInputs(300f, 9.81f, 8f));
         }
 
         /// <summary>Arc (ou droite) de courbure constante, cap mesure de +z vers +x (courbure positive a droite).</summary>
-        private static List<RoadCurveSample> Arc(ref Vector3 position, ref float heading, float curvature, float length, float step)
+        internal static List<RoadCurveSample> Arc(ref Vector3 position, ref float heading, float curvature, float length, float step)
         {
             var samples = new List<RoadCurveSample>();
             int count = Mathf.Max(1, Mathf.CeilToInt(length / step - 1e-4f));
