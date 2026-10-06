@@ -5,14 +5,14 @@ compiler-schema-version: 5
 pipeline-version: 3
 model-id: 419bd12ec9b5fe710e8a3719692c7982
 lineage-hash: f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4
-decisions-hash: ecbababf8f70ad3c52b0e54c200818e6bb81c4f381e6b8d6600c00d3a25031ae
-model-hash: f2f765101e888ddadfb87a175ae7a29cc57476d61b8a659197945332ebc8cb4d
-road-model-version: v5:51ecff8ec9dd75568e5fbcf6bc25649a
+decisions-hash: 0d04148bf2eedf98444d1395add78e7fe11a10f6381f07cf91e6dfa4b40ec531
+model-hash: c74be9eaf758b627fddb26eefe0662319358479228bdd9f5584b3d9848ad57c9
+road-model-version: v5:a98e645fcd90698ea5b97ebd624f81c8
 overlay-hash: 56f45c019309ff53ccab0d2f46f059064bba0e7f29d6db5699de87624a059612
 physical-input-hash: c777ce4ebb537362ace165a24d68f844c58a0572eac76e83dcb7bad659afd2d9
 semantic-input-hash: 43e098fcd6809ecc1e8043156f7cd26f57abb73121b844cf6c8badef8b79aef4
 clearance-hash: 7b7fcbf8f2458e4165ad2adb47e7222b52b12e5754baddbb8a76a277c555f14a
-body-hash: 65414c3ae65be35982c9e0a87d5d4868358481f485743ab8a032c3c469f42bd3
+body-hash: 54c4165f592c6d4f50f76a62a20efdb13f28772a017617e6c423c869a16b8ace
 -->
 # Rapport Gate A : modele authore MVP_Run (Story 5.28)
 
@@ -27,9 +27,9 @@ Genere par le menu `RoadRage/Traffic V2/Compiler le modele authore`. Ne pas edit
 | CompilerSchemaVersion | 5 |
 | RoadModelId | `419bd12ec9b5fe710e8a3719692c7982` |
 | Hash de la lignee | `f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json`) |
-| Hash des decisions | `ecbababf8f70ad3c52b0e54c200818e6bb81c4f381e6b8d6600c00d3a25031ae` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json`) |
-| Hash du modele persiste | `f2f765101e888ddadfb87a175ae7a29cc57476d61b8a659197945332ebc8cb4d` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json`) |
-| RoadModelVersion | `v5:51ecff8ec9dd75568e5fbcf6bc25649a` |
+| Hash des decisions | `0d04148bf2eedf98444d1395add78e7fe11a10f6381f07cf91e6dfa4b40ec531` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json`) |
+| Hash du modele persiste | `c74be9eaf758b627fddb26eefe0662319358479228bdd9f5584b3d9848ad57c9` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json`) |
+| RoadModelVersion | `v5:a98e645fcd90698ea5b97ebd624f81c8` |
 | Hash de l'overlay | `56f45c019309ff53ccab0d2f46f059064bba0e7f29d6db5699de87624a059612` (`_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt`) |
 
 ## Resultat

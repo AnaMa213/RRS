@@ -45,7 +45,38 @@ namespace RoadRage.Tests.EditMode
             public string Decision;
             public bool Active;
             public bool RefinementComplete;
+            public bool CommonExitCorridor;
+            public string ConflictKind;
             public string TypingCanonical;
+        }
+
+        [Test]
+        public void TypingV2CoversExactlyTheSweepWitnessMergesAndTypesEachOneMerge()
+        {
+            // Story 5.53a : perimetre option B (temoin du balayage, corridor aval commun), fusions Ouest comprises.
+            int scope = 0;
+            foreach (var record in UnityEngine.JsonUtility.FromJson<Archive>(After).Records)
+            {
+                bool inScope = AutomatedPairDecisionPolicy.TypingV2Applies(record.Classification, record.ReasonCode, record.CommonExitCorridor);
+                Assert.That(record.TypingCanonical.StartsWith("typing-v2|", System.StringComparison.Ordinal), Is.EqualTo(inScope), record.PairKey);
+                if (!inScope) continue;
+                scope++;
+                Assert.That(record.RefinementComplete, Is.True, "Typage v2 complet sous le budget : " + record.PairKey);
+                Assert.That(record.ConflictKind, Is.EqualTo(ConflictKind.Merge.ToString()), record.PairKey);
+            }
+
+            Assert.That(scope, Is.EqualTo(36), "32 fusions deja typees et 4 fusions Ouest.");
+        }
+
+        [Test]
+        public void TheRetypedModelIsAdmittedByItsDedicatedSignature()
+        {
+            // Story 5.53a : signature Gate A dediee du proprietaire (2026-10-06), liee au modele retype.
+            var admission = Features.Vehicles.Traffic.Lifecycle.TrafficV2Lifecycle.Admit(
+                File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.ModelPath)),
+                File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.SignoffPath)),
+                File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.ReportPath)));
+            Assert.That(admission.Code, Is.EqualTo(Features.Vehicles.Traffic.Lifecycle.TrafficV2Code.Allowed));
         }
 
         [Test]
