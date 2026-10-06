@@ -205,8 +205,9 @@ development_status:
   # dedicated Gate A signature of 5.35 covers the modified model.
   # 2026-10-06: correctifs de revue R1-R3 appliques et revus ; Story553 37/37
   # et Story534 48/48 EditMode, 0 erreur Console. D1 reste differe.
-  5-53-conflict-pair-separation-proof-and-conflict-kinds: review
-  5-53a-west-merge-typing-v2: review
+  # 2026-10-06: cloture proprietaire explicite des stories 5.53 et 5.53a.
+  5-53-conflict-pair-separation-proof-and-conflict-kinds: done
+  5-53a-west-merge-typing-v2: done
   5-35-authored-control-kinds-stop-yield-priority-roundabout: backlog
   5-36-signal-phase-runtime-and-coordinator-integration: backlog
   5-37-safety-filter-narrow-veto-and-clamp-boundary: backlog
