@@ -34,6 +34,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             public JunctionReason Reason;
             /// <summary>Story 5.35 : admis par creneau de fusion, publie tant que le grant vit.</summary>
             public bool MergeGap;
+            /// <summary>Story 5.35 (trace) : creneau decisif a l'emission (NaN sans creneau evalue).</summary>
+            public float Gap = float.NaN, Eta = float.NaN;
             // Etat du lot courant.
             public bool Gone, Covered, Fresh;
             public List<RoadId> Released;
@@ -57,6 +59,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
 
         // Compteurs du lot courant (Story 5.35).
         private int batchStopRequired, batchYield, batchMergeGaps, batchDeadlockBreaks, batchCrossingRefusals, batchMergeGapRefusals;
+        // Trace de la demande examinee (Story 5.35) : creneau a la marge ETA - t_gap la plus faible ; NaN hors examen.
+        private float traceGap = float.NaN, traceEta = float.NaN;
 
         private struct Occupation
         {
@@ -282,6 +286,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 RoadId cause, zone;
                 JunctionExitBound bound;
                 bool mergeGap = false;
+                traceGap = traceEta = float.NaN;
                 if (!Known(traversal))
                     records.Add(Denied(actor, traversal, since, frameId, effective, JunctionReason.InvalidRequest));
                 else if (!ExitSufficient(actor.Request, actor.TrafficId, kept, byId, out bound))
@@ -320,12 +325,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                         mergeGap ? JunctionReason.GrantedMergeGap : JunctionReason.Granted);
                     grant.Fresh = true;
                     grant.MergeGap = mergeGap;
+                    grant.Gap = traceGap; grant.Eta = traceEta;
                     if (mergeGap) { batchMergeGaps++; TrafficV2WorkCounters.Work.JunctionMergeGapGrants++; }
                     kept.Add(grant);
                     Bucket(live, grant.JunctionId).Add(grant);
                 }
             }
 
+            traceGap = traceEta = float.NaN;
             BreakDeadlocks(yielded, live, occupants, kept, records, frameId, effective);
 
             // 3. Publication : tout grant vivant est republie, sinon il expire.
@@ -543,7 +550,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 var k = holder.Kinematics;
                 float eta = JunctionPriority.TravelSeconds(start + merge.HolderContactStart, k.SpeedMetersPerSecond,
                     k.MaxAccelerationMetersPerSecondSquared, k.DesiredSpeedMetersPerSecond);
-                if (eta < GapSeconds(requester, merge.RequestIndex)) return false;
+                float gap = GapSeconds(requester, merge.RequestIndex);
+                Trace(gap, eta);
+                if (eta < gap) return false;
             }
             return true;
         }
@@ -578,7 +587,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 // Traversees compatibles : aucune preseance, aucun creneau evalue (P9).
                 if (lastRequest < 0) continue;
                 TrafficV2WorkCounters.Work.JunctionGapEvaluations++;
-                if (Eta(other, firstOther) < GapSeconds(requester, lastRequest)) { cause = other.TrafficId; zone = found; return true; }
+                float etaP = Eta(other, firstOther), gap = GapSeconds(requester, lastRequest);
+                Trace(gap, etaP);
+                if (etaP < gap) { cause = other.TrafficId; zone = found; return true; }
             }
             return false;
         }
@@ -663,6 +674,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 && approach.DistanceMeters <= Math.Max(distances.HoldWindowMeters, distances.ControlMarginMeters);
         }
 
+        /// <summary>Retient le creneau a la marge ETA - t_gap la plus faible de la demande examinee (trace seulement).</summary>
+        private void Trace(float gap, float eta)
+        {
+            if (float.IsNaN(traceGap) || eta - gap < traceEta - traceGap) { traceGap = gap; traceEta = eta; }
+        }
+
+        private bool StopMarkedOf(RoadId trafficId)
+        {
+            Seniority entry;
+            return seniority.TryGetValue(trafficId, out entry) && entry.StopMarked;
+        }
+
         private static bool IsNewGrant(JunctionReason reason)
         {
             return reason == JunctionReason.Granted || reason == JunctionReason.GrantedMergeGap || reason == JunctionReason.GrantedDeadlockBreak;
@@ -744,20 +767,22 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             return order != 0 ? order : a.TraversalId.CompareTo(b.TraversalId);
         }
 
-        private static JunctionRecord Record(Grant grant, IReadOnlyList<RoadId> movements, ulong frameId, ulong effective,
+        private JunctionRecord Record(Grant grant, IReadOnlyList<RoadId> movements, ulong frameId, ulong effective,
             JunctionGrantStatus status, JunctionReason reason, RoadId cause = default(RoadId), RoadId zone = default(RoadId),
             JunctionExitBound exitBound = JunctionExitBound.None)
         {
             return new JunctionRecord(grant.TrafficId, grant.JunctionId, grant.TraversalId, movements, grant.Since, frameId, effective,
-                status, reason, cause, zone, exitBound, grant.MergeGap);
+                status, reason, cause, zone, exitBound, grant.MergeGap, Index.ControlKindOf(grant.TraversalId), StopMarkedOf(grant.TrafficId),
+                grant.Gap, grant.Eta);
         }
 
-        private static JunctionRecord Denied(JunctionActorReport actor, JunctionTraversal traversal, ulong since, ulong frameId,
+        private JunctionRecord Denied(JunctionActorReport actor, JunctionTraversal traversal, ulong since, ulong frameId,
             ulong effective, JunctionReason reason, RoadId cause = default(RoadId), RoadId zone = default(RoadId),
             JunctionExitBound exitBound = JunctionExitBound.None)
         {
             return new JunctionRecord(actor.TrafficId, traversal.JunctionId, traversal.FirstMovementId, traversal.MovementIds, since,
-                frameId, effective, JunctionGrantStatus.Denied, reason, cause, zone, exitBound);
+                frameId, effective, JunctionGrantStatus.Denied, reason, cause, zone, exitBound, false,
+                Index.ControlKindOf(traversal.FirstMovementId), StopMarkedOf(actor.TrafficId), traceGap, traceEta);
         }
 
         private static JunctionSnapshot Publish(ulong frameId, ulong effective, List<JunctionRecord> records, bool frameValid,

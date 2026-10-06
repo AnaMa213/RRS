@@ -391,11 +391,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// peuvent coexister avec un grant incompatible, et seulement sur des zones Merge (invariant 5.34 amende).
         /// </summary>
         public readonly bool MergeGap;
+        /// <summary>Story 5.35 (trace) : genre de controle du premier mouvement de la traversee.</summary>
+        public readonly JunctionControlKind ControlKind;
+        /// <summary>Story 5.35 (trace) : arret marque devant un Stop, vivant avec l'anciennete.</summary>
+        public readonly bool StopMarked;
+        /// <summary>
+        /// Story 5.35 (trace) : t_gap du demandeur et ETA de l'acteur prioritaire ou du titulaire pour l'evaluation de creneau
+        /// decisive (marge ETA - t_gap la plus faible du lot) ; NaN si aucun creneau n'a ete evalue.
+        /// </summary>
+        public readonly float GapSeconds, EtaSeconds;
 
         public JunctionRecord(RoadId trafficId, RoadId junctionId, RoadId traversalId, IReadOnlyList<RoadId> movementIds,
             ulong requestSinceFrame, ulong sourceFrame, ulong effectiveFrame, JunctionGrantStatus status, JunctionReason reason,
             RoadId causeActorId = default(RoadId), RoadId zoneId = default(RoadId), JunctionExitBound exitBound = JunctionExitBound.None,
-            bool mergeGap = false)
+            bool mergeGap = false, JunctionControlKind controlKind = JunctionControlKind.Uncontrolled, bool stopMarked = false,
+            float gapSeconds = float.NaN, float etaSeconds = float.NaN)
         {
             TrafficId = trafficId; JunctionId = junctionId; TraversalId = traversalId;
             var copy = new RoadId[movementIds == null ? 0 : movementIds.Count];
@@ -404,6 +414,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             RequestSinceFrame = requestSinceFrame; SourceFrame = sourceFrame; EffectiveFrame = effectiveFrame;
             ExpiresAfterFrame = effectiveFrame; Status = status; Reason = reason; CauseActorId = causeActorId; ZoneId = zoneId;
             ExitBound = exitBound; MergeGap = mergeGap;
+            ControlKind = controlKind; StopMarked = stopMarked; GapSeconds = gapSeconds; EtaSeconds = etaSeconds;
         }
 
         /// <summary>Granted ou Held : grant effectif a <see cref="EffectiveFrame"/>.</summary>
@@ -430,6 +441,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             if (!ZoneId.IsEmpty) text.Append(" zone ").Append(ZoneId);
             if (ExitBound != JunctionExitBound.None) text.Append(" borne ").Append(ExitBound);
             if (MergeGap) text.Append(" creneau de fusion");
+            // Champs 5.35 en suffixe, absents pour un carrefour Uncontrolled sans creneau (texte 5.34 inchange).
+            if (ControlKind != JunctionControlKind.Uncontrolled) text.Append(" genre ").Append(ControlKind);
+            if (StopMarked) text.Append(" arret marque");
+            if (!float.IsNaN(GapSeconds))
+                text.Append(" t_gap ").Append(JunctionText.F(GapSeconds)).Append(" ETA ").Append(JunctionText.F(EtaSeconds));
             return text.ToString();
         }
     }

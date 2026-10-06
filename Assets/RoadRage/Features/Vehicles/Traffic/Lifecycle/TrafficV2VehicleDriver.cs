@@ -737,7 +737,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 {
                     junctionReport = JunctionRequestBuilder.Build(frame, junctionIndex, insertion.TrafficId, route,
                         toleranceResponse.Latched ? (DriverProfile?)null : driver, dt, TrafficV2Settings.JunctionStopControlMarginMeters,
-                        junctions, frameId, TrafficV2Settings.StopHold.EntrySpeedMetersPerSecond);
+                        junctions, frameId, TrafficV2Settings.StopHold.EntrySpeedMetersPerSecond,
+                        physicsBody.Profile.LateralFrictionCoefficient * Physics.gravity.magnitude);
                 }
                 catch (ArgumentException) { junctionReport = null; }
                 JunctionMarker.End();

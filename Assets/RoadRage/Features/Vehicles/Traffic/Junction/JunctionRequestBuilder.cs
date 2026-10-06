@@ -79,6 +79,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 rear = start[q] + occupancy.SMinMeters - occurrences[q].StartSMeters;
             }
             else front = rear = start[q] + actor.Location.SMeters - occurrences[q].StartSMeters;
+            // Story 5.35 : pare-chocs de reference (abscisse de route du point localise + porte-a-faux avant), continu d'un element
+            // a l'autre. Il mesure d et l'occupation au-dela d'une ligne (b > 0) : le SMax de l'occupation, projete sur le seul
+            // element localise et elargi de sa marge r = (h/2)/(1 - kappa.d_max), saute de plusieurs decimetres au basculement
+            // corridor -> mouvement courbe, en pleine zone de freinage. C'est aussi la pose de la preuve de separation P5.
+            double referenceFront = start[q] + actor.Location.SMeters - occurrences[q].StartSMeters + actor.Pose.Footprint.FrontMeters;
 
             var approaches = new List<JunctionApproach>();
             bool hasRequest = false;
@@ -97,7 +102,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                     var traversal = Chain(index, occurrences, k0, out last, out at);
                     approachEnd = last;
                     float boundary = index.BoundaryOf(occurrences[k0].Id);
-                    float d = (float)(start[k0] + boundary - front);
+                    double lineFront = boundary > 0f ? referenceFront : front;
+                    float d = (float)(start[k0] + boundary - lineFront);
                     var startsAhead = new float[at.Count];
                     for (int i = 0; i < at.Count; i++) startsAhead[i] = (float)(start[at[i]] - front);
                     var distances = JunctionDistances.For(driver.Value, actor.TangentialSpeedMetersPerSecond, deltaTimeSeconds,
@@ -116,7 +122,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                         continue;
                     }
                     RoadId masking;
-                    bool head = HeadOfQueue(frame, index, occurrences, start, q, k0, boundary, front, trafficId, out masking);
+                    bool head = HeadOfQueue(frame, index, occurrences, start, q, k0, boundary, lineFront, trafficId, out masking);
                     var exit = ExitSearch(frame, index, route, start, last, trafficId, reservation);
                     approaches.Add(new JunctionApproach(traversal, d, distances, head, masking, effective, false, exit, startsAhead, boundary));
                     hasRequest = true;
@@ -143,10 +149,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             for (int k = low; k <= high; k++)
             {
                 if (occurrences[k].Kind != RoadElementKind.JunctionMovement) continue;
-                // Le premier mouvement d'une traversee n'est occupe qu'au-dela de la frontiere de controle (Story 5.35).
-                double a = start[k] + (ChainStart(index, occurrences, k) == k ? index.BoundaryOf(occurrences[k].Id) : 0f), b = start[k + 1];
+                // Le premier mouvement d'une traversee n'est occupe qu'au-dela de la frontiere de controle, mesuree au pare-chocs
+                // de reference (Story 5.35).
+                float line = ChainStart(index, occurrences, k) == k ? index.BoundaryOf(occurrences[k].Id) : 0f;
+                double a = start[k] + line, b = start[k + 1], reach = line > 0f ? referenceFront : front;
                 var status = !occupied ? (k == q ? JunctionMovementStatus.Occupied : JunctionMovementStatus.Unknown)
-                    : a < front && b > rear ? JunctionMovementStatus.Occupied
+                    : a < reach && b > rear ? JunctionMovementStatus.Occupied
                     : b <= rear ? JunctionMovementStatus.Behind : JunctionMovementStatus.Ahead;
                 positions.Add(new JunctionMovementPosition(occurrences[k].Id, status));
                 if (status != JunctionMovementStatus.Occupied) continue;
