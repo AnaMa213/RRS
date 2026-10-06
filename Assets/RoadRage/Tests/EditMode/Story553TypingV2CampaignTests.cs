@@ -16,8 +16,9 @@ namespace RoadRage.Tests.EditMode
     /// <summary>
     /// Story 5.53a -- verification ciblee du typing-v2 (contenance et dedoublonnage exact des racines) sur la VRAIE MVP_Run,
     /// avant toute ecriture : seules les 12 fusions de giratoire sont raffinees (4 Ouest, 4 Sud, 4 Diagonale), aucun plan
-    /// global. Sud et Diagonale doivent garder genre et debuts au bit pres ; chaque fusion Ouest doit etre typee Merge sous
-    /// le budget, sinon HALT et fallback Crossing (decision proprietaire du 2026-10-06). Campagne longue : [Explicit].
+    /// global. Sud et Diagonale : genre et debuts v2 egaux au bit pres a ceux d'un v1 recalcule ; chaque fusion Ouest typee
+    /// Merge sous le budget, sinon HALT et fallback Crossing (decision proprietaire du 2026-10-06). Chaque preuve v2 doit
+    /// reproduire exactement le typage committe. Campagne longue : [Explicit].
     /// </summary>
     [Explicit]
     [Category("Geometry")]
@@ -47,6 +48,7 @@ namespace RoadRage.Tests.EditMode
             public string ConflictKind;
             public float ContactStartSMetersA;
             public float ContactStartSMetersB;
+            public string TypingCanonical;
         }
 
         [Test]
@@ -68,6 +70,7 @@ namespace RoadRage.Tests.EditMode
             var keys = AuthoringDecisions.KeysById(run.Import);
             var rows = new StringBuilder();
             var changed = new List<string>();
+            var notReproduced = new List<string>();
             var westNotMerge = new List<string>();
             int counted = 0;
             foreach (var record in manifest.Records)
@@ -86,30 +89,36 @@ namespace RoadRage.Tests.EditMode
                 bool west = labels.Contains("West");
                 string arm = west ? "Ouest" : labels.Contains("South") ? "Sud" : "Diagonale";
 
+                var pathsA = Paths(graph, model, idA);
+                var pathsB = Paths(graph, model, idB);
                 var watch = Stopwatch.StartNew();
-                var refinement = ConflictSweep.Refine(graph, idA, idB, Paths(graph, model, idA), Paths(graph, model, idB),
+                var refinement = ConflictSweep.Refine(graph, idA, idB, pathsA, pathsB,
                     model.ValidationProfile, run.EvidenceParameters, run.OffsetBounds, AutomatedPairDecisionPolicy.ProofToleranceMeters,
                     AutomatedPairDecisionPolicy.MaxSubdivisionDepth, AutomatedPairDecisionPolicy.RefinementLeafBudget, true);
                 double seconds = watch.Elapsed.TotalSeconds;
+                var v1 = ConflictSweep.Refine(graph, idA, idB, pathsA, pathsB,
+                    model.ValidationProfile, run.EvidenceParameters, run.OffsetBounds, AutomatedPairDecisionPolicy.ProofToleranceMeters,
+                    AutomatedPairDecisionPolicy.MaxSubdivisionDepth, AutomatedPairDecisionPolicy.RefinementLeafBudget, false);
 
                 // Meme typage que la politique : ordre (A, B) du balayage, ramene a la cle de paire.
-                var typing = ZoneTyping.Of(refinement, a.LengthMeters, b.LengthMeters, a.ToCorridorId == b.ToCorridorId, true);
-                if (keys[idA] != record.PairKey.Split('\n')[0]) typing = typing.Swapped();
+                bool swap = keys[idA] != record.PairKey.Split('\n')[0];
+                var typing = Typing(refinement, a, b, swap);
+                var typingV1 = Typing(v1, a, b, swap);
 
                 string label = arm + " -- " + junction + " : " + labels;
+                if (typing.Canonical(refinement) != record.TypingCanonical) notReproduced.Add(label);
                 if (west)
                 {
                     if (!refinement.Complete || typing.Kind != ConflictKind.Merge) westNotMerge.Add(label);
                 }
-                else if (typing.Kind.ToString() != record.ConflictKind || typing.StartA != record.ContactStartSMetersA
-                    || typing.StartB != record.ContactStartSMetersB)
+                else if (!v1.Complete || typing.Kind != typingV1.Kind || typing.StartA != typingV1.StartA || typing.StartB != typingV1.StartB)
                 {
                     changed.Add(label);
                 }
 
                 rows.Append("| ").Append(arm).Append(" | ").Append(junction).Append(" | ").Append(labels)
-                    .Append(" | ").Append(record.ConflictKind).Append(' ').Append(F(record.ContactStartSMetersA)).Append(" / ").Append(F(record.ContactStartSMetersB))
-                    .Append(" | ").Append(record.RefinementLeaves).Append(record.RefinementComplete ? string.Empty : " (incomplet)")
+                    .Append(" | ").Append(typingV1.Kind).Append(' ').Append(F(typingV1.StartA)).Append(" / ").Append(F(typingV1.StartB))
+                    .Append(" | ").Append(v1.Leaves).Append(v1.Complete ? string.Empty : " (incomplet)")
                     .Append(" | ").Append(typing.Kind).Append(' ').Append(F(typing.StartA)).Append(" / ").Append(F(typing.StartB))
                     .Append(" | ").Append(refinement.Leaves).Append(refinement.Complete ? string.Empty : " (incomplet)")
                     .Append(" | ").Append(refinement.Roots).Append(" | ").Append(refinement.DuplicateRoots)
@@ -126,8 +135,9 @@ namespace RoadRage.Tests.EditMode
                 .Append(AutomatedPairDecisionPolicy.RefinementLeafBudget).Append(" feuilles par paire, tolerances, profondeur, `WitnessSplit` et ordre inchanges. ");
             report.Append("Debuts de contact dans l'ordre de la cle de paire (A / B).\n\n");
             report.Append("- Fusions Ouest non typees `Merge` sous le budget (HALT, fallback Crossing) : ").Append(westNotMerge.Count).Append(".\n");
-            report.Append("- Fusions Sud / Diagonale dont genre ou debuts changent (HALT) : ").Append(changed.Count).Append(".\n\n");
-            report.Append("| Bras | Giratoire | Mouvements | v1 publie | v1 feuilles | v2 | v2 feuilles | Racines | Doublons ecartes | Prouvees | Temoins | Resolution | Contenance | Duree (s) |\n");
+            report.Append("- Fusions Sud / Diagonale dont genre ou debuts different d'un v1 recalcule (HALT) : ").Append(changed.Count).Append(".\n");
+            report.Append("- Preuves v2 differentes du typage committe : ").Append(notReproduced.Count).Append(".\n\n");
+            report.Append("| Bras | Giratoire | Mouvements | v1 recalcule | v1 feuilles | v2 | v2 feuilles | Racines | Doublons ecartes | Prouvees | Temoins | Resolution | Contenance | Duree (s) |\n");
             report.Append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n").Append(rows).Append('\n');
             string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
             string error;
@@ -139,6 +149,13 @@ namespace RoadRage.Tests.EditMode
             Assert.That(counted, Is.EqualTo(12), "12 fusions de giratoire attendues.");
             Assert.That(changed, Is.Empty, "HALT : fusion Sud ou Diagonale modifiee.");
             Assert.That(westNotMerge, Is.Empty, "HALT : fusion Ouest non typee Merge sous le budget ; fallback Crossing.");
+            Assert.That(notReproduced, Is.Empty, "La preuve v2 reproduit exactement le typage committe.");
+        }
+
+        private static ZoneTyping Typing(PairRefinement refinement, CompiledJunctionMovement a, CompiledJunctionMovement b, bool swap)
+        {
+            var typing = ZoneTyping.Of(refinement, a.LengthMeters, b.LengthMeters, a.ToCorridorId == b.ToCorridorId, true);
+            return swap ? typing.Swapped() : typing;
         }
 
         private static List<List<SweepPose>> Paths(SweepGraph graph, CompiledRoadModel model, RoadId movement)

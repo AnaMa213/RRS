@@ -69,6 +69,39 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void ThePlanIsRejectedWhenATypingVersionLeavesItsScope()
+        {
+            // Champs hors revision et hors preuve : seule la liaison typage / perimetre de ValidatePlan peut refuser.
+            string decisionsText = File.ReadAllText(AuthoredRoadModel.FullPath(AuthoredRoadModel.DecisionsPath));
+            var archive = UnityEngine.JsonUtility.FromJson<Archive>(After);
+            string v2OutOfScope = Tamper(After, "\"TypingCanonical\": \"typing-v2|",
+                "\"ReasonCode\": \"" + AutomatedPairDecisionPolicy.SweepWitnessReasonCode + "\"", "\"ReasonCode\": \"refined-witness\"");
+            string v1InScope = Tamper(After, "\"ReasonCode\": \"" + AutomatedPairDecisionPolicy.SweepWitnessReasonCode + "\"",
+                "\"CommonExitCorridor\": false", "\"CommonExitCorridor\": true");
+            foreach (var manifest in new[] { v2OutOfScope, v1InScope })
+            {
+                var plan = new AutomatedPairDecisionPlan { DecisionRunId = archive.DecisionRunId, DecisionsText = decisionsText, ManifestText = manifest };
+                var error = Assert.Throws<System.InvalidOperationException>(() => AutomatedPairDecisionPolicy.ValidatePlan(plan, archive.Records.Length));
+                StringAssert.Contains("typage revise", error.Message);
+            }
+        }
+
+        /// <summary>Remplace <paramref name="from"/> dans le premier enregistrement qui contient <paramref name="marker"/> et <paramref name="from"/>.</summary>
+        private static string Tamper(string manifest, string marker, string from, string to)
+        {
+            string[] records = manifest.Split(new[] { "\"PairKey\": " }, System.StringSplitOptions.None);
+            for (int i = 1; i < records.Length; i++)
+            {
+                if (!records[i].Contains(marker) || !records[i].Contains(from)) continue;
+                records[i] = records[i].Replace(from, to);
+                return string.Join("\"PairKey\": ", records);
+            }
+
+            Assert.Fail("Aucun enregistrement ne porte " + marker + " et " + from);
+            return null;
+        }
+
+        [Test]
         public void TheRetypedModelIsAdmittedByItsDedicatedSignature()
         {
             // Story 5.53a : signature Gate A dediee du proprietaire (2026-10-06), liee au modele retype.

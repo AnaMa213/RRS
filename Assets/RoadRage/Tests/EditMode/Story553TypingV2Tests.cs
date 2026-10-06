@@ -104,19 +104,12 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void TypingV2IsDeterministicUnderRerunAndShuffledPaths()
+        public void TypingV2IsDeterministicUnderRerun()
         {
             var m1 = Story553ConflictClassificationTests.M1;
             var m4 = Story553ConflictClassificationTests.M4;
             string first = Refine(m1, m4, true).Canonical();
             Assert.That(Refine(m1, m4, true).Canonical(), Is.EqualTo(first), "Seconde execution : aucun changement.");
-
-            var pathsA = _fixture.Paths(m1);
-            var pathsB = _fixture.Paths(m4);
-            pathsA.Reverse();
-            pathsB.Reverse();
-            Assert.That(_fixture.Refine(m1, m4, pathsA, pathsB, AutomatedPairDecisionPolicy.RefinementLeafBudget, true).Canonical(),
-                Is.EqualTo(first), "Ordre des trajectoires sans effet.");
         }
 
         [Test]
@@ -167,6 +160,14 @@ namespace RoadRage.Tests.EditMode
             Assert.That(v2r.HasWitness, Is.EqualTo(v1.HasWitness));
             StringAssert.Contains("|duplicates=" + v2r.DuplicateRoots, v2r.Canonical());
             Assert.That(v1.DuplicateRoots, Is.Zero, "v1 evalue toutes les racines.");
+
+            // Ordre des trajectoires sans effet, doublons compris : la premiere occurrence retenue ne depend pas de l'entree.
+            var reversed = new List<List<SweepPose>>(pathsB);
+            reversed.Reverse();
+            Assert.That(ConflictSweep.Refine(graph, m1, m4, pathsA, reversed, Story553ConflictClassificationTests.Profile(),
+                Story553ConflictClassificationTests.Parameters(), bounds, AutomatedPairDecisionPolicy.ProofToleranceMeters,
+                AutomatedPairDecisionPolicy.MaxSubdivisionDepth, AutomatedPairDecisionPolicy.RefinementLeafBudget, true).Canonical(),
+                Is.EqualTo(v2r.Canonical()));
 
             float lengthA = graph.Elements[m1].Length;
             float lengthB = graph.Elements[m4].Length;

@@ -358,13 +358,22 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             return result;
         }
 
-        /// <summary>Cle exacte d'un segment de racine : element, abscisse et pose de chaque extremite, intervalle projete.</summary>
+        /// <summary>
+        /// Cle exacte d'un segment de racine : chaque champ de pose que lit l'evaluation (element, abscisse, position, cap,
+        /// degenerescence, tangente, road-up) aux deux extremites, puis l'intervalle projete. Une pose de noeud compile et une
+        /// pose interpolee de meme abscisse restent distinctes si l'un de ces champs differe.
+        /// </summary>
         private static string RootKey(RefineSegment segment)
         {
             Vector2 interval = Interval(segment);
-            return segment.P0.ElementId + "@" + FormatMeters(segment.P0.SMeters) + ":" + FormatPose(segment.P0) + ";"
-                + segment.P1.ElementId + "@" + FormatMeters(segment.P1.SMeters) + ":" + FormatPose(segment.P1)
-                + ";[" + FormatMeters(interval.x) + "," + FormatMeters(interval.y) + "]";
+            return PoseKey(segment.P0) + ";" + PoseKey(segment.P1) + ";[" + FormatMeters(interval.x) + "," + FormatMeters(interval.y) + "]";
+        }
+
+        private static string PoseKey(SweepPose pose)
+        {
+            return pose.ElementId + "@" + FormatMeters(pose.SMeters) + ":" + FormatPose(pose) + (pose.Degenerate ? ":d" : ":n")
+                + ":" + FormatMeters(pose.Tangent.x) + "," + FormatMeters(pose.Tangent.y) + "," + FormatMeters(pose.Tangent.z)
+                + ":" + FormatMeters(pose.Up.x) + "," + FormatMeters(pose.Up.y) + "," + FormatMeters(pose.Up.z);
         }
 
         // ============================================================ etat

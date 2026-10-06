@@ -930,8 +930,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
         }
 
         /// <summary>
-        /// Le genre et les debuts publies sont ceux du typage lie a la revision (« typing-v1|genre|A|B|... ») ; « typing-v2 »
-        /// n'est accepte que dans son perimetre.
+        /// Le genre et les debuts publies sont ceux du typage lie a la revision (« typing-v1|genre|A|B|... »). La version de
+        /// typage est celle du perimetre : « typing-v2 » dedans, « typing-v1 » dehors ; un ecart signale une derive de
+        /// <c>Classify</c> ou un manifeste anterieur a la 5.53a.
         /// </summary>
         private static bool TypingMatches(AutomatedPairDecisionRecord record)
         {
@@ -939,8 +940,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
             float startA;
             float startB;
             return parts.Length >= 4
-                && (parts[0] == "typing-v1"
-                    || (parts[0] == "typing-v2" && TypingV2Applies(record.Classification, record.ReasonCode, record.CommonExitCorridor)))
+                && parts[0] == (TypingV2Applies(record.Classification, record.ReasonCode, record.CommonExitCorridor) ? "typing-v2" : "typing-v1")
                 && parts[1] == record.ConflictKind
                 && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out startA)
                 && float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out startB)
