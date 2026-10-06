@@ -42,7 +42,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         FrameUnavailable = 14,
         Cleared = 15,
         ClearedUnlocalized = 16,
-        MovementCleared = 17
+        MovementCleared = 17,
+        /// <summary>Story 5.35 : controle Stop, arret marque pas encore observe (vitesse et fenetre de la frontiere).</summary>
+        StopRequired = 18,
+        /// <summary>Story 5.35 : un acteur incompatible prioritaire (cause) arrive avant la fin du creneau du demandeur.</summary>
+        YieldToPriority = 19,
+        /// <summary>Story 5.35 : grant emis malgre un grant incompatible tenu, toutes les zones entre eux etant Merge et le creneau suffisant.</summary>
+        GrantedMergeGap = 20,
+        /// <summary>Story 5.35 : briseur d'interblocage, aucune progression possible par la regle.</summary>
+        GrantedDeadlockBreak = 21
     }
 
     /// <summary>Ce qui a borne la recherche de sortie.</summary>
@@ -175,13 +183,35 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         public readonly bool Engaged;
         /// <summary>Evaluee pour la traversee demandee seulement ; Bound None sinon.</summary>
         public readonly JunctionExitAssessment Exit;
+        /// <summary>
+        /// Story 5.35 : distance (m) du pare-chocs avant au debut de chaque mouvement de la traversee, au meme rang que ses
+        /// mouvements (negative une fois le debut depasse) ; vide si inconnue (aucun creneau ne se prouve alors).
+        /// </summary>
+        public readonly IReadOnlyList<float> MovementStartMeters;
+        /// <summary>Story 5.35 : frontiere de controle b sur le premier mouvement (s_line, sinon 0) ; d vise b.</summary>
+        public readonly float BoundaryMeters;
 
         public JunctionApproach(JunctionTraversal traversal, float distanceMeters, JunctionDistances distances, bool headOfQueue,
-            RoadId maskingActorId, bool grantEffective, bool engaged, JunctionExitAssessment exit)
+            RoadId maskingActorId, bool grantEffective, bool engaged, JunctionExitAssessment exit,
+            IReadOnlyList<float> movementStartMeters = null, float boundaryMeters = 0f)
         {
             if (traversal == null) throw new ArgumentNullException("traversal");
             Traversal = traversal; DistanceMeters = distanceMeters; Distances = distances; HeadOfQueue = headOfQueue;
             MaskingActorId = maskingActorId; GrantEffective = grantEffective; Engaged = engaged; Exit = exit;
+            var starts = new float[movementStartMeters == null || movementStartMeters.Count != traversal.MovementIds.Count ? 0 : movementStartMeters.Count];
+            for (int i = 0; i < starts.Length; i++) starts[i] = movementStartMeters[i];
+            MovementStartMeters = Array.AsReadOnly(starts);
+            BoundaryMeters = boundaryMeters;
+        }
+
+        /// <summary>Distance du pare-chocs avant au debut du mouvement de la traversee ; faux s'il en est absent ou si elle est inconnue.</summary>
+        public bool TryGetMovementStart(RoadId movementId, out float meters)
+        {
+            meters = 0f;
+            if (Traversal == null || MovementStartMeters == null || MovementStartMeters.Count == 0) return false;
+            for (int i = 0; i < Traversal.MovementIds.Count; i++)
+                if (Traversal.MovementIds[i] == movementId) { meters = MovementStartMeters[i]; return true; }
+            return false;
         }
 
         /// <summary>Pare-chocs avant au-dela de l'entree du premier mouvement.</summary>
@@ -192,6 +222,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             return "traversee " + Traversal.ToText() + " / d " + JunctionText.F(DistanceMeters) + " / " + Distances.ToText()
                 + " / tete de file " + (HeadOfQueue ? "oui" : "non" + (MaskingActorId.IsEmpty ? "" : " @" + MaskingActorId))
                 + " / grant effectif " + (GrantEffective ? "oui" : "non") + " / engage " + (Engaged ? "oui" : "non")
+                + (BoundaryMeters > 0f ? " / b " + JunctionText.F(BoundaryMeters) : "")
                 + (Exit.Bound == JunctionExitBound.None ? "" : " / " + Exit.ToText());
         }
     }
@@ -231,11 +262,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         public JunctionRequestRejection Rejection { get; }
         /// <summary>L + s0 de l'acteur (longueur de son empreinte seule sans profil de conducteur).</summary>
         public float ReservationMeters { get; }
+        /// <summary>Story 5.35 : cinematique declaree pour l'acceptation de creneau ; inconnue sans profil.</summary>
+        public JunctionKinematics Kinematics { get; }
+        /// <summary>Story 5.35 : le pas du vehicule a abouti au repli (aucun creneau ne se prouve avec lui comme titulaire).</summary>
+        public bool InFallback { get; }
 
         public JunctionActorReport(RoadId trafficId, bool localized, RoadId elementId, IReadOnlyList<Vector3> corners,
             IReadOnlyList<RoadId> occupiedMovements, IReadOnlyList<JunctionTraversal> occupiedTraversals,
             IReadOnlyList<JunctionMovementPosition> movementPositions, IReadOnlyList<JunctionApproach> approaches, bool hasRequest,
-            bool requestValid, JunctionRequestRejection rejection, float reservationMeters)
+            bool requestValid, JunctionRequestRejection rejection, float reservationMeters,
+            JunctionKinematics kinematics = default(JunctionKinematics), bool inFallback = false)
         {
             if (trafficId.IsEmpty) throw new ArgumentException("EmptyTrafficId", "trafficId");
             TrafficId = trafficId; Localized = localized; ElementId = elementId;
@@ -253,6 +289,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             Rejection = RequestValid ? JunctionRequestRejection.None
                 : rejection == JunctionRequestRejection.None ? JunctionRequestRejection.NoTraversal : rejection;
             ReservationMeters = reservationMeters;
+            Kinematics = kinematics;
+            InFallback = inFallback;
         }
 
         /// <summary>Approche de la traversee demandee ; sans objet si <see cref="HasRequest"/> est faux.</summary>
@@ -284,12 +322,25 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             return status;
         }
 
-        /// <summary>Meme rapport, demande invalidee si le pas du vehicule a abouti au repli (« hors repli »).</summary>
+        /// <summary>
+        /// Meme rapport, demande invalidee si le pas du vehicule a abouti au repli (« hors repli ») ; le repli est publie meme
+        /// sans demande (titulaire d'un grant, Story 5.35).
+        /// </summary>
         public JunctionActorReport WithFallback(bool fallback)
         {
-            if (!fallback || !RequestValid) return this;
+            if (!fallback) return this;
             return new JunctionActorReport(TrafficId, Localized, ElementId, Corners, OccupiedMovements, OccupiedTraversals,
-                MovementPositions, Approaches, HasRequest, false, JunctionRequestRejection.Fallback, ReservationMeters);
+                MovementPositions, Approaches, HasRequest, false, RequestValid ? JunctionRequestRejection.Fallback : Rejection,
+                ReservationMeters, Kinematics, true);
+        }
+
+        /// <summary>Approche (engagee ou demandee) dont la traversee contient le mouvement ; faux sinon.</summary>
+        public bool TryGetApproachContaining(RoadId movementId, out JunctionApproach approach)
+        {
+            for (int i = 0; i < approaches.Length; i++)
+                if (approaches[i].Traversal.Contains(movementId)) { approach = approaches[i]; return true; }
+            approach = default(JunctionApproach);
+            return false;
         }
 
         public string ToText()
@@ -335,10 +386,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         public readonly RoadId CauseActorId;
         public readonly RoadId ZoneId;
         public readonly JunctionExitBound ExitBound;
+        /// <summary>
+        /// Story 5.35 : grant admis par creneau de fusion (GrantedMergeGap), conserve tant que le grant vit. Seuls de tels grants
+        /// peuvent coexister avec un grant incompatible, et seulement sur des zones Merge (invariant 5.34 amende).
+        /// </summary>
+        public readonly bool MergeGap;
 
         public JunctionRecord(RoadId trafficId, RoadId junctionId, RoadId traversalId, IReadOnlyList<RoadId> movementIds,
             ulong requestSinceFrame, ulong sourceFrame, ulong effectiveFrame, JunctionGrantStatus status, JunctionReason reason,
-            RoadId causeActorId = default(RoadId), RoadId zoneId = default(RoadId), JunctionExitBound exitBound = JunctionExitBound.None)
+            RoadId causeActorId = default(RoadId), RoadId zoneId = default(RoadId), JunctionExitBound exitBound = JunctionExitBound.None,
+            bool mergeGap = false)
         {
             TrafficId = trafficId; JunctionId = junctionId; TraversalId = traversalId;
             var copy = new RoadId[movementIds == null ? 0 : movementIds.Count];
@@ -346,7 +403,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             MovementIds = Array.AsReadOnly(copy);
             RequestSinceFrame = requestSinceFrame; SourceFrame = sourceFrame; EffectiveFrame = effectiveFrame;
             ExpiresAfterFrame = effectiveFrame; Status = status; Reason = reason; CauseActorId = causeActorId; ZoneId = zoneId;
-            ExitBound = exitBound;
+            ExitBound = exitBound; MergeGap = mergeGap;
         }
 
         /// <summary>Granted ou Held : grant effectif a <see cref="EffectiveFrame"/>.</summary>
@@ -372,6 +429,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             if (!CauseActorId.IsEmpty) text.Append(" cause @").Append(CauseActorId);
             if (!ZoneId.IsEmpty) text.Append(" zone ").Append(ZoneId);
             if (ExitBound != JunctionExitBound.None) text.Append(" borne ").Append(ExitBound);
+            if (MergeGap) text.Append(" creneau de fusion");
             return text.ToString();
         }
     }
@@ -387,22 +445,34 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         public readonly int IncompatibleOccupancy;
         /// <summary>Paires de mouvements testees pendant le lot.</summary>
         public readonly long PairChecks;
+        /// <summary>Story 5.35 : refus StopRequired et YieldToPriority, grants par creneau de fusion et par briseur.</summary>
+        public readonly int StopRequired, YieldToPriority, MergeGapGrants, DeadlockBreaks;
+        /// <summary>Story 5.35 : refus ConflictGranted sur une zone Crossing (exclusivite stricte, P11 compris).</summary>
+        public readonly int CrossingRefusals;
+        /// <summary>Story 5.35 : creneaux de fusion refuses (titulaire non localise, en repli, rapport absent, ou creneau court).</summary>
+        public readonly int MergeGapRefusals;
 
         public JunctionBatchCounters(bool frameValid, int actors, int occupants, int requests, int validRequests, int granted,
-            int held, int denied, int revoked, int released, int enteredWithoutGrant, int incompatibleOccupancy, long pairChecks)
+            int held, int denied, int revoked, int released, int enteredWithoutGrant, int incompatibleOccupancy, long pairChecks,
+            int stopRequired = 0, int yieldToPriority = 0, int mergeGapGrants = 0, int deadlockBreaks = 0, int crossingRefusals = 0,
+            int mergeGapRefusals = 0)
         {
             FrameValid = frameValid; Actors = actors; Occupants = occupants; Requests = requests; ValidRequests = validRequests;
             Granted = granted; Held = held; Denied = denied; Revoked = revoked; Released = released;
             EnteredWithoutGrant = enteredWithoutGrant; IncompatibleOccupancy = incompatibleOccupancy; PairChecks = pairChecks;
+            StopRequired = stopRequired; YieldToPriority = yieldToPriority; MergeGapGrants = mergeGapGrants; DeadlockBreaks = deadlockBreaks;
+            CrossingRefusals = crossingRefusals; MergeGapRefusals = mergeGapRefusals;
         }
 
         public string ToText()
         {
             return string.Format(CultureInfo.InvariantCulture,
                 "lot {0} / acteurs {1} occupants {2} demandes {3} valides {4} / Granted {5} Held {6} Denied {7} Revoked {8} Released {9}"
-                + " / EnteredWithoutGrant {10} IncompatibleOccupancy {11} / paires {12}",
+                + " / EnteredWithoutGrant {10} IncompatibleOccupancy {11} / paires {12} / StopRequired {13} YieldToPriority {14}"
+                + " MergeGap {15} DeadlockBreak {16} CrossingRefusals {17} MergeGapRefusals {18}",
                 FrameValid ? "valide" : "frame invalide", Actors, Occupants, Requests, ValidRequests, Granted, Held, Denied, Revoked,
-                Released, EnteredWithoutGrant, IncompatibleOccupancy, PairChecks);
+                Released, EnteredWithoutGrant, IncompatibleOccupancy, PairChecks, StopRequired, YieldToPriority, MergeGapGrants,
+                DeadlockBreaks, CrossingRefusals, MergeGapRefusals);
         }
     }
 

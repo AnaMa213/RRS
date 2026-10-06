@@ -238,42 +238,66 @@ namespace RoadRage.Tests.EditMode
             Assert.That(HasEffective(snapshot, Id(2)), Is.False);
         }
 
+        /// <summary>
+        /// Deux traversees incompatibles de l'axe Priority du T de EastStraight, sans preseance entre elles : le departage
+        /// generique 5.34 s'y applique encore (decision proprietaire A de la 5.35 ; la preseance est couverte par Story535).
+        /// </summary>
+        private static RoadId[] AxisPair()
+        {
+            var axis = Model.GetMovementsInJunction(Index.JunctionOf(EastStraight))
+                .Where(m => Index.ControlKindOf(m) == JunctionControlKind.Priority).OrderBy(m => m).ToList();
+            foreach (var a in axis)
+                foreach (var b in axis)
+                    if (a != b && Conflict(a, b) && !Index.HasPrecedence(a, b) && !Index.HasPrecedence(b, a)) return new[] { a, b };
+            Assert.Fail("aucune paire incompatible sans preseance sur l'axe du T");
+            return null;
+        }
+
         [Test]
         public void AtEqualSeniorityTheSmallestTrafficIdIsServed()
         {
-            var snapshot = Batch(new JunctionCoordinator(Model, 1), 1, Requesting(Id(8), Traversal(EastStraight)),
-                Requesting(Id(1), Traversal(SouthLeft)));
-            AssertStatus(snapshot, Id(1), SouthLeft, JunctionGrantStatus.Granted, JunctionReason.Granted);
-            AssertStatus(snapshot, Id(8), EastStraight, JunctionGrantStatus.Denied, JunctionReason.ConflictGranted);
-            Assert.That(Decision(snapshot, Id(8), EastStraight).CauseActorId, Is.EqualTo(Id(1)));
+            var pair = AxisPair();
+            RoadId high = pair[0], low = pair[1];
+            var snapshot = Batch(new JunctionCoordinator(Model, 1), 1, Requesting(Id(8), Traversal(high)),
+                Requesting(Id(1), Traversal(low)));
+            AssertStatus(snapshot, Id(1), low, JunctionGrantStatus.Granted, JunctionReason.Granted);
+            AssertStatus(snapshot, Id(8), high, JunctionGrantStatus.Denied, JunctionReason.ConflictGranted);
+            Assert.That(Decision(snapshot, Id(8), high).CauseActorId, Is.EqualTo(Id(1)));
         }
 
         [Test]
         public void AnOlderRequestWithAHigherIdIsServedFirst()
         {
+            var pair = AxisPair();
+            RoadId older = pair[0], younger = pair[1];
             var coordinator = new JunctionCoordinator(Model, 1);
-            var occupant = Inside(Id(3), Traversal(SouthLeft));
-            var s1 = Batch(coordinator, 1, occupant, Requesting(Id(8), Traversal(EastStraight)));
-            AssertStatus(s1, Id(8), EastStraight, JunctionGrantStatus.Denied, JunctionReason.ConflictOccupied);
-            var s2 = Batch(coordinator, 2, occupant, Requesting(Id(8), Traversal(EastStraight)), Requesting(Id(1), Traversal(SouthLeft)));
-            AssertStatus(s2, Id(1), SouthLeft, JunctionGrantStatus.Denied, JunctionReason.SeniorRequestPending);
-            Assert.That(Decision(s2, Id(1), SouthLeft).CauseActorId, Is.EqualTo(Id(8)), "le demandeur plus ancien est cite");
-            var s3 = Batch(coordinator, 3, Cleared(Id(3), Traversal(SouthLeft)), Requesting(Id(8), Traversal(EastStraight)),
-                Requesting(Id(1), Traversal(SouthLeft)));
-            AssertStatus(s3, Id(8), EastStraight, JunctionGrantStatus.Granted, JunctionReason.Granted);
-            Assert.That(Decision(s3, Id(8), EastStraight).RequestSinceFrame, Is.EqualTo(1UL));
-            AssertStatus(s3, Id(1), SouthLeft, JunctionGrantStatus.Denied, JunctionReason.ConflictGranted);
-            Assert.That(Decision(s3, Id(1), SouthLeft).RequestSinceFrame, Is.EqualTo(2UL));
+            var occupant = Inside(Id(3), Traversal(younger));
+            var s1 = Batch(coordinator, 1, occupant, Requesting(Id(8), Traversal(older)));
+            AssertStatus(s1, Id(8), older, JunctionGrantStatus.Denied, JunctionReason.ConflictOccupied);
+            var s2 = Batch(coordinator, 2, occupant, Requesting(Id(8), Traversal(older)), Requesting(Id(1), Traversal(younger)));
+            AssertStatus(s2, Id(1), younger, JunctionGrantStatus.Denied, JunctionReason.SeniorRequestPending);
+            Assert.That(Decision(s2, Id(1), younger).CauseActorId, Is.EqualTo(Id(8)), "le demandeur plus ancien est cite");
+            var s3 = Batch(coordinator, 3, Cleared(Id(3), Traversal(younger)), Requesting(Id(8), Traversal(older)),
+                Requesting(Id(1), Traversal(younger)));
+            AssertStatus(s3, Id(8), older, JunctionGrantStatus.Granted, JunctionReason.Granted);
+            Assert.That(Decision(s3, Id(8), older).RequestSinceFrame, Is.EqualTo(1UL));
+            AssertStatus(s3, Id(1), younger, JunctionGrantStatus.Denied, JunctionReason.ConflictGranted);
+            Assert.That(Decision(s3, Id(1), younger).RequestSinceFrame, Is.EqualTo(2UL));
         }
 
-        /// <summary>Triplet (X, Y, Z) de la croix : X incompatible avec Y, Z compatible avec X mais incompatible avec Y.</summary>
+        /// <summary>
+        /// Triplet (X, Y, Z) de la croix : X incompatible avec Y, Z compatible avec X mais incompatible avec Y. Sans preseance
+        /// de Y sur X ni entre Y et Z (decision proprietaire A de la 5.35) : le departage par anciennete reste seul en jeu.
+        /// </summary>
         private static RoadId[] SeniorTriple()
         {
             var movements = MovementsOf(JunctionFeature.Crossroads).Select(m => m.Id).ToList();
             foreach (var x in movements)
                 foreach (var y in movements)
                     foreach (var z in movements)
-                        if (x != y && y != z && x != z && Conflict(x, y) && !Conflict(x, z) && Conflict(y, z)) return new[] { x, y, z };
+                        if (x != y && y != z && x != z && Conflict(x, y) && !Conflict(x, z) && Conflict(y, z)
+                            && !Index.HasPrecedence(y, x) && !Index.HasPrecedence(y, z) && !Index.HasPrecedence(z, y))
+                            return new[] { x, y, z };
             Assert.Fail("aucun triplet de la croix");
             return null;
         }
@@ -648,7 +672,15 @@ namespace RoadRage.Tests.EditMode
                                 if (Conflict(a, b))
                                 {
                                     Assert.That(both, Is.False);
-                                    Assert.That(Decision(snapshot, Id(2), b).Reason, Is.EqualTo(JunctionReason.ConflictGranted));
+                                    // Decision A (5.35) : si b a preseance sur a, b est servi et a cede ; sinon departage 5.34.
+                                    if (Index.HasPrecedence(b, a))
+                                    {
+                                        Assert.That(HasEffective(snapshot, Id(2)), Is.True, a + " / " + b + "\n" + snapshot.ToText());
+                                        Assert.That(Decision(snapshot, Id(1), a).Reason, Is.EqualTo(frame == 1
+                                            ? JunctionReason.YieldToPriority : JunctionReason.ConflictGranted), snapshot.ToText());
+                                    }
+                                    else
+                                        Assert.That(Decision(snapshot, Id(2), b).Reason, Is.EqualTo(JunctionReason.ConflictGranted));
                                 }
                                 else
                                 {

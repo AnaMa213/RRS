@@ -912,7 +912,7 @@ namespace RoadRage.Tests.EditMode
         public void TheJunctionFolderUsesNoPhysicsNorControlPathAndDeclaresNoPedalMember()
         {
             var files = Directory.GetFiles(Path.Combine(TrafficRootPath, "Junction"), "*.cs");
-            Assert.That(files.Length, Is.EqualTo(5));
+            Assert.That(files.Length, Is.EqualTo(7), "5.34 : 5 fichiers ; 5.35 : RightOfWay et JunctionPriority.");
             foreach (var file in files)
             {
                 string source = File.ReadAllText(file);

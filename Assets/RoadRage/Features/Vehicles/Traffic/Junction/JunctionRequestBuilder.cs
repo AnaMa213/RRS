@@ -24,6 +24,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
     /// </list>
     /// Ni blocker, ni signe d'une acceleration, ni vitesse n'entrent dans la tete de file ; les dangers non V2 ne comptent
     /// pas dans la sortie.
+    /// Story 5.35 : la frontiere de controle b (s_line du premier mouvement de la traversee, sinon 0) remplace l'entree du
+    /// mouvement pour d, la tete de file et l'occupation : le troncon avant la ligne n'est ni occupation ni engagement. Le
+    /// rapport publie la cinematique declaree de l'acteur et, par approche, la distance au debut de chaque mouvement.
     /// </summary>
     public static class JunctionRequestBuilder
     {
@@ -39,9 +42,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// <param name="driver">Profil du conducteur ; nul : rapport d'occupation seul, sans demande (vehicule inerte).</param>
         /// <param name="snapshot">Instantane lu a la frame ; un instantane decale ne porte aucun grant effectif.</param>
         /// <param name="holdEntrySpeedMetersPerSecond">Vitesse d'entree du maintien D11 : plancher du seuil de demande (O9, O14).</param>
+        /// <param name="lateralGripMetersPerSecondSquared">Adherence laterale du vehicule (Story 5.35) : a_lat = min(confort, adherence).</param>
         public static JunctionActorReport Build(TrafficFrame frame, JunctionConflictIndex index, RoadId trafficId, RoutePlan route,
             DriverProfile? driver, float deltaTimeSeconds, float controlMarginMeters, JunctionSnapshot snapshot, ulong frameId,
-            float holdEntrySpeedMetersPerSecond = 0f)
+            float holdEntrySpeedMetersPerSecond = 0f, float lateralGripMetersPerSecondSquared = float.PositiveInfinity)
         {
             if (frame == null) throw new ArgumentNullException("frame");
             if (index == null) throw new ArgumentNullException("index");
@@ -51,16 +55,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             var corners = TrafficFrame.Corners(actor.Pose);
             float length = actor.Pose.Footprint.FrontMeters + actor.Pose.Footprint.RearMeters;
             float reservation = length + (driver.HasValue && Finite(driver.Value.MinimumGap) ? driver.Value.MinimumGap : 0f);
+            var kinematics = driver.HasValue
+                ? new JunctionKinematics(Math.Max(0f, actor.TangentialSpeedMetersPerSecond), driver.Value.MaxAcceleration, driver.Value.DesiredSpeed,
+                    Math.Min(driver.Value.ComfortableDeceleration, lateralGripMetersPerSecondSquared), length)
+                : default(JunctionKinematics);
             if (!actor.Location.Localized)
                 return new JunctionActorReport(trafficId, false, RoadId.None, corners, null, null, null, null, false, false,
-                    JunctionRequestRejection.NotLocalized, reservation);
+                    JunctionRequestRejection.NotLocalized, reservation, kinematics);
 
             RoadId element = actor.Location.ElementId;
             ElementOccupant occupancy;
             bool occupied = frame.TryGetOccupancy(trafficId, out occupancy);
             int q = route == null || route.ModelId != index.Model.ModelId || route.ModelVersion != index.Model.Version ? -1
                 : Locate(route, occupied ? occupancy.ElementId : element);
-            if (q < 0) return Minimal(index, trafficId, element, corners, reservation);
+            if (q < 0) return Minimal(index, trafficId, element, corners, reservation, kinematics);
 
             var occurrences = route.Occurrences;
             double[] start = Starts(occurrences);
@@ -85,9 +93,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 for (int count = 0; k0 < occurrences.Count && count < MaxApproaches; count++)
                 {
                     int last;
-                    var traversal = Chain(index, occurrences, k0, out last);
+                    List<int> at;
+                    var traversal = Chain(index, occurrences, k0, out last, out at);
                     approachEnd = last;
-                    float d = (float)(start[k0] - front);
+                    float boundary = index.BoundaryOf(occurrences[k0].Id);
+                    float d = (float)(start[k0] + boundary - front);
+                    var startsAhead = new float[at.Count];
+                    for (int i = 0; i < at.Count; i++) startsAhead[i] = (float)(start[at[i]] - front);
                     var distances = JunctionDistances.For(driver.Value, actor.TangentialSpeedMetersPerSecond, deltaTimeSeconds,
                         controlMarginMeters, holdEntrySpeedMetersPerSecond);
                     JunctionRecord grant;
@@ -97,15 +109,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                     if (effective && (committed || d <= 0f || d < distances.StopMeters))
                     {
                         // O8 : une continuation appartient toujours a la traversee engagee, meme loin de sa propre entree.
-                        approaches.Add(new JunctionApproach(traversal, d, distances, true, RoadId.None, true, true, default(JunctionExitAssessment)));
+                        approaches.Add(new JunctionApproach(traversal, d, distances, true, RoadId.None, true, true, default(JunctionExitAssessment),
+                            startsAhead, boundary));
                         k0 = last + 1;
                         while (k0 < occurrences.Count && occurrences[k0].Kind != RoadElementKind.JunctionMovement) k0++;
                         continue;
                     }
                     RoadId masking;
-                    bool head = HeadOfQueue(frame, index, occurrences, start, q, k0, front, trafficId, out masking);
+                    bool head = HeadOfQueue(frame, index, occurrences, start, q, k0, boundary, front, trafficId, out masking);
                     var exit = ExitSearch(frame, index, route, start, last, trafficId, reservation);
-                    approaches.Add(new JunctionApproach(traversal, d, distances, head, masking, effective, false, exit));
+                    approaches.Add(new JunctionApproach(traversal, d, distances, head, masking, effective, false, exit, startsAhead, boundary));
                     hasRequest = true;
                     rejection = d > distances.RequestThresholdMeters ? JunctionRequestRejection.TooFar
                         : !head ? JunctionRequestRejection.NotHeadOfQueue : JunctionRequestRejection.None;
@@ -130,7 +143,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             for (int k = low; k <= high; k++)
             {
                 if (occurrences[k].Kind != RoadElementKind.JunctionMovement) continue;
-                double a = start[k], b = start[k + 1];
+                // Le premier mouvement d'une traversee n'est occupe qu'au-dela de la frontiere de controle (Story 5.35).
+                double a = start[k] + (ChainStart(index, occurrences, k) == k ? index.BoundaryOf(occurrences[k].Id) : 0f), b = start[k + 1];
                 var status = !occupied ? (k == q ? JunctionMovementStatus.Occupied : JunctionMovementStatus.Unknown)
                     : a < front && b > rear ? JunctionMovementStatus.Occupied
                     : b <= rear ? JunctionMovementStatus.Behind : JunctionMovementStatus.Ahead;
@@ -139,11 +153,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 if (!occupiedIds.Contains(occurrences[k].Id)) occupiedIds.Add(occurrences[k].Id);
                 if (k <= coveredUntil) continue;
                 int last;
-                occupiedTraversals.Add(Chain(index, occurrences, k, out last));
+                List<int> ignored;
+                occupiedTraversals.Add(Chain(index, occurrences, k, out last, out ignored));
                 coveredUntil = last;
             }
             return new JunctionActorReport(trafficId, true, element, corners, occupiedIds, occupiedTraversals, positions, approaches,
-                hasRequest, hasRequest && rejection == JunctionRequestRejection.None, rejection, reservation);
+                hasRequest, hasRequest && rejection == JunctionRequestRejection.None, rejection, reservation, kinematics);
         }
 
         /// <summary>Premier mouvement de la traversee qui contient l'occurrence de mouvement <paramref name="k"/>.</summary>
@@ -162,13 +177,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
 
         /// <summary>Rapport sans route exploitable : seul l'element localise, s'il est un mouvement, est occupe.</summary>
         private static JunctionActorReport Minimal(JunctionConflictIndex index, RoadId trafficId, RoadId element,
-            IReadOnlyList<Vector3> corners, float reservation)
+            IReadOnlyList<Vector3> corners, float reservation, JunctionKinematics kinematics)
         {
             bool movement = index.Contains(element);
             return new JunctionActorReport(trafficId, true, element, corners, movement ? new[] { element } : null,
                 movement ? new[] { new JunctionTraversal(index.JunctionOf(element), new[] { element }, index.ToCorridorOf(element)) } : null,
                 movement ? new[] { new JunctionMovementPosition(element, JunctionMovementStatus.Occupied) } : null, null, false, false,
-                JunctionRequestRejection.NoTraversal, reservation);
+                JunctionRequestRejection.NoTraversal, reservation, kinematics);
         }
 
         /// <summary>Occurrence de l'element pres de la progression : d'abord en avant, puis en arriere ; -1 si absente.</summary>
@@ -198,16 +213,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// corridors qui les separent ; arret au premier mouvement d'un autre carrefour ou a la fin de route.
         /// </summary>
         private static JunctionTraversal Chain(JunctionConflictIndex index, IReadOnlyList<RouteOccurrence> occurrences, int k0,
-            out int last)
+            out int last, out List<int> at)
         {
             var junction = index.JunctionOf(occurrences[k0].Id);
             var movements = new List<RoadId> { occurrences[k0].Id };
+            at = new List<int> { k0 };
             last = k0;
             for (int k = k0 + 1; k < occurrences.Count && !junction.IsEmpty; k++)
             {
                 if (occurrences[k].Kind != RoadElementKind.JunctionMovement) continue;
                 if (index.JunctionOf(occurrences[k].Id) != junction) break;
                 movements.Add(occurrences[k].Id);
+                at.Add(k);
                 last = k;
             }
             var exit = last + 1 < occurrences.Count && occurrences[last + 1].Kind == RoadElementKind.LaneCorridor
@@ -227,11 +244,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         }
 
         private static bool HeadOfQueue(TrafficFrame frame, JunctionConflictIndex index, IReadOnlyList<RouteOccurrence> occurrences,
-            double[] start, int q, int k0, double front, RoadId self, out RoadId masking)
+            double[] start, int q, int k0, float boundary, double front, RoadId self, out RoadId masking)
         {
             masking = RoadId.None;
-            double entry = start[k0];
+            double entry = start[k0] + boundary;
             if (entry <= front) return true;
+            // Story 5.35 : un acteur arrete a la ligne occupe deja le debut du mouvement, avant la frontiere.
+            if (boundary > 0f && Cuts(frame.GetOccupants(occurrences[k0].Id), start[k0] - occurrences[k0].StartSMeters, front, entry, self,
+                false, out masking)) return false;
             for (int j = q; j < k0; j++)
             {
                 if (Cuts(frame.GetOccupants(occurrences[j].Id), start[j] - occurrences[j].StartSMeters, front, entry, self, false, out masking))

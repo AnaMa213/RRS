@@ -36,6 +36,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         /// grants tenus et des occupants du carrefour concerne, jamais du nombre de mouvements ou de zones du modele.
         /// </summary>
         public long JunctionIndexBuilds, JunctionReports, JunctionBatches, JunctionRequests, JunctionPairChecks;
+        /// <summary>
+        /// Regles authorees (Story 5.35) : preseances lues (table precalculee), creneaux t_gap evalues, grants par creneau de
+        /// fusion et ruptures d'interblocage. Bornes par les demandes et grants du carrefour concerne.
+        /// </summary>
+        public long JunctionPrecedenceChecks, JunctionGapEvaluations, JunctionMergeGapGrants, JunctionDeadlockBreaks;
     }
 
     public static class TrafficV2WorkCounters

@@ -244,10 +244,10 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - Checkpoint 2 : **HALT, re-signature dediee 5.35 par le proprietaire**, puis rejeu EditMode `Story553`, `Story534`, `Story533`, `Story531` et `Story552`.
 
 *Phase 3 -- regles pures*
-- [ ] `JunctionConflictIndex.cs` -- precalculs par modele, compteur de construction.
-- [ ] `JunctionPriority.cs` (nouveau, pur) -- `t_clear`, `ETA` (vers `ContactStartSMeters`), `t_gap`, preseance de traversees, admission `GrantedMergeGap`.
-- [ ] `JunctionCoordinator.cs`, `JunctionRecords.cs` -- ordre du lot, `StopRequired`, `YieldToPriority`, reservation filtree, arret marque, briseur, compteurs et raisons par ajout.
-- [ ] `Tests/EditMode/Story535JunctionRulesTests.cs` `[Core][Story535]` -- la matrice, plus :
+- [x] `JunctionConflictIndex.cs` -- precalculs par modele, compteur de construction.
+- [x] `JunctionPriority.cs` (nouveau, pur) -- `t_clear`, `ETA` (vers `ContactStartSMeters`), `t_gap`, preseance de traversees, admission `GrantedMergeGap`.
+- [x] `JunctionCoordinator.cs`, `JunctionRecords.cs` -- ordre du lot, `StopRequired`, `YieldToPriority`, reservation filtree, arret marque, briseur, compteurs et raisons par ajout.
+- [x] `Tests/EditMode/Story535JunctionRulesTests.cs` `[Core][Story535]` -- la matrice, plus :
   - fixture synthetique `Stop` ;
   - permutations priorite routiere et priorite a droite ;
   - arrivees simultanees sous ordres melanges ;
@@ -313,6 +313,11 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
   - Checkpoint 1 : `validate.ps1 -Profile Story -Story 5.35 -TestMode EditMode` 12/12, 0 erreur Console. Commits `593b863` (moteur, phases 0-2) et `22d5352` (graphe).
   - Phase 2 : menus « Appliquer les decisions automatisees 5.52 » puis « Compiler le modele authore » ; commit `4952648`. Controle P8 : 136 paires, classification, raison, preuve, genre, debuts et revisions identiques ; seuls `DecisionRunId` et `ModelVersion` changent, manifeste idem. Modele `v5:6d145fd3…` : seul le bloc `Controls` change. Relation de droite `03b75b53…`, 0 paire ambigue. `RefinementIdentity` porte desormais les constantes de typage (entree differee 5.53 soldee).
   - Separation des lignes (rapport 5.28) : 32 paires conformes. Cas A le plus serre : tourne-a-droite de branche contre le tout-droit de la voie proche, marge Gate A **+0,009 m** a la ligne B (tourne-a-gauche : +0,091 m). Cas B (virages de l'axe entrant dans la branche) : marge −1,192 -> −1,103 / −1,111 (amelioree), distance nominale 1,69-1,94 -> 1,59-1,82 m.
+- **2026-10-06 -- Checkpoint 2 : re-signature Gate A, non-regressions ; phase 3 et decision proprietaire A sur les assertions 5.34.**
+  - Signature proprietaire au format 4 (`RightOfWayHash` 03b75b53…) du modele `v5:6d145fd3…` ; commit `1eb87e7`. Rejeu EditMode : `Story553` 37/37, `Story533` 69/69, `Story531` 50/50, `Story552` 26/26.
+  - Fixtures adaptees sans changer leur objet : `Story553` remonte la chaine d'audit jusqu'au v2 de la 5.52 (la regeneration 5.35 y ajoute un maillon v3) ; `Story552` signe en memoire au format 4 et verifie qu'un format 3 est perime des que la table de droite a des entrees.
+  - Phase 3 : `JunctionPriority.cs` (nouveau), index, enregistrements, coordinateur et constructeur de demande (frontiere b), compteurs `JunctionPrecedenceChecks`, `JunctionGapEvaluations`, `JunctionMergeGapGrants`, `JunctionDeadlockBreaks`. `Story535` EditMode 29/29.
+  - `Story534` : 6 assertions sur 48 changeaient d'issue, toutes par la preseance authoree, jamais par l'exclusivite (invariant et determinisme verts). **Decision proprietaire A** : garder l'intention 5.34 sur des cas sans preseance. Departage d'anciennete et d'id sur deux mouvements `Priority` incompatibles de l'axe du T (`AxisPair`) ; `SeniorTriple` exige l'absence de preseance de Y sur X et entre Y et Z ; le test exhaustif attend, quand b a preseance sur a, b servi et a en `YieldToPriority` (puis `ConflictGranted`), sinon le departage 5.34. Le scan `Junction/` compte 7 fichiers (`RightOfWay`, `JunctionPriority`). Checkpoint 3 : `Story535` 29/29, `Story534` 48/48.
 
 ## Design Notes
 

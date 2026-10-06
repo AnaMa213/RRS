@@ -9,7 +9,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
     /// Index de coordination d'un modele compile (Story 5.34), construit une seule fois par modele et partage par tous
     /// les lots : carrefour de chaque mouvement, ensemble trie des mouvements incompatibles avec la zone en cause par
     /// paire, successeurs du meme carrefour (chaines de traversee), mouvements sortants d'un corridor (voisinage de sortie)
-    /// et portails. Deux mouvements distincts sont incompatibles si et seulement s'ils appartiennent a une meme
+    /// et portails. Story 5.35 : controle et genre de chaque mouvement, frontiere de controle (s_line ou 0), longueur et
+    /// courbure maximale, genre et debuts de contact de chaque paire en conflit, et preseance entre controles d'un meme
+    /// carrefour (Priority avant Yield/Stop ; entre deux Uncontrolled, l'approche de droite), tout precalcule ici. Deux mouvements distincts sont incompatibles si et seulement s'ils appartiennent a une meme
     /// <see cref="CompiledConflictZone"/> ; un mouvement est compatible avec lui-meme. Aucune inference geometrique, de nom
     /// ou de cycle.
     /// </summary>
@@ -26,12 +28,24 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             public RoadId[] Incompatible = NoIds, Zones = NoIds;
             public RoadId[] Successors = NoIds;
             public bool HasPredecessor;
+            // Story 5.35 : par paire (meme rang que Incompatible), genre de la zone en cause et debuts de contact de soi et de l'autre.
+            public ConflictKind[] Kinds = NoKinds;
+            public float[] StartSelf = NoFloats, StartOther = NoFloats;
+            public RoadId ControlId;
+            public JunctionControlKind ControlKind;
+            public float Boundary, Length, MaxCurvature;
         }
+
+        private static readonly ConflictKind[] NoKinds = new ConflictKind[0];
+        private static readonly float[] NoFloats = new float[0];
 
         private readonly Dictionary<RoadId, Entry> movements = new Dictionary<RoadId, Entry>();
         private readonly Dictionary<RoadId, RoadId[]> outgoing = new Dictionary<RoadId, RoadId[]>();
         private readonly Dictionary<RoadId, Portal> portals = new Dictionary<RoadId, Portal>();
         private readonly Dictionary<RoadId, RoadBoundsBox> boundaries = new Dictionary<RoadId, RoadBoundsBox>();
+        /// <summary>Paires ordonnees (P, R) de controles d'un meme carrefour ou P a preseance sur R.</summary>
+        private readonly HashSet<long> precedence = new HashSet<long>();
+        private readonly Dictionary<RoadId, int> controlIndex = new Dictionary<RoadId, int>();
 
         public CompiledRoadModel Model { get; }
         /// <summary>Paires (ordonnees) de mouvements incompatibles : deux fois le nombre de paires non ordonnees.</summary>
@@ -77,34 +91,156 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             // Zones par id croissant : la premiere zone qui reunit une paire est la plus petite, retenue comme zone en cause.
             var zones = new List<CompiledConflictZone>(model.ConflictZones);
             zones.Sort((a, b) => a.Id.CompareTo(b.Id));
-            var pairs = new Dictionary<RoadId, SortedDictionary<RoadId, RoadId>>();
+            var pairs = new Dictionary<RoadId, SortedDictionary<RoadId, PairFact>>();
             foreach (var zone in zones)
                 for (int a = 0; a < zone.MemberMovementIds.Count; a++)
                     for (int b = 0; b < zone.MemberMovementIds.Count; b++)
                     {
                         RoadId first = zone.MemberMovementIds[a], second = zone.MemberMovementIds[b];
                         if (first == second) continue;
-                        SortedDictionary<RoadId, RoadId> partners;
-                        if (!pairs.TryGetValue(first, out partners)) pairs.Add(first, partners = new SortedDictionary<RoadId, RoadId>());
-                        if (!partners.ContainsKey(second)) partners.Add(second, zone.Id);
+                        SortedDictionary<RoadId, PairFact> partners;
+                        if (!pairs.TryGetValue(first, out partners)) pairs.Add(first, partners = new SortedDictionary<RoadId, PairFact>());
+                        if (partners.ContainsKey(second)) continue;
+                        // Debuts absents (schema anterieur) : 0, le plus precoce ; genre lu tel quel, jamais infere.
+                        partners.Add(second, new PairFact
+                        {
+                            Zone = zone.Id, Kind = zone.Kind,
+                            StartSelf = a < zone.ContactStartSMeters.Count ? zone.ContactStartSMeters[a] : 0f,
+                            StartOther = b < zone.ContactStartSMeters.Count ? zone.ContactStartSMeters[b] : 0f
+                        });
                     }
             int count = 0;
             foreach (var pair in pairs)
             {
                 Entry entry;
                 if (!movements.TryGetValue(pair.Key, out entry)) continue;
-                entry.Incompatible = new RoadId[pair.Value.Count];
-                entry.Zones = new RoadId[pair.Value.Count];
+                int n = pair.Value.Count;
+                entry.Incompatible = new RoadId[n];
+                entry.Zones = new RoadId[n];
+                entry.Kinds = new ConflictKind[n];
+                entry.StartSelf = new float[n];
+                entry.StartOther = new float[n];
                 int i = 0;
-                foreach (var partner in pair.Value) { entry.Incompatible[i] = partner.Key; entry.Zones[i] = partner.Value; i++; }
+                foreach (var partner in pair.Value)
+                {
+                    entry.Incompatible[i] = partner.Key; entry.Zones[i] = partner.Value.Zone; entry.Kinds[i] = partner.Value.Kind;
+                    entry.StartSelf[i] = partner.Value.StartSelf; entry.StartOther[i] = partner.Value.StartOther;
+                    i++;
+                }
                 count += i;
+            }
+
+            // Story 5.35 : controle, frontiere, longueur et courbure maximale de chaque mouvement.
+            for (int i = 0; i < model.Movements.Count; i++)
+            {
+                var movement = model.Movements[i];
+                var entry = movements[movement.Id];
+                CompiledJunctionControl control;
+                if (model.TryGetControlForMovement(movement.Id, out control)) { entry.ControlId = control.Id; entry.ControlKind = control.Kind; }
+                float sLine;
+                entry.Boundary = model.TryGetStopLine(movement.Id, out sLine) ? sLine : 0f;
+                entry.Length = movement.LengthMeters;
+                float curvature = 0f;
+                for (int k = 0; k < movement.Samples.Count; k++) curvature = Math.Max(curvature, Math.Abs(movement.Samples[k].CurvaturePerMeter));
+                entry.MaxCurvature = curvature;
+            }
+
+            // Preseance entre controles d'un meme carrefour (P2, P3, P4), calculee une fois.
+            var rightOfWay = RightOfWayTable.For(model);
+            for (int i = 0; i < model.Controls.Count; i++) controlIndex[model.Controls[i].Id] = i;
+            for (int j = 0; j < model.Junctions.Count; j++)
+            {
+                var ids = model.GetControlsInJunction(model.Junctions[j].Id);
+                foreach (var p in ids)
+                    foreach (var r in ids)
+                    {
+                        if (p == r) continue;
+                        CompiledJunctionControl cp, cr;
+                        model.TryGetControl(p, out cp);
+                        model.TryGetControl(r, out cr);
+                        RightOfWayRelation relation;
+                        bool wins = cp.Kind == JunctionControlKind.Priority
+                                && (cr.Kind == JunctionControlKind.Yield || cr.Kind == JunctionControlKind.Stop)
+                            || cp.Kind == JunctionControlKind.Uncontrolled && cr.Kind == JunctionControlKind.Uncontrolled
+                                && rightOfWay.TryGet(r, p, out relation) && relation == RightOfWayRelation.FromRight;
+                        if (wins) precedence.Add(ControlKey(p, r));
+                    }
             }
             IncompatiblePairCount = count;
             for (int i = 0; i < model.Portals.Count; i++) portals[model.Portals[i].Id] = model.Portals[i];
             for (int i = 0; i < model.Junctions.Count; i++) boundaries[model.Junctions[i].Id] = model.Junctions[i].Boundary;
         }
 
+        private struct PairFact
+        {
+            public RoadId Zone;
+            public ConflictKind Kind;
+            public float StartSelf, StartOther;
+        }
+
         public bool Contains(RoadId movementId) { return movements.ContainsKey(movementId); }
+
+        /// <summary>Genre de controle du mouvement (Uncontrolled s'il est inconnu).</summary>
+        public JunctionControlKind ControlKindOf(RoadId movementId)
+        {
+            Entry entry;
+            return movements.TryGetValue(movementId, out entry) ? entry.ControlKind : JunctionControlKind.Uncontrolled;
+        }
+
+        /// <summary>Frontiere de controle b du mouvement : s_line compilee, sinon 0 (entree generique).</summary>
+        public float BoundaryOf(RoadId movementId)
+        {
+            Entry entry;
+            return movements.TryGetValue(movementId, out entry) ? entry.Boundary : 0f;
+        }
+
+        public float LengthOf(RoadId movementId)
+        {
+            Entry entry;
+            return movements.TryGetValue(movementId, out entry) ? entry.Length : 0f;
+        }
+
+        /// <summary>|κ| maximale des echantillons du mouvement (1/m).</summary>
+        public float MaxCurvatureOf(RoadId movementId)
+        {
+            Entry entry;
+            return movements.TryGetValue(movementId, out entry) ? entry.MaxCurvature : 0f;
+        }
+
+        /// <summary>
+        /// Vrai si la traversee de premier mouvement <paramref name="firstP"/> a preseance sur celle de premier mouvement
+        /// <paramref name="firstR"/> (controles d'approche d'un meme carrefour) ; faux sinon, y compris sans preseance.
+        /// </summary>
+        public bool HasPrecedence(RoadId firstP, RoadId firstR)
+        {
+            Entry p, r;
+            TrafficV2WorkCounters.Work.JunctionPrecedenceChecks++;
+            return movements.TryGetValue(firstP, out p) && movements.TryGetValue(firstR, out r) && !p.ControlId.IsEmpty && !r.ControlId.IsEmpty
+                && precedence.Contains(ControlKey(p.ControlId, r.ControlId));
+        }
+
+        /// <summary>
+        /// Conflit de la paire avec son genre et les debuts de contact (de <paramref name="a"/> puis de <paramref name="b"/>) dans
+        /// la zone en cause ; lus dans le modele compile, jamais inferes.
+        /// </summary>
+        public bool TryGetConflict(RoadId a, RoadId b, out RoadId zoneId, out ConflictKind kind, out float startA, out float startB)
+        {
+            TrafficV2WorkCounters.Work.JunctionPairChecks++;
+            zoneId = RoadId.None; kind = ConflictKind.Crossing; startA = 0f; startB = 0f;
+            Entry entry;
+            if (a == b || !movements.TryGetValue(a, out entry)) return false;
+            int at = Array.BinarySearch(entry.Incompatible, b);
+            if (at < 0) return false;
+            zoneId = entry.Zones[at]; kind = entry.Kinds[at]; startA = entry.StartSelf[at]; startB = entry.StartOther[at];
+            return true;
+        }
+
+        private long ControlKey(RoadId p, RoadId r)
+        {
+            int ip, ir;
+            if (!controlIndex.TryGetValue(p, out ip) || !controlIndex.TryGetValue(r, out ir)) return -1L;
+            return ((long)ip << 32) | (uint)ir;
+        }
 
         /// <summary>Carrefour du mouvement ; None s'il est inconnu du modele.</summary>
         public RoadId JunctionOf(RoadId movementId)
