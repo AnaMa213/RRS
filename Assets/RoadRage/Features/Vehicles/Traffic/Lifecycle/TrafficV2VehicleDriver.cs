@@ -43,6 +43,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public readonly JunctionReason Reason;
         public readonly RoadId CauseActorId, ZoneId;
         public readonly ulong RequestSinceFrame;
+        /// <summary>
+        /// Story 5.35 : genre de controle et frontiere b de la traversee demandee, t_gap / ETA du creneau decisif (NaN sans
+        /// creneau evalue) et arret marque devant un Stop, lus dans la demande et la decision.
+        /// </summary>
+        public readonly JunctionControlKind ControlKind;
+        public readonly float BoundaryMeters, GapSeconds, EtaSeconds;
+        public readonly bool StopMarked;
 
         public V2JunctionTrace(JunctionActorReport report, JunctionSnapshot snapshot, ulong frameId, bool entryActive)
         {
@@ -72,6 +79,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             HasDecision = HasRequest && snapshot != null && snapshot.TryGetDecision(report.TrafficId, TraversalId, out decision);
             Status = decision.Status; Reason = decision.Reason; CauseActorId = decision.CauseActorId; ZoneId = decision.ZoneId;
             RequestSinceFrame = decision.RequestSinceFrame;
+            BoundaryMeters = HasRequest ? request.BoundaryMeters : float.NaN;
+            ControlKind = decision.ControlKind;
+            StopMarked = decision.StopMarked;
+            GapSeconds = HasDecision ? decision.GapSeconds : float.NaN;
+            EtaSeconds = HasDecision ? decision.EtaSeconds : float.NaN;
         }
     }
 

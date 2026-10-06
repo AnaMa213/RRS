@@ -265,12 +265,12 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - Checkpoint 4 : `Story535`, `Story534`, `Story533` et `Story531` EditMode verts.
 
 *Phase 5 -- PlayMode prepare, Gate C*
-- [ ] `traffic-v2-5-35-explorations/scenarios-5-35.json` et `Tests/PlayMode/Story535JunctionPlayModeTests.cs` `[Story535]` -- trois scenarios :
+- [x] `traffic-v2-5-35-explorations/scenarios-5-35.json` et `Tests/PlayMode/Story535JunctionPlayModeTests.cs` `[Story535]` -- trois scenarios :
   - E : rencontre ZC23, la branche cede, arret a la ligne, puis service ;
   - F : priorite a droite a la croix ;
   - G : entree de giratoire, vehicule d'anneau juste avant la fusion, loin avant la fusion, apres la fusion, dans le secteur oppose, en train de sortir avant l'entree, et plusieurs vehicules d'anneau.
-- [ ] Campagne Gate C `[Explicit]` (`Story535GateC`) a N = 2, 4 et 8 : croix, ≥ 1 T, ≥ 1 giratoire ; cout par frontiere publie (frame, coordinateur, priorite, pas vehicule) ; adaptation des verdicts `Story533Exploration`.
-- [ ] `deferred-work.md`, `sprint-status.yaml` (5.35 seulement) -- solder « StopLine » et « Constats 5.35 », reevaluer les dettes rouvertes avec mesure, puis `graphify update .`.
+- [x] Campagne Gate C `[Explicit]` (`Story535GateC`) a N = 2, 4 et 8 : croix, ≥ 1 T, ≥ 1 giratoire ; cout par frontiere publie (frame, coordinateur, priorite, pas vehicule) ; adaptation des verdicts `Story533Exploration`.
+- [x] `deferred-work.md`, `sprint-status.yaml` (5.35 seulement) -- solder « StopLine » et « Constats 5.35 », reevaluer les dettes rouvertes avec mesure, puis `graphify update .`.
 
 **Acceptance Criteria:**
 
@@ -325,6 +325,14 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
   - Correctif (`JunctionRequestBuilder`, b > 0 seulement) : d, la tete de file et l'occupation au-dela de b sont mesures au pare-chocs de reference (abscisse de route du point localise + porte-a-faux avant), continu d'un element a l'autre. C'est la pose de la preuve de separation P5 signee (centre a b - (m_ctrl - 0,02) - demi-longueur) : un arret dans la bande ne la depasse jamais. b = 0 : mesure 5.34 inchangee. Deux essais ecartes : projeter toute l'empreinte sur le mouvement (mal conditionne hors de l'element localise) et seulement l'arete avant (sans la marge r, le saut demeurait).
   - `Story535StopLineTests` (2 tests) : d egal a la distance nominale et continu par pas de 0,1 m de 6 m avant la ligne a 0,5 m apres, non occupant avant b, occupant au-dela ; refus a D_stop, D_engage et au plus tot pour v0 = 0, 4 et 8 m/s avec la latence du pipeline a pleine acceleration : arret dans la bande [m_ctrl - 0,02 ; fenetre], au-dela de l'entree generique, demande valide, non occupant, puis reprise au grant sans freinage et occupation au-dela de b. Combinaisons ou le corridor d'approche est plus court que D_stop(v0) ecartees et journalisees (hors domaine du banc 5.34). Vehicule seul sur les 11 routes : couvert par `Story534JunctionEntryTests`, rejoue vert sur le modele authore.
   - Checkpoint 4 : `Story535` 31/31, `Story534` 48/48, `Story533` 69/69, `Story531` 50/50.
+- **2026-10-06 -- Phase 5 : PlayMode et Gate C prepares (execution proprietaire), dettes reevaluees.**
+  - Trace vehicule : `V2JunctionTrace` porte genre, b, t_gap, ETA et arret marque ; colonnes `junction_kind`, `junction_b_m`, `junction_t_gap_s`, `junction_eta_s`, `junction_stop_marked` ajoutees en fin de ligne du TSV du harnais.
+  - Verdicts adaptes dans `Story533Harness.Observer` (donc `Story533Exploration`, `Story534` et `Story535`) : deux grants effectifs incompatibles ne sont un echec que hors creneau de fusion (paire `Merge` dont l'un est `GrantedMergeGap`, invariant 5.34 amende) ; sommes des compteurs de lot 5.35 et cout par frontiere publies (frame, coordinateur, travail de priorite par lot -- preseances + creneaux, temps compris dans le coordinateur --, pas des vehicules).
+  - `Story535ScenarioBuilderTests` (EditMode, deterministe) ecrit `scenarios-5-35.json` : E (branche `4e437f94` plus petit `TrafficId`, axe `40ca7f10`, obstacles a 8 m de leur frontiere, branche liberee la premiere) ; F (croix, `FromWest -> Sud` a gauche et plus petit `TrafficId`, `FromSouth -> Est` a droite : premiere paire routable incompatible avec preseance ; aucun tout-droit routable ne convenait) ; G (deux vehicules d'anneau par la continuation `4e0c96d3`, entrant par `43605e56`, fusion `Merge` ; obstacle de l'entrant retire quand un vehicule d'anneau aborde l'element qui precede la fusion) ; gatec-2, gatec-4 (seconde vague d'explore-8 : 2 puis 4 routes par la croix au pas 0) et gatec-8 (deux vagues), chacune par la croix, un T et un giratoire, sans obstacle ni poussee.
+  - `Story535JunctionPlayModeTests` `[Story535]` (E, F, G) et `Story535GateCPlayModeTests` `[Explicit]` `[Story535GateC]` (N = 2, 4, 8 ; entree sans place jugee par toute immobilisation de 0,5 s dans un mouvement hors attente a sa frontiere ; p95 N8 < 10 ms) : compiles, non executes (PlayMode reserve au proprietaire).
+  - `deferred-work.md` : « Constats 5.35 » et « Limite utile d'arret » soldes sous reserve des runs E/G ; `RefinementIdentity` (5.53) clos par la regeneration P8 ; marge D13 rouverte, mesure attendue de la Gate C. Flotte de 30, dette route+horizon 5.31 et determinisme PlayMode : reevaluation a la lecture des resumes Gate C.
+  - **Scenario C de la 5.34 (PlayMode)** : il attend `ConflictGranted` et le departage FIFO ; sous la 5.35 l'axe `Priority` passe d'abord, l'issue change (prevu par le spec). Assertion non modifiee : decision proprietaire requise.
+  - `Story535` EditMode 32/32, `Story534` 48/48, `Story533` 69/69.
 
 ## Design Notes
 

@@ -330,6 +330,17 @@ namespace RoadRage.Tests.PlayMode
             public readonly List<double> CoordinatorMilliseconds = new List<double>();
             /// <summary>Pas hote en population pleine seulement : base du p95 D13, comme dans Story533Perf.</summary>
             public readonly List<double> FullPopulationHostStepMilliseconds = new List<double>();
+            /// <summary>Story 5.35 : sommes des compteurs de lot des regles authorees (publiees, observationnelles).</summary>
+            public long StopRequired, YieldToPriority, MergeGapGrants, DeadlockBreaks, CrossingRefusals, MergeGapRefusals;
+            /// <summary>
+            /// Story 5.35, cout par frontiere des pas hote avec vehicule : construction de la frame et pas des vehicules (ms), et
+            /// travail de priorite du lot (preseances lues + creneaux evalues, compteurs de travail), dont le temps est compris
+            /// dans celui du coordinateur.
+            /// </summary>
+            public readonly List<double> FrameBuildMilliseconds = new List<double>();
+            public readonly List<double> DriveMilliseconds = new List<double>();
+            public readonly List<double> PriorityWork = new List<double>();
+            private long lastPriorityWork = -1L;
             /// <summary>Changements de decision du coordinateur par (vehicule, traversee), dans l'ordre des lots (borne).</summary>
             public readonly List<string> JunctionLog = new List<string>();
             private const int JunctionLogLimit = 20000;
@@ -360,6 +371,12 @@ namespace RoadRage.Tests.PlayMode
                 if (!snapshot.Counters.FrameValid) RefusedBatches++;
                 EnteredWithoutGrant += snapshot.Counters.EnteredWithoutGrant;
                 IncompatibleOccupancy += snapshot.Counters.IncompatibleOccupancy;
+                StopRequired += snapshot.Counters.StopRequired;
+                YieldToPriority += snapshot.Counters.YieldToPriority;
+                MergeGapGrants += snapshot.Counters.MergeGapGrants;
+                DeadlockBreaks += snapshot.Counters.DeadlockBreaks;
+                CrossingRefusals += snapshot.Counters.CrossingRefusals;
+                MergeGapRefusals += snapshot.Counters.MergeGapRefusals;
                 var effective = snapshot.Records.Where(r => r.IsEffectiveGrant).ToList();
                 bool clash = false;
                 for (int i = 0; i < effective.Count; i++)
@@ -370,7 +387,12 @@ namespace RoadRage.Tests.PlayMode
                             foreach (var b in effective[j].MovementIds)
                             {
                                 RoadId zone;
-                                if (!index.TryGetConflict(a, b, out zone)) continue;
+                                ConflictKind kind;
+                                float startA, startB;
+                                if (!index.TryGetConflict(a, b, out zone, out kind, out startA, out startB)) continue;
+                                // Invariant 5.34 amende (5.35) : un grant par creneau de fusion coexiste avec un grant incompatible,
+                                // seulement sur une zone Merge.
+                                if (kind == ConflictKind.Merge && (effective[i].MergeGap || effective[j].MergeGap)) continue;
                                 if (!clash && FirstIncompatibleGrants == null)
                                     FirstIncompatibleGrants = "lot " + snapshot.SourceFrame + " : " + effective[i].ToText() + " / "
                                         + effective[j].ToText() + " zone " + zone;
@@ -470,12 +492,18 @@ namespace RoadRage.Tests.PlayMode
                 if (spawner.RetiredV2Runs.Any(r => !r.HasReachedExitPortal)) Violation("retrait hors portail de sortie");
                 if (spawner.V2Insertions != live.Count + spawner.V2Removals) Violation("vehicule disparu hors portail");
                 var cost = runner.LastCost;
+                var work = Features.Vehicles.Traffic.Diagnostics.TrafficV2WorkCounters.Work;
+                long priorityWork = work.JunctionPrecedenceChecks + work.JunctionGapEvaluations;
                 if (cost.Vehicles > 0)
                 {
                     HostStepMilliseconds.Add(cost.TotalMilliseconds);
                     CoordinatorMilliseconds.Add(cost.CoordinatorMilliseconds);
+                    FrameBuildMilliseconds.Add(cost.FrameBuildMilliseconds);
+                    DriveMilliseconds.Add(cost.DriveMilliseconds);
+                    if (lastPriorityWork >= 0L) PriorityWork.Add(priorityWork - lastPriorityWork);
                     if (cost.Vehicles == maxPopulation) FullPopulationHostStepMilliseconds.Add(cost.TotalMilliseconds);
                 }
+                lastPriorityWork = priorityWork;
                 ObserveJunctions(runner);
             }
         }
@@ -535,7 +563,8 @@ namespace RoadRage.Tests.PlayMode
                 + "junction_traversal\tjunction_movements\tjunction_d_m\tjunction_d_stop\tjunction_d_engage\tjunction_d_request\tjunction_head\t"
                 + "junction_engaged\tjunction_grant\tjunction_request_valid\tjunction_rejection\tjunction_entry_active\tjunction_stale\t"
                 + "junction_occupied\tjunction_status\tjunction_reason\tjunction_cause\tjunction_zone\tjunction_since\tjunction_exit_free_m\t"
-                + "junction_exit_required_m\tjunction_exit_bound\n");
+                + "junction_exit_required_m\tjunction_exit_bound\tjunction_kind\tjunction_b_m\tjunction_t_gap_s\tjunction_eta_s\t"
+                + "junction_stop_marked\n");
             var rows = new List<KeyValuePair<ulong, string>>();
             foreach (var run in runs)
                 foreach (var r in run.Record.Trace)
@@ -568,7 +597,9 @@ namespace RoadRage.Tests.PlayMode
                         .Append('\t').Append(j.HasDecision ? j.Status.ToString() : "-").Append('\t').Append(j.HasDecision ? j.Reason.ToString() : "-")
                         .Append('\t').Append(j.CauseActorId.IsEmpty ? "-" : j.CauseActorId.ToString())
                         .Append('\t').Append(j.ZoneId.IsEmpty ? "-" : j.ZoneId.ToString()).Append('\t').Append(j.HasDecision ? j.RequestSinceFrame.ToString(CultureInfo.InvariantCulture) : "-")
-                        .Append('\t').Append(F(j.ExitFreeMeters)).Append('\t').Append(F(j.ExitRequiredMeters)).Append('\t').Append(j.ExitBound).Append('\n');
+                        .Append('\t').Append(F(j.ExitFreeMeters)).Append('\t').Append(F(j.ExitRequiredMeters)).Append('\t').Append(j.ExitBound)
+                        .Append('\t').Append(j.HasDecision ? j.ControlKind.ToString() : "-").Append('\t').Append(F(j.BoundaryMeters))
+                        .Append('\t').Append(F(j.GapSeconds)).Append('\t').Append(F(j.EtaSeconds)).Append('\t').Append(j.StopMarked ? 1 : 0).Append('\n');
                     rows.Add(new KeyValuePair<ulong, string>(i.FrameId * 16UL + (ulong)Math.Max(0, run.Index), line.ToString()));
                 }
             foreach (var row in rows.OrderBy(r => r.Key)) text.Append(row.Value);
