@@ -5,14 +5,14 @@ compiler-schema-version: 5
 pipeline-version: 3
 model-id: 419bd12ec9b5fe710e8a3719692c7982
 lineage-hash: f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4
-decisions-hash: 0d04148bf2eedf98444d1395add78e7fe11a10f6381f07cf91e6dfa4b40ec531
-model-hash: c74be9eaf758b627fddb26eefe0662319358479228bdd9f5584b3d9848ad57c9
-road-model-version: v5:a98e645fcd90698ea5b97ebd624f81c8
-overlay-hash: 56f45c019309ff53ccab0d2f46f059064bba0e7f29d6db5699de87624a059612
+decisions-hash: 98e1e4f240b74cfe05433451ccd05c60be68d43b0eaf5f0d33058d5b390119e4
+model-hash: a645efb4b12e0d8d0f20bc8282f5522451490b881cffa9245cd4ee083205b32e
+road-model-version: v5:6d145fd3dc3b35d3f8307aee692448bb
+overlay-hash: bc049fa7a3f0fc92a85cad386a12ced4ce5652659f3b09e2a12c6f0739508df2
 physical-input-hash: c777ce4ebb537362ace165a24d68f844c58a0572eac76e83dcb7bad659afd2d9
 semantic-input-hash: 43e098fcd6809ecc1e8043156f7cd26f57abb73121b844cf6c8badef8b79aef4
 clearance-hash: 7b7fcbf8f2458e4165ad2adb47e7222b52b12e5754baddbb8a76a277c555f14a
-body-hash: 54c4165f592c6d4f50f76a62a20efdb13f28772a017617e6c423c869a16b8ace
+body-hash: dcbd5d1acec3e51bc095bbb5e97d1b269becedf09de97c5547bc8d85bb2855e5
 -->
 # Rapport Gate A : modele authore MVP_Run (Story 5.28)
 
@@ -27,10 +27,10 @@ Genere par le menu `RoadRage/Traffic V2/Compiler le modele authore`. Ne pas edit
 | CompilerSchemaVersion | 5 |
 | RoadModelId | `419bd12ec9b5fe710e8a3719692c7982` |
 | Hash de la lignee | `f838ab5926a2cfe66b3074ae9b828cc17f7298df0e83531ffb6d0f8b84a6e6f4` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-lineage.json`) |
-| Hash des decisions | `0d04148bf2eedf98444d1395add78e7fe11a10f6381f07cf91e6dfa4b40ec531` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json`) |
-| Hash du modele persiste | `c74be9eaf758b627fddb26eefe0662319358479228bdd9f5584b3d9848ad57c9` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json`) |
-| RoadModelVersion | `v5:a98e645fcd90698ea5b97ebd624f81c8` |
-| Hash de l'overlay | `56f45c019309ff53ccab0d2f46f059064bba0e7f29d6db5699de87624a059612` (`_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt`) |
+| Hash des decisions | `98e1e4f240b74cfe05433451ccd05c60be68d43b0eaf5f0d33058d5b390119e4` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-authoring.json`) |
+| Hash du modele persiste | `a645efb4b12e0d8d0f20bc8282f5522451490b881cffa9245cd4ee083205b32e` (`Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-model.json`) |
+| RoadModelVersion | `v5:6d145fd3dc3b35d3f8307aee692448bb` |
+| Hash de l'overlay | `bc049fa7a3f0fc92a85cad386a12ced4ce5652659f3b09e2a12c6f0739508df2` (`_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt`) |
 
 ## Resultat
 
@@ -45,58 +45,116 @@ Genere par le menu `RoadRage/Traffic V2/Compiler le modele authore`. Ne pas edit
 | Enregistrement | Nombre |
 |---|---:|
 | JunctionMovement | 72 |
-| JunctionControl | 40 (un par approche, tous `Uncontrolled`) |
+| JunctionControl | 40 (un par approche : 20 `Priority`, 4 `Uncontrolled`, 16 `Yield`) |
 | ConflictZone | 114 (decisions acceptees seulement) |
 | SignalPlan | 0 (carrefours declares non signalises) |
 | LaneAdjacency | 0 (aucune adjacence authoree) |
-| Ligne d'arret | 0 (aucune ligne sous `Uncontrolled`) |
+| Ligne d'arret | 4 (controles Stop ou Yield dont la map porte l'intention ; replis : table des controles) |
 
 ## Controles par approche
 
-Un `JunctionControl` par corridor d'approche, lie a tous les mouvements partant de cette approche ; seul genre admis : `Uncontrolled` (decision du proprietaire, 2026-09-23). Chaque mouvement a exactement un controle.
+Un `JunctionControl` par corridor d'approche, lie a tous les mouvements partant de cette approche. Genres authores selon l'intention reelle de la route (Story 5.35, P2) : giratoires `Yield` aux entrees et `Priority` sur l'anneau, T `Priority` sur l'axe traversant et `Yield` sur la branche, croix `Uncontrolled` (priorite a droite). `Signalized` reste refuse (5.36). Chaque mouvement a exactement un controle.
 
-| Carrefour | Controle | Genre | Approche | Mouvements |
-|---|---|---|---|---:|
-| Roundabout_NorthWest | `42f3d162d75e244896863e1711a77287` | Uncontrolled | `4ec40e5f82f7a65bed1dc3d9679f8693` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255 | 2 |
-| Roundabout_NorthWest | `4332ef31bc230cb1e928d17c87c2b2a4` | Uncontrolled | `43e96165bde1e8229cf8d27082d6b798` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255 | 2 |
-| Roundabout_NorthWest | `4538b544fa7443645e9f0b55dfd20c81` | Uncontrolled | `4d5c15fca8e24f15b1bdf0f0695acebf` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-981631451>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-981631451 | 1 |
-| Roundabout_NorthWest | `48d729046272166df666b735d860ff85` | Uncontrolled | `4ccc97c5021ae91587883344ee3ca299` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255 | 2 |
-| Roundabout_NorthWest | `4e6af9f2c3ccc0a6b1f0ef739679ccac` | Uncontrolled | `4516fd525d5bf0205cb47b0093ab0794` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1227312198>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1227312198 | 1 |
-| Roundabout_NorthWest | `4fcbd57e6baa66a28b0732836bc2e880` | Uncontrolled | `4f3543b1218b82af65b5b8fc58457fb3` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-234956567>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-234956567 | 1 |
-| Roundabout_NorthEast | `4258e4997d604bdaddd64f90730258ae` | Uncontrolled | `4ae5e1290d8b815bcb8f509e915fef89` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1335115730>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1335115730 | 1 |
-| Roundabout_NorthEast | `43fe03f1814155e96d6d1d49b9f2ffa4` | Uncontrolled | `455e4360eac83d9900ad7ea698758890` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-656642079>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-656642079 | 1 |
-| Roundabout_NorthEast | `469dd39290081f19c5f45716e14fa988` | Uncontrolled | `4c3fbf9d31b3efe44c908138001098b8` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718 | 2 |
-| Roundabout_NorthEast | `4b8f1772f907da8ab8daecc656395b8b` | Uncontrolled | `4feeebdeeefd1a0f872a7e456b3a5287` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-1574439523>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-1574439523 | 1 |
-| Roundabout_NorthEast | `4df5972c8018084b60d1e41cee091db6` | Uncontrolled | `432025ce90895a6728955c79e3edfb9e` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718 | 2 |
-| Roundabout_NorthEast | `4e578eb71bb93361716c13717c771faa` | Uncontrolled | `4e67d7a19f6083c020b14cda38733f93` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718 | 2 |
-| TJunction_West | `48171f4957d3bd8970fed52ff8b47a83` | Uncontrolled | `4f56ef8aae6bfffcbc337d463dd2fd9f` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-972045385>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-972045385 | 2 |
-| TJunction_West | `4c4d0695610e00bb74583d4b6163728a` | Uncontrolled | `46b219bca5cdaf1087d30d9622fab0a5` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1516681040>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1516681040 | 2 |
-| TJunction_West | `4df2f2bab0514361bd8aaa81b0e0049f` | Uncontrolled | `4db6ebc158e0dff4369373f117f51690` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-981631451>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-981631451 | 2 |
-| Intersection_Center_Crossroads | `413075398038b1e09d306528753f6b9e` | Uncontrolled | `45daa67f26d456b653f543a16ea6dba5` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-531979442>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-531979442 | 3 |
-| Intersection_Center_Crossroads | `4575f7c642af9766e86aebffaec3cfb3` | Uncontrolled | `44d95c53b9c058de55da54065eed7882` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1812162174>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1812162174 | 3 |
-| Intersection_Center_Crossroads | `48bec7b12bfc173be79c7ff6dc888e82` | Uncontrolled | `48c833c71f68abef819cb5a36c99208f` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-972045385>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-972045385 | 3 |
-| Intersection_Center_Crossroads | `4b0592bd1e8ddf114991c13fb4632285` | Uncontrolled | `4680aaa6ee1678ef03909266658047b6` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1461432457>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1461432457 | 3 |
-| Roundabout_SouthEast | `44924805a30ee7ba97a11b1d9b92919e` | Uncontrolled | `4f8c2539b5152e69c8fe4d64939f96b9` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-235211969>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-235211969 | 1 |
-| Roundabout_SouthEast | `480071f81c9ce0ded1b93c6a043d7787` | Uncontrolled | `41d3971913a0bc729dacb328aaa17495` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077 | 2 |
-| Roundabout_SouthEast | `481a5e58c50d4c4a68188022a32041a9` | Uncontrolled | `4e878e4befb474cfbdc785346bd6f6a4` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077 | 2 |
-| Roundabout_SouthEast | `4997c37d1df9457fd9b6d871b5d9f580` | Uncontrolled | `4eb54bbcb45c5ab91993e545746f24a9` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1375911139>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1375911139 | 1 |
-| Roundabout_SouthEast | `4b9dc3fe78d50ce0ed024b340d1a5c9c` | Uncontrolled | `4403c568617df5ea8f9a2fdf743748ad` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-75338410>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-75338410 | 1 |
-| Roundabout_SouthEast | `4cce28bd136319d98afaa9f310a74dbe` | Uncontrolled | `4b5540b59d5cd5141bb4bb279d10fb96` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077 | 2 |
-| TJunction_North | `494595a32d7821f3022e012e6e6b6a94` | Uncontrolled | `47de8d1a8e71016a20b301b8a86852a5` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1227312198>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1227312198 | 2 |
-| TJunction_North | `4c44e8caec8bc2c8291581b575127a8d` | Uncontrolled | `4d56a92042f124db7947938fefa7c7a7` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1461432457>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1461432457 | 2 |
-| TJunction_North | `4f0d2476b2d1a607c40bf041509af48e` | Uncontrolled | `4bc86d56e68c64ed3454e51566dd43bc` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-656642079>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-656642079 | 2 |
-| TJunction_South | `456fc7aec92eae3a031351a23bee3fa7` | Uncontrolled | `49980393f36fca422e64472c8ccc009c` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-235211969>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-235211969 | 2 |
-| TJunction_South | `4ce3fd28fd4195f1d5cbe44f4e66fb87` | Uncontrolled | `4f4e0f3e7e8b2b6b059a8a6edab2bc90` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-539479367>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-539479367 | 2 |
-| TJunction_South | `4fa7a31c8eaaa03cd839e636079b349e` | Uncontrolled | `42ad3d5187bfa4104bf4917b93ede39e` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1812162174>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1812162174 | 2 |
-| Roundabout_SouthWest | `4125ec30a583176d1fbb06c776fa858f` | Uncontrolled | `433f39ba8eeb012212b7d5a05468b09d` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-539479367>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-539479367 | 1 |
-| Roundabout_SouthWest | `45e4596d6aa585a2517bee9c8fb834be` | Uncontrolled | `4d1d749db78465cdc4e90ee844e3d898` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-1045154302>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-1045154302 | 1 |
-| Roundabout_SouthWest | `47ef2473ecfa0206cc2301cc291f7886` | Uncontrolled | `41aade042322996080b638a3a86e1088` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495 | 2 |
-| Roundabout_SouthWest | `4aeddcba2f3223edb3ec477c2638bea8` | Uncontrolled | `427041528b28cda9499c4ab5aafe0d9c` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495 | 2 |
-| Roundabout_SouthWest | `4cf54317710e5723de29224b473fd89f` | Uncontrolled | `40e937a99618cac3ce12d56586514283` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1516681040>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1516681040 | 1 |
-| Roundabout_SouthWest | `4d6b68fe5f6aaa73f9d436e8c46044a2` | Uncontrolled | `48e681e799268186449903ef2aa3258f` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495 | 2 |
-| TJunction_East | `4370991f7408a41ba87432f030daf299` | Uncontrolled | `43cf13ae1ef6b701bbcd906cdea7df90` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-531979442>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-531979442 | 2 |
-| TJunction_East | `4b5be59852dbf8c943063c130a89abbe` | Uncontrolled | `4bc735b758e931a2e6a2faa6a7cf198b` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1375911139>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1375911139 | 2 |
-| TJunction_East | `4e342ab49e0487a48fc599a311150694` | Uncontrolled | `4970addfd3bf6360c8191bf0f3eeafb7` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1335115730>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1335115730 | 2 |
+| Carrefour | Controle | Genre | Approche | Mouvements | Ligne (s_line par mouvement) |
+|---|---|---|---|---:|---|
+| Roundabout_NorthWest | `42f3d162d75e244896863e1711a77287` | Priority | `4ec40e5f82f7a65bed1dc3d9679f8693` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1873927255 | 2 | - |
+| Roundabout_NorthWest | `4332ef31bc230cb1e928d17c87c2b2a4` | Priority | `43e96165bde1e8229cf8d27082d6b798` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255 | 2 | - |
+| Roundabout_NorthWest | `4538b544fa7443645e9f0b55dfd20c81` | Yield | `4d5c15fca8e24f15b1bdf0f0695acebf` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-981631451>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-981631451 | 1 | repli entree generique (s = 0) |
+| Roundabout_NorthWest | `48d729046272166df666b735d860ff85` | Priority | `4ccc97c5021ae91587883344ee3ca299` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1873927255 | 2 | - |
+| Roundabout_NorthWest | `4e6af9f2c3ccc0a6b1f0ef739679ccac` | Yield | `4516fd525d5bf0205cb47b0093ab0794` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1227312198>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1227312198 | 1 | repli entree generique (s = 0) |
+| Roundabout_NorthWest | `4fcbd57e6baa66a28b0732836bc2e880` | Yield | `4f3543b1218b82af65b5b8fc58457fb3` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-234956567>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-234956567 | 1 | repli entree generique (s = 0) |
+| Roundabout_NorthEast | `4258e4997d604bdaddd64f90730258ae` | Yield | `4ae5e1290d8b815bcb8f509e915fef89` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1335115730>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1335115730 | 1 | repli entree generique (s = 0) |
+| Roundabout_NorthEast | `43fe03f1814155e96d6d1d49b9f2ffa4` | Yield | `455e4360eac83d9900ad7ea698758890` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-656642079>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-656642079 | 1 | repli entree generique (s = 0) |
+| Roundabout_NorthEast | `469dd39290081f19c5f45716e14fa988` | Priority | `4c3fbf9d31b3efe44c908138001098b8` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-663126718 | 2 | - |
+| Roundabout_NorthEast | `4b8f1772f907da8ab8daecc656395b8b` | Yield | `4feeebdeeefd1a0f872a7e456b3a5287` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-1574439523>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-1574439523 | 1 | repli entree generique (s = 0) |
+| Roundabout_NorthEast | `4df5972c8018084b60d1e41cee091db6` | Priority | `432025ce90895a6728955c79e3edfb9e` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718 | 2 | - |
+| Roundabout_NorthEast | `4e578eb71bb93361716c13717c771faa` | Priority | `4e67d7a19f6083c020b14cda38733f93` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-663126718 | 2 | - |
+| TJunction_West | `48171f4957d3bd8970fed52ff8b47a83` | Yield | `4f56ef8aae6bfffcbc337d463dd2fd9f` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-972045385>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-972045385 | 2 | 3.4749 m / 3.4108 m |
+| TJunction_West | `4c4d0695610e00bb74583d4b6163728a` | Priority | `46b219bca5cdaf1087d30d9622fab0a5` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1516681040>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1516681040 | 2 | - |
+| TJunction_West | `4df2f2bab0514361bd8aaa81b0e0049f` | Priority | `4db6ebc158e0dff4369373f117f51690` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-981631451>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-981631451 | 2 | - |
+| Intersection_Center_Crossroads | `413075398038b1e09d306528753f6b9e` | Uncontrolled | `45daa67f26d456b653f543a16ea6dba5` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-531979442>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-531979442 | 3 | - |
+| Intersection_Center_Crossroads | `4575f7c642af9766e86aebffaec3cfb3` | Uncontrolled | `44d95c53b9c058de55da54065eed7882` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1812162174>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1812162174 | 3 | - |
+| Intersection_Center_Crossroads | `48bec7b12bfc173be79c7ff6dc888e82` | Uncontrolled | `48c833c71f68abef819cb5a36c99208f` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-972045385>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-972045385 | 3 | - |
+| Intersection_Center_Crossroads | `4b0592bd1e8ddf114991c13fb4632285` | Uncontrolled | `4680aaa6ee1678ef03909266658047b6` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1461432457>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1461432457 | 3 | - |
+| Roundabout_SouthEast | `44924805a30ee7ba97a11b1d9b92919e` | Yield | `4f8c2539b5152e69c8fe4d64939f96b9` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-235211969>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-235211969 | 1 | repli entree generique (s = 0) |
+| Roundabout_SouthEast | `480071f81c9ce0ded1b93c6a043d7787` | Priority | `41d3971913a0bc729dacb328aaa17495` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-764670077 | 2 | - |
+| Roundabout_SouthEast | `481a5e58c50d4c4a68188022a32041a9` | Priority | `4e878e4befb474cfbdc785346bd6f6a4` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-764670077 | 2 | - |
+| Roundabout_SouthEast | `4997c37d1df9457fd9b6d871b5d9f580` | Yield | `4eb54bbcb45c5ab91993e545746f24a9` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1375911139>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1375911139 | 1 | repli entree generique (s = 0) |
+| Roundabout_SouthEast | `4b9dc3fe78d50ce0ed024b340d1a5c9c` | Yield | `4403c568617df5ea8f9a2fdf743748ad` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-75338410>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-75338410 | 1 | repli entree generique (s = 0) |
+| Roundabout_SouthEast | `4cce28bd136319d98afaa9f310a74dbe` | Priority | `4b5540b59d5cd5141bb4bb279d10fb96` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077 | 2 | - |
+| TJunction_North | `494595a32d7821f3022e012e6e6b6a94` | Priority | `47de8d1a8e71016a20b301b8a86852a5` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1227312198>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1227312198 | 2 | - |
+| TJunction_North | `4c44e8caec8bc2c8291581b575127a8d` | Yield | `4d56a92042f124db7947938fefa7c7a7` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1461432457>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1461432457 | 2 | 3.4749 m / 3.4108 m |
+| TJunction_North | `4f0d2476b2d1a607c40bf041509af48e` | Priority | `4bc86d56e68c64ed3454e51566dd43bc` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-656642079>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-656642079 | 2 | - |
+| TJunction_South | `456fc7aec92eae3a031351a23bee3fa7` | Priority | `49980393f36fca422e64472c8ccc009c` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-235211969>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-235211969 | 2 | - |
+| TJunction_South | `4ce3fd28fd4195f1d5cbe44f4e66fb87` | Priority | `4f4e0f3e7e8b2b6b059a8a6edab2bc90` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-539479367>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-539479367 | 2 | - |
+| TJunction_South | `4fa7a31c8eaaa03cd839e636079b349e` | Yield | `42ad3d5187bfa4104bf4917b93ede39e` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1812162174>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1812162174 | 2 | 3.4108 m / 3.4749 m |
+| Roundabout_SouthWest | `4125ec30a583176d1fbb06c776fa858f` | Yield | `433f39ba8eeb012212b7d5a05468b09d` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-539479367>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-539479367 | 1 | repli entree generique (s = 0) |
+| Roundabout_SouthWest | `45e4596d6aa585a2517bee9c8fb834be` | Yield | `4d1d749db78465cdc4e90ee844e3d898` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8133778351431591841-1045154302>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2050073441738459335-1045154302 | 1 | repli entree generique (s = 0) |
+| Roundabout_SouthWest | `47ef2473ecfa0206cc2301cc291f7886` | Priority | `41aade042322996080b638a3a86e1088` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7715433215887918611-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-5068725685921314059-1515478495 | 2 | - |
+| Roundabout_SouthWest | `4aeddcba2f3223edb3ec477c2638bea8` | Priority | `427041528b28cda9499c4ab5aafe0d9c` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-1277576483161264561-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8536729323650507684-1515478495 | 2 | - |
+| Roundabout_SouthWest | `4cf54317710e5723de29224b473fd89f` | Yield | `40e937a99618cac3ce12d56586514283` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1516681040>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1516681040 | 1 | repli entree generique (s = 0) |
+| Roundabout_SouthWest | `4d6b68fe5f6aaa73f9d436e8c46044a2` | Priority | `48e681e799268186449903ef2aa3258f` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1515478495>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1515478495 | 2 | - |
+| TJunction_East | `4370991f7408a41ba87432f030daf299` | Yield | `43cf13ae1ef6b701bbcd906cdea7df90` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-531979442>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-531979442 | 2 | 3.4749 m / 3.4108 m |
+| TJunction_East | `4b5be59852dbf8c943063c130a89abbe` | Priority | `4bc735b758e931a2e6a2faa6a7cf198b` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3577401544019279690-1375911139>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-415181062651573262-1375911139 | 2 | - |
+| TJunction_East | `4e342ab49e0487a48fc599a311150694` | Priority | `4970addfd3bf6360c8191bf0f3eeafb7` corridor:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-6244533751477241117-1335115730>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4269744981664112333-1335115730 | 2 | - |
+
+## Relation de droite
+
+Derivee de la geometrie (cap en fin de corridor d'approche, plan route), jamais authoree ; calculee pour les carrefours `Uncontrolled` seulement (priorite a droite). Fonction `right-of-way-v1`, secteurs de 90 deg, bande ambigue de 10 deg. Hash `03b75b53c644d52b5a48158c774bf4bfea8e183b70f95577a09f360d0ecf15d3` (lie a la signature Gate A). Paires ambigues : 0.
+
+| Carrefour | Approche A | Approche B | Angle de B vu de A (deg) | Relation |
+|---|---|---|---:|---|
+| Intersection_Center_Crossroads | `413075398038b1e09d306528753f6b9e` | `4575f7c642af9766e86aebffaec3cfb3` | 90.0 | FromLeft |
+| Intersection_Center_Crossroads | `413075398038b1e09d306528753f6b9e` | `48bec7b12bfc173be79c7ff6dc888e82` | 180.0 | Opposite |
+| Intersection_Center_Crossroads | `413075398038b1e09d306528753f6b9e` | `4b0592bd1e8ddf114991c13fb4632285` | -90.0 | FromRight |
+| Intersection_Center_Crossroads | `4575f7c642af9766e86aebffaec3cfb3` | `413075398038b1e09d306528753f6b9e` | -90.0 | FromRight |
+| Intersection_Center_Crossroads | `4575f7c642af9766e86aebffaec3cfb3` | `48bec7b12bfc173be79c7ff6dc888e82` | 90.0 | FromLeft |
+| Intersection_Center_Crossroads | `4575f7c642af9766e86aebffaec3cfb3` | `4b0592bd1e8ddf114991c13fb4632285` | 180.0 | Opposite |
+| Intersection_Center_Crossroads | `48bec7b12bfc173be79c7ff6dc888e82` | `413075398038b1e09d306528753f6b9e` | 180.0 | Opposite |
+| Intersection_Center_Crossroads | `48bec7b12bfc173be79c7ff6dc888e82` | `4575f7c642af9766e86aebffaec3cfb3` | -90.0 | FromRight |
+| Intersection_Center_Crossroads | `48bec7b12bfc173be79c7ff6dc888e82` | `4b0592bd1e8ddf114991c13fb4632285` | 90.0 | FromLeft |
+| Intersection_Center_Crossroads | `4b0592bd1e8ddf114991c13fb4632285` | `413075398038b1e09d306528753f6b9e` | 90.0 | FromLeft |
+| Intersection_Center_Crossroads | `4b0592bd1e8ddf114991c13fb4632285` | `4575f7c642af9766e86aebffaec3cfb3` | 180.0 | Opposite |
+| Intersection_Center_Crossroads | `4b0592bd1e8ddf114991c13fb4632285` | `48bec7b12bfc173be79c7ff6dc888e82` | -90.0 | FromRight |
+
+## Lignes d'arret : separation (P5)
+
+Empreinte maximale de Gate A arretee pare-chocs avant a `m_ctrl` - 0.020 m de la ligne, comparee au repli generique b = 0. Cas A : separee a b = 0, la ligne doit le rester. Cas B : contact conservatif deja present a b = 0, marge non degradee au-dela de `EnvelopeOverlapToleranceMeters` (0.050 m) et aucun nouveau recouvrement nominal. Marges en metres (negatif : contact Gate A) ; distance nominale sans gonflement.
+
+| Mouvement | s_line | Mouvement en conflit | Cas | Marge b = 0 | Marge ligne | Delta | Nominal b = 0 | Nominal ligne | Verdict |
+|---|---:|---|---|---:|---:|---:|---:|---:|---|
+| TJunction_East: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_East: Junction_FromWest -> Connector_South_Out (droite) | B | -1.192 | -1.103 | 0.089 | 1.688 | 1.616 | conforme |
+| TJunction_East: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_East: Junction_FromEast -> Connector_West_Out (tout droit) | A | 6.960 | 3.668 | -3.292 | 9.050 | 5.520 | conforme |
+| TJunction_East: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit) | A | 2.577 | 0.009 | -2.568 | 5.050 | 1.520 | conforme |
+| TJunction_East: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | B | -1.192 | -1.103 | 0.089 | 1.940 | 1.817 | conforme |
+| TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_East: Junction_FromWest -> Connector_South_Out (droite) | B | -1.192 | -1.111 | 0.081 | 1.688 | 1.590 | conforme |
+| TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_East: Junction_FromEast -> Connector_West_Out (tout droit) | A | 6.960 | 3.760 | -3.200 | 9.050 | 5.620 | conforme |
+| TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_East: Junction_FromWest -> Connector_East_Out (tout droit) | A | 2.577 | 0.091 | -2.485 | 5.050 | 1.620 | conforme |
+| TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_East: Junction_FromEast -> Connector_South_Out (gauche) | B | -1.192 | -1.111 | 0.081 | 1.940 | 1.651 | conforme |
+| TJunction_West: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit) | A | 6.960 | 3.668 | -3.292 | 9.050 | 5.520 | conforme |
+| TJunction_West: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | B | -1.192 | -1.103 | 0.089 | 1.940 | 1.817 | conforme |
+| TJunction_West: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit) | A | 2.577 | 0.009 | -2.568 | 5.050 | 1.520 | conforme |
+| TJunction_West: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_West: Junction_FromWest -> Connector_South_Out (droite) | B | -1.192 | -1.103 | 0.089 | 1.688 | 1.616 | conforme |
+| TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit) | A | 6.960 | 3.760 | -3.200 | 9.050 | 5.620 | conforme |
+| TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_West: Junction_FromEast -> Connector_South_Out (gauche) | B | -1.192 | -1.111 | 0.081 | 1.940 | 1.651 | conforme |
+| TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_West: Junction_FromWest -> Connector_East_Out (tout droit) | A | 2.577 | 0.091 | -2.485 | 5.050 | 1.620 | conforme |
+| TJunction_West: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_West: Junction_FromWest -> Connector_South_Out (droite) | B | -1.192 | -1.111 | 0.081 | 1.688 | 1.590 | conforme |
+| TJunction_North: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | B | -1.192 | -1.103 | 0.089 | 1.940 | 1.817 | conforme |
+| TJunction_North: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_North: Junction_FromWest -> Connector_South_Out (droite) | B | -1.192 | -1.103 | 0.089 | 1.688 | 1.616 | conforme |
+| TJunction_North: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_North: Junction_FromEast -> Connector_West_Out (tout droit) | A | 6.960 | 3.668 | -3.292 | 9.050 | 5.520 | conforme |
+| TJunction_North: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit) | A | 2.577 | 0.009 | -2.568 | 5.050 | 1.520 | conforme |
+| TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_North: Junction_FromEast -> Connector_South_Out (gauche) | B | -1.192 | -1.111 | 0.081 | 1.940 | 1.651 | conforme |
+| TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_North: Junction_FromWest -> Connector_South_Out (droite) | B | -1.192 | -1.111 | 0.081 | 1.688 | 1.590 | conforme |
+| TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_North: Junction_FromEast -> Connector_West_Out (tout droit) | A | 6.960 | 3.760 | -3.200 | 9.050 | 5.620 | conforme |
+| TJunction_North: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_North: Junction_FromWest -> Connector_East_Out (tout droit) | A | 2.577 | 0.091 | -2.485 | 5.050 | 1.620 | conforme |
+| TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | B | -1.192 | -1.111 | 0.081 | 1.940 | 1.651 | conforme |
+| TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_South: Junction_FromEast -> Connector_West_Out (tout droit) | A | 6.960 | 3.760 | -3.200 | 9.050 | 5.620 | conforme |
+| TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_South: Junction_FromWest -> Connector_South_Out (droite) | B | -1.192 | -1.111 | 0.081 | 1.688 | 1.590 | conforme |
+| TJunction_South: Junction_FromSouth -> Connector_West_Out (gauche) | 3.411 | TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit) | A | 2.577 | 0.091 | -2.485 | 5.050 | 1.620 | conforme |
+| TJunction_South: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_South: Junction_FromEast -> Connector_South_Out (gauche) | B | -1.192 | -1.103 | 0.089 | 1.940 | 1.817 | conforme |
+| TJunction_South: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_South: Junction_FromEast -> Connector_West_Out (tout droit) | A | 6.960 | 3.668 | -3.292 | 9.050 | 5.520 | conforme |
+| TJunction_South: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_South: Junction_FromWest -> Connector_South_Out (droite) | B | -1.192 | -1.103 | 0.089 | 1.688 | 1.616 | conforme |
+| TJunction_South: Junction_FromSouth -> Connector_East_Out (droite) | 3.475 | TJunction_South: Junction_FromWest -> Connector_East_Out (tout droit) | A | 2.577 | 0.009 | -2.568 | 5.050 | 1.520 | conforme |
 
 ## Candidats de conflit et decisions
 
@@ -936,15 +994,15 @@ Chaque tache est disposee exactement une fois. Controle, Conflit et Largeur par 
 | Conflit | `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | Conflits | 10 candidat(s) decide(s), 8 zone(s) materialisee(s) |
 | Conflit | `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | Conflits | 10 candidat(s) decide(s), 8 zone(s) materialisee(s) |
 | Conflit | `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | Conflits | 10 candidat(s) decide(s), 8 zone(s) materialisee(s) |
-| Controle | `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | Controles | 3 controles Uncontrolled, un par approche |
-| Controle | `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | Controles | 3 controles Uncontrolled, un par approche |
-| Controle | `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | Controles | 3 controles Uncontrolled, un par approche |
-| Controle | `4993ac8c2a6dc3f17d03a16cbb916fac` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-525617468 | Controles | 3 controles Uncontrolled, un par approche |
-| Controle | `490b6106a4522c5dfec0040c66cd82b9` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3237468531753948436-2089303282 | Controles | 4 controles Uncontrolled, un par approche |
-| Controle | `4c8d26eb6c05c178fc8444e842e07d8c` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495 | Controles | 6 controles Uncontrolled, un par approche |
-| Controle | `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | Controles | 6 controles Uncontrolled, un par approche |
-| Controle | `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | Controles | 6 controles Uncontrolled, un par approche |
-| Controle | `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | Controles | 6 controles Uncontrolled, un par approche |
+| Controle | `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | Controles | 3 controles (Priority, Yield), un par approche |
+| Controle | `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | Controles | 3 controles (Priority, Yield), un par approche |
+| Controle | `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | Controles | 3 controles (Priority, Yield), un par approche |
+| Controle | `4993ac8c2a6dc3f17d03a16cbb916fac` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-525617468 | Controles | 3 controles (Priority, Yield), un par approche |
+| Controle | `490b6106a4522c5dfec0040c66cd82b9` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3237468531753948436-2089303282 | Controles | 4 controles (Uncontrolled), un par approche |
+| Controle | `4c8d26eb6c05c178fc8444e842e07d8c` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495 | Controles | 6 controles (Priority, Yield), un par approche |
+| Controle | `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | Controles | 6 controles (Priority, Yield), un par approche |
+| Controle | `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | Controles | 6 controles (Priority, Yield), un par approche |
+| Controle | `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | Controles | 6 controles (Priority, Yield), un par approche |
 | Frontiere | `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | Reviewed | Revue a l'overlay Gate A (sign-off du proprietaire). |
 | Frontiere | `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | Reviewed | Revue a l'overlay Gate A (sign-off du proprietaire). |
 | Frontiere | `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | Reviewed | Revue a l'overlay Gate A (sign-off du proprietaire). |
@@ -991,15 +1049,15 @@ Chaque tache est disposee exactement une fois. Controle, Conflit et Largeur par 
 | Largeur | `4b33ebfdfb0a4ef2c2c6cbb267a5f2be` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-1873927255>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-1873927255 | Largeur revue | 4.3000 / 4.3000 m (gauche / droite), Uniform |
 | Largeur | `4de2f43948bbec45fce0fbe76d4658ad` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-663126718>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-663126718 | Largeur revue | 4.3000 / 4.3000 m (gauche / droite), Uniform |
 | Largeur | `42134703636fbc25221f6dc2ca06c793` section:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-8651751632837739532-764670077>GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3857765549630400084-764670077 | Largeur revue | 4.3000 / 4.3000 m (gauche / droite), Uniform |
-| Ligne | `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
-| Ligne | `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
-| Ligne | `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
-| Ligne | `4993ac8c2a6dc3f17d03a16cbb916fac` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-525617468 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
-| Ligne | `490b6106a4522c5dfec0040c66cd82b9` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3237468531753948436-2089303282 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
-| Ligne | `4c8d26eb6c05c178fc8444e842e07d8c` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
-| Ligne | `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
-| Ligne | `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
-| Ligne | `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | NotRequiredForCurrentControlKind | Aucune ligne sous Uncontrolled ; reouverture : Story 5.35, des qu'un controle passe a Stop, Yield ou Priority. |
+| Ligne | `4e5a1a75c3a9e48af02ad41483e25491` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1056351953 | AuthoredOnControls | Ligne authoree sur chaque controle Stop ou Yield du carrefour. |
+| Ligne | `442bd8af1793e34f2d407ec98f9e6581` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-1186247037 | AuthoredOnControls | Ligne authoree sur chaque controle Stop ou Yield du carrefour. |
+| Ligne | `4b095728e42083ceb90543412e198092` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-215267690 | AuthoredOnControls | Ligne authoree sur chaque controle Stop ou Yield du carrefour. |
+| Ligne | `4993ac8c2a6dc3f17d03a16cbb916fac` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-2174360367984508665-525617468 | AuthoredOnControls | Ligne authoree sur chaque controle Stop ou Yield du carrefour. |
+| Ligne | `490b6106a4522c5dfec0040c66cd82b9` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-3237468531753948436-2089303282 | NotRequiredForCurrentControlKind | Aucun controle Stop ni Yield : aucune ligne. |
+| Ligne | `4c8d26eb6c05c178fc8444e842e07d8c` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1515478495 | GenericEntryFallback | Aucune ligne dans la map pour ces controles Yield ou Stop : repli explicite sur l'entree generique du mouvement (s = 0). |
+| Ligne | `41a63c5603c904390698494de09c299d` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-1873927255 | GenericEntryFallback | Aucune ligne dans la map pour ces controles Yield ou Stop : repli explicite sur l'entree generique du mouvement (s = 0). |
+| Ligne | `4309f6e91e6d597ef92349b8ede4fc89` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-663126718 | GenericEntryFallback | Aucune ligne dans la map pour ces controles Yield ou Stop : repli explicite sur l'entree generique du mouvement (s = 0). |
+| Ligne | `4933ae7e9cbb42b7278015dfd5e3c3b0` junction:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-7654237338994223078-764670077 | GenericEntryFallback | Aucune ligne dans la map pour ces controles Yield ou Stop : repli explicite sur l'entree generique du mouvement (s = 0). |
 | Portail | `49d29d3fd771ae4966aca755b3442cbc` portal:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-1045154302:Exit | Reviewed | Revue a l'overlay Gate A (sign-off du proprietaire). |
 | Portail | `436d9a1a58c93bd19cdf0014de309f98` portal:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-1574439523:Exit | Reviewed | Revue a l'overlay Gate A (sign-off du proprietaire). |
 | Portail | `48090a5d359625c04fb6050a2407f292` portal:GlobalObjectId_V1-2-ee081d5cbff641bb9dd499b4f13a8d62-4902253723728314459-234956567:Exit | Reviewed | Revue a l'overlay Gate A (sign-off du proprietaire). |
@@ -1071,7 +1129,7 @@ Derivees structurellement, jamais par nom : corridor du portail d'entree de plus
 
 ## Overlay et Gate A
 
-Overlay canonique : `_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt` (25 instances de module, hash `56f45c019309ff53ccab0d2f46f059064bba0e7f29d6db5699de87624a059612`), produit par la meme fonction que le dessin de la fenetre `RoadRage/Traffic V2/Revue Gate A`.
+Overlay canonique : `_bmad-output/implementation-artifacts/overlay-5-28-mvp-run.txt` (25 instances de module, hash `bc049fa7a3f0fc92a85cad386a12ced4ce5652659f3b09e2a12c6f0739508df2`), produit par la meme fonction que le dessin de la fenetre `RoadRage/Traffic V2/Revue Gate A`.
 
 La Gate A n'est ouverte que par `Assets/RoadRage/App/Scenes/MVP_Run/MVP_Run.road-signoff.json`, ecrit par le proprietaire depuis cette fenetre apres revue des 25 instances, et lie aux hashes source, lignee, decisions, compilateur, modele, version et overlay d'un pipeline frais, ainsi qu'aux empreintes physique et Sidewalk et aux residus de la preuve physique (comparaison exacte). Un sign-off absent ou perime, une empreinte ou un residu different, un residu non positif ou une decision non reconfirmee garde la Gate A fermee, jamais repare.
 
