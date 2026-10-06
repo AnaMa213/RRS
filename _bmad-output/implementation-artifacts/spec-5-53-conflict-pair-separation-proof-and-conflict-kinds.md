@@ -171,6 +171,7 @@ context:
     - fixture 5.50 : plan committe relu au lieu d'un plan v3 frais (~8 min), test de determinisme a deux plans frais passe `[Explicit]` (delai 1 h), delais explicites pour les deux tests qui construisent le pipeline (~225 s).
     - Differes (`deferred-work.md`) : constantes de typage hors de l'identite du run, rejeu contre les artefacts committes non execute.
     - Verification : `Story553` 17/17, `Story552` 26/26, fixture `Story550AutomatedPairDecisionTests` 3/3, 0 erreur Console.
+  - **Addendum 5.53a (2026-10-06, `spec-5-53a-west-merge-typing-v2.md`).** Typing-v2 (contenance et dedoublonnage exact des racines) pour les 36 paires `ConflictProven` du balayage a corridor aval commun : les 4 fusions Ouest des giratoires passent `Crossing -> Merge` (debuts 0 / 1,4607 m) ; les 32 autres fusions gardent genre et debuts. Modele `v5:a98e645f...`, Gate A re-signee par le proprietaire (signature dediee 5.53a). Le constat « fusions Ouest sans creneau » (P12) est leve.
   - **Base de revue.** `baseline_commit` reste `b8e7165`. Le commit `90d7a06` (archive des runs intermediaires 5.33/5.34) est anterieur a toute implementation 5.53 et hors perimetre de revue.
 
 ## Design Notes

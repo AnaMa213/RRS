@@ -2,7 +2,7 @@
 title: 'Story 5.53 -- addendum P12 : typing-v2, typage des quatre fusions ouest de giratoire'
 type: 'bugfix'
 created: '2026-10-05'
-status: 'in-progress'
+status: 'done'
 baseline_commit: 'ce8a0b9c7a36dc9643e4cbd52724ae0124acc9b2'
 review_loop_iteration: 0
 context:
@@ -76,14 +76,14 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-05.md` -- verifier l'amendement P12 approuve.
-- [ ] `ConflictSweepRefinement.cs` -- mode typage v2 (contenance dans l'union courante -> terminale), `typing-v2` dans `Canonical`, compteurs par etat (prouvees, temoins, resolution, terminales par contenance).
-- [ ] `AutomatedPairDecisionPolicy.cs` -- typage v2 dans `TypeZone` pour les paires `ConflictProven` par le balayage a corridor aval commun ; `TypingMatches`/`ValidatePlan` lies a la condition.
-- [ ] `Tests/EditMode/Story553TypingV2Tests.cs` `[Geometry][Story553]` -- matrice ; equivalence v1/v2 sur fixtures synthetiques ; diagnostic publie (feuilles par etat) pour les 36 paires du perimetre ; determinisme.
+- [x] `_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-05.md` -- verifier l'amendement P12 approuve.
+- [x] `ConflictSweepRefinement.cs` -- mode typage v2 (contenance dans l'union courante -> terminale), `typing-v2` dans `Canonical`, compteurs par etat (prouvees, temoins, resolution, terminales par contenance).
+- [x] `AutomatedPairDecisionPolicy.cs` -- typage v2 dans `TypeZone` pour les paires `ConflictProven` par le balayage a corridor aval commun ; `TypingMatches`/`ValidatePlan` lies a la condition.
+- [x] `Tests/EditMode/Story553TypingV2Tests.cs` `[Geometry][Story553]` -- matrice ; equivalence v1/v2 sur fixtures synthetiques ; diagnostic publie (feuilles par etat) pour les 36 paires du perimetre ; determinisme.
 - Checkpoint 1 : `Story553` EditMode vert ; equivalence sur les 32 fusions deja typees ; issue des 4 paires connue. **HALT : revue proprietaire.**
-- [ ] Application transactionnelle (36 decisions), regeneration du rapport 5.28 et du diff, mise a jour de `Story553MvpRunClassificationTests` (genres et debuts derives des artefacts).
-- [ ] `traffic-v2-5-53-classification/typing-v2-*.md` (nouveau) -- diff des 36 paires (32 identiques, 4 ouest), feuilles par etat, cout.
-- [ ] `spec-5-53-…md` (Spec Change Log), `deferred-work.md`. `sprint-status` : 5.53 reste en `review` jusqu'a la signature 5.35.
+- [x] Application transactionnelle (36 decisions), regeneration du rapport 5.28 et du diff, mise a jour de `Story553MvpRunClassificationTests` (genres et debuts derives des artefacts).
+- [x] `traffic-v2-5-53-classification/typing-v2-*.md` (nouveau) -- diff des 36 paires (32 identiques, 4 ouest), feuilles par etat, cout.
+- [x] `spec-5-53-…md` (Spec Change Log), `deferred-work.md`. `sprint-status` : 5.53 reste en `review` jusqu'a la signature 5.35.
 
 **Acceptance Criteria:**
 
@@ -108,6 +108,17 @@ context:
   - Regle : dans `Refine`, sous le drapeau typing-v2, une racine dont la cle exacte (element, abscisse et pose des deux extremites, intervalle projete, pour A et B) est deja vue est ecartee ; premiere occurrence conservee dans l'ordre du criblage. Budget, tolerances, profondeur, `WitnessSplit` et ordre inchanges. Preuve v2 : `|duplicates=N` ; `Roots` reste le nombre de racines criblees. Identite de run : `exact-root-dedup`. Accesseur et campagne de comptage retires apres archivage du rapport.
   - Tests : `Story553TypingV2Tests` (fixture a branche aval, deux trajectoires : unions, temoin, genre et debuts identiques a v1, moins de feuilles) ; `Story553` EditMode 22/22, 0 erreur Console.
   - Campagne ciblee (12 fusions de giratoire, aucun plan global, `typing-v2-giratoires-*.md`) : Ouest x4 `Merge`, debuts 0 / 1,4607 m (entree / continuation, identiques a la Diagonale), 46 235-46 339 feuilles (77 651 doublons ecartes) ; Sud x4 et Diagonale x4 : genre et debuts identiques au bit pres.
+- **2026-10-06 -- Application et signature dediee.**
+  - Menu transactionnel sur le moteur `600ca5c` (run `6c86d9b7...`, deux plans identiques) : 4 fusions Ouest `Crossing -> Merge` (debuts 0 / 1,4607 m, preuve complete) ; 32 fusions deja typees : genre et debuts identiques, revision `typing-v2` ; 100 autres decisions et 234 autres enregistrements du manifeste : seul `DecisionRunId` change (identite du run). Modele `v5:a98e645f...`, rapport 5.28 regenere ; overlay et rapport 5.27 inchanges. Commit `a49962d`.
+  - Mesure avant signature : le modele non signe met l'admission en `GateAEvidenceStale` ; `Story534` EditMode 46/48 en echec pour ce seul motif. **Decision proprietaire (2026-10-06) : signature Gate A dediee a la 5.53a** (remplace « aucune signature dediee » du bloc fige et le dernier critere d'acceptation : le modele retype est admis). Signoff lie a `v5:a98e645f...`, commit `f781d06`.
+  - `Story553MvpRunClassificationTests` : perimetre typing-v2 exact (36 paires, toutes `Merge`, preuve complete) et admission du modele retype par sa signature.
+  - Non-regressions apres signature (comme pour la 5.53) : EditMode 5.53 24/24, 5.34 48/48, 5.31 50/50, 5.33 69/69, 5.52 26/26 ; PlayMode 5.31 13/13, 5.52 4/4, 5.33 12/12, 5.34 3/3 ; 0 erreur Console.
+- **2026-10-06 -- Revue : blind-hunter (en ligne), edge-case-hunter et verification-gap (sous-agents) ; security-review inactive (aucune frontiere reseau).** Aucun intent_gap ni bad_spec ; aucun differe. Correctifs (patch), sans changement des artefacts appliques :
+  - `TypingMatches` strict : `typing-v2` dans le perimetre, `typing-v1` dehors (un ecart signale une derive de `Classify` ou un manifeste anterieur) ; test du refus par `ValidatePlan` sur le plan committe altere hors revision (version v2 hors perimetre, version v1 dans le perimetre).
+  - Cle de dedoublonnage : tangente, road-up et degenerescence ajoutees (une pose de noeud compile et une pose interpolee de meme abscisse restent distinctes).
+  - Ordre des trajectoires verifie sur la fixture a branche (deux trajectoires reelles) ; l'ancienne assertion etait sans effet.
+  - Campagne : reference v1 recalculee (et non plus le manifeste, devenu v2) ; chaque preuve v2 doit reproduire exactement le typage committe.
+  - Rejetes : contenance avant le premier temoin (issue publiee `Witness` sur les 36, ecart admis par les Design Notes), `MinimumSeparationMeters` non equivalent (hors classification et typage).
 
 ## Design Notes
 
@@ -127,3 +138,42 @@ Dans les deux cas l'union ne change pas, et l'etat de la suite du parcours (meme
 
 **Commands:**
 - `.\scripts\validate.ps1 -Profile Story -Story 5.53 -TestMode EditMode` -- expected: `VALIDATION STORY`, compte execute = attendu, 0 erreur Console.
+
+## Suggested Review Order
+
+**Raffinement typing-v2 (coeur du changement)**
+
+- Point d'entree : doublons exacts entre couples de trajectoires ecartes avant le parcours ; ordre conserve.
+  [`ConflictSweepRefinement.cs:276`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L276)
+- Cle exacte : chaque champ de pose lu par l'evaluation, plus l'intervalle projete.
+  [`ConflictSweepRefinement.cs:366`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L366)
+- Feuille contenue dans l'union courante : terminale, sous-arbre sans effet sur l'union.
+  [`ConflictSweepRefinement.cs:317`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L317)
+- Union incrementale aux memes composantes que la fusion finale (toucher suffit).
+  [`ConflictSweepRefinement.cs:680`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L680)
+- Preuve v2 publiee en suffixe ; v1 identique octet pour octet.
+  [`ConflictSweepRefinement.cs:87`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs#L87)
+
+**Perimetre et liaison dans la politique**
+
+- Perimetre option B : temoin du balayage et corridor aval commun.
+  [`AutomatedPairDecisionPolicy.cs:926`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L926)
+- Classify active v2 avant le raffinement, la classification restant celle du balayage.
+  [`AutomatedPairDecisionPolicy.cs:522`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L522)
+- Validation stricte : version de typage egale a celle du perimetre.
+  [`AutomatedPairDecisionPolicy.cs:937`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L937)
+- Identite de run liee aux regles v2.
+  [`AutomatedPairDecisionPolicy.cs:1014`](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/AutomatedPairDecisionPolicy.cs#L1014)
+
+**Tests**
+
+- Equivalence exacte v1/v2 avec elagage effectif sur fixtures.
+  [`Story553TypingV2Tests.cs:29`](../../Assets/RoadRage/Tests/EditMode/Story553TypingV2Tests.cs#L29)
+- Doublons sur fixture a branche : typage identique, ordre des trajectoires sans effet.
+  [`Story553TypingV2Tests.cs:116`](../../Assets/RoadRage/Tests/EditMode/Story553TypingV2Tests.cs#L116)
+- Fusion typee sous un budget ou v1 s'arrete a zero.
+  [`Story553TypingV2Tests.cs:68`](../../Assets/RoadRage/Tests/EditMode/Story553TypingV2Tests.cs#L68)
+- Artefacts appliques : 36 paires v2 toutes Merge, refus hors perimetre, admission signee.
+  [`Story553MvpRunClassificationTests.cs:54`](../../Assets/RoadRage/Tests/EditMode/Story553MvpRunClassificationTests.cs#L54)
+- Campagne ciblee des 12 fusions de giratoire contre v1 recalcule.
+  [`Story553TypingV2CampaignTests.cs:56`](../../Assets/RoadRage/Tests/EditMode/Story553TypingV2CampaignTests.cs#L56)
