@@ -5,19 +5,19 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4410 nodes · 10244 edges · 184 communities (177 shown, 6 thin omitted)
+- 4430 nodes · 10237 edges · 196 communities (173 shown, 22 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 445 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `59bb0fb1`
+- Built from commit: `81f88abd`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- NetworkedVehicleSeatService
+- NetworkedPlayerState
 - .Refine
-- MeasurementRun
+- TrafficV2Composition.cs
 - GreyboxAssetSeedMetadata
 - SweepElement
 - .Core
@@ -30,16 +30,16 @@
 - RunCheckpointHudScreen
 - RoadRage.Features.Online
 - NetworkedVehicleDamageVfxController
-- .Localize
+- LobbyRosterService
 - LocalOnFootController
 - Blocker
 - RageTuningDef
-- JunctionTraversal
+- .Build
 - MigrationReport
 - VehiclePhysicsBody
 - .Add
 - AgentObservation
-- AuthoredRoadModel
+- AuthoredRun
 - .Measure
 - AutomatedPairDecisionPolicy
 - VehicleArcadeAssist
@@ -50,17 +50,17 @@
 - TrafficFrame
 - MotionPlan.cs
 - NetworkedVehicleDriverController
-- NpcReactionEffect
+- JunctionClearance
 - RoutePlan
 - NetworkedVehicleState
 - VehicleProfile
-- RoundaboutClearance
+- V1ImportResult
 - PathHorizon
 - LobbyRoomService
 - JunctionReason
 - RoadCurve
 - LongitudinalArbitration.cs
-- ConflictSweep
+- PairSweep
 - IPathGeometry
 - MotionPlan
 - JunctionActorReport
@@ -69,46 +69,46 @@
 - TrafficDriveOutcome
 - .Regenerate
 - MainMenuScreen
-- .Sha256Hex
-- .Add
-- CharacterCatalog
+- RoadRage.Features.Vehicles.Traffic.Migration
+- .AddMovement
 - DefinitionId
+- LobbyRosterScreen
 - ImportedCurve
 - NetworkedAIVehicleState
-- .FullPath
+- AuthoredRoadModel
 - PairReviewEntry
 - .FixedUpdate
-- TrafficV2HazardCollector
-- PlayerMode
+- .Collect
+- V2StepRecord
 - PlanningDecision
 - TrackPiece
-- LobbyRosterService
+- FacepunchSteamLobbyPlatform
 - NetworkedRunSessionMonitor
 - PassengerActionVerdictCode
 - .Compute
 - TrafficDecisionProjection
 - ElementOccupant
-- PerceptionStatus
-- V1ImportResult
+- ObservationChannel
+- TrafficV2HazardCollector
 - SweepPose
 - UserNotice
-- VehicleCoverage
+- TrafficV2Admission
 - TrafficLongitudinalOutcome
-- PassengerActionDef
-- CampaignTraceability
-- StopHoldRelease
+- .CheckVisuals
+- .FingerprintWithInputs
+- LongitudinalCandidateKind
 - KinematicOffsetBounds
-- LocalVoidRespawnController
+- .HandleRosterChanged
 - JunctionCoordinator
-- .Screen
+- ConflictSweep
 - HistoricalMovementReader
 - StopHoldPhase
-- NetworkPlayerRegistry
+- LobbyFlowController
 - RoadModelValidationIssue
-- ReferenceTrack
+- RageDisposition
 - .Draw
 - RoadLineage
-- PlayerProfile
+- JunctionClearanceResult
 - V1SourceSet
 - JunctionConflictIndex
 - TrackingTolerance
@@ -116,7 +116,7 @@
 - GateAReviewWindow
 - LocalVehicleCameraRig
 - Vector3
-- .Track
+- LobbyPlayerSlotView
 - .Create
 - PerceivedObstacleKind
 - JunctionRequestRejection
@@ -124,72 +124,84 @@
 - RageRoadEventFlowController
 - MenuCharacterPreview
 - JunctionDistances
-- AIVehicleBehaviorDebugView
+- HazardRootClass
 - RoadGeometryValidator
 - NetworkedBossState.cs
 - RouteReason
 - RoadModelVersion
 - MatchSettings
-- JunctionExitBound
+- JunctionRecords.cs
 - TrafficJunctionOutcome
 - NetworkedCrewEconomyState.cs
 - TrafficSettingsDef
-- RoadRage.Features.Vehicles.Traffic.Migration
+- .ApplyWidths
 - DriverProfile
-- .Configure
+- StatusFilter
 - .Evaluate
 - RoadRage.Features.Vehicles.Traffic.Planning
 - MainMenuFlowController
 - TrafficV2VehicleDriver
 - PairReviewWindow
 - PortalTrafficSpawner
-- TrackingMeasurement.cs
+- .IsSurfaceOnlyCollision
 - RoadRageBootstrap
 - TrafficV2StepRunner
-- LobbyFlowController
+- .Awake
 - RunEscapeMenuFlowController
 - RoadModelRecords.cs
 - SpeedPlan
-- .FromRoute
+- TrafficHazardKind
 - LobbyJoinService
 - RoadModelValidationCode
 - VehicleProfileDef
 - FileLayout
 - LeafState
 - RoadModelDocument
-- PairDecisionState
+- AppSceneRouter.cs
 - LaneNode
-- ConflictFilter
+- TrafficV2Settings
 - RoadModelCanonicalWriter
 - SpeedConstraint
 - RunEscapeMenuScreen
 - ImportContext
-- V2StageTimings
+- .Step
 - PlayerNameValidator
 - NetworkedVehicleSeatIntent
-- .InterStepBound
+- PerceptionUnavailableReason
+- ReferenceTrack
 - IHostOwnedRuntimeState
 - .Read
 - LongitudinalDecision
 - TrafficV2Insertion
 - PathIssue
 - NetworkedPlayerLifecycleService
+- ConflictCandidate
+- .MeasurePath
 - RoutePath
+- CompiledJunctionMovement
+- CompiledRoadModel
 - NetworkedPassengerActionIntent
-- ElementTrace
+- CampaignTraceability
 - SpeedPlanIssue
 - V2FallbackReason
 - NetworkedVehicleState.cs
-- NetworkedPlayerState
+- NetworkedPlayerLifecycleIntent
+- Dictionary
+- IList
 - TrafficV2Code
+- List
+- MenuItem
+- RoadId
 - GateAEvidenceResult
+- SortedDictionary
 - NetworkedPlayerReviveIntent
+- Vector3
 - LaneGraphRouting
-- .DiffHash
+- HashSet
 - NetworkedVehicleRecoveryIntent
 - ModelDto
 - PairRelation
-- .Classify
+- RoadModelValidationProfile
 - RoadRage.Shared.Domain
 - LobbyCodeClipboard
 - NetworkedPlayerPresentation
@@ -204,41 +216,41 @@
 2. `RoadId` - 102 edges
 3. `RunFlowController` - 99 edges
 4. `ConflictSweep` - 72 edges
-5. `NetworkedVehicleState` - 67 edges
-6. `ImportContext` - 67 edges
-7. `CompiledRoadModel` - 63 edges
-8. `AuthoredRoadModel` - 63 edges
+5. `ImportContext` - 67 edges
+6. `NetworkedVehicleState` - 67 edges
+7. `AuthoredRoadModel` - 63 edges
+8. `CompiledRoadModel` - 63 edges
 9. `TrafficFrame` - 59 edges
 10. `NetworkedVehicleDriverController` - 58 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `RoadRageBootstrap` --references--> `ISteamIdentitySource`  [EXTRACTED]
-  Assets/RoadRage/App/Bootstrap/RoadRageBootstrap.cs → Assets/RoadRage/Features/Online/ISteamIdentitySource.cs
-- `RoadRageBootstrap` --references--> `LobbyJoinService`  [EXTRACTED]
-  Assets/RoadRage/App/Bootstrap/RoadRageBootstrap.cs → Assets/RoadRage/Features/Online/LobbyJoinService.cs
-- `RoadRageBootstrap` --references--> `LobbyRoomService`  [EXTRACTED]
-  Assets/RoadRage/App/Bootstrap/RoadRageBootstrap.cs → Assets/RoadRage/Features/Online/LobbyRoomService.cs
-- `RoadRageBootstrap` --references--> `LobbyRosterService`  [EXTRACTED]
-  Assets/RoadRage/App/Bootstrap/RoadRageBootstrap.cs → Assets/RoadRage/Features/Online/LobbyRosterService.cs
-- `RoadRageBootstrap` --references--> `OnlineServicesBootstrapService`  [EXTRACTED]
-  Assets/RoadRage/App/Bootstrap/RoadRageBootstrap.cs → Assets/RoadRage/Features/Online/OnlineServicesBootstrapService.cs
+- `NetworkedPlayerSpawnService` --references--> `NetworkedVehicleSeatService`  [EXTRACTED]
+  Assets/RoadRage/App/Run/NetworkedPlayerSpawnService.cs → Assets/RoadRage/App/Run/NetworkedVehicleSeatService.cs
+- `NetworkedVehicleSeatService` --references--> `RunCheckpointHudScreen`  [EXTRACTED]
+  Assets/RoadRage/App/Run/NetworkedVehicleSeatService.cs → Assets/RoadRage/Features/UI/RunCheckpointHudScreen.cs
+- `PairRefinement` --references--> `SweepPose`  [EXTRACTED]
+  Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs → Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweep.cs
+- `RefineContext` --references--> `SweepGraph`  [EXTRACTED]
+  Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs → Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweep.cs
+- `RefineContext` --references--> `KinematicOffsetBounds`  [EXTRACTED]
+  Assets/RoadRage/Features/Vehicles/Traffic/Migration/ConflictSweepRefinement.cs → Assets/RoadRage/Features/Vehicles/Traffic/Migration/KinematicOffsetBounds.cs
 
 ## Import Cycles
 - None detected.
 
-## Communities (184 total, 6 thin omitted)
+## Communities (196 total, 22 thin omitted)
 
-### Community 0 - "NetworkedVehicleSeatService"
-Cohesion: 0.15
-Nodes (4): Vector3, NetworkedVehicleSeatService, Instance, Vector3
+### Community 0 - "NetworkedPlayerState"
+Cohesion: 0.10
+Nodes (15): Vector3, NetworkedVehicleSeatService, Instance, FixedString32Bytes, NetworkVariable, Vector3, NetworkedPlayerState, Vector3 (+7 more)
 
 ### Community 1 - ".Refine"
-Cohesion: 0.10
-Nodes (18): CompiledJunctionMovement, ConflictKind, IList, List, RoadId, RoadModelValidationProfile, StringBuilder, Vector2 (+10 more)
+Cohesion: 0.11
+Nodes (17): ConflictKind, IList, List, RoadId, RoadModelValidationProfile, StringBuilder, Vector2, MovementSide (+9 more)
 
-### Community 2 - "MeasurementRun"
-Cohesion: 0.10
-Nodes (21): IReadOnlyList, CampaignTriplet, MeasurementKind, Acceptance, Exploratory, MeasurementRun, Kind, Label (+13 more)
+### Community 2 - "TrafficV2Composition.cs"
+Cohesion: 0.11
+Nodes (23): IReadOnlyList, RoadId, CampaignTriplet, MeasurementKind, Acceptance, Exploratory, MeasurementRun, Kind (+15 more)
 
 ### Community 3 - "GreyboxAssetSeedMetadata"
 Cohesion: 0.18
@@ -249,7 +261,7 @@ Cohesion: 0.18
 Nodes (13): CompiledRoadModel, Dictionary, IReadOnlyList, List, RoadCurve, RoadCurveSample, RoadId, ShortElement (+5 more)
 
 ### Community 5 - ".Core"
-Cohesion: 0.18
+Cohesion: 0.19
 Nodes (15): CompiledRoadModel, Dictionary, HashSet, List, Portal, RoadElementKind, RoadId, RoadLocation (+7 more)
 
 ### Community 6 - "GateAEvidenceParameters"
@@ -257,8 +269,8 @@ Cohesion: 0.12
 Nodes (16): GameObject, VehiclePhysicsBody, GateAEvidenceParameters, CanonicalText, ClosureIterationBudget, Feasibility, IsLegacy, Kinematic (+8 more)
 
 ### Community 7 - "RoadId"
-Cohesion: 0.08
-Nodes (31): Dictionary, IReadOnlyList, List, CompiledJunctionControl, CompiledJunctionMovement, CompiledRoadModel, Adjacencies, ConflictZones (+23 more)
+Cohesion: 0.05
+Nodes (53): Dictionary, IReadOnlyList, List, CompiledConflictZone, CompiledJunctionControl, CompiledJunctionMovement, CompiledRoadModel, Adjacencies (+45 more)
 
 ### Community 8 - "TireSample"
 Cohesion: 0.22
@@ -269,44 +281,44 @@ Cohesion: 0.10
 Nodes (15): Vector3, TelemetrySample, Vector3, TelemetrySample, LateralSpeed, LongitudinalSpeed, Slip, SlipAngleDegrees (+7 more)
 
 ### Community 10 - "MonoBehaviour"
-Cohesion: 0.16
-Nodes (11): Dictionary, GameObject, HashSet, IEnumerator, NetworkManager, NetworkedPlayerSpawnService, Transform, RunCompositionRoot (+3 more)
+Cohesion: 0.12
+Nodes (14): Dictionary, GameObject, HashSet, IEnumerator, NetworkManager, NetworkObject, Transform, Vector3 (+6 more)
 
 ### Community 11 - "RunFlowController"
-Cohesion: 0.06
-Nodes (9): Camera, Collider, GameObject, HashSet, Quaternion, Transform, Vector3, RunFlowController (+1 more)
+Cohesion: 0.05
+Nodes (10): Camera, CharacterController, Collider, GameObject, HashSet, Quaternion, Transform, Vector3 (+2 more)
 
 ### Community 12 - "RunCheckpointHudScreen"
 Cohesion: 0.12
 Nodes (6): GameObject, StringBuilder, TMP_Text, RunCheckpointHudScreen, RectTransform, TextMeshProUGUI
 
 ### Community 13 - "RoadRage.Features.Online"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (16): FacepunchSteamPlatform, IsLoggedOn, IsValid, ISteamIdentitySource, ISteamPlatform, IsLoggedOn, IsValid, OnlineServicesBootstrapService (+8 more)
 
 ### Community 14 - "NetworkedVehicleDamageVfxController"
 Cohesion: 0.16
 Nodes (7): Color, Quaternion, Renderer, Transform, Vector3, NetworkedVehicleDamageVfxController, ParticleSystem
 
-### Community 15 - ".Localize"
-Cohesion: 0.12
-Nodes (22): ConditionalWeakTable, Dictionary, IReadOnlyList, List, RoadModelVersion, Vector3, ElementIndex, Query (+14 more)
+### Community 15 - "LobbyRosterService"
+Cohesion: 0.09
+Nodes (15): Difficulty, LobbyRosterSnapshot, AiVehicleTargetCount, Difficulty, HasLobby, LitterThrowerCount, Members, OwnerId (+7 more)
 
 ### Community 16 - "LocalOnFootController"
-Cohesion: 0.09
-Nodes (21): Camera, CharacterController, CinemachineCamera, CinemachineOrbitalFollow, Quaternion, Vector2, Vector3, LocalOnFootController (+13 more)
+Cohesion: 0.06
+Nodes (32): Quaternion, Vector3, LocalVoidRespawnController, CheckpointHud, IsDead, Camera, CharacterController, CinemachineCamera (+24 more)
 
 ### Community 17 - "Blocker"
-Cohesion: 0.11
-Nodes (18): Blocker, BlockerKind, BlockedExit, JunctionGrant, Leader, Obstacle, PolicyImmobilization, BlockerSource (+10 more)
+Cohesion: 0.10
+Nodes (20): RoadId, Blocker, BlockerKind, BlockedExit, JunctionGrant, Leader, Obstacle, PolicyImmobilization (+12 more)
 
 ### Community 18 - "RageTuningDef"
-Cohesion: 0.09
-Nodes (18): List, RageTuningCatalog, Count, RageThreshold, Disposition, MinValue, RageTuningDef, FearSensitivity (+10 more)
+Cohesion: 0.05
+Nodes (31): TMP_Text, RageStateDebugView, List, RageTuningCatalog, Count, RageThreshold, Disposition, MinValue (+23 more)
 
-### Community 19 - "JunctionTraversal"
-Cohesion: 0.17
-Nodes (7): JunctionText, JunctionTraversal, ExitCorridorId, FirstMovementId, JunctionId, LastMovementId, MovementIds
+### Community 19 - ".Build"
+Cohesion: 0.24
+Nodes (9): JunctionMovementPosition, ConditionalWeakTable, DriverProfile, IReadOnlyList, RoadId, Vector3, JunctionRequestBuilder, RoadElementKind (+1 more)
 
 ### Community 20 - "MigrationReport"
 Cohesion: 0.08
@@ -317,79 +329,79 @@ Cohesion: 0.11
 Nodes (14): RaycastHit, Rigidbody, TelemetrySample, TireSample, VehiclePhysicsBody, CurrentSteerAngleDegrees, GroundedAuthorityFactor, GroundedWheelCount (+6 more)
 
 ### Community 22 - ".Add"
-Cohesion: 0.15
-Nodes (16): Bounds, CompiledJunctionMovement, IReadOnlyList, Predicate, RoadBoundsBox, RoadCurve, RoadId, RoadLocation (+8 more)
+Cohesion: 0.20
+Nodes (12): Bounds, IReadOnlyList, Predicate, RoadBoundsBox, RoadCurve, RoadId, RoadLocation, Vector3 (+4 more)
 
 ### Community 23 - "AgentObservation"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (20): Func, LaneSide, RoadId, RoadLocation, StringBuilder, VehicleFootprint, AdjacentOccupantFact, AgentObservation (+12 more)
 
-### Community 24 - "AuthoredRoadModel"
-Cohesion: 0.10
-Nodes (15): CompiledRoadModel, ConflictZone, Dictionary, HashSet, List, RoadCurveSample, RoadModelSource, SortedDictionary (+7 more)
+### Community 24 - "AuthoredRun"
+Cohesion: 0.11
+Nodes (15): CompiledJunctionMovement, CompiledRoadModel, ConflictZone, Dictionary, HashSet, RoadModelSource, RoadModelValidationProfile, SortedDictionary (+7 more)
 
 ### Community 25 - ".Measure"
-Cohesion: 0.07
-Nodes (37): Surface, BoxCollider, Collider, CompiledRoadModel, GameObject, HashSet, IEnumerable, IReadOnlyList (+29 more)
+Cohesion: 0.17
+Nodes (13): BoxCollider, Collider, CompiledRoadModel, GameObject, List, Scene, Vector3, VehiclePhysicsBody (+5 more)
 
 ### Community 26 - "AutomatedPairDecisionPolicy"
-Cohesion: 0.15
-Nodes (9): CompiledRoadModel, Dictionary, AutomatedPairDecisionManifest, AutomatedPairDecisionPlan, AutomatedPairDecisionPolicy, AutomatedPairDecisionRecord, RefinedPair, ClassificationSummary (+1 more)
+Cohesion: 0.08
+Nodes (30): AutomatedPairDecisionManifest, AutomatedPairDecisionPlan, AutomatedPairDecisionPolicy, AutomatedPairDecisionRecord, ClassificationSummary, RefinedPair, RefinementInputs, AuthoredRun (+22 more)
 
 ### Community 28 - "V1RoadModelImporter.cs"
-Cohesion: 0.11
-Nodes (16): DisplacementKind, PortalBoundaryTrim, RingAnchorShift, ImportedPortal, MovementRole, RoundaboutContinuation, RoundaboutEntry, RoundaboutExit (+8 more)
+Cohesion: 0.09
+Nodes (22): DispositionKind, Connection, ControlRouteSeed, CorridorInterior, CorridorVertex, MergedIntoCorridorEndpoint, Movement, MovementApproachPath (+14 more)
 
 ### Community 29 - "JunctionSnapshot"
-Cohesion: 0.11
-Nodes (15): JunctionSnapshot, JunctionBatchCounters, JunctionGrantStatus, Denied, Granted, Held, Released, Revoked (+7 more)
+Cohesion: 0.17
+Nodes (8): JunctionBatchCounters, JunctionRecord, IsEffectiveGrant, JunctionSnapshot, Counters, EffectiveFrame, Records, SourceFrame
 
 ### Community 30 - "V1Node"
-Cohesion: 0.14
-Nodes (13): ImportedConnection, Quaternion, Transform, V1Edge, Key, V1Module, IsJunction, V1Node (+5 more)
+Cohesion: 0.16
+Nodes (12): DisplacementKind, PortalBoundaryTrim, RingAnchorShift, ImportedPortal, PublishedDisplacement, PortalRole, V1Node, IsEntryPortal (+4 more)
 
 ### Community 31 - "AuthoringDecisions"
-Cohesion: 0.07
-Nodes (34): ConflictKind, FileLayout, Func, IList, JunctionControlKind, List, RoadBoundsBox, RoadCurveSample (+26 more)
+Cohesion: 0.06
+Nodes (39): ConflictKind, Dictionary, FileLayout, Func, IList, JunctionControlKind, List, RoadCurveSample (+31 more)
 
 ### Community 32 - "TrafficFrame"
-Cohesion: 0.06
-Nodes (37): Bounds, CompiledRoadModel, Dictionary, IReadOnlyList, List, ProfilerMarker, RoadCurve, RoadCurveSample (+29 more)
+Cohesion: 0.07
+Nodes (33): Bounds, CompiledRoadModel, Dictionary, IReadOnlyList, List, ProfilerMarker, RoadCurve, RoadCurveSample (+25 more)
 
 ### Community 33 - "MotionPlan.cs"
-Cohesion: 0.09
-Nodes (25): LongitudinalBounds, Valid, MotionDiagnostic, HorizonTruncated, None, SteeringInactiveSpan, MotionIssue, GateAEvidenceMissing (+17 more)
+Cohesion: 0.07
+Nodes (31): MotionDiagnostic, HorizonTruncated, None, SteeringInactiveSpan, MotionIssue, GateAEvidenceMissing, GateAEvidenceStale, HorizonNonConforming (+23 more)
 
 ### Community 34 - "NetworkedVehicleDriverController"
-Cohesion: 0.07
-Nodes (18): DevIndestructibleVehicle, Action, Collider, Collision, NetworkTransform, Quaternion, Rigidbody, Rpc (+10 more)
+Cohesion: 0.08
+Nodes (17): DevIndestructibleVehicle, Collider, NetworkObjectReference, NetworkTransform, Quaternion, Rigidbody, Rpc, RpcParams (+9 more)
 
-### Community 35 - "NpcReactionEffect"
-Cohesion: 0.11
-Nodes (13): TMP_Text, RageStateDebugView, NpcReactionEffect, AffectsFear, AffectsRage, Channel, Magnitude, ReactionChannel (+5 more)
+### Community 35 - "JunctionClearance"
+Cohesion: 0.30
+Nodes (3): IReadOnlyList, Vector2, JunctionClearance
 
 ### Community 36 - "RoutePlan"
-Cohesion: 0.12
-Nodes (17): IReadOnlyList, RoadModelVersion, RoutePlan, Diagnostics, DistanceMeters, ExitPortalId, ModelId, ModelVersion (+9 more)
+Cohesion: 0.11
+Nodes (18): IReadOnlyList, RoadId, RoadModelVersion, RoutePlan, Diagnostics, DistanceMeters, ExitPortalId, ModelId (+10 more)
 
 ### Community 37 - "NetworkedVehicleState"
-Cohesion: 0.12
+Cohesion: 0.11
 Nodes (8): Func, NetworkVariable, NetworkedVehicleState, CurrentDamageThresholdsCrossed, CurrentHp, IsBrakeDamaged, IsEngineDamaged, IsWheelDamaged
 
 ### Community 38 - "VehicleProfile"
 Cohesion: 0.05
 Nodes (38): Vector3, VehicleProfile, AntiRollRate, AttitudeDamping, AttitudeLevellingRate, BrakeTorque, CenterOfMass, CoastTorque (+30 more)
 
-### Community 39 - "RoundaboutClearance"
-Cohesion: 0.16
-Nodes (12): Bounds, Collider, CompiledRoadModel, IReadOnlyList, List, RoadCurve, RoadCurveSample, RoadModelValidationProfile (+4 more)
+### Community 39 - "V1ImportResult"
+Cohesion: 0.12
+Nodes (18): Bounds, Collider, CompiledRoadModel, IReadOnlyList, List, RoadCurve, RoadCurveSample, RoadModelValidationProfile (+10 more)
 
 ### Community 40 - "PathHorizon"
-Cohesion: 0.10
-Nodes (22): CompiledRoadModel, IReadOnlyList, RoadCurve, RoadElementKind, RoadId, HorizonEnd, ExitPortal, LookAheadLimit (+14 more)
+Cohesion: 0.09
+Nodes (25): CompiledRoadModel, IReadOnlyList, RoadCurve, RoadCurvePoint, RoadElementKind, RoadId, HorizonEnd, ExitPortal (+17 more)
 
 ### Community 41 - "LobbyRoomService"
-Cohesion: 0.14
+Cohesion: 0.11
 Nodes (11): Task, LobbyRoomService, DisplayJoinCode, JoinCode, Status, LobbyRoomStatus, Closed, Creating (+3 more)
 
 ### Community 42 - "JunctionReason"
@@ -398,106 +410,98 @@ Nodes (19): JunctionReason, ActorGone, Cleared, ClearedUnlocalized, Committed, C
 
 ### Community 43 - "RoadCurve"
 Cohesion: 0.14
-Nodes (13): Action, Bounds, Vector3, RoadCurve, FullBounds, Length, MaximumAbsoluteCurvaturePerMeter, MaximumChordTangentAngleRadians (+5 more)
+Nodes (12): Action, Bounds, Vector3, RoadCurve, FullBounds, Length, MaximumAbsoluteCurvaturePerMeter, MaximumChordTangentAngleRadians (+4 more)
 
 ### Community 44 - "LongitudinalArbitration.cs"
-Cohesion: 0.18
-Nodes (13): IReadOnlyList, LongitudinalLeader, LongitudinalObstacle, LongitudinalPerception, HasLeader, Leader, Obstacles, UnavailableReason (+5 more)
+Cohesion: 0.13
+Nodes (19): IReadOnlyList, RoadId, JunctionEntryInput, Active, LongitudinalLeader, LongitudinalObstacle, LongitudinalPerception, HasLeader (+11 more)
 
-### Community 45 - "ConflictSweep"
-Cohesion: 0.20
-Nodes (8): IList, RoadBoundsBox, RoadModelValidationProfile, Vector3, ConflictSweep, PairSweep, IsCandidate, PoseFrame
+### Community 45 - "PairSweep"
+Cohesion: 0.32
+Nodes (6): IList, RoadBoundsBox, RoadModelValidationProfile, Vector3, PairSweep, IsCandidate
 
 ### Community 46 - "IPathGeometry"
-Cohesion: 0.23
+Cohesion: 0.22
 Nodes (5): Vector3, Vector3, IPathGeometry, LengthMeters, Spans
 
 ### Community 47 - "MotionPlan"
 Cohesion: 0.13
-Nodes (18): VehicleCoverage, DrivabilityProfile, IReadOnlyList, MotionPlan, Diagnostics, Evidence, GeometricallyFeasible, Issue (+10 more)
+Nodes (17): VehicleCoverage, DrivabilityProfile, IReadOnlyList, LongitudinalBounds, Valid, MotionPlan, Diagnostics, Evidence (+9 more)
 
 ### Community 48 - "JunctionActorReport"
 Cohesion: 0.09
-Nodes (26): IReadOnlyList, RoadId, Vector3, JunctionActorReport, Approaches, Corners, ElementId, HasRequest (+18 more)
+Nodes (25): IReadOnlyList, RoadId, Vector3, JunctionActorReport, Approaches, Corners, ElementId, HasRequest (+17 more)
 
 ### Community 49 - "PairReviewModel"
-Cohesion: 0.20
-Nodes (6): CompiledRoadModel, List, RoadBoundsBox, StringBuilder, PairReview, PairReviewModel
+Cohesion: 0.18
+Nodes (8): CompiledRoadModel, Dictionary, List, RoadBoundsBox, RoadId, StringBuilder, PairReview, PairReviewModel
 
 ### Community 50 - ".Decide"
-Cohesion: 0.12
-Nodes (21): DriverProfile, List, RoadId, JunctionEntryInput, Active, LongitudinalArbitration, LongitudinalCandidate, LongitudinalCandidateKind (+13 more)
+Cohesion: 0.26
+Nodes (5): DriverProfile, List, LongitudinalArbitration, LongitudinalCandidate, StopHoldParameters
 
 ### Community 51 - "TrafficDriveOutcome"
 Cohesion: 0.11
 Nodes (16): IReadOnlyList, TrafficDriveOutcome, AppliedConstraints, Binding, BrakeReverse, DecisionEpoch, DeferredConstraints, Fallback (+8 more)
 
 ### Community 52 - ".Regenerate"
-Cohesion: 0.12
-Nodes (18): IList, SignoffLayout, CompiledRoadModel, List, RoadId, Scene, StringBuilder, CandidateDiffEntry (+10 more)
+Cohesion: 0.16
+Nodes (15): CompiledRoadModel, List, RoadId, Scene, StringBuilder, CandidateDiffEntry, CandidateDiffState, Changed (+7 more)
 
 ### Community 53 - "MainMenuScreen"
 Cohesion: 0.14
 Nodes (9): Button, Color, GameObject, TMP_Text, CharacterOption, Primary, Secondary, MainMenuScreen (+1 more)
 
-### Community 54 - ".Sha256Hex"
-Cohesion: 0.19
-Nodes (4): Dictionary, MenuItem, HistoricalPairFingerprintTable, Dictionary
+### Community 55 - ".AddMovement"
+Cohesion: 0.24
+Nodes (5): JunctionFeature, ImportedConnection, ImportedJunction, V1Edge, Key
 
-### Community 55 - ".Add"
-Cohesion: 0.14
-Nodes (14): JunctionFeature, DispositionKind, Connection, ControlRouteSeed, CorridorInterior, CorridorVertex, MergedIntoCorridorEndpoint, Movement (+6 more)
-
-### Community 56 - "CharacterCatalog"
-Cohesion: 0.19
-Nodes (7): RoadRageBootstrap, MainMenuProfileFlowController, CurrentIndex, List, CharacterCatalog, Count, PlayerProfileBootstrapService
-
-### Community 57 - "DefinitionId"
-Cohesion: 0.10
-Nodes (14): NetworkObject, Transform, Vector3, Color, GameObject, CharacterDef, DisplayName, Id (+6 more)
+### Community 56 - "DefinitionId"
+Cohesion: 0.05
+Nodes (32): RoadRageBootstrap, MainMenuProfileFlowController, CurrentIndex, List, CharacterCatalog, Count, Color, GameObject (+24 more)
 
 ### Community 58 - "ImportedCurve"
-Cohesion: 0.19
-Nodes (12): Dictionary, IReadOnlyList, KeyValuePair, List, Predicate, RoadCurve, RoadCurveSample, RoadRecordKind (+4 more)
+Cohesion: 0.16
+Nodes (14): Dictionary, IList, IReadOnlyList, KeyValuePair, List, Predicate, RoadCurve, RoadCurveSample (+6 more)
 
 ### Community 59 - "NetworkedAIVehicleState"
-Cohesion: 0.29
-Nodes (6): IReadOnlyList, Vector3, AiRageTargetResolution, NetworkVariable, NetworkedAIVehicleState, NetworkObjectReference
+Cohesion: 0.17
+Nodes (10): IReadOnlyList, Vector3, AiRageTargetResolution, Camera, TMP_Text, Vector3, AIVehicleBehaviorDebugView, NetworkVariable (+2 more)
 
-### Community 60 - ".FullPath"
-Cohesion: 0.20
-Nodes (6): Action, KeyValuePair, MenuItem, Scene, MenuItem, Func
+### Community 60 - "AuthoredRoadModel"
+Cohesion: 0.10
+Nodes (13): Action, IList, KeyValuePair, List, MenuItem, Scene, AuthoredRoadModel, SignoffLayout (+5 more)
 
 ### Community 61 - "PairReviewEntry"
-Cohesion: 0.23
-Nodes (7): PairReviewActions, PairReviewEntry, PairReviewStatus, Modified, New, Removed, Unchanged
+Cohesion: 0.15
+Nodes (13): PairDecisionState, Confirmed, Missing, Orphan, Stale, Unconfirmed, PairReviewActions, PairReviewEntry (+5 more)
 
 ### Community 62 - ".FixedUpdate"
 Cohesion: 0.24
 Nodes (3): TireSample, Vector2, VehicleTireModel
 
-### Community 63 - "TrafficV2HazardCollector"
-Cohesion: 0.07
-Nodes (36): TrafficHazardCollectorCounters, Bounds, CharacterController, Collider, Dictionary, IReadOnlyList, List, NetworkedAIVehicleState (+28 more)
+### Community 63 - ".Collect"
+Cohesion: 0.16
+Nodes (13): TrafficHazardCollectorCounters, Bounds, CharacterController, IReadOnlyList, NetworkedAIVehicleState, Rigidbody, RoadId, Vector3 (+5 more)
 
-### Community 64 - "PlayerMode"
-Cohesion: 0.15
-Nodes (8): CharacterController, PlayerMode, Driver, OnFoot, OnFootRageRoad, OnFootStop, Passenger, Spectating
+### Community 64 - "V2StepRecord"
+Cohesion: 0.14
+Nodes (16): V2ComposerDiagnostic, Fallback, FallbackHeld, FallbackStopOverrun, None, ProfileScalarNonFinite, RollingBackward, IReadOnlyList (+8 more)
 
 ### Community 65 - "PlanningDecision"
-Cohesion: 0.12
-Nodes (17): PlanningDecision, Motion, Observation, Path, PerceptionPath, Projection, Route, SpeedProfile (+9 more)
+Cohesion: 0.25
+Nodes (8): PlanningDecision, Motion, Observation, Path, PerceptionPath, Projection, Route, SpeedProfile
 
 ### Community 66 - "TrackPiece"
-Cohesion: 0.18
-Nodes (10): RoadCurve, RoadElementKind, NominalPose, TrackPiece, Curve, ElementStartSMeters, EndDistanceMeters, Id (+2 more)
+Cohesion: 0.19
+Nodes (9): RoadCurve, RoadElementKind, TrackPiece, Curve, ElementStartSMeters, EndDistanceMeters, Id, Kind (+1 more)
 
-### Community 67 - "LobbyRosterService"
-Cohesion: 0.04
-Nodes (39): Difficulty, Task, FacepunchSteamLobbyPlatform, Difficulty, Task, ISteamLobbyPlatform, LobbyCreateOutcome, LobbyId (+31 more)
+### Community 67 - "FacepunchSteamLobbyPlatform"
+Cohesion: 0.07
+Nodes (24): Difficulty, Task, FacepunchSteamLobbyPlatform, Task, ISteamLobbyPlatform, LobbyCreateOutcome, LobbyId, Success (+16 more)
 
 ### Community 68 - "NetworkedRunSessionMonitor"
-Cohesion: 0.18
+Cohesion: 0.21
 Nodes (4): IEnumerator, NetworkManager, NetworkedRunSessionMonitor, HostDisconnectedNotice
 
 ### Community 69 - "PassengerActionVerdictCode"
@@ -505,120 +509,120 @@ Cohesion: 0.13
 Nodes (15): PassengerActionVerdictCode, Accepted, ActorMismatch, ActorNotAlive, ActorNotPassenger, CooldownActive, InvalidAction, InvalidCatalog (+7 more)
 
 ### Community 70 - ".Compute"
-Cohesion: 0.33
-Nodes (7): BinaryWriter, IReadOnlyList, RoadBoundsBox, RoadCurveSample, RoadId, RoadModelValidationProfile, PairGeometryFingerprint
+Cohesion: 0.22
+Nodes (9): BinaryWriter, IReadOnlyList, RoadBoundsBox, RoadCurveSample, RoadId, RoadModelValidationProfile, Vector3, HistoricalPairFingerprintRecord (+1 more)
 
 ### Community 71 - "TrafficDecisionProjection"
 Cohesion: 0.07
 Nodes (26): RoadElementKind, RoadId, TrafficDecisionProjection, Code, Drive, ElementId, ElementKind, EvidenceStatus (+18 more)
 
 ### Community 72 - "ElementOccupant"
-Cohesion: 0.08
-Nodes (26): Bounds, RoadBoundsBox, RoadElementKind, RoadId, Vector3, ElementClosureInput, ElementOccupant, IntentInterval (+18 more)
+Cohesion: 0.09
+Nodes (24): Bounds, IReadOnlyList, RoadBoundsBox, RoadElementKind, RoadId, Vector3, ElementOccupant, IntentInterval (+16 more)
 
-### Community 73 - "PerceptionStatus"
-Cohesion: 0.33
-Nodes (5): PerceptionStatus, AgentOccupancyUnavailable, Evaluated, NoMovementAhead, UndeclaredFootprint
+### Community 73 - "ObservationChannel"
+Cohesion: 0.17
+Nodes (12): IReadOnlyList, ObservationChannel, Items, RangeMeters, Saturated, Status, Total, PerceptionStatus (+4 more)
 
-### Community 74 - "V1ImportResult"
-Cohesion: 0.15
-Nodes (10): DrivabilityProfile, IList, RoadId, RoadLocalizationProfile, RoadModelSource, RoadModelValidationProfile, V1ImportResult, Succeeded (+2 more)
+### Community 74 - "TrafficV2HazardCollector"
+Cohesion: 0.12
+Nodes (16): Collider, Dictionary, List, ProfilerMarker, Stopwatch, TrafficV2HazardCollector, Capacity, Counters (+8 more)
 
 ### Community 75 - "SweepPose"
-Cohesion: 0.18
-Nodes (10): Vector2, GridPath, PoseFrame, SweepPose, Plan, IReadOnlyList, Vector2, KinematicPoseSet (+2 more)
+Cohesion: 0.24
+Nodes (9): Vector2, GridPath, PoseFrame, SweepPose, Plan, IReadOnlyList, Vector2, KinematicPoseSet (+1 more)
 
 ### Community 76 - "UserNotice"
 Cohesion: 0.15
 Nodes (9): UserNotice, Message, Severity, UserNoticeSeverity, Error, Info, Warning, UserNoticeChannel (+1 more)
 
-### Community 77 - "VehicleCoverage"
-Cohesion: 0.25
-Nodes (8): VehicleCoverage, Covered, GateAEvidenceMissing, GateAEvidenceStale, NotCoveredByGateA, NotEstablished, PoseModelMismatch, TrackingToleranceUndeclared
+### Community 77 - "TrafficV2Admission"
+Cohesion: 0.17
+Nodes (10): DriverProfile, GameObject, TrafficV2Admission, Admitted, Code, Evidence, Model, TrafficV2Lifecycle (+2 more)
 
 ### Community 78 - "TrafficLongitudinalOutcome"
 Cohesion: 0.17
 Nodes (11): TrafficLongitudinalOutcome, Blockers, Collector, Decision, Dominant, FrameId, HasDominant, HazardQueryHits (+3 more)
 
-### Community 79 - "PassengerActionDef"
-Cohesion: 0.16
-Nodes (12): PassengerActionDef, CooldownSeconds, DisplayName, Id, MaxRange, RawId, Slot, Version (+4 more)
+### Community 79 - ".CheckVisuals"
+Cohesion: 0.24
+Nodes (6): Surface, HashSet, Renderer, VisibleFaces, MeshRenderer, VisibleFaces
 
-### Community 80 - "CampaignTraceability"
-Cohesion: 0.20
-Nodes (6): Dictionary, HashSet, IReadOnlyDictionary, RoadId, CampaignTraceability, Elements
+### Community 80 - ".FingerprintWithInputs"
+Cohesion: 0.23
+Nodes (6): IEnumerable, StringBuilder, Transform, Component, Mesh, MeshFilter
 
-### Community 81 - "StopHoldRelease"
-Cohesion: 0.33
-Nodes (6): StopHoldRelease, GapOpened, GrantEffective, None, SourceDeparted, SourceGone
+### Community 81 - "LongitudinalCandidateKind"
+Cohesion: 0.18
+Nodes (11): LongitudinalCandidateKind, DesiredSpeed, JunctionEntry, LeaderFollowing, Obstacle, PerceptionUnavailable, Profile, SteeringCeilingUnreachable (+3 more)
 
 ### Community 82 - "KinematicOffsetBounds"
 Cohesion: 0.11
 Nodes (17): CompiledRoadModel, Dictionary, DrivabilityProfile, IList, KeyValuePair, List, RoadId, ElementOffsets (+9 more)
 
-### Community 83 - "LocalVoidRespawnController"
-Cohesion: 0.25
-Nodes (5): Quaternion, Vector3, LocalVoidRespawnController, CheckpointHud, IsDead
+### Community 83 - ".HandleRosterChanged"
+Cohesion: 0.24
+Nodes (5): Difficulty, Difficulty, Easy, Hard, Normal
 
 ### Community 84 - "JunctionCoordinator"
-Cohesion: 0.18
-Nodes (17): CompiledRoadModel, Dictionary, List, RoadId, Grant, JunctionCoordinator, Batches, Current (+9 more)
+Cohesion: 0.15
+Nodes (20): CompiledRoadModel, Dictionary, IReadOnlyList, JunctionRecord, JunctionSnapshot, List, RoadId, Grant (+12 more)
 
-### Community 85 - ".Screen"
-Cohesion: 0.22
-Nodes (8): RefineNode, RefineSegment, GridPath, LeafState, MovementSide, RefineContext, RefineNode, RefineSegment
+### Community 85 - "ConflictSweep"
+Cohesion: 0.16
+Nodes (10): ConflictSweep, RefineNode, RefineSegment, GridPath, LeafState, MovementSide, PoseFrame, RefineContext (+2 more)
 
 ### Community 86 - "HistoricalMovementReader"
-Cohesion: 0.18
-Nodes (13): JunctionRecord, RoadCurveSample, RoadId, Document, HistoricalMovement, HistoricalMovementReader, JunctionRecord, ModelRecord (+5 more)
+Cohesion: 0.20
+Nodes (10): JunctionRecord, Document, HistoricalMovement, HistoricalMovementReader, JunctionRecord, ModelRecord, Document, HistoricalMovement (+2 more)
 
 ### Community 87 - "StopHoldPhase"
 Cohesion: 0.40
 Nodes (5): StopHoldPhase, Entered, Holding, None, Released
 
-### Community 88 - "NetworkPlayerRegistry"
-Cohesion: 0.13
-Nodes (8): NetworkPlayerConnectionPayload, Dictionary, NetworkPlayerProfile, CharacterId, DisplayName, NetworkPlayerRegistry, ConnectionApprovalRequest, ConnectionApprovalResponse
+### Community 88 - "LobbyFlowController"
+Cohesion: 0.11
+Nodes (8): HashSet, NetworkPrefabsList, RoadRageBootstrap, LobbyFlowController, Settings, NetworkPlayerConnectionPayload, ConnectionApprovalRequest, ConnectionApprovalResponse
 
 ### Community 89 - "RoadModelValidationIssue"
 Cohesion: 0.15
-Nodes (18): RoadRecordKind, Adjacency, Connection, Control, Corridor, Movement, Section, SignalPlan (+10 more)
+Nodes (19): RoadRecordKind, Adjacency, ConflictZone, Connection, Control, Corridor, Movement, Section (+11 more)
 
-### Community 90 - "ReferenceTrack"
-Cohesion: 0.21
-Nodes (6): RoadKinematicAnchor, ReferenceTrack, HasKinematicPose, LengthMeters, Pieces, ReferenceAheadRearAxleMeters
+### Community 90 - "RageDisposition"
+Cohesion: 0.22
+Nodes (7): RageDisposition, Block, Calm, ConfrontationCapable, Flee, Irritated, Ram
 
 ### Community 91 - ".Draw"
-Cohesion: 0.27
-Nodes (6): DrivabilityProfile, IReadOnlyList, Color, IReadOnlyList, RoadCurveSample, SceneView
+Cohesion: 0.20
+Nodes (9): DrivabilityProfile, IReadOnlyList, RoadCurveSample, MovementRecord, Color, IReadOnlyList, RoadCurveSample, RoadModelValidationProfile (+1 more)
 
 ### Community 92 - "RoadLineage"
 Cohesion: 0.12
 Nodes (19): FileLayout, HashSet, IEnumerable, IReadOnlyList, KeyValuePair, List, RoadId, RoadRecordKind (+11 more)
 
-### Community 93 - "PlayerProfile"
-Cohesion: 0.14
-Nodes (14): PersistentPlayerProfileRecord, PlayerProfile, CharacterId, DisplayName, PlayerProfileResolution, Error, IsResolved, Profile (+6 more)
+### Community 93 - "JunctionClearanceResult"
+Cohesion: 0.31
+Nodes (7): RoadId, JunctionClearanceRelief, JunctionClearanceResult, Passed, JunctionClearanceRow, PhysicalSetEmpty, JunctionClearanceWitness
 
 ### Community 94 - "V1SourceSet"
-Cohesion: 0.13
-Nodes (17): Func, GameObject, IReadOnlyDictionary, IReadOnlyList, LaneGraph, LaneNode, List, Scene (+9 more)
+Cohesion: 0.12
+Nodes (21): Func, GameObject, IReadOnlyDictionary, IReadOnlyList, LaneGraph, LaneNode, List, Quaternion (+13 more)
 
 ### Community 95 - "JunctionConflictIndex"
-Cohesion: 0.11
-Nodes (20): CompiledRoadModel, ConditionalWeakTable, Dictionary, IReadOnlyList, Portal, RoadBoundsBox, RoadId, Vector3 (+12 more)
+Cohesion: 0.15
+Nodes (12): CompiledRoadModel, ConditionalWeakTable, Dictionary, IReadOnlyList, Portal, RoadBoundsBox, RoadId, Vector3 (+4 more)
 
 ### Community 96 - "TrackingTolerance"
-Cohesion: 0.19
-Nodes (10): TrackingToleranceResponse, Latched, LatchedAtStep, TrafficV2Settings, DeclaredTrackingTolerance, PerceptionLimits, StopHold, TrackingTolerance (+2 more)
+Cohesion: 0.31
+Nodes (5): TrackingToleranceResponse, Latched, LatchedAtStep, TrackingTolerance, Undeclared
 
 ### Community 97 - "VehicleWheel"
 Cohesion: 0.25
 Nodes (7): Vector3, VehicleWheel, AxleIndex, IsDriven, IsSteering, LocalPosition, Radius
 
 ### Community 98 - "GateAReviewWindow"
-Cohesion: 0.15
-Nodes (11): Color, HashSet, List, MenuItem, RoadId, SceneView, Vector2, GateAReviewWindow (+3 more)
+Cohesion: 0.12
+Nodes (17): Color, HashSet, List, MenuItem, RoadId, SceneView, Vector2, ConflictFilter (+9 more)
 
 ### Community 99 - "LocalVehicleCameraRig"
 Cohesion: 0.16
@@ -628,17 +632,17 @@ Nodes (9): CinemachineCamera, CinemachineOrbitalFollow, Dictionary, Quaternion, 
 Cohesion: 0.30
 Nodes (6): List, Vector3, HermiteSegment, RoadCurveBuilder, SegmentWalker, HermiteSegment
 
-### Community 101 - ".Track"
-Cohesion: 0.22
-Nodes (6): DrivabilityProfile, DriverProfile, RoadCurve, Vector3, MotionCommand, IsFinite
+### Community 101 - "LobbyPlayerSlotView"
+Cohesion: 0.29
+Nodes (4): Color, TMP_Text, LobbyPlayerSlotView, Image
 
 ### Community 102 - ".Create"
 Cohesion: 0.29
 Nodes (6): GameObject, NetworkObject, Quaternion, Rigidbody, Vector3, DevVehicleSpawner
 
 ### Community 103 - "PerceivedObstacleKind"
-Cohesion: 0.24
-Nodes (8): RoadId, BlockerRules, PerceivedObstacleKind, Obstacle, Pedestrian, TrafficActor, Vehicle, WalkingPlayer
+Cohesion: 0.13
+Nodes (13): Vector3, ObstacleFact, InSweptPath, PerceivedObstacleKind, Obstacle, Pedestrian, TrafficActor, Vehicle (+5 more)
 
 ### Community 104 - "JunctionRequestRejection"
 Cohesion: 0.22
@@ -656,13 +660,13 @@ Nodes (11): Camera, Color, GameObject, PointerEventData, Renderer, Transform, Me
 Cohesion: 0.35
 Nodes (4): DriverProfile, JunctionDistances, EngageThresholdMeters, RequestThresholdMeters
 
-### Community 109 - "AIVehicleBehaviorDebugView"
-Cohesion: 0.21
-Nodes (7): Camera, TMP_Text, Vector3, AIVehicleBehaviorDebugView, IRageDispositionSource, CurrentDisposition, TextMeshPro
+### Community 109 - "HazardRootClass"
+Cohesion: 0.25
+Nodes (7): HazardRootClass, Obstacle, Self, Static, TrafficV2Vehicle, Vehicle, WalkingPlayer
 
 ### Community 110 - "RoadGeometryValidator"
-Cohesion: 0.17
-Nodes (12): Dictionary, List, Vector3, DatumTrace, GroundedCorridor, RoadGeometryValidator, LaneCorridor, JunctionMovement (+4 more)
+Cohesion: 0.16
+Nodes (13): Dictionary, List, Vector3, DatumTrace, GroundedCorridor, RoadGeometryValidator, LaneCorridor, Vector3 (+5 more)
 
 ### Community 111 - "NetworkedBossState.cs"
 Cohesion: 0.50
@@ -677,12 +681,12 @@ Cohesion: 0.25
 Nodes (5): RoadModelVersion, High, IsEmpty, Low, SchemaVersion
 
 ### Community 114 - "MatchSettings"
-Cohesion: 0.29
-Nodes (6): Difficulty, MatchSettings, AiVehicleTargetCount, Difficulty, LitterThrowerCount, RoadRage.Features.Lobby
+Cohesion: 0.40
+Nodes (5): Difficulty, MatchSettings, AiVehicleTargetCount, Difficulty, LitterThrowerCount
 
-### Community 115 - "JunctionExitBound"
-Cohesion: 0.20
-Nodes (9): IReadOnlyList, JunctionRecord, JunctionExitBound, ExitPortal, ExitSearchBound, None, Occupant, Reservations (+1 more)
+### Community 115 - "JunctionRecords.cs"
+Cohesion: 0.09
+Nodes (20): JunctionExitAssessment, JunctionExitBound, ExitPortal, ExitSearchBound, None, Occupant, Reservations, RouteEnd (+12 more)
 
 ### Community 116 - "TrafficJunctionOutcome"
 Cohesion: 0.18
@@ -696,69 +700,61 @@ Nodes (3): NetworkVariable, NetworkedCrewEconomyState, RoadRage.Features.Economy
 Cohesion: 0.13
 Nodes (12): TrafficSettingsDef, ConnectorJoinDistance, DefaultLitterThrowers, DefaultTargetPopulation, EdgeBudgetFactor, Id, MaxLitterThrowers, MaxTargetPopulation (+4 more)
 
-### Community 119 - "RoadRage.Features.Vehicles.Traffic.Migration"
-Cohesion: 0.22
-Nodes (3): Vector3, HistoricalPairFingerprintRecord, RoadRage.Features.Vehicles.Traffic.Migration
-
 ### Community 120 - "DriverProfile"
-Cohesion: 0.08
-Nodes (21): DriverModel, DriverProfile, AimPointRecallSpeed, ComfortableDeceleration, Consistency, DesiredSpeed, LaneChangeEvaluationInterval, LaneChangeThreshold (+13 more)
+Cohesion: 0.12
+Nodes (14): DriverModel, DriverProfile, AimPointRecallSpeed, ComfortableDeceleration, Consistency, DesiredSpeed, LaneChangeEvaluationInterval, LaneChangeThreshold (+6 more)
 
-### Community 121 - ".Configure"
-Cohesion: 0.25
-Nodes (6): CinemachineCamera, CinemachineOrbitalFollow, Transform, ThirdPersonCameraConfiguration, CinemachineDeoccluder, CinemachineRotationComposer
+### Community 121 - "StatusFilter"
+Cohesion: 0.29
+Nodes (7): StatusFilter, Inchangees, Modifiees, Nouvelles, Retirees, SansDecisionConfirmee, Tous
 
 ### Community 122 - ".Evaluate"
-Cohesion: 0.15
-Nodes (13): DriverProfile, PlanningReach, IReadOnlyList, ProfilerMarker, PlanningRequest, PlanningSpine, CompiledRoadModel, RoadId (+5 more)
+Cohesion: 0.14
+Nodes (17): IReadOnlyList, PlanningRequest, CompiledRoadModel, RoadLocation, DecisionCounter, RouteDiagnostic, None, ZeroWeightFallback (+9 more)
 
 ### Community 123 - "RoadRage.Features.Vehicles.Traffic.Planning"
-Cohesion: 0.16
-Nodes (10): TrafficV2Work, TrafficV2WorkCounters, PlanningTolerances, RoadRage.Features.Vehicles.Traffic.Frame, RoadRage.Features.Vehicles.Traffic.Coordination, RoadRage.Features.Vehicles.Traffic.Diagnostics, RoadRage.Features.Vehicles.Traffic.Planning, RoadRage.Features.Vehicles.Traffic.Routing (+2 more)
+Cohesion: 0.14
+Nodes (13): TrafficV2Work, TrafficV2WorkCounters, PlanningTolerances, ProfilerMarker, PlanningSpine, RoadRage.Features.Vehicles.Traffic.Frame, RoadRage.Features.Vehicles.Traffic.Coordination, RoadRage.Features.Vehicles.Traffic.Diagnostics (+5 more)
 
 ### Community 125 - "TrafficV2VehicleDriver"
 Cohesion: 0.04
-Nodes (55): BoxCollider, Collider, Collision, Dictionary, DriverProfile, DriverProfileDef, IReadOnlyList, List (+47 more)
+Nodes (51): BoxCollider, Collider, Collision, Dictionary, DriverProfileDef, Portal, ProfilerMarker, Rigidbody (+43 more)
 
 ### Community 126 - "PairReviewWindow"
-Cohesion: 0.10
-Nodes (14): IList, List, MenuItem, Vector2, PairReviewWindow, StatusFilter, Inchangees, Modifiees (+6 more)
+Cohesion: 0.17
+Nodes (6): IList, List, MenuItem, Vector2, PairReviewWindow, StatusFilter
 
 ### Community 127 - "PortalTrafficSpawner"
-Cohesion: 0.09
-Nodes (20): CharacterController, Collider, GameObject, IEnumerator, IReadOnlyList, List, NetworkObject, Vector3 (+12 more)
-
-### Community 128 - "TrackingMeasurement.cs"
-Cohesion: 0.25
-Nodes (8): InterStepResult, BoundMeters, LipschitzMeters, ModelVerified, Pieces, PositionResidualMeters, RotationResidualDegrees, PieceBound
+Cohesion: 0.10
+Nodes (19): CharacterController, Collider, GameObject, IEnumerator, IReadOnlyList, List, NetworkObject, Vector3 (+11 more)
 
 ### Community 129 - "RoadRageBootstrap"
-Cohesion: 0.06
-Nodes (26): GameObject, NetworkManager, NetworkPrefabsList, RoadRageBootstrap, Instance, LobbyJoin, LobbyRoom, LobbyRoster (+18 more)
+Cohesion: 0.05
+Nodes (28): GameObject, NetworkManager, NetworkPrefabsList, RoadRageBootstrap, Instance, LobbyJoin, LobbyRoom, LobbyRoster (+20 more)
 
 ### Community 130 - "TrafficV2StepRunner"
 Cohesion: 0.11
 Nodes (21): CompiledRoadModel, HashSet, IEnumerable, JunctionSnapshot, List, ProfilerMarker, RoadId, Stopwatch (+13 more)
 
-### Community 131 - "LobbyFlowController"
-Cohesion: 0.04
-Nodes (25): Difficulty, HashSet, NetworkPrefabsList, RoadRageBootstrap, LobbyFlowController, Settings, Color, TMP_Text (+17 more)
+### Community 131 - ".Awake"
+Cohesion: 0.12
+Nodes (4): Button, TMP_Text, LobbyShellScreen, TMP_InputField
 
 ### Community 132 - "RunEscapeMenuFlowController"
-Cohesion: 0.18
+Cohesion: 0.16
 Nodes (5): RunEscapeMenuFlowController, IsOpen, LocalInputGate, IsBlocked, CursorLockMode
 
 ### Community 133 - "RoadModelRecords.cs"
-Cohesion: 0.04
-Nodes (78): CompiledConflictZone, JunctionMovement, RoadModelCanonicalPayload, Comparison, Vector3, ConflictKind, Crossing, Merge (+70 more)
+Cohesion: 0.05
+Nodes (70): JunctionMovement, RoadModelCanonicalPayload, DrivabilityProfile, ImportManifest, ImportManifestEntry, Junction, JunctionControl, JunctionControlKind (+62 more)
 
 ### Community 134 - "SpeedPlan"
 Cohesion: 0.09
 Nodes (30): CompiledRoadModel, DriverProfile, IReadOnlyList, List, RoadElementKind, RoadId, DeferredLimit, DeferredLimitKind (+22 more)
 
-### Community 135 - ".FromRoute"
-Cohesion: 0.40
-Nodes (3): CompiledRoadModel, IReadOnlyList, List
+### Community 135 - "TrafficHazardKind"
+Cohesion: 0.33
+Nodes (5): TrafficHazardKind, Obstacle, Pedestrian, Vehicle, WalkingPlayer
 
 ### Community 136 - "LobbyJoinService"
 Cohesion: 0.13
@@ -781,56 +777,64 @@ Cohesion: 0.33
 Nodes (6): LeafState, Proven, Split, Unresolved, Witness, WitnessSplit
 
 ### Community 141 - "RoadModelDocument"
-Cohesion: 0.07
-Nodes (35): Func, AdjacencyDto, BindingDto, ConnectionDto, ControlDto, CorridorDto, DocumentDto, EntryDto (+27 more)
+Cohesion: 0.06
+Nodes (40): Func, AdjacencyDto, BindingDto, ConnectionDto, ControlDto, CorridorDto, DocumentDto, EntryDto (+32 more)
 
-### Community 142 - "PairDecisionState"
-Cohesion: 0.33
-Nodes (6): PairDecisionState, Confirmed, Missing, Orphan, Stale, Unconfirmed
+### Community 142 - "AppSceneRouter.cs"
+Cohesion: 0.40
+Nodes (3): AppPlayModeEntry, PlayModeStateChange, SceneAsset
 
 ### Community 143 - "LaneNode"
 Cohesion: 0.13
 Nodes (14): IReadOnlyList, LaneNode, IsEntryPortal, IsExitPortal, IsIncomingConnector, IsOutgoingConnector, Role, Successors (+6 more)
 
-### Community 144 - "ConflictFilter"
+### Community 144 - "TrafficV2Settings"
 Cohesion: 0.40
-Nodes (5): ConflictFilter, All, Approach, Movement, Zone
+Nodes (5): TrafficV2Settings, DeclaredTrackingTolerance, PerceptionLimits, StopHold, PerceptionLimits
 
 ### Community 145 - "RoadModelCanonicalWriter"
-Cohesion: 0.26
-Nodes (5): BinaryWriter, Comparison, IReadOnlyList, Vector3, RoadModelCanonicalWriter
+Cohesion: 0.21
+Nodes (6): BinaryWriter, Comparison, IReadOnlyList, Vector3, RoadModelCanonicalWriter, ReadOnlyMemory
 
 ### Community 146 - "SpeedConstraint"
-Cohesion: 0.12
-Nodes (18): RoadId, V2InteractionRecord, V2JunctionTrace, SpeedConstraint, AnticipatedDeceleration, CurrentSpeedDeceleration, CurveLimit, DesiredSpeed (+10 more)
+Cohesion: 0.13
+Nodes (15): SpeedConstraint, AnticipatedDeceleration, CurrentSpeedDeceleration, CurveLimit, DesiredSpeed, HorizonTerminalStop, JunctionEntry, LeaderFollowing (+7 more)
 
 ### Community 147 - "RunEscapeMenuScreen"
 Cohesion: 0.29
 Nodes (3): Button, RunEscapeMenuScreen, IsOpen
 
 ### Community 148 - "ImportContext"
-Cohesion: 0.20
-Nodes (7): RoadBoundsBox, RoadCurvePoint, Vector3, AuthoringTask, CircleFit, ImportContext, CircleFit
+Cohesion: 0.14
+Nodes (10): DrivabilityProfile, RoadBoundsBox, RoadCurvePoint, RoadLocalizationProfile, RoadModelValidationProfile, Vector3, CircleFit, ImportContext (+2 more)
+
+### Community 149 - ".Step"
+Cohesion: 0.15
+Nodes (6): DriverProfile, JunctionSnapshot, List, V2StageTimings, TotalMillisecondsPerStep, DriverProfile
 
 ### Community 151 - "NetworkedVehicleSeatIntent"
 Cohesion: 0.25
 Nodes (5): Key, Rpc, RpcParams, NetworkedVehicleSeatIntent, Keyboard
 
-### Community 153 - ".InterStepBound"
-Cohesion: 0.33
-Nodes (6): Quaternion, Vector3, BodyState, GaugeBox, Rho, TrackingMeasurement
+### Community 152 - "PerceptionUnavailableReason"
+Cohesion: 0.40
+Nodes (5): PerceptionUnavailableReason, ChannelSaturated, ChannelUnavailable, HazardCollectorSaturated, None
+
+### Community 153 - "ReferenceTrack"
+Cohesion: 0.11
+Nodes (22): IReadOnlyList, Quaternion, RoadKinematicAnchor, Vector3, BodyState, GaugeBox, Rho, InterStepResult (+14 more)
 
 ### Community 155 - ".Read"
 Cohesion: 0.25
 Nodes (6): Collider, List, MonoBehaviour, Scene, Transform, SidewalkDeclarations
 
 ### Community 156 - "LongitudinalDecision"
-Cohesion: 0.12
+Cohesion: 0.15
 Nodes (13): LongitudinalDecision, AppliedAccelerationMetersPerSecondSquared, Binding, Candidates, FreeRoadAccelerationMetersPerSecondSquared, Hold, HoldCauses, Memory (+5 more)
 
 ### Community 157 - "TrafficV2Insertion"
-Cohesion: 0.09
-Nodes (25): CompiledRoadModel, DriverProfile, GameObject, Portal, Quaternion, RoadId, RoadLocation, Vector3 (+17 more)
+Cohesion: 0.12
+Nodes (16): CompiledRoadModel, Portal, Quaternion, RoadLocation, Vector3, TrafficV2Insertion, Code, EntryPortal (+8 more)
 
 ### Community 158 - "PathIssue"
 Cohesion: 0.29
@@ -841,36 +845,36 @@ Cohesion: 0.15
 Nodes (8): IEnumerable, NetworkedPlayerLifecycleService, Instance, PlayerLifecycle, Alive, Dead, Disconnected, Downed
 
 ### Community 163 - "RoutePath"
-Cohesion: 0.26
-Nodes (7): IReadOnlyList, RoadCurve, RoadCurvePoint, Vector3, RoutePath, LengthMeters, Spans
+Cohesion: 0.21
+Nodes (8): CompiledRoadModel, IReadOnlyList, RoadCurve, RoadCurvePoint, Vector3, RoutePath, LengthMeters, Spans
 
 ### Community 166 - "NetworkedPassengerActionIntent"
-Cohesion: 0.07
-Nodes (26): Func, Rpc, RpcParams, Vector3, NetworkedPassengerActionIntent, NetworkVariable, NetworkedPassengerActionIncidentState, IsActive (+18 more)
+Cohesion: 0.05
+Nodes (41): Func, Rpc, RpcParams, Vector3, NetworkedPassengerActionIntent, NetworkVariable, NetworkedPassengerActionIncidentState, IsActive (+33 more)
 
-### Community 167 - "ElementTrace"
-Cohesion: 0.12
-Nodes (16): ElementStatus, Measured, NotMeasured, NotSelectable, ElementTrace, Key, Kind, MaxInterStepBoundMeters (+8 more)
+### Community 167 - "CampaignTraceability"
+Cohesion: 0.07
+Nodes (24): CompiledRoadModel, Dictionary, HashSet, IReadOnlyDictionary, List, RoadId, CampaignTraceability, Elements (+16 more)
 
 ### Community 168 - "SpeedPlanIssue"
 Cohesion: 0.40
 Nodes (5): SpeedPlanIssue, InvalidInput, None, PlanInfeasible, ProfileRefused
 
 ### Community 169 - "V2FallbackReason"
-Cohesion: 0.06
-Nodes (37): VehicleDriveIntent, VehicleProfile, ComposedDrive, V2ComposerDiagnostic, Fallback, FallbackHeld, FallbackStopOverrun, None (+29 more)
+Cohesion: 0.07
+Nodes (31): VehicleDriveIntent, VehicleProfile, ComposedDrive, V2FallbackReason, ExitPortalReached, FrameUnavailable, HorizonNonConforming, NoCommand (+23 more)
 
 ### Community 170 - "NetworkedVehicleState.cs"
 Cohesion: 0.40
 Nodes (4): VehicleDamageType, Brake, Engine, Wheel
 
-### Community 171 - "NetworkedPlayerState"
-Cohesion: 0.17
-Nodes (10): Rpc, RpcParams, NetworkedPlayerLifecycleIntent, FixedString32Bytes, NetworkVariable, Vector3, NetworkedPlayerState, HostOwnedNetworkStateBehaviour (+2 more)
+### Community 171 - "NetworkedPlayerLifecycleIntent"
+Cohesion: 0.32
+Nodes (3): Rpc, RpcParams, NetworkedPlayerLifecycleIntent
 
 ### Community 174 - "TrafficV2Code"
-Cohesion: 0.11
-Nodes (19): TrafficV2Code, Allowed, CampaignCompleted, DriverProfileMissing, FirstDecisionNotDrivable, GateAEvidenceMissing, GateAEvidenceStale, NotCoveredByGateA (+11 more)
+Cohesion: 0.12
+Nodes (17): TrafficV2Code, Allowed, CampaignCompleted, DriverProfileMissing, FirstDecisionNotDrivable, GateAEvidenceMissing, GateAEvidenceStale, NotCoveredByGateA (+9 more)
 
 ### Community 178 - "GateAEvidenceResult"
 Cohesion: 0.15
@@ -884,77 +888,69 @@ Nodes (4): Key, Rpc, RpcParams, NetworkedPlayerReviveIntent
 Cohesion: 0.27
 Nodes (3): IReadOnlyList, Vector3, LaneGraphRouting
 
-### Community 186 - ".DiffHash"
-Cohesion: 0.21
-Nodes (8): HashSet, IList, List, RoadId, SortedDictionary, ClassificationSummary, RefinementInputs, RefinedPair
-
 ### Community 189 - "NetworkedVehicleRecoveryIntent"
 Cohesion: 0.30
 Nodes (4): Key, Rpc, RpcParams, NetworkedVehicleRecoveryIntent
 
 ### Community 190 - "ModelDto"
-Cohesion: 0.11
-Nodes (15): AdjacencyDto, DrivabilityProfile, RoadModelCompiler, ModelDto, ConnectionDto, ControlDto, CorridorDto, RoadRage.Features.Vehicles.Traffic (+7 more)
+Cohesion: 0.10
+Nodes (16): AdjacencyDto, DrivabilityProfile, Comparison, RoadModelCompiler, ModelDto, ConnectionDto, ControlDto, CorridorDto (+8 more)
 
 ### Community 191 - "PairRelation"
 Cohesion: 0.29
 Nodes (7): PairRelation, Candidate, EnvelopeOnly, FailClosed, Following, NoContact, SameApproach
 
-### Community 192 - ".Classify"
-Cohesion: 0.16
-Nodes (9): AutomatedPairClassification, ConflictProven, ConservativeConflict, Following, ProvenDisjoint, ConflictDecision, RoadModelValidationProfile, Vector3 (+1 more)
-
 ### Community 193 - "RoadRage.Shared.Domain"
-Cohesion: 0.07
-Nodes (18): SessionTrafficValue, RoadRage.App.Services, RoadRage.Features.Players, RoadRage.App, RoadRage.Shared.Domain, RoadRage.Features.UI, RoadRage.Features.Run, RoadRage.Features.OnFoot (+10 more)
+Cohesion: 0.08
+Nodes (19): SessionTrafficValue, RoadRage.App.Services, RoadRage.Features.Players, RoadRage.App, RoadRage.Shared.Domain, RoadRage.Features.UI, RoadRage.Features.Run, RoadRage.Features.OnFoot (+11 more)
 
 ### Community 196 - "LobbyCodeClipboard"
-Cohesion: 0.24
-Nodes (6): PointerEventData, TMP_Text, LobbyCodeClipboard, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
+Cohesion: 0.14
+Nodes (11): Color, PointerEventData, TMP_Text, LobbyCodeClipboard, LobbyRosterEntry, DisplayName, PortraitTint, Ready (+3 more)
 
 ### Community 200 - "NetworkedPlayerPresentation"
 Cohesion: 0.12
 Nodes (11): NetworkedLocalPlayerPoseReporter, Collider, FixedString32Bytes, GameObject, Rpc, RpcParams, Vector3, NetworkedPlayerPresentation (+3 more)
 
 ### Community 216 - "LaneGraph"
-Cohesion: 0.14
-Nodes (11): Color, HashSet, IReadOnlyList, List, Quaternion, LaneGraph, EntryPortals, ExitPortals (+3 more)
+Cohesion: 0.11
+Nodes (12): Color, HashSet, IReadOnlyList, List, Quaternion, Vector3, LaneGraph, EntryPortals (+4 more)
 
 ### Community 217 - "TrafficPerception"
-Cohesion: 0.10
-Nodes (24): IReadOnlyList, Vector3, ObservationChannel, Items, RangeMeters, Saturated, Status, Total (+16 more)
+Cohesion: 0.22
+Nodes (10): Comparison, IReadOnlyList, List, RoadId, Context, FrontDistance, PerceptionLimits, TrafficPerception (+2 more)
 
 ### Community 249 - "DriverProfileDef"
-Cohesion: 0.31
+Cohesion: 0.27
 Nodes (5): DriverProfileDef, Id, Profile, RawId, ScriptableObject
 
 ### Community 612 - "NetworkedAIVehicleDriverController"
 Cohesion: 0.09
-Nodes (13): Vector3, BoxCollider, CharacterController, Collider, IReadOnlyList, List, NetworkTransform, Quaternion (+5 more)
+Nodes (14): BoxCollider, CharacterController, Collider, IReadOnlyList, List, NetworkTransform, Quaternion, RaycastHit (+6 more)
 
 ### Community 718 - "Lock-Rage Camera Fix Query"
 Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: Corriger la camera du lock rage pour rester au POV du joueur et faire de T un toggle, Y un cycle, Source Nodes
 
 ## Knowledge Gaps
-- **1127 isolated node(s):** `RoadRage.App`, `Instance`, `Router`, `Notices`, `Profiles` (+1122 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1583 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1127 isolated node(s):** `PlanningTolerances`, `DrivabilityProfile`, `Signoff`, `SessionTrafficValue`, `JunctionRecord` (+1122 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1597 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **22 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `TrafficV2VehicleDriver` connect `TrafficV2VehicleDriver` to `TrafficV2StepRunner`, `GateAEvidenceParameters`, `.FromRoute`, `Blocker`, `SpeedConstraint`, `V2StageTimings`, `AgentObservation`, `.InterStepBound`, `LongitudinalDecision`, `TrafficV2Insertion`, `TrafficFrame`, `RoutePlan`, `V2FallbackReason`, `NetworkedPlayerState`, `JunctionActorReport`, `.Decide`, `TrafficV2HazardCollector`, `TrafficDecisionProjection`, `ElementOccupant`, `ReferenceTrack`, `TrackingTolerance`, `RoadRage.Features.Vehicles.Traffic.Planning`, `PortalTrafficSpawner`?**
-  _High betweenness centrality (0.254) - this node is a cross-community bridge._
-- **Why does `PortalTrafficSpawner` connect `PortalTrafficSpawner` to `RoadRage.Shared.Domain`, `MeasurementRun`, `TrafficV2StepRunner`, `RageRoadEventFlowController`, `MonoBehaviour`, `TrafficV2Code`, `TrafficV2VehicleDriver`, `TrafficSettingsDef`, `LaneGraph`, `TrafficV2Insertion`?**
-  _High betweenness centrality (0.168) - this node is a cross-community bridge._
-- **Why does `RoadId` connect `RoadId` to `TrafficFrame`, `RoadModelRecords.cs`, `.DiffHash`, `RoadCurve`, `RoadModelDocument`, `RoadGeometryValidator`, `.Localize`, `RoadLineage`, `RoadModelCanonicalWriter`, `.TryParse`, `RoadModelValidationIssue`, `.Evaluate`, `PortalTrafficSpawner`, `TrafficV2Insertion`, `TrafficV2HazardCollector`?**
-  _High betweenness centrality (0.105) - this node is a cross-community bridge._
-- **What connects `RoadRage.App`, `Instance`, `Router` to the rest of the system?**
+- **Why does `TrafficV2VehicleDriver` connect `TrafficV2VehicleDriver` to `TrafficV2StepRunner`, `GateAEvidenceParameters`, `Blocker`, `.Step`, `AgentObservation`, `ReferenceTrack`, `LongitudinalDecision`, `TrafficV2Insertion`, `RoutePlan`, `NetworkedPassengerActionIntent`, `CampaignTraceability`, `V2FallbackReason`, `JunctionActorReport`, `.Collect`, `V2StepRecord`, `TrafficDecisionProjection`, `ElementOccupant`, `TrafficV2Admission`, `LongitudinalCandidateKind`, `TrackingTolerance`, `RoadRage.Features.Vehicles.Traffic.Planning`, `PortalTrafficSpawner`?**
+  _High betweenness centrality (0.233) - this node is a cross-community bridge._
+- **Why does `PortalTrafficSpawner` connect `PortalTrafficSpawner` to `V2StepRecord`, `RoadRage.Shared.Domain`, `TrafficV2Composition.cs`, `TrafficV2StepRunner`, `RageRoadEventFlowController`, `MonoBehaviour`, `TrafficV2Admission`, `TrafficV2Code`, `TrafficSettingsDef`, `LaneGraph`, `TrafficV2VehicleDriver`?**
+  _High betweenness centrality (0.150) - this node is a cross-community bridge._
+- **Why does `RoadId` connect `RoadId` to `TrafficFrame`, `AutomatedPairDecisionPolicy`, `RoadModelRecords.cs`, `SpeedPlan`, `PathHorizon`, `TrafficV2HazardCollector`, `TrafficV2Admission`, `RoadGeometryValidator`, `RoadModelDocument`, `RoadModelCanonicalWriter`, `RoadModelValidationIssue`, `.Evaluate`, `RoadLineage`, `PortalTrafficSpawner`?**
+  _High betweenness centrality (0.118) - this node is a cross-community bridge._
+- **What connects `PlanningTolerances`, `DrivabilityProfile`, `Signoff` to the rest of the system?**
   _1127 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `NetworkedVehicleSeatService` be split into smaller, more focused modules?**
-  _Cohesion score 0.14795008912655971 - nodes in this community are weakly interconnected._
+- **Should `NetworkedPlayerState` be split into smaller, more focused modules?**
+  _Cohesion score 0.10253699788583509 - nodes in this community are weakly interconnected._
 - **Should `.Refine` be split into smaller, more focused modules?**
-  _Cohesion score 0.10365853658536585 - nodes in this community are weakly interconnected._
-- **Should `MeasurementRun` be split into smaller, more focused modules?**
-  _Cohesion score 0.10276679841897234 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11095305832147938 - nodes in this community are weakly interconnected._
+- **Should `TrafficV2Composition.cs` be split into smaller, more focused modules?**
+  _Cohesion score 0.11384615384615385 - nodes in this community are weakly interconnected._
