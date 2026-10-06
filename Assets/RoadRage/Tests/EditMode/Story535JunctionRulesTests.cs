@@ -9,6 +9,7 @@ using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
+using RoadRage.Features.Vehicles.Traffic.Planning;
 using UnityEditor;
 using UnityEngine;
 
@@ -55,6 +56,10 @@ namespace RoadRage.Tests.EditMode
 
         private static DriverProfile Driver { get { return AssetDatabase.LoadAssetAtPath<DriverProfileDef>(DriverProfilePath).Profile; } }
         private static float Reservation { get { return CarLength + Driver.MinimumGap; } }
+        private static float JustTooFarAt(float speed)
+        {
+            return JunctionDistances.For(Driver, speed, Dt, TrafficV2Settings.JunctionStopControlMarginMeters).RequestThresholdMeters + 0.1f;
+        }
         private static RoadId Id(int n) { return new RoadId(0x535UL, (ulong)n); }
 
         private static RoadId Movement(CompiledRoadModel m, string junction, string label)
@@ -194,6 +199,10 @@ namespace RoadRage.Tests.EditMode
             Assert.That(JunctionPriority.TravelSeconds(100f, 0f, 2f, 4f), Is.EqualTo(2f + (100f - 4f) / 4f).Within(1e-4f));
             // Vitesse initiale au-dessus du plafond : ramenee au plafond (plus long, conservatif pour le demandeur).
             Assert.That(JunctionPriority.TravelSeconds(8f, 10f, 1.5f, 4f), Is.EqualTo(2f).Within(1e-5f));
+            Assert.That(JunctionPriority.EarliestArrivalSeconds(8f, 10f, 1.5f, 8f), Is.EqualTo(0.8f).Within(1e-5f),
+                "L'ETA ne suppose pas une deceleration instantanee a la vitesse desiree.");
+            Assert.That(JunctionPriority.EarliestArrivalSeconds(0f, 10f, 1.5f, 8f), Is.Zero);
+            Assert.That(JunctionPriority.EarliestArrivalSeconds(3f, 0f, 1.5f, 8f), Is.EqualTo(2f).Within(1e-5f));
             Assert.That(JunctionPriority.TravelSeconds(float.NaN, 1f, 1f, 1f), Is.EqualTo(float.PositiveInfinity));
             Assert.That(JunctionPriority.MovementSpeedCap(8f, 2f, 0f), Is.EqualTo(8f));
             Assert.That(JunctionPriority.MovementSpeedCap(8f, 2f, 0.5f), Is.EqualTo(2f).Within(1e-5f));
@@ -364,21 +373,82 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(index.TryGetConflict(chosen[control], chosen[rightOf[control]], out zone), Is.True, "Premisse : tout-droits perpendiculaires incompatibles.");
             }
             var reports = controls.Select((c, i) => Requesting(Model, Id(10 + i), Traversal(index, chosen[c]), 0.3f, 0f)).ToArray();
-            var snapshot = Batch(Model, new JunctionCoordinator(Model), 1, reports);
-            Assert.That(snapshot.Counters.DeadlockBreaks, Is.EqualTo(1), snapshot.ToText());
-            Assert.That(snapshot.Records.Count(r => r.Reason == JunctionReason.GrantedDeadlockBreak), Is.EqualTo(1));
-            // Meme anciennete : le plus petit TrafficId.
-            Assert.That(snapshot.Records.Single(r => r.Reason == JunctionReason.GrantedDeadlockBreak).TrafficId, Is.EqualTo(Id(10)));
+            var orders = from a in Enumerable.Range(0, 4) from b in Enumerable.Range(0, 4)
+                from c in Enumerable.Range(0, 4) from d in Enumerable.Range(0, 4)
+                where new[] { a, b, c, d }.Distinct().Count() == 4 select new[] { a, b, c, d };
+            foreach (var order in orders)
+            {
+                var snapshot = Batch(Model, new JunctionCoordinator(Model), 1, order.Select(i => reports[i]).ToArray());
+                Assert.That(snapshot.Counters.DeadlockBreaks, Is.EqualTo(1), snapshot.ToText());
+                Assert.That(snapshot.Records.Count(r => r.Reason == JunctionReason.GrantedDeadlockBreak), Is.EqualTo(1));
+                Assert.That(snapshot.Records.Count(r => r.Reason == JunctionReason.YieldToPriority), Is.EqualTo(3));
+                // Meme anciennete : le plus petit TrafficId.
+                Assert.That(snapshot.Records.Single(r => r.Reason == JunctionReason.GrantedDeadlockBreak).TrafficId, Is.EqualTo(Id(10)));
+                // Le plus ancien prime le plus petit id : demande 13 deja valide, sa cause encore TooFar.
+                var coordinator = new JunctionCoordinator(Model);
+                int rightIndex = controls.IndexOf(rightOf[controls[3]]);
+                var threat = Requesting(Model, Id(10 + rightIndex), Traversal(index, chosen[controls[rightIndex]]), JustTooFarAt(8f), 8f);
+                Assert.That(threat.Rejection, Is.EqualTo(JunctionRequestRejection.TooFar));
+                var older = Batch(Model, coordinator, 1, reports[3], threat);
+                AssertDecision(older, Id(13), chosen[controls[3]], JunctionGrantStatus.Denied, JunctionReason.YieldToPriority, Id(10 + rightIndex));
+                var closed = Batch(Model, coordinator, 2, order.Select(i => reports[i]).ToArray());
+                var broken = closed.Records.Single(r => r.Reason == JunctionReason.GrantedDeadlockBreak);
+                Assert.That(broken.TrafficId, Is.EqualTo(Id(13)), closed.ToText());
+                Assert.That(broken.RequestSinceFrame, Is.EqualTo(1UL));
+                Assert.That(closed.Counters.DeadlockBreaks, Is.EqualTo(1));
+            }
 
             // Chaine ouverte : l'unique cause est un acteur TooFar, hors de W ; aucun briseur.
             var lone = controls[0];
             var open = Batch(Model, new JunctionCoordinator(Model), 1, Requesting(Model, Id(20), Traversal(index, chosen[lone]), 0.3f, 0f),
-                Requesting(Model, Id(21), Traversal(index, chosen[rightOf[lone]]), 20f, 8f));
+                Requesting(Model, Id(21), Traversal(index, chosen[rightOf[lone]]), JustTooFarAt(8f), 8f));
             Assert.That(open.Counters.DeadlockBreaks, Is.EqualTo(0), open.ToText());
             AssertDecision(open, Id(20), chosen[lone], JunctionGrantStatus.Denied, JunctionReason.YieldToPriority, Id(21));
         }
 
         // ============================================================ Stop (fixture synthetique)
+
+        [Test]
+        public void AnOldYieldingRequestDoesNotReserveAgainstTheEndOfAnOpenChainAndKeepsItsAge()
+        {
+            var index = JunctionConflictIndex.For(Model);
+            RoadId[] chain = null;
+            var movements = Model.Movements.Where(m => index.ControlKindOf(m.Id) == JunctionControlKind.Uncontrolled).Select(m => m.Id).ToArray();
+            foreach (var a in movements)
+                foreach (var b in movements)
+                    foreach (var c in movements)
+                    {
+                        RoadId zone;
+                        if (chain == null && index.HasPrecedence(b, a) && index.HasPrecedence(c, b)
+                            && !index.HasPrecedence(c, a) && !index.HasPrecedence(a, c)
+                            && index.TryGetConflict(a, b, out zone) && index.TryGetConflict(b, c, out zone)
+                            && index.TryGetConflict(a, c, out zone)) chain = new[] { a, b, c };
+                    }
+            Assert.That(chain, Is.Not.Null, "Premisse : A cede a B, B a C, A et C incompatibles sans preseance.");
+            foreach (var order in new[] { new[] { 0, 1, 2 }, new[] { 0, 2, 1 }, new[] { 1, 0, 2 },
+                new[] { 1, 2, 0 }, new[] { 2, 0, 1 }, new[] { 2, 1, 0 } })
+            {
+                var coordinator = new JunctionCoordinator(Model);
+                var first = new[] { Requesting(Model, Id(1), Traversal(index, chain[0]), 0.3f, 0f),
+                    Requesting(Model, Id(2), Traversal(index, chain[1]), 0.3f, 0f),
+                    Requesting(Model, Id(3), Traversal(index, chain[2]), JustTooFarAt(8f), 8f) };
+                Assert.That(first[2].Rejection, Is.EqualTo(JunctionRequestRejection.TooFar));
+                var waiting = Batch(Model, coordinator, 1, order.Select(i => first[i]).ToArray());
+                AssertDecision(waiting, Id(1), chain[0], JunctionGrantStatus.Denied, JunctionReason.YieldToPriority, Id(2));
+                AssertDecision(waiting, Id(2), chain[1], JunctionGrantStatus.Denied, JunctionReason.YieldToPriority, Id(3));
+                Assert.That(waiting.Counters.DeadlockBreaks, Is.Zero, "Cause TooFar hors de W.");
+                var next = new[] { first[0], first[1], Requesting(Model, Id(3), Traversal(index, chain[2]), 0.3f, 0f) };
+                var progressing = Batch(Model, coordinator, 2, order.Select(i => next[i]).ToArray());
+                AssertDecision(progressing, Id(3), chain[2], JunctionGrantStatus.Granted, JunctionReason.Granted);
+                Assert.That(Decision(progressing, Id(3), chain[2]).RequestSinceFrame, Is.EqualTo(2UL));
+                Assert.That(Decision(progressing, Id(1), chain[0]).RequestSinceFrame, Is.EqualTo(1UL));
+                Assert.That(Decision(progressing, Id(2), chain[1]).RequestSinceFrame, Is.EqualTo(1UL));
+                Assert.That(progressing.Counters.DeadlockBreaks, Is.Zero, "C progresse normalement, aucun briseur.");
+                var served = Batch(Model, coordinator, 3, first[0]);
+                AssertDecision(served, Id(1), chain[0], JunctionGrantStatus.Granted, JunctionReason.Granted);
+                Assert.That(Decision(served, Id(1), chain[0]).RequestSinceFrame, Is.EqualTo(1UL));
+            }
+        }
 
         [Test]
         public void AStopNeedsAMarkedHaltThenAGapAndNoMinimumWait()
@@ -403,6 +473,29 @@ namespace RoadRage.Tests.EditMode
         }
 
         // ============================================================ compatibilite reelle (P9)
+
+        [Test]
+        public void AStopIsMarkedOnlyInsideBothBoundsOfTheDeclaredStopBand()
+        {
+            var index = JunctionConflictIndex.For(StopModel);
+            var branch = Traversal(index, Movement(StopModel, "TJunction_West", "Junction_FromSouth -> Connector_West_Out"));
+            float low = TrafficV2Settings.JunctionStopControlMarginMeters - JunctionPriority.StopHaltIntegrationToleranceMeters;
+            var atLow = Requesting(StopModel, Id(1), branch, low, 0f);
+            float high = Math.Max(atLow.Request.Distances.HoldWindowMeters, atLow.Request.Distances.ControlMarginMeters);
+            Assert.That(high, Is.GreaterThan(low));
+            foreach (float d in new[] { 0.1f, low - 0.001f, low, high, high + 0.001f })
+            {
+                var report = Requesting(StopModel, Id(1), branch, d, 0f);
+                Assert.That(report.RequestValid, Is.True, "premisse : demande valide a d=" + d);
+                var snapshot = Batch(StopModel, new JunctionCoordinator(StopModel), 1, report);
+                bool marked = d >= low && d <= high;
+                var decision = Decision(snapshot, Id(1), branch.FirstMovementId);
+                Assert.That(decision.StopMarked, Is.EqualTo(marked), "d=" + d + " : " + decision.ToText());
+                AssertDecision(snapshot, Id(1), branch.FirstMovementId,
+                    marked ? JunctionGrantStatus.Granted : JunctionGrantStatus.Denied,
+                    marked ? JunctionReason.Granted : JunctionReason.StopRequired);
+            }
+        }
 
         [Test]
         public void EveryCompatibleMovementPairOfMvpRunIsGrantedTogether()
@@ -455,11 +548,16 @@ namespace RoadRage.Tests.EditMode
             // Loin avant la fusion : H a l'arret au debut de l'entree sud, deux mouvements avant la continuation ouest.
             var far = Traversal(index, R("Connector_South_In ->"), R("Ring_Split_Diagonal -> Ring_Merge_Diagonal"), R("Ring_Split_West -> Ring_Merge_West"),
                 R("Ring_Split_South -> Connector_South_Out"));
-            var admitted = Batch(Model, new JunctionCoordinator(Model), 1, Inside(Model, Id(1), far, 0, 0f, 0f), Requesting(Model, Id(2), entryWest, 2f, 2.8f));
+            var entering = Requesting(Model, Id(2), entryWest, 2f, 2.8f);
+            var admitted = Batch(Model, new JunctionCoordinator(Model), 1, Inside(Model, Id(1), far, 0, 0f, 0f), entering);
             var grant = Decision(admitted, Id(2), entryWest.FirstMovementId);
             Assert.That(grant.Reason, Is.EqualTo(JunctionReason.GrantedMergeGap), admitted.ToText());
             Assert.That(grant.MergeGap, Is.True);
             Assert.That(admitted.Counters.MergeGapGrants, Is.EqualTo(1));
+            var trace = new V2JunctionTrace(entering, admitted, admitted.EffectiveFrame, false);
+            Assert.That(trace.GapSeconds, Is.EqualTo(grant.GapSeconds));
+            Assert.That(trace.EtaSeconds, Is.EqualTo(grant.EtaSeconds));
+            Assert.That(trace.EtaSeconds, Is.GreaterThanOrEqualTo(trace.GapSeconds));
 
             // Meme position, entrant a l'arret : creneau plus long que l'ETA de H, refus.
             var stopped = Batch(Model, new JunctionCoordinator(Model), 1, Inside(Model, Id(1), far, 0, 0f, 0f), Requesting(Model, Id(2), entryWest, 2f, 0f));
@@ -548,6 +646,62 @@ namespace RoadRage.Tests.EditMode
         }
 
         // ============================================================ structure
+
+        [Test]
+        public void TheRightOfWayHashMustMatchBothTheSignatureAndTheReport()
+        {
+            string modelText = File.ReadAllText(TrafficV2Settings.ModelPath);
+            string signoff = File.ReadAllText(TrafficV2Settings.SignoffPath);
+            string report = File.ReadAllText(TrafficV2Settings.ReportPath);
+            string hash = RightOfWayTable.For(Model).Hash;
+            Assert.That(RightOfWayTable.For(Model).Entries, Is.Not.Empty);
+            Assert.That(signoff, Does.Contain(hash));
+            string marker = "Hash `" + hash + "` (lie a la signature Gate A)";
+            Assert.That(report, Does.Contain(marker));
+            Assert.That(TrafficV2Lifecycle.Admit(modelText, signoff, report).Admitted, Is.True);
+            foreach (var replacement in new[] { "", new string('0', 64) })
+                Assert.That(TrafficV2Lifecycle.Admit(modelText, signoff.Replace(hash, replacement), report).Code,
+                    Is.EqualTo(TrafficV2Code.GateAEvidenceStale), "Hash signe absent ou divergent.");
+            Assert.That(TrafficV2Lifecycle.Admit(modelText, signoff, report.Replace(marker, "Hash `divergent`")).Code,
+                Is.EqualTo(TrafficV2Code.GateAEvidenceStale), "Seule la section de droite du rapport change, pas les residus.");
+            Assert.That(TrafficV2Lifecycle.Admit(modelText, signoff, report).Admitted, Is.True, "Aucune mutation de la preuve sur disque.");
+        }
+
+        [Test]
+        public void TheJunctionTracePreservesTheDecisiveGapAndTheMarkedStop()
+        {
+            var index = JunctionConflictIndex.For(Model);
+            var branch = Traversal(index, Movement(Model, "TJunction_West", "Junction_FromSouth -> Connector_West_Out"));
+            var axis = Traversal(index, Movement(Model, "TJunction_West", "Junction_FromEast -> Connector_West_Out"));
+            var requester = Requesting(Model, Id(1), branch, 0.3f, 0f);
+            float overspeed = Driver.DesiredSpeed * 1.25f;
+            var snapshot = Batch(Model, new JunctionCoordinator(Model), 1, requester, Requesting(Model, Id(2), axis, 8f, overspeed));
+            AssertDecision(snapshot, Id(1), branch.FirstMovementId, JunctionGrantStatus.Denied, JunctionReason.YieldToPriority, Id(2));
+            var trace = new V2JunctionTrace(requester, snapshot, snapshot.EffectiveFrame, true);
+            var decision = Decision(snapshot, Id(1), branch.FirstMovementId);
+            Assert.That(trace.HasDecision, Is.True);
+            Assert.That(trace.ControlKind, Is.EqualTo(JunctionControlKind.Yield));
+            Assert.That(trace.BoundaryMeters, Is.EqualTo(requester.Request.BoundaryMeters));
+            Assert.That(trace.GapSeconds, Is.EqualTo(decision.GapSeconds));
+            Assert.That(trace.EtaSeconds, Is.EqualTo(decision.EtaSeconds));
+            Assert.That(trace.EtaSeconds, Is.EqualTo(8f / overspeed).Within(1e-5f), "Le coordinateur conserve la vitesse reelle pour l'ETA.");
+            Assert.That(trace.EtaSeconds, Is.LessThan(trace.GapSeconds));
+            Assert.That(trace.StopMarked, Is.False);
+
+            var stopIndex = JunctionConflictIndex.For(StopModel);
+            var stopped = Requesting(StopModel, Id(1), Traversal(stopIndex, branch.FirstMovementId), 0.24f, 0f);
+            var marked = Batch(StopModel, new JunctionCoordinator(StopModel), 1, stopped);
+            var stopTrace = new V2JunctionTrace(stopped, marked, marked.EffectiveFrame, false);
+            Assert.That(stopTrace.ControlKind, Is.EqualTo(JunctionControlKind.Stop));
+            Assert.That(stopTrace.StopMarked, Is.True);
+            Assert.That(stopTrace.GapSeconds, Is.NaN, "Aucune evaluation de creneau sans prioritaire.");
+            Assert.That(stopTrace.EtaSeconds, Is.NaN);
+            var none = new V2JunctionTrace(null, snapshot, snapshot.EffectiveFrame, false);
+            Assert.That(none.HasDecision, Is.False);
+            Assert.That(none.GapSeconds, Is.NaN);
+            Assert.That(none.EtaSeconds, Is.NaN);
+            Assert.That(none.StopMarked, Is.False);
+        }
 
         [Test]
         public void BatchWorkDependsOnTheJunctionActorsNotOnTheModelSize()

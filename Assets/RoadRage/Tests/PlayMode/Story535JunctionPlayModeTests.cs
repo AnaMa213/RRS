@@ -12,6 +12,7 @@ using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
+using RoadRage.Features.Vehicles.Traffic.Planning;
 using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
@@ -44,12 +45,14 @@ namespace RoadRage.Tests.PlayMode
         private const float ResumeCeilingSeconds = 3f;
 
         private Story533Harness harness;
+        private float stagedFrontMeters;
 
         [SetUp]
         public void SetUp()
         {
             TrafficV2Session.Reset();
             harness = new Story533Harness();
+            stagedFrontMeters = float.NaN;
         }
 
         [UnityTearDown]
@@ -145,14 +148,15 @@ namespace RoadRage.Tests.PlayMode
         /// jamais au-dela ; puis, des le premier pas a grant effectif, ni maintien ni contrainte JunctionEntry jusqu'au
         /// franchissement de b (d &lt;= 0), atteint en au plus ResumeCeilingSeconds. Rend la ligne de sequence publiee.
         /// </summary>
-        private static string AssertStopBandAndResume(Story533Harness.VehicleRun run, RoadId traversal)
+        private string AssertStopBandAndResume(Story533Harness.VehicleRun run, RoadId traversal)
         {
             var rows = run.Record.Trace.ToList();
             var waiting = rows.Where(t => t.Interaction.Junction.HasRequest && t.Interaction.Junction.TraversalId == traversal
                 && !t.Interaction.Junction.GrantEffective).ToList();
             Assert.That(waiting.Count, Is.GreaterThan(0), "aucune attente sans grant");
             Assert.That(waiting.Min(t => t.Interaction.Junction.DistanceMeters), Is.GreaterThan(0f), "pare-chocs jamais au-dela de b sans grant");
-            var stop = waiting.FirstOrDefault(t => Mathf.Abs(t.LongitudinalSpeed) < 0.05f && t.Interaction.Hold.Active);
+            var stop = waiting.FirstOrDefault(t => Mathf.Abs(t.LongitudinalSpeed) < 0.05f && t.Interaction.Hold.Active
+                && t.Interaction.Hold.Cause == LongitudinalCandidateKind.JunctionEntry && t.Interaction.Junction.EntryActive);
             Assert.That(stop.Interaction.FrameId, Is.GreaterThan(0UL), "arret avant la frontiere");
             float low = TrafficV2Settings.JunctionStopControlMarginMeters - StopBandIntegrationTolerance;
             var profile = UnityEditor.AssetDatabase.LoadAssetAtPath<DriverProfileDef>(DriverProfilePath).Profile;
@@ -163,8 +167,14 @@ namespace RoadRage.Tests.PlayMode
             int granted = rows.FindIndex(t => t.Interaction.Junction.HasRequest && t.Interaction.Junction.TraversalId == traversal
                 && t.Interaction.Junction.GrantEffective);
             Assert.That(granted, Is.GreaterThanOrEqualTo(0), "aucun pas a grant effectif");
-            int crossed = rows.FindIndex(granted, t => !(t.Interaction.Junction.HasRequest && t.Interaction.Junction.TraversalId == traversal
-                && t.Interaction.Junction.DistanceMeters > 0f));
+            Assert.That(stagedFrontMeters, Is.GreaterThan(0f), "empreinte du vehicule mesuree au staging");
+            float boundary = stop.Interaction.Junction.BoundaryMeters;
+            int crossed = rows.FindIndex(granted, t =>
+            {
+                var piece = run.Record.Tracks[t.TrackIndex].Pieces.FirstOrDefault(p => p.Id == traversal);
+                return piece != null && piece.StartDistanceMeters + boundary - piece.ElementStartSMeters
+                    - t.RouteDistanceMeters - stagedFrontMeters <= 0f;
+            });
             Assert.That(crossed, Is.GreaterThan(granted), "frontiere jamais franchie apres le grant");
             for (int k = granted; k < crossed; k++)
             {
@@ -239,6 +249,7 @@ namespace RoadRage.Tests.PlayMode
                 var second = DriverAt(spawner, 1);
                 settled = Held(first) && Held(second) ? settled + 1 : 0;
                 if (settled < SettleSteps) continue;
+                stagedFrontMeters = TrafficV2VehicleDriver.FootprintOf(first.GetComponent<BoxCollider>()).FrontMeters;
                 harness.Destroy(obstacles[0]);
                 removed[0] = spawner.V2Runner.FrameId;
             }
@@ -282,12 +293,17 @@ namespace RoadRage.Tests.PlayMode
                 Assert.That(axisGrant, Is.LessThan(branchGrant), "l'axe est servi avant la branche");
                 sequence.Add("2. grant de l'axe au lot " + axisGrant + ", de la branche au lot " + branchGrant);
                 sequence.Add("3. " + AssertStopBandAndResume(branch, SouthLeft));
+                AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
+            }
+            catch (AssertionException failure)
+            {
+                sequence.Add("ECHEC : " + failure.Message);
+                throw;
             }
             finally
             {
                 WriteSummary("scenario-E", stamp, record, spawner, observer, sequence, vehicleContacts, obstacleContacts, otherContacts, trace, journal);
             }
-            AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
         }
 
         // ================================================================== scenario F
@@ -343,12 +359,17 @@ namespace RoadRage.Tests.PlayMode
                 sequence.Add("2. premier refus de gauche : " + (refusal.TrafficId.IsEmpty ? "aucun" : refusal.ToText()));
                 Assert.That(left.Record.Trace.Any(t => t.ElementId == leftMovement && t.Interaction.FrameId <= rightGrant), Is.False,
                     "le vehicule de gauche n'entre pas avant le grant de droite");
+                AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
+            }
+            catch (AssertionException failure)
+            {
+                sequence.Add("ECHEC : " + failure.Message);
+                throw;
             }
             finally
             {
                 WriteSummary("scenario-F", stamp, record, spawner, observer, sequence, vehicleContacts, obstacleContacts, otherContacts, trace, journal);
             }
-            AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
         }
 
         // ================================================================== scenario G
@@ -365,9 +386,13 @@ namespace RoadRage.Tests.PlayMode
             var model = admission.Model;
             var entry = model.Movements.Single(m => m.Id.ToString().StartsWith(WestEntryPrefix, StringComparison.Ordinal)).Id;
             var continuation = model.Movements.Single(m => m.Id.ToString().StartsWith(WestContinuationPrefix, StringComparison.Ordinal)).Id;
+            RoadId mergeZone;
+            Assert.That(JunctionConflictIndex.For(model).TryGetConflict(entry, continuation, out mergeZone), Is.True);
             var observer = new Story533Harness.Observer(spawner, record.MaxPopulation, model);
             var batches = new List<Batch>();
             var waiting = harness.CreateObstacle(record.Obstacles[0]);
+            GameObject ringWaiting = null;
+            ulong ringReleasedAt = 0UL;
             ulong removedAt = 0UL;
             int settled = 0;
             for (int step = 0; step < record.MaxSteps && spawner.V2Removals < record.Insertions.Length; step++)
@@ -377,12 +402,22 @@ namespace RoadRage.Tests.PlayMode
                 if (observer.PlayerFacts > 0) Assert.Inconclusive("run invalide : joueur hote dans un fait leader ou obstacle V2");
                 if (observer.ToleranceLatch != null) break;
                 Capture(spawner, batches);
+                // L'approche initiale est dans le rayon de degagement du portail (12 m). L'obstacle ne doit exister
+                // qu'apres la premiere insertion, alors que le vehicule est encore loin de sa face proche.
+                if (ringWaiting == null && ringReleasedAt == 0UL && DriverAt(spawner, 0) != null)
+                    ringWaiting = harness.CreateObstacle(record.Obstacles.Single(o => o.Label == "attente-anneau"));
                 if (removedAt != 0UL) continue;
-                settled = Held(DriverAt(spawner, 2)) ? settled + 1 : 0;
+                settled = Held(DriverAt(spawner, 1)) && (ringReleasedAt != 0UL || Held(DriverAt(spawner, 0))) ? settled + 1 : 0;
                 if (settled < SettleSteps) continue;
-                // Retrait quand un vehicule d'anneau aborde l'element qui precede la fusion ouest, sans l'avoir encore passee.
-                for (int ring = 0; ring < 2 && removedAt == 0UL; ring++)
+                if (ringReleasedAt == 0UL)
                 {
+                    harness.Destroy(ringWaiting);
+                    ringReleasedAt = spawner.V2Runner.FrameId;
+                }
+                // Retrait quand un vehicule d'anneau aborde l'element qui precede la fusion ouest, sans l'avoir encore passee.
+                foreach (int ring in new[] { 0, 2 })
+                {
+                    if (removedAt != 0UL) break;
                     var driver = DriverAt(spawner, ring);
                     if (driver == null || driver.Trace.Count == 0) continue;
                     var elements = record.Insertions[ring].Elements;
@@ -402,28 +437,39 @@ namespace RoadRage.Tests.PlayMode
             string journal = Story533Harness.WriteJunctionLog("scenario-G", stamp, observer, Folder);
             List<string> vehicleContacts, obstacleContacts, otherContacts;
             Story533Harness.Contacts(runs, out vehicleContacts, out obstacleContacts, out otherContacts);
-            var sequence = new List<string> { "obstacle de l'entree retire au pas hote " + removedAt };
+            var sequence = new List<string> { "obstacle d'anneau retire au pas hote " + ringReleasedAt,
+                "obstacle de l'entree retire au pas hote " + removedAt };
             try
             {
+                Assert.That(ringReleasedAt, Is.GreaterThan(0UL), "le vehicule d'anneau et l'entrant ne se sont pas stabilises derriere leurs obstacles");
                 Assert.That(removedAt, Is.GreaterThan(0UL), "aucun vehicule d'anneau n'a aborde la fusion pendant l'attente de l'entrant");
-                var entering = runs.Single(r => r.Index == 2);
-                var ring = new HashSet<RoadId>(runs.Where(r => r.Index < 2).Select(r => r.TrafficId));
+                Assert.That(removedAt, Is.GreaterThan(ringReleasedAt), "l'anneau est libere avant la rencontre a la fusion");
+                var entering = runs.Single(r => r.Index == 1);
+                var ring = new HashSet<RoadId>(runs.Where(r => r.Index == 0 || r.Index == 2).Select(r => r.TrafficId));
                 ulong granted = FirstGrant(batches, entering.TrafficId, entry);
                 Assert.That(granted, Is.LessThan(ulong.MaxValue), "l'entrant n'est jamais servi");
                 var waited = batches.Where(b => b.Frame < granted).SelectMany(b => b.Records).Where(r => r.TrafficId == entering.TrafficId
-                    && r.TraversalId == entry && r.Status == JunctionGrantStatus.Denied && ring.Contains(r.CauseActorId)).ToList();
+                    && r.TraversalId == entry && r.Status == JunctionGrantStatus.Denied && ring.Contains(r.CauseActorId)
+                    && r.ZoneId == mergeZone && (r.Reason == JunctionReason.ConflictGranted || r.Reason == JunctionReason.YieldToPriority)).ToList();
                 Assert.That(waited, Is.Not.Empty, "l'entree n'a jamais attendu un vehicule d'anneau (precondition absente, run invalide)");
+                Assert.That(waited.Any(r => r.EtaSeconds < r.GapSeconds), Is.True,
+                    "au moins un refus doit prouver un creneau insuffisant a la fusion ouest, pas seulement une sortie bloquee");
                 sequence.Add("1. premier refus de l'entrant : " + waited[0].ToText());
                 sequence.Add("2. raisons des refus : " + string.Join(", ", waited.Select(r => r.Reason.ToString()).Distinct().ToArray()));
                 sequence.Add("3. grant de l'entrant au lot " + granted);
                 Assert.That(entering.Record.Trace.Any(t => t.ElementId == entry && t.Interaction.FrameId <= granted), Is.False,
                     "l'entrant n'entre pas avant son grant");
+                AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
+            }
+            catch (AssertionException failure)
+            {
+                sequence.Add("ECHEC : " + failure.Message);
+                throw;
             }
             finally
             {
                 WriteSummary("scenario-G", stamp, record, spawner, observer, sequence, vehicleContacts, obstacleContacts, otherContacts, trace, journal);
             }
-            AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
         }
     }
 }

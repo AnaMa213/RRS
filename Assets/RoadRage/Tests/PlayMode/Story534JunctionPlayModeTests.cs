@@ -22,11 +22,12 @@ namespace RoadRage.Tests.PlayMode
     /// <summary>
     /// Story 5.34 : scenarios PlayMode de coordination dans MVP_Run, hors run de mesure (couverture Covered, repli 2a actif),
     /// avec le harnais 5.33 et les scenarios ecrits par Story534JunctionEntryTests. C : deux demandes incompatibles sur
-    /// ConflictZones[23] servies l'une apres l'autre, sequence complete publiee. D : sortie insuffisante refusee avant tout
+    /// ConflictZones[23] servies l'une apres l'autre, axe Priority avant branche Yield depuis la 5.35, sequence publiee. D : sortie insuffisante refusee avant tout
     /// conflit, jamais franchie, puis servie une fois liberee. Saturation : la requete pleine du collecteur ne rend la
-    /// perception indisponible que pour son vehicule. Ni la Gate C ni une priorite ne sont revendiquees.
+    /// perception indisponible que pour son vehicule. La Gate C n'est pas revendiquee.
     /// </summary>
     [Category("Story534")]
+    [Category("Story535")]
     public sealed class Story534JunctionPlayModeTests
     {
         private const string Folder = "_bmad-output/implementation-artifacts/traffic-v2-5-34-explorations";
@@ -143,7 +144,7 @@ namespace RoadRage.Tests.PlayMode
             }
         }
 
-        /// <summary>Distance minimale du pare-chocs avant a l'entree tant que la traversee n'a pas de grant effectif.</summary>
+        /// <summary>Distance minimale du pare-chocs avant a la frontiere b tant que la traversee n'a pas de grant effectif.</summary>
         private static float MinimumDistanceWithoutGrant(Story533Harness.VehicleRun run, RoadId traversal, out ulong lastWaitingFrame)
         {
             float minimum = float.PositiveInfinity;
@@ -161,10 +162,10 @@ namespace RoadRage.Tests.PlayMode
         /// <summary>
         /// Decisions O13 et O14 : arret sans grant dans la bande declaree [m_ctrl − tolerance ; fenetre de maintien] de l'entree
         /// (fenetre = D_stop a la vitesse d'entree du maintien, profil par defaut), puis, des le
-        /// premier pas a grant effectif, ni maintien ni contrainte JunctionEntry jusqu'a l'entree dans le mouvement, atteinte en au
+        /// premier pas a grant effectif, ni maintien ni contrainte JunctionEntry jusqu'au franchissement de la frontiere b, atteint en au
         /// plus ResumeCeilingSeconds. Rend la ligne de sequence publiee.
         /// </summary>
-        private static string AssertStopBandAndResume(Story533Harness.VehicleRun run, RoadId traversal, float stopDistance)
+        private static string AssertStopBandAndResume(Story533Harness.VehicleRun run, RoadId traversal, float stopDistance, float frontMeters)
         {
             float low = TrafficV2Settings.JunctionStopControlMarginMeters - StopBandIntegrationTolerance;
             var profile = UnityEditor.AssetDatabase.LoadAssetAtPath<DriverProfileDef>(DriverProfilePath).Profile;
@@ -175,9 +176,16 @@ namespace RoadRage.Tests.PlayMode
             int granted = rows.FindIndex(t => t.Interaction.Junction.HasRequest && t.Interaction.Junction.TraversalId == traversal
                 && t.Interaction.Junction.GrantEffective);
             Assert.That(granted, Is.GreaterThanOrEqualTo(0), "O13 : aucun pas a grant effectif");
-            int entered = rows.FindIndex(granted, t => t.ElementId == traversal);
-            Assert.That(entered, Is.GreaterThan(granted), "O13 : pas d'entree dans le mouvement apres le grant");
-            for (int k = granted; k <= entered; k++)
+            Assert.That(frontMeters, Is.GreaterThan(0f), "empreinte du vehicule mesuree au staging");
+            float boundary = rows[granted].Interaction.Junction.BoundaryMeters;
+            int entered = rows.FindIndex(granted, t =>
+            {
+                var piece = run.Record.Tracks[t.TrackIndex].Pieces.FirstOrDefault(p => p.Id == traversal);
+                return piece != null && piece.StartDistanceMeters + boundary - piece.ElementStartSMeters
+                    - t.RouteDistanceMeters - frontMeters <= 0f;
+            });
+            Assert.That(entered, Is.GreaterThan(granted), "O13 : frontiere b jamais franchie apres le grant");
+            for (int k = granted; k < entered; k++)
             {
                 Assert.That(rows[k].Interaction.Hold.Active, Is.False, "O13 : maintien apres le grant, pas hote " + rows[k].Interaction.FrameId);
                 Assert.That(rows[k].Interaction.Junction.EntryActive, Is.False,
@@ -186,7 +194,8 @@ namespace RoadRage.Tests.PlayMode
             float seconds = (rows[entered].Interaction.FrameId - rows[granted].Interaction.FrameId) * Time.fixedDeltaTime;
             Assert.That(seconds, Is.LessThanOrEqualTo(ResumeCeilingSeconds), "O13 : reprise trop lente apres le grant");
             return "O14 : arret a d = " + F(stopDistance) + " m, bande [" + F(low) + " ; " + F(high) + "] m ; grant effectif au pas hote "
-                + rows[granted].Interaction.FrameId + ", entree au pas hote " + rows[entered].Interaction.FrameId + " ("
+                + rows[granted].Interaction.FrameId + ", frontiere b = " + F(rows[granted].Interaction.Junction.BoundaryMeters)
+                + " m franchie au pas hote " + rows[entered].Interaction.FrameId + " ("
                 + seconds.ToString("0.##", CultureInfo.InvariantCulture) + " s, " + F(rows[entered].LongitudinalSpeed) + " m/s)";
         }
 
@@ -224,12 +233,36 @@ namespace RoadRage.Tests.PlayMode
 
         // ================================================================== scenario C
 
+        /// <summary>Conserve les distances d'attente de C a sa frontiere 5.35 sur les corridors droits du montage 5.34.</summary>
+        private static void StageScenarioC(Story533Harness.ScenarioRecord record, TrafficV2Admission admission)
+        {
+            var index = JunctionConflictIndex.For(admission.Model);
+            Assert.That(index.ControlKindOf(EastStraight), Is.EqualTo(JunctionControlKind.Priority));
+            Assert.That(index.ControlKindOf(SouthLeft), Is.EqualTo(JunctionControlKind.Yield));
+            Assert.That(index.HasPrecedence(EastStraight, SouthLeft), Is.True, "l'axe a preseance sur la branche");
+            Assert.That(index.HasPrecedence(SouthLeft, EastStraight), Is.False);
+            Assert.That(index.BoundaryOf(SouthLeft), Is.GreaterThan(0f), "C couvre la StopLine authoree de la branche");
+            foreach (var movement in new[] { EastStraight, SouthLeft })
+            {
+                var corridorId = index.FromCorridorOf(movement);
+                var obstacle = record.Obstacles.Single(o => RoadId.Parse(o.ElementId) == corridorId);
+                EffectiveLaneCorridor corridor;
+                Assert.That(admission.Model.TryGetCorridor(corridorId, out corridor), Is.True);
+                Assert.That(corridor.Samples.All(s => Mathf.Abs(s.CurvaturePerMeter) < 1e-4f), Is.True, "obstacle sur approche droite");
+                float b = index.BoundaryOf(movement);
+                Assert.That(b + obstacle.Size.z, Is.LessThan(8f), "l'obstacle a 8 m de b reste entierement dans le corridor d'approche");
+                var center = obstacle.Center.Value + obstacle.Forward.Value * b;
+                obstacle.Center = new Story533Harness.VectorRecord { x = center.x, y = center.y, z = center.z };
+                obstacle.RouteDistanceMeters += b;
+            }
+        }
+
         [UnityTest]
         [Timeout(900000)]
         public IEnumerator ScenarioCTwoIncompatibleRequestsOfOneBatchAreServedOneAfterTheOther()
         {
             Story533Harness.ScenarioRecord record = null;
-            yield return Enter("C", (r, f, a) => record = r);
+            yield return Enter("C", (r, f, a) => { record = r; StageScenarioC(r, a); });
             var spawner = Object.FindAnyObjectByType<PortalTrafficSpawner>();
             Assert.That(spawner, Is.Not.Null);
             var obstacles = record.Obstacles.Select(o => harness.CreateObstacle(o)).ToList();
@@ -237,6 +270,7 @@ namespace RoadRage.Tests.PlayMode
             var batches = new List<Batch>();
             ulong removedAt = 0UL, southRemovedAt = 0UL;
             int settled = 0;
+            float frontMeters = float.NaN;
             for (int step = 0; step < record.MaxSteps && spawner.V2Removals < record.Insertions.Length; step++)
             {
                 yield return new WaitForFixedUpdate();
@@ -244,21 +278,17 @@ namespace RoadRage.Tests.PlayMode
                 if (observer.PlayerFacts > 0) Assert.Inconclusive("run invalide : joueur hote dans un fait leader ou obstacle V2");
                 if (observer.ToleranceLatch != null) break;
                 Capture(spawner, batches);
-                if (removedAt != 0UL)
-                {
-                    if (southRemovedAt == 0UL && spawner.V2Runner.FrameId == removedAt + 1UL)
-                    {
-                        harness.Destroy(obstacles[1]);
-                        southRemovedAt = spawner.V2Runner.FrameId;
-                    }
-                    continue;
-                }
+                if (removedAt != 0UL) continue;
                 var drivers = Drivers(spawner, 2);
                 settled = drivers != null && drivers.All(Held) ? settled + 1 : 0;
                 if (settled < SettleSteps) continue;
-                // La demande sud arrivait un pas avant l'est : staging a un pas d'ecart, sans grant anterieur au lot commun.
+                frontMeters = TrafficV2VehicleDriver.FootprintOf(drivers[0].GetComponent<BoxCollider>()).FrontMeters;
+                // Distances mesurees a b : retraits simultanes. Liberer l'est un pas avant le sud lui donnait un grant
+                // au lot precedant leur premiere rencontre (trace 20261006-181212 : 1531 puis 1532), sans arbitrage frais.
                 harness.Destroy(obstacles[0]);
+                harness.Destroy(obstacles[1]);
                 removedAt = spawner.V2Runner.FrameId;
+                southRemovedAt = removedAt;
             }
 
             var runs = Story533Harness.Runs(spawner);
@@ -269,90 +299,114 @@ namespace RoadRage.Tests.PlayMode
             Story533Harness.Contacts(runs, out vehicleContacts, out obstacleContacts, out otherContacts);
             var sequence = new List<string> { "obstacle est retire au pas hote " + removedAt + ", obstacle sud au pas hote " + southRemovedAt };
 
-            Assert.That(removedAt, Is.GreaterThan(0UL), "les deux vehicules ne se sont pas arretes derriere leur obstacle d'attente");
-            Assert.That(southRemovedAt, Is.EqualTo(removedAt + 1UL), "staging des obstacles C a un pas physique d'ecart");
-            var east = runs.Single(r => r.Index == 1);
-            var south = runs.Single(r => r.Index == 0);
-            var eastFrames = new HashSet<ulong>(east.Record.Trace.Where(t => t.Interaction.Junction.RequestValid
-                && t.Interaction.Junction.TraversalId == EastStraight).Select(t => t.Interaction.FrameId));
-            var both = south.Record.Trace.Where(t => t.Interaction.Junction.RequestValid && t.Interaction.Junction.TraversalId == SouthLeft
-                && eastFrames.Contains(t.Interaction.FrameId)).Select(t => t.Interaction.FrameId).OrderBy(f => f).ToList();
-            if (both.Count == 0)
+            try
+            {
+                AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
+                Assert.That(removedAt, Is.GreaterThan(0UL), "les deux vehicules ne se sont pas arretes derriere leur obstacle d'attente");
+                Assert.That(southRemovedAt, Is.EqualTo(removedAt), "staging des obstacles C liberes au meme pas physique");
+                var east = runs.Single(r => r.Index == 1);
+                var south = runs.Single(r => r.Index == 0);
+                var eastFrames = new HashSet<ulong>(east.Record.Trace.Where(t => t.Interaction.Junction.RequestValid
+                    && t.Interaction.Junction.TraversalId == EastStraight).Select(t => t.Interaction.FrameId));
+                var both = south.Record.Trace.Where(t => t.Interaction.Junction.RequestValid && t.Interaction.Junction.TraversalId == SouthLeft
+                    && eastFrames.Contains(t.Interaction.FrameId)).Select(t => t.Interaction.FrameId).OrderBy(f => f).ToList();
+                if (both.Count == 0)
+                {
+                    Assert.Fail("precondition absente : aucune paire de demandes actives au meme lot sur 40ca7f10 et 4e437f94 (run invalide, jamais reussi)");
+                }
+                ulong meet = both[0];
+                sequence.Add("1. demandes actives au meme lot " + meet + " sur 40ca7f10 (" + east.TrafficId + ") et 4e437f94 (" + south.TrafficId + ")");
+
+                Assert.That(batches.Where(b => b.Frame < meet).SelectMany(b => b.Records).Any(r => r.IsEffectiveGrant
+                    && ((r.TrafficId == east.TrafficId && r.Contains(EastStraight))
+                        || (r.TrafficId == south.TrafficId && r.Contains(SouthLeft)))), Is.False,
+                    "precondition C invalide : grant anterieur au lot commun ; aucune arbitration fraiche demontree");
+
+                var atMeet = batches.Single(b => b.Frame == meet).Records;
+                bool eastHolds = atMeet.Any(r => r.TrafficId == east.TrafficId && r.IsEffectiveGrant && r.Contains(EastStraight));
+                bool southHolds = atMeet.Any(r => r.TrafficId == south.TrafficId && r.IsEffectiveGrant && r.Contains(SouthLeft));
+                Assert.That(eastHolds, Is.True, "l'axe Priority recoit le premier grant au lot commun");
+                Assert.That(southHolds, Is.False, "la branche Yield cede a l'axe Priority");
+                var holder = east;
+                var waiter = south;
+                RoadId holderTraversal = EastStraight, waiterTraversal = SouthLeft;
+                var grant = atMeet.First(r => r.TrafficId == holder.TrafficId && r.IsEffectiveGrant && r.Contains(holderTraversal));
+                Assert.That(grant.Status, Is.EqualTo(JunctionGrantStatus.Granted), "C.2 : grant frais au lot commun, jamais Held");
+                var denial = atMeet.Single(r => r.TrafficId == waiter.TrafficId && r.TraversalId == waiterTraversal);
+                Assert.That(denial.Status, Is.EqualTo(JunctionGrantStatus.Denied), denial.ToText());
+                Assert.That(denial.Reason, Is.EqualTo(JunctionReason.YieldToPriority), "C sous 5.35 : refus initial par preseance : " + denial.ToText());
+                Assert.That(grant.ControlKind, Is.EqualTo(JunctionControlKind.Priority), grant.ToText());
+                Assert.That(denial.ControlKind, Is.EqualTo(JunctionControlKind.Yield), denial.ToText());
+                Assert.That(denial.CauseActorId, Is.EqualTo(holder.TrafficId), "le refus cite le titulaire");
+                Assert.That(denial.ZoneId, Is.EqualTo(Zone23), "le refus cite ConflictZones[23]");
+                Assert.That(waiter.TrafficId.CompareTo(holder.TrafficId), Is.LessThan(0), "C conserve la branche au plus petit TrafficId");
+                Assert.That(batches.SelectMany(b => b.Records).Any(r => r.Reason == JunctionReason.GrantedDeadlockBreak), Is.False,
+                    "une preseance resoluble ne requiert aucun briseur d'interblocage");
+                sequence.Add("2. un seul grant : " + grant.ToText());
+                sequence.Add("3. refus : " + denial.ToText());
+
+                ulong lastWaiting;
+                float minimum = MinimumDistanceWithoutGrant(waiter, waiterTraversal, out lastWaiting);
+                Assert.That(minimum, Is.GreaterThan(0f), "pare-chocs avant jamais au-dela de la frontiere b sans grant");
+                var stop = waiter.Record.Trace.FirstOrDefault(t => t.Interaction.FrameId > meet && t.Interaction.FrameId <= lastWaiting
+                    && Mathf.Abs(t.LongitudinalSpeed) < 0.05f && t.Interaction.Hold.Active);
+                Assert.That(stop.Interaction.FrameId, Is.GreaterThan(0UL), "le second s'arrete avant l'entree");
+                Assert.That(stop.Interaction.Junction.BoundaryMeters, Is.GreaterThan(0f), "arret mesure a la StopLine b>0 de la branche");
+                if (stop.Interaction.Junction.Reason == JunctionReason.ExitBlocked)
+                    Assert.That(stop.Interaction.DominantBlocker, Does.StartWith("BlockedExit:"), "sortie commune encore tenue par l'axe");
+                else
+                    Assert.That(stop.Interaction.DominantBlocker, Is.EqualTo("JunctionGrant:" + holder.TrafficId), "blocker de preseance ou de grant legitime");
+                sequence.Add("   arret du second au pas hote " + stop.Interaction.FrameId + " a d = " + F(stop.Interaction.Junction.DistanceMeters)
+                    + " m, distance minimale sans grant " + F(minimum) + " m, blocker " + stop.Interaction.DominantBlocker);
+
+                var release = batches.FirstOrDefault(b => b.Records.Any(r => r.TrafficId == holder.TrafficId && r.TraversalId == holderTraversal
+                    && r.Status == JunctionGrantStatus.Released && r.Reason == JunctionReason.Cleared));
+                Assert.That(release, Is.Not.Null, "Released(Cleared) du premier");
+                foreach (var refused in batches.Where(b => b.Frame > meet && b.Frame < release.Frame).SelectMany(b => b.Records)
+                    .Where(r => r.TrafficId == waiter.TrafficId && r.TraversalId == waiterTraversal && r.Reason == JunctionReason.ConflictGranted))
+                {
+                    Assert.That(refused.Status, Is.EqualTo(JunctionGrantStatus.Denied), refused.ToText());
+                    Assert.That(refused.CauseActorId, Is.EqualTo(holder.TrafficId), "ConflictGranted subsequent cite l'axe");
+                    Assert.That(refused.ZoneId, Is.EqualTo(Zone23), "ConflictGranted subsequent cite le meme conflit");
+                }
+                sequence.Add("4. Released(Cleared) du premier au lot " + release.Frame);
+                var served = batches.FirstOrDefault(b => b.Frame >= release.Frame && b.Records.Any(r => r.TrafficId == waiter.TrafficId
+                    && r.TraversalId == waiterTraversal && r.Status == JunctionGrantStatus.Granted));
+                Assert.That(served, Is.Not.Null, "Granted du second");
+                // O12 : 40ca7f10 et 4e437f94 sortent sur 40e937a9. Entre le Cleared et le service, seuls des refus ExitBlocked(Occupant) ;
+                // service au premier lot ou la sortie rapportee par le second atteint L + s0, ou au suivant.
+                foreach (var r in batches.Where(b => b.Frame >= release.Frame && b.Frame < served.Frame).SelectMany(b => b.Records)
+                    .Where(r => r.TrafficId == waiter.TrafficId && r.TraversalId == waiterTraversal))
+                    Assert.That(r.Status == JunctionGrantStatus.Denied && r.Reason == JunctionReason.ExitBlocked && r.ExitBound == JunctionExitBound.Occupant,
+                        Is.True, "entre Released(Cleared) et le service, seul ExitBlocked(Occupant) : " + r.ToText());
+                var sufficient = waiter.Record.Trace.FirstOrDefault(t => t.Interaction.FrameId >= release.Frame && t.Interaction.Junction.HasRequest
+                    && t.Interaction.Junction.TraversalId == waiterTraversal
+                    && t.Interaction.Junction.ExitFreeMeters >= t.Interaction.Junction.ExitRequiredMeters);
+                Assert.That(sufficient.Interaction.FrameId, Is.GreaterThan(0UL), "sortie du second jamais suffisante apres Released(Cleared)");
+                ulong exitReady = sufficient.Interaction.FrameId;
+                Assert.That(served.Frame >= exitReady && served.Frame - exitReady <= 1UL, Is.True,
+                    "servi au lot ou la sortie devient suffisante (" + exitReady + ") ou au suivant, servi au lot " + served.Frame);
+                sequence.Add("5. Granted du second au lot " + served.Frame + " (O12 : sortie suffisante au lot " + exitReady + ", "
+                    + F(sufficient.Interaction.Junction.ExitFreeMeters) + " m >= " + F(sufficient.Interaction.Junction.ExitRequiredMeters)
+                    + " m ; " + (served.Frame - release.Frame) + " lots apres Released(Cleared))");
+                var entered = waiter.Record.Trace.FirstOrDefault(t => t.Interaction.FrameId > served.Frame && t.ElementId == waiterTraversal);
+                Assert.That(entered.Interaction.FrameId, Is.GreaterThan(0UL), "le second entre dans son mouvement");
+                sequence.Add("6. entree du second au pas hote " + entered.Interaction.FrameId + ", sortie au portail : " + waiter.Record.HasReachedExitPortal);
+                sequence.Add("7. " + AssertStopBandAndResume(waiter, waiterTraversal, stop.Interaction.Junction.DistanceMeters, frontMeters));
+                foreach (var batch in batches)
+                    Assert.That(batch.Records.Count(r => r.IsEffectiveGrant && r.Contains(EastStraight))
+                        + batch.Records.Count(r => r.IsEffectiveGrant && r.Contains(SouthLeft)), Is.LessThanOrEqualTo(1),
+                        "au lot " + batch.Frame + " : 40ca7f10 et 4e437f94 tenus ensemble");
+            }
+            catch (AssertionException failure)
+            {
+                sequence.Add("ECHEC : " + failure.Message);
+                throw;
+            }
+            finally
             {
                 WriteSummary("scenario-C", stamp, record, spawner, observer, runs, sequence, vehicleContacts, obstacleContacts, otherContacts, trace, journal);
-                Assert.Fail("precondition absente : aucune paire de demandes actives au meme lot sur 40ca7f10 et 4e437f94 (run invalide, jamais reussi)");
             }
-            ulong meet = both[0];
-            sequence.Add("1. demandes actives au meme lot " + meet + " sur 40ca7f10 (" + east.TrafficId + ") et 4e437f94 (" + south.TrafficId + ")");
-
-            Assert.That(batches.Where(b => b.Frame < meet).SelectMany(b => b.Records).Any(r => r.IsEffectiveGrant
-                && ((r.TrafficId == east.TrafficId && r.Contains(EastStraight))
-                    || (r.TrafficId == south.TrafficId && r.Contains(SouthLeft)))), Is.False,
-                "precondition C invalide : grant anterieur au lot commun ; aucune arbitration fraiche demontree");
-
-            var atMeet = batches.Single(b => b.Frame == meet).Records;
-            bool eastHolds = atMeet.Any(r => r.TrafficId == east.TrafficId && r.IsEffectiveGrant && r.Contains(EastStraight));
-            bool southHolds = atMeet.Any(r => r.TrafficId == south.TrafficId && r.IsEffectiveGrant && r.Contains(SouthLeft));
-            Assert.That(eastHolds ^ southHolds, Is.True, "un seul grant au lot de la rencontre");
-            var holder = eastHolds ? east : south;
-            var waiter = eastHolds ? south : east;
-            RoadId holderTraversal = eastHolds ? EastStraight : SouthLeft, waiterTraversal = eastHolds ? SouthLeft : EastStraight;
-            var grant = atMeet.First(r => r.TrafficId == holder.TrafficId && r.IsEffectiveGrant && r.Contains(holderTraversal));
-            Assert.That(grant.Status, Is.EqualTo(JunctionGrantStatus.Granted), "C.2 : grant frais au lot commun, jamais Held");
-            var denial = atMeet.Single(r => r.TrafficId == waiter.TrafficId && r.TraversalId == waiterTraversal);
-            Assert.That(denial.Status, Is.EqualTo(JunctionGrantStatus.Denied), denial.ToText());
-            Assert.That(denial.Reason, Is.EqualTo(JunctionReason.ConflictGranted), denial.ToText());
-            Assert.That(denial.CauseActorId, Is.EqualTo(holder.TrafficId), "le refus cite le titulaire");
-            Assert.That(denial.ZoneId, Is.EqualTo(Zone23), "le refus cite ConflictZones[23]");
-            Assert.That(grant.RequestSinceFrame < denial.RequestSinceFrame
-                || (grant.RequestSinceFrame == denial.RequestSinceFrame && holder.TrafficId.CompareTo(waiter.TrafficId) < 0), Is.True,
-                "le grant va au plus ancien, puis au plus petit TrafficId : " + grant.ToText() + " / " + denial.ToText());
-            sequence.Add("2. un seul grant : " + grant.ToText());
-            sequence.Add("3. refus : " + denial.ToText());
-
-            ulong lastWaiting;
-            float minimum = MinimumDistanceWithoutGrant(waiter, waiterTraversal, out lastWaiting);
-            Assert.That(minimum, Is.GreaterThan(0f), "pare-chocs avant jamais au-dela de l'entree sans grant");
-            var stop = waiter.Record.Trace.FirstOrDefault(t => t.Interaction.FrameId > meet && t.Interaction.FrameId <= lastWaiting
-                && Mathf.Abs(t.LongitudinalSpeed) < 0.05f && t.Interaction.Hold.Active);
-            Assert.That(stop.Interaction.FrameId, Is.GreaterThan(0UL), "le second s'arrete avant l'entree");
-            Assert.That(stop.Interaction.DominantBlocker, Is.EqualTo("JunctionGrant:" + holder.TrafficId), "blocker JunctionGrant legitime");
-            sequence.Add("   arret du second au pas hote " + stop.Interaction.FrameId + " a d = " + F(stop.Interaction.Junction.DistanceMeters)
-                + " m, distance minimale sans grant " + F(minimum) + " m, blocker " + stop.Interaction.DominantBlocker);
-
-            var release = batches.FirstOrDefault(b => b.Records.Any(r => r.TrafficId == holder.TrafficId && r.TraversalId == holderTraversal
-                && r.Status == JunctionGrantStatus.Released && r.Reason == JunctionReason.Cleared));
-            Assert.That(release, Is.Not.Null, "Released(Cleared) du premier");
-            sequence.Add("4. Released(Cleared) du premier au lot " + release.Frame);
-            var served = batches.FirstOrDefault(b => b.Frame >= release.Frame && b.Records.Any(r => r.TrafficId == waiter.TrafficId
-                && r.TraversalId == waiterTraversal && r.Status == JunctionGrantStatus.Granted));
-            Assert.That(served, Is.Not.Null, "Granted du second");
-            // O12 : 40ca7f10 et 4e437f94 sortent sur 40e937a9. Entre le Cleared et le service, seuls des refus ExitBlocked(Occupant) ;
-            // service au premier lot ou la sortie rapportee par le second atteint L + s0, ou au suivant.
-            foreach (var r in batches.Where(b => b.Frame >= release.Frame && b.Frame < served.Frame).SelectMany(b => b.Records)
-                .Where(r => r.TrafficId == waiter.TrafficId && r.TraversalId == waiterTraversal))
-                Assert.That(r.Status == JunctionGrantStatus.Denied && r.Reason == JunctionReason.ExitBlocked && r.ExitBound == JunctionExitBound.Occupant,
-                    Is.True, "entre Released(Cleared) et le service, seul ExitBlocked(Occupant) : " + r.ToText());
-            var sufficient = waiter.Record.Trace.FirstOrDefault(t => t.Interaction.FrameId >= release.Frame && t.Interaction.Junction.HasRequest
-                && t.Interaction.Junction.TraversalId == waiterTraversal
-                && t.Interaction.Junction.ExitFreeMeters >= t.Interaction.Junction.ExitRequiredMeters);
-            Assert.That(sufficient.Interaction.FrameId, Is.GreaterThan(0UL), "sortie du second jamais suffisante apres Released(Cleared)");
-            ulong exitReady = sufficient.Interaction.FrameId;
-            Assert.That(served.Frame >= exitReady && served.Frame - exitReady <= 1UL, Is.True,
-                "servi au lot ou la sortie devient suffisante (" + exitReady + ") ou au suivant, servi au lot " + served.Frame);
-            sequence.Add("5. Granted du second au lot " + served.Frame + " (O12 : sortie suffisante au lot " + exitReady + ", "
-                + F(sufficient.Interaction.Junction.ExitFreeMeters) + " m >= " + F(sufficient.Interaction.Junction.ExitRequiredMeters)
-                + " m ; " + (served.Frame - release.Frame) + " lots apres Released(Cleared))");
-            var entered = waiter.Record.Trace.FirstOrDefault(t => t.Interaction.FrameId > served.Frame && t.ElementId == waiterTraversal);
-            Assert.That(entered.Interaction.FrameId, Is.GreaterThan(0UL), "le second entre dans son mouvement");
-            sequence.Add("6. entree du second au pas hote " + entered.Interaction.FrameId + ", sortie au portail : " + waiter.Record.HasReachedExitPortal);
-            sequence.Add("7. " + AssertStopBandAndResume(waiter, waiterTraversal, stop.Interaction.Junction.DistanceMeters));
-            foreach (var batch in batches)
-                Assert.That(batch.Records.Count(r => r.IsEffectiveGrant && r.Contains(EastStraight))
-                    + batch.Records.Count(r => r.IsEffectiveGrant && r.Contains(SouthLeft)), Is.LessThanOrEqualTo(1),
-                    "au lot " + batch.Frame + " : 40ca7f10 et 4e437f94 tenus ensemble");
-            WriteSummary("scenario-C", stamp, record, spawner, observer, runs, sequence, vehicleContacts, obstacleContacts, otherContacts, trace, journal);
-            AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
         }
 
         // ================================================================== scenario D
@@ -371,6 +425,7 @@ namespace RoadRage.Tests.PlayMode
             var batches = new List<Batch>();
             ulong waitRemovedAt = 0UL, exitRemovedAt = 0UL;
             int settled = 0, blocked = 0;
+            float frontMeters = float.NaN;
             for (int step = 0; step < record.MaxSteps && spawner.V2Removals < record.Insertions.Length; step++)
             {
                 yield return new WaitForFixedUpdate();
@@ -385,6 +440,7 @@ namespace RoadRage.Tests.PlayMode
                     // Le premier, passe par 40ca7f10, est tenu sur 40e937a9 ; le second attend sur son approche.
                     settled = Held(drivers[0]) && Held(drivers[1]) && drivers[0].Trace.Any(t => t.ElementId == EastStraight) ? settled + 1 : 0;
                     if (settled < SettleSteps) continue;
+                    frontMeters = TrafficV2VehicleDriver.FootprintOf(drivers[1].GetComponent<BoxCollider>()).FrontMeters;
                     harness.Destroy(waitObstacle);
                     waitRemovedAt = spawner.V2Runner.FrameId;
                     continue;
@@ -427,16 +483,22 @@ namespace RoadRage.Tests.PlayMode
                 "aucun grant tant que la sortie est insuffisante");
             ulong lastWaiting;
             float minimum = MinimumDistanceWithoutGrant(second, SouthLeft, out lastWaiting);
-            Assert.That(minimum, Is.GreaterThan(0f), "pare-chocs avant jamais au-dela de l'entree");
-            Assert.That(second.Record.Trace.Where(t => t.Interaction.FrameId < exitRemovedAt).Any(t => t.ElementId == SouthLeft), Is.False,
-                "jamais entre tant que la sortie est insuffisante");
+            Assert.That(minimum, Is.GreaterThan(0f), "pare-chocs avant jamais au-dela de la frontiere b");
+            float boundary = second.Record.Trace.First(t => t.Interaction.Junction.HasRequest
+                && t.Interaction.Junction.TraversalId == SouthLeft).Interaction.Junction.BoundaryMeters;
+            Assert.That(second.Record.Trace.Where(t => t.Interaction.FrameId < exitRemovedAt).Any(t =>
+            {
+                var piece = second.Record.Tracks[t.TrackIndex].Pieces.FirstOrDefault(p => p.Id == SouthLeft);
+                return piece != null && piece.StartDistanceMeters + boundary - piece.ElementStartSMeters
+                    - t.RouteDistanceMeters - frontMeters <= 0f;
+            }), Is.False, "jamais franchi b tant que la sortie est insuffisante");
             var held = second.Record.Trace.Last(t => t.Interaction.FrameId < exitRemovedAt);
             Assert.That(held.Interaction.DominantBlocker, Does.StartWith("BlockedExit:"), "blocker BlockedExit legitime");
             var served = batches.FirstOrDefault(b => b.Frame >= exitRemovedAt && b.Records.Any(r => r.TrafficId == second.TrafficId
                 && r.TraversalId == SouthLeft && r.Status == JunctionGrantStatus.Granted));
             Assert.That(served, Is.Not.Null, "servi apres le retrait de l'obstacle");
             sequence.Add("arret du second a d min " + F(minimum) + " m, blocker " + held.Interaction.DominantBlocker + ", servi au lot " + served.Frame);
-            sequence.Add(AssertStopBandAndResume(second, SouthLeft, held.Interaction.Junction.DistanceMeters));
+            sequence.Add(AssertStopBandAndResume(second, SouthLeft, held.Interaction.Junction.DistanceMeters, frontMeters));
             WriteSummary("scenario-D", stamp, record, spawner, observer, runs, sequence, vehicleContacts, obstacleContacts, otherContacts, trace, journal);
             AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
         }

@@ -201,6 +201,55 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void ReplanningInsideALinedMovementPreservesThePhysicalBoundaryAndMovementStarts()
+        {
+            ulong frameId = 1;
+            foreach (var line in BranchLines())
+            {
+                var route = RouteVia(line.Key);
+                var track = ReferenceTrack.FromRoute(Model, route.Occurrences, 0f);
+                float entry = EntryDistance(route, line.Key);
+                foreach (float distanceToLine in new[] { Margin, -0.5f - Car.LeftMeters })
+                {
+                    float center = entry + line.Value - distanceToLine - Car.FrontMeters;
+                    int piece = track.PieceAt(center);
+                    var nominal = track.Nominal(piece, center);
+                    var input = new TrafficActorInput(Agent, new VehicleFootprintPose { Position = nominal.Position,
+                        Forward = nominal.Forward, Up = nominal.Up, Footprint = Car }, 0f, line.Key,
+                        TrafficV2Lifecycle.ExpectedElements(route), track.KinematicAnchors(piece));
+                    var frame = new TrafficFrame(frameId, Model, new[] { input });
+                    TrafficActor actor;
+                    Assert.That(frame.TryGetActor(Agent, out actor), Is.True);
+                    Assert.That(actor.Location.Localized, Is.True);
+                    Assert.That(actor.Location.ElementId, Is.EqualTo(line.Key), "Premisse : centre deja dans le mouvement de branche.");
+                    Assert.That(actor.Location.SMeters, Is.GreaterThan(0f));
+                    var replanned = RoutePlanner.Plan(new RouteRequest(Model, actor.Location, route.ExitPortalId,
+                        new RouteSeed(0), Agent, "route", new DecisionCounter(0), route, true));
+                    Assert.That(replanned.Outcome, Is.EqualTo(RouteOutcome.Replanned));
+                    Assert.That(replanned.Plan, Is.Not.Null);
+                    Assert.That(replanned.Plan.Occurrences[0].Id, Is.EqualTo(line.Key));
+                    Assert.That(replanned.Plan.Occurrences[0].StartSMeters, Is.EqualTo(actor.Location.SMeters));
+                    var snapshot = JunctionSnapshot.Initial(frameId);
+                    var full = JunctionRequestBuilder.Build(frame, Index, Agent, route, Driver, Dt, Margin, snapshot, frameId, HoldEntrySpeed);
+                    var trimmed = JunctionRequestBuilder.Build(frame, Index, Agent, replanned.Plan, Driver, Dt, Margin, snapshot, frameId, HoldEntrySpeed);
+                    Assert.That(full.HasRequest && trimmed.HasRequest, Is.True);
+                    Assert.That(trimmed.Request.BoundaryMeters, Is.EqualTo(line.Value), "b reste l'abscisse du modele.");
+                    Assert.That(trimmed.Request.DistanceMeters, Is.EqualTo(full.Request.DistanceMeters).Within(1e-5f));
+                    Assert.That(trimmed.Request.HeadOfQueue, Is.EqualTo(full.Request.HeadOfQueue));
+                    Assert.That(trimmed.Request.HeadOfQueue, Is.True, "L'acteur seul reste tete de file.");
+                    Assert.That(trimmed.StatusOf(line.Key), Is.EqualTo(full.StatusOf(line.Key)));
+                    Assert.That(trimmed.OccupiedMovements.Contains(line.Key), Is.EqualTo(distanceToLine < 0f));
+                    float startFull, startTrimmed;
+                    Assert.That(full.Request.TryGetMovementStart(line.Key, out startFull), Is.True);
+                    Assert.That(trimmed.Request.TryGetMovementStart(line.Key, out startTrimmed), Is.True);
+                    Assert.That(startFull, Is.LessThan(0f), "Le debut physique du mouvement est deja derriere le pare-chocs.");
+                    Assert.That(startTrimmed, Is.EqualTo(startFull).Within(1e-5f), "ETA et degagement gardent l'origine du mouvement complet.");
+                    frameId++;
+                }
+            }
+        }
+
+        [Test]
         public void ARefusedBranchVehicleStopsInTheLineBandPastTheGenericEntryAndResumesOnItsGrant()
         {
             var driver = Driver;

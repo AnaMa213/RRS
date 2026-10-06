@@ -909,10 +909,16 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        [Category("Story535")]
         public void TheJunctionFolderUsesNoPhysicsNorControlPathAndDeclaresNoPedalMember()
         {
             var files = Directory.GetFiles(Path.Combine(TrafficRootPath, "Junction"), "*.cs");
-            Assert.That(files.Length, Is.EqualTo(7), "5.34 : 5 fichiers ; 5.35 : RightOfWay et JunctionPriority.");
+            // Responsabilites attendues ; leur repartition en fichiers peut evoluer sans changer le contrat.
+            var expected = new[] { typeof(JunctionCoordinator), typeof(JunctionConflictIndex), typeof(JunctionRequestBuilder),
+                typeof(JunctionDistances), typeof(JunctionTraversal), typeof(JunctionActorReport), typeof(JunctionRecord),
+                typeof(JunctionSnapshot), typeof(RightOfWay), typeof(RightOfWayTable), typeof(JunctionPriority), typeof(JunctionKinematics) };
+            var types = typeof(JunctionCoordinator).Assembly.GetTypes().Where(t => t.IsPublic && t.Namespace == typeof(JunctionCoordinator).Namespace).ToList();
+            Assert.That(types, Is.SupersetOf(expected), "Coordination, index, demandes, distances, records et regles pures.");
             foreach (var file in files)
             {
                 string source = File.ReadAllText(file);
@@ -920,8 +926,6 @@ namespace RoadRage.Tests.EditMode
                     "Mono" + "Behaviour", "NetworkVariable", "Rp" + "c", "LateralClearanceMarginMeters", "Physics" + ".", "UnityEngine" + ".Object" })
                     Assert.That(source, Does.Not.Contain(forbidden), file);
             }
-            var types = typeof(JunctionCoordinator).Assembly.GetTypes().Where(t => t.IsPublic && t.Namespace == typeof(JunctionCoordinator).Namespace).ToList();
-            Assert.That(types.Count, Is.GreaterThanOrEqualTo(15));
             foreach (var type in types)
                 foreach (var member in type.GetMembers(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
                     foreach (var word in new[] { "Brake", "Throttle", "Pedal" })
@@ -1082,6 +1086,7 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        [Category("Story535")]
         public void TheScenarioBuilderIsDeterministicAndWritesScenariosCAndD()
         {
             string firstText = BuildScenarioText();

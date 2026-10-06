@@ -258,17 +258,21 @@ namespace RoadRage.Tests.EditMode
                     Waiting(rightF.Route, pair[0], WaitingDistanceMeters, "attente-droite") },
                 Pushes = new PushRecord[0] });
 
-            // G : deux vehicules d'anneau passent la continuation qui rejoint l'entree ouest ; l'entrant attend derriere son
-            // obstacle, retire par le test quand le premier vehicule d'anneau aborde l'element qui precede la fusion.
+            // G : retenir le premier vehicule d'anneau sur son approche jusqu'a ce que l'entrant soit pret. Sans cette
+            // synchronisation, les deux vehicules d'anneau sortent avant que l'entrant atteigne son obstacle.
             var entryG = Movement(WestEntryPrefix);
             var continuation = Movement(WestContinuationPrefix);
             InsertionRecord ringFirst, ringSecond, entering;
-            InsertionVia(continuation, 1UL, 0UL, out ringFirst);
-            InsertionVia(continuation, 2UL, 150UL, out ringSecond);
-            var enteringG = InsertionVia(entryG, 3UL, 0UL, out entering);
+            var firstRingG = InsertionVia(continuation, 1UL, 0UL, out ringFirst);
+            InsertionVia(continuation, 3UL, 150UL, out ringSecond);
+            var enteringG = InsertionVia(entryG, 2UL, 0UL, out entering);
             Assert.That(entering.Elements, Has.No.Member(continuation.ToString()), "l'entrant ne passe pas par la continuation");
-            scenarios.Add(new ScenarioRecord { Label = "G", MaxPopulation = 3, MaxSteps = 9000, Insertions = new[] { ringFirst, ringSecond, entering },
-                Obstacles = new[] { Waiting(enteringG.Route, entryG, WaitingDistanceMeters, "attente-entree") },
+            var ringApproach = firstRingG.Route.Occurrences.First(o => Model.Movements.Any(m => m.Id == o.Id)).Id;
+            // Le spawner traite les insertions dans l'ordre : l'entrant doit preceder le second anneau, dont le portail
+            // reste occupe par le premier anneau retenu. Sinon l'entrant ne peut pas etre cree pour liberer le staging.
+            scenarios.Add(new ScenarioRecord { Label = "G", MaxPopulation = 3, MaxSteps = 9000, Insertions = new[] { ringFirst, entering, ringSecond },
+                Obstacles = new[] { Waiting(enteringG.Route, entryG, WaitingDistanceMeters, "attente-entree"),
+                    Waiting(firstRingG.Route, ringApproach, 2f, "attente-anneau") },
                 Pushes = new PushRecord[0] });
 
             // Gate C : deux insertions par entree vers deux sorties atteignables (rotation par entree, construction d'explore-8) ;
@@ -344,13 +348,24 @@ namespace RoadRage.Tests.EditMode
             var g = file.Scenarios[2];
             var continuation = Movement(WestContinuationPrefix);
             Assert.That(g.Insertions[0].Elements, Has.Member(continuation.ToString()));
-            Assert.That(g.Insertions[1].Elements, Has.Member(continuation.ToString()));
-            Assert.That(g.Insertions[2].Elements, Has.Member(Movement(WestEntryPrefix).ToString()));
+            Assert.That(g.Insertions[2].Elements, Has.Member(continuation.ToString()));
+            Assert.That(g.Insertions[1].Elements, Has.Member(Movement(WestEntryPrefix).ToString()),
+                "l'entrant est cree avant le second anneau retenu au portail par le premier");
+            Assert.That(g.Insertions[1].EarliestStep, Is.LessThanOrEqualTo(g.Insertions[2].EarliestStep));
             RoadId zone;
             ConflictKind kind;
             float startEntry, startRing;
             Assert.That(Index.TryGetConflict(Movement(WestEntryPrefix), continuation, out zone, out kind, out startEntry, out startRing), Is.True);
             Assert.That(kind, Is.EqualTo(ConflictKind.Merge), "fusion ouest typee Merge (5.53a)");
+            var ringWait = g.Obstacles.Single(o => o.Label == "attente-anneau");
+            Assert.That(g.Insertions[0].Elements, Has.Member(ringWait.ElementId));
+            Assert.That(g.Insertions[2].Elements, Has.Member(ringWait.ElementId), "les deux vehicules utilisent la meme approche");
+            Assert.That(g.Insertions[1].Elements, Has.No.Member(ringWait.ElementId), "la synchronisation ne bloque pas l'entrant");
+            Assert.That(ringWait.ElementId, Is.EqualTo(g.Insertions[0].Elements[0]), "obstacle avant la premiere entree d'anneau");
+            Assert.That(ringWait.RouteDistanceMeters, Is.GreaterThan(file.VehicleLengthMeters + Driver.MinimumGap),
+                "l'obstacle laisse une distance de retenue depuis la pose initiale ; cree apres insertion pour respecter le rayon du portail");
+            Assert.That(g.Obstacles.Single(o => o.Label == "attente-entree").ElementId,
+                Is.Not.EqualTo(ringWait.ElementId), "les obstacles d'attente sont independants");
 
             foreach (var campaign in file.Scenarios.Skip(3))
             {

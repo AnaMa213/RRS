@@ -311,7 +311,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 {
                     batchYield++;
                     records.Add(Denied(actor, traversal, since, frameId, effective, JunctionReason.YieldToPriority, cause, zone));
-                    Bucket(refused, traversal.JunctionId).Add(new Pending { Actor = actor.TrafficId, Traversal = traversal });
+                    // P3(b) : l'anciennete reste acquise, mais une demande qui cede ne reserve pas contre une progression normale.
                     Bucket(yielded, traversal.JunctionId).Add(new KeyValuePair<JunctionActorReport, RoadId>(actor, cause));
                 }
                 else if (ConflictsWithSeniors(traversal, actor.TrafficId, refused, out cause, out zone))
@@ -548,7 +548,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                     || !holder.TryGetApproachContaining(merge.HeldMovement, out approach)
                     || !approach.TryGetMovementStart(merge.HeldMovement, out start)) return false;
                 var k = holder.Kinematics;
-                float eta = JunctionPriority.TravelSeconds(start + merge.HolderContactStart, k.SpeedMetersPerSecond,
+                float eta = JunctionPriority.EarliestArrivalSeconds(start + merge.HolderContactStart, k.SpeedMetersPerSecond,
                     k.MaxAccelerationMetersPerSecondSquared, k.DesiredSpeedMetersPerSecond);
                 float gap = GapSeconds(requester, merge.RequestIndex);
                 Trace(gap, eta);
@@ -662,7 +662,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             var approach = actor.Request;
             var k = actor.Kinematics;
             if (!k.Known || approach.MovementStartMeters == null || approach.MovementStartMeters.Count <= index) return 0f;
-            return JunctionPriority.TravelSeconds(approach.MovementStartMeters[index], k.SpeedMetersPerSecond,
+            return JunctionPriority.EarliestArrivalSeconds(approach.MovementStartMeters[index], k.SpeedMetersPerSecond,
                 k.MaxAccelerationMetersPerSecondSquared, k.DesiredSpeedMetersPerSecond);
         }
 
@@ -670,7 +670,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         private static bool HaltedAtBoundary(JunctionApproach approach)
         {
             var distances = approach.Distances;
-            return distances.SpeedMetersPerSecond <= JunctionPriority.StopHaltSpeedMetersPerSecond && approach.DistanceMeters >= 0f
+            return distances.SpeedMetersPerSecond <= JunctionPriority.StopHaltSpeedMetersPerSecond
+                && approach.DistanceMeters >= Math.Max(0f, distances.ControlMarginMeters - JunctionPriority.StopHaltIntegrationToleranceMeters)
                 && approach.DistanceMeters <= Math.Max(distances.HoldWindowMeters, distances.ControlMarginMeters);
         }
 

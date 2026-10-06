@@ -358,6 +358,133 @@ namespace RoadRage.Tests.EditMode
             Assert.That(result.Failures.Any(f => f.Contains("cas A, nouveau contact")), Is.True, string.Join("\n", result.Failures));
         }
 
+        [Test]
+        public void CaseBRejectsNewNominalContactEvenWithinTheMarginLossTolerance()
+        {
+            var result = MeasureStraightCrossingSeparation(0.04f, 0.02f);
+            var row = result.Rows.Single();
+            Assert.That(row.Preexisting, Is.True, "Premisse cas B : contact conservatif au repli b = 0.");
+            Assert.That(row.EntryNominalMeters, Is.EqualTo(0.02f).Within(0.001f), "Les gabarits nominaux sont initialement separes.");
+            Assert.That(row.LineNominalMeters, Is.EqualTo(0f).Within(0.001f), "La ligne cree un contact nominal.");
+            Assert.That(row.EntrySlackMeters - row.LineSlackMeters, Is.LessThanOrEqualTo(0.05f),
+                "La perte reste admise : seule la garde de nouveau contact doit refuser cette paire.");
+            Assert.That(row.Violation, Is.EqualTo("cas B, nouveau recouvrement nominal"));
+            Assert.That(result.Passed, Is.False);
+        }
+
+        [Test]
+        public void CaseBRejectsMoreThanFiveCentimetersOfMarginLossWithoutNewNominalContact()
+        {
+            var result = MeasureStraightCrossingSeparation(0.10f, 0.20f);
+            var row = result.Rows.Single();
+            Assert.That(row.Preexisting, Is.True, "Premisse cas B : contact conservatif au repli b = 0.");
+            Assert.That(row.EntryNominalMeters, Is.EqualTo(0.20f).Within(0.001f));
+            Assert.That(row.LineNominalMeters, Is.EqualTo(0.10f).Within(0.001f), "Les gabarits nominaux restent separes.");
+            Assert.That(row.EntrySlackMeters - row.LineSlackMeters, Is.GreaterThan(0.05f),
+                "La degradation depasse la limite proprietaire, sans atteindre le contact nominal.");
+            Assert.That(row.Violation, Does.StartWith("cas B, marge degradee au-dela de "));
+            Assert.That(result.Passed, Is.False);
+        }
+
+        [Test]
+        public void CaseBAcceptsMarginLossBelowFiveCentimetersWhileNominalFootprintsStaySeparated()
+        {
+            var result = MeasureStraightCrossingSeparation(0.04f, 0.20f);
+            var row = result.Rows.Single();
+            Assert.That(row.Preexisting, Is.True);
+            Assert.That(row.EntrySlackMeters - row.LineSlackMeters, Is.InRange(0f, 0.05f));
+            Assert.That(row.EntryNominalMeters, Is.GreaterThan(0f));
+            Assert.That(row.LineNominalMeters, Is.GreaterThan(0f));
+            Assert.That(row.Violation, Is.Null);
+            Assert.That(result.Failures, Is.Empty);
+        }
+
+        /// <summary>
+        /// Deux mouvements droits orthogonaux isolent les gardes du cas B. La voie B passe juste au-dela du nez le plus
+        /// avance de A au repli generique : les trois poses arretees utilisent centre - 0,05, + 0,05 et + 0,15 m.
+        /// </summary>
+        private static StopLineSeparation.Result MeasureStraightCrossingSeparation(float lineMeters, float nominalGapMeters)
+        {
+            var authored = AuthoredSource();
+            var profile = authored.ValidationProfile;
+            Assert.That(profile.EnvelopeOverlapToleranceMeters, Is.EqualTo(0.05f), "Limite P5 cas B confirmee par le proprietaire.");
+            float halfLength = ConflictSweep.HalfLength(profile);
+            float entryNose = StopLineSeparation.Center(0f, halfLength) + halfLength + 0.15f;
+            float crossingZ = profile.MaxVehicleHalfWidthMeters + entryNose + nominalGapMeters;
+            var junctionId = new RoadId(535UL, 1UL);
+            var movementA = new RoadId(535UL, 2UL);
+            var movementB = new RoadId(535UL, 3UL);
+            var source = new RoadModelSource
+            {
+                ModelId = new RoadId(535UL, 4UL),
+                ValidationProfile = profile,
+                LocalizationProfile = authored.LocalizationProfile,
+                DrivabilityProfile = authored.DrivabilityProfile,
+                Sections = new RoadSection[4],
+                Corridors = new LaneCorridor[4],
+                Junctions = new[] { new Junction { Id = junctionId, Feature = JunctionFeature.Other,
+                    Boundary = new RoadBoundsBox { Center = new Vector3(0f, 0f, 10f), Extents = new Vector3(15f, 2f, 15f) } } }
+            };
+            var starts = new[] { new Vector3(0f, 0f, -30f), new Vector3(0f, 0f, 20f),
+                new Vector3(-40f, 0f, crossingZ), new Vector3(10f, 0f, crossingZ) };
+            var tangents = new[] { Vector3.forward, Vector3.forward, Vector3.right, Vector3.right };
+            for (int i = 0; i < source.Corridors.Length; i++)
+            {
+                var sectionId = new RoadId(535UL, (ulong)(10 + i));
+                source.Sections[i] = new RoadSection { Id = sectionId, DefaultSpeedLimitMetersPerSecond = 10f,
+                    DefaultAllowedVehicleClasses = VehicleClassMask.All };
+                source.Corridors[i] = new LaneCorridor { Id = new RoadId(535UL, (ulong)(20 + i)), SectionId = sectionId,
+                    IsCrossSectionDatum = true, LengthMeters = 30f, Samples = SeparationStraight(starts[i], tangents[i], 30f, profile) };
+            }
+            source.Movements = new[]
+            {
+                new JunctionMovement { Id = movementA, JunctionId = junctionId, FromCorridorId = source.Corridors[0].Id,
+                    ToCorridorId = source.Corridors[1].Id, LengthMeters = 20f, Samples = SeparationStraight(Vector3.zero, Vector3.forward, 20f, profile) },
+                new JunctionMovement { Id = movementB, JunctionId = junctionId, FromCorridorId = source.Corridors[2].Id,
+                    ToCorridorId = source.Corridors[3].Id, LengthMeters = 20f,
+                    Samples = SeparationStraight(new Vector3(-10f, 0f, crossingZ), Vector3.right, 20f, profile) }
+            };
+            source.Controls = new[]
+            {
+                new JunctionControl { Id = new RoadId(535UL, 30UL), JunctionId = junctionId, Kind = JunctionControlKind.Yield,
+                    ControlledMovementIds = new[] { movementA }, HasStopLine = true,
+                    StopLine = new RoadLineSegment { Start = new Vector3(-2f, 0f, lineMeters), End = new Vector3(2f, 0f, lineMeters) } },
+                new JunctionControl { Id = new RoadId(535UL, 31UL), JunctionId = junctionId, Kind = JunctionControlKind.Priority,
+                    ControlledMovementIds = new[] { movementB } }
+            };
+            source.ConflictZones = new[] { new ConflictZone { Id = new RoadId(535UL, 32UL), JunctionId = junctionId,
+                Kind = ConflictKind.Crossing, MemberMovementIds = new[] { movementA, movementB }, Volume = source.Junctions[0].Boundary } };
+            source.Portals = new[]
+            {
+                new Portal { Id = new RoadId(535UL, 40UL), CorridorId = source.Corridors[0].Id, Role = PortalRole.Entry,
+                    EnvelopeLengthMeters = profile.MaxVehicleLengthMeters, EnvelopeHalfWidthMeters = profile.MaxVehicleHalfWidthMeters },
+                new Portal { Id = new RoadId(535UL, 41UL), CorridorId = source.Corridors[2].Id, Role = PortalRole.Entry,
+                    EnvelopeLengthMeters = profile.MaxVehicleLengthMeters, EnvelopeHalfWidthMeters = profile.MaxVehicleHalfWidthMeters }
+            };
+            var compiled = RoadModelCompiler.Compile(source);
+            var parameters = GateAEvidenceParameters.Declared();
+            var bounds = KinematicOffsetBounds.Compute(compiled, SweepGraph.FromModel(compiled), parameters);
+            Assert.That(bounds.Closed, Is.True, string.Join("\n", bounds.Failures));
+            Assert.That(bounds.Infeasible, Is.Empty);
+            var result = StopLineSeparation.Measure(compiled, parameters, bounds);
+            Assert.That(result.Rows, Has.Count.EqualTo(1), string.Join("\n", result.Failures));
+            return result;
+        }
+
+        private static RoadCurveSample[] SeparationStraight(Vector3 start, Vector3 tangent, float length, RoadModelValidationProfile profile)
+        {
+            int intervals = Mathf.RoundToInt(length / 0.10f);
+            var samples = new RoadCurveSample[intervals + 1];
+            for (int i = 0; i <= intervals; i++)
+            {
+                float s = length * i / intervals;
+                samples[i] = new RoadCurveSample { SMeters = s, Position = start + tangent * s, Tangent = tangent, Up = Vector3.up,
+                    HalfWidthLeftMeters = profile.MaxVehicleHalfWidthMeters + profile.LateralClearanceMarginMeters,
+                    HalfWidthRightMeters = profile.MaxVehicleHalfWidthMeters + profile.LateralClearanceMarginMeters };
+            }
+            return samples;
+        }
+
         private static Vector3 ToC(Vector3 point)
         {
             if (Math.Abs(Math.Abs(point.x) - 27.4f) < 1e-3f) point.x = Math.Sign(point.x) * 28f;

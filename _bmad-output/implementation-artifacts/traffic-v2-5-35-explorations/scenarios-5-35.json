@@ -235,29 +235,6 @@
                     ]
                 },
                 {
-                    "Entry": "4889b9d5d0f80bc3ce3c3514a5d6f7aa",
-                    "Exit": "48090a5d359625c04fb6050a2407f292",
-                    "Seed": 0,
-                    "EarliestStep": 150,
-                    "Elements": [
-                        "4d1d749db78465cdc4e90ee844e3d898",
-                        "42480748339bbb6fe6fcbc99604c1aa8",
-                        "41aade042322996080b638a3a86e1088",
-                        "4e0c96d3fe6dbf797b6b539c16fe42ac",
-                        "48e681e799268186449903ef2aa3258f",
-                        "419d893b269e14c02e84e3509d9bf193",
-                        "46b219bca5cdaf1087d30d9622fab0a5",
-                        "48af5815b3bc108d4b441d89a7823d88",
-                        "4d5c15fca8e24f15b1bdf0f0695acebf",
-                        "4d6ca77eae0d45e72a542a1478a2aa84",
-                        "43e96165bde1e8229cf8d27082d6b798",
-                        "431a11dff650b4115fa5bf99118b9b8a",
-                        "4ccc97c5021ae91587883344ee3ca299",
-                        "46077471fe6db9c5bfc3327df0b647af",
-                        "4097b38e7bf2ad82edd9087f6d56ae8b"
-                    ]
-                },
-                {
                     "Entry": "48d96a31a823c14dc3c3c55e08da6bbb",
                     "Exit": "49d29d3fd771ae4966aca755b3442cbc",
                     "Seed": 0,
@@ -279,6 +256,29 @@
                         "45607ec286d32b63e09ca677f22031ba",
                         "456446f0213cdfedcbcb6d32f7ee7db6"
                     ]
+                },
+                {
+                    "Entry": "4889b9d5d0f80bc3ce3c3514a5d6f7aa",
+                    "Exit": "48090a5d359625c04fb6050a2407f292",
+                    "Seed": 0,
+                    "EarliestStep": 150,
+                    "Elements": [
+                        "4d1d749db78465cdc4e90ee844e3d898",
+                        "42480748339bbb6fe6fcbc99604c1aa8",
+                        "41aade042322996080b638a3a86e1088",
+                        "4e0c96d3fe6dbf797b6b539c16fe42ac",
+                        "48e681e799268186449903ef2aa3258f",
+                        "419d893b269e14c02e84e3509d9bf193",
+                        "46b219bca5cdaf1087d30d9622fab0a5",
+                        "48af5815b3bc108d4b441d89a7823d88",
+                        "4d5c15fca8e24f15b1bdf0f0695acebf",
+                        "4d6ca77eae0d45e72a542a1478a2aa84",
+                        "43e96165bde1e8229cf8d27082d6b798",
+                        "431a11dff650b4115fa5bf99118b9b8a",
+                        "4ccc97c5021ae91587883344ee3ca299",
+                        "46077471fe6db9c5bfc3327df0b647af",
+                        "4097b38e7bf2ad82edd9087f6d56ae8b"
+                    ]
                 }
             ],
             "Obstacles": [
@@ -295,6 +295,28 @@
                         "x": -1.0,
                         "y": 0.0,
                         "z": 0.0
+                    },
+                    "Size": {
+                        "x": 2.0,
+                        "y": 1.5,
+                        "z": 1.0
+                    },
+                    "FromStep": 0,
+                    "UntilStep": -1
+                },
+                {
+                    "Label": "attente-anneau",
+                    "ElementId": "4d1d749db78465cdc4e90ee844e3d898",
+                    "RouteDistanceMeters": 7.499999046325684,
+                    "Center": {
+                        "x": -39.071067810058594,
+                        "y": 0.75,
+                        "z": -41.899497985839844
+                    },
+                    "Forward": {
+                        "x": 0.7071065902709961,
+                        "y": 0.0,
+                        "z": 0.7071069478988647
                     },
                     "Size": {
                         "x": 2.0,

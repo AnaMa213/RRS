@@ -1,0 +1,63 @@
+Extrait brut conserve du premier run EditMode Story535 de cette reprise, a partir de la fin de recompilation.
+Commande : .\scripts\validate.ps1 -Profile Story -Story 5.35 -TestMode EditMode
+Echec : deux nouvelles fixtures utilisaient 20 m a 8 m/s comme TooFar, sans verifier D_request.
+Correction : distance = D_request(8 m/s) + 0,1 m, et assertion explicite du rejet TooFar avant le lot.
+
+  recompile_status: completed
+==> stabilisation apres recompile + unity cmd console --level error --since 1381
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+  0 erreur depuis le curseur 1381
+==> etat de compilation courant (EditorUtility.scriptCompilationFailed)
+  scriptCompilationFailed=false
+  100 avertissement(s) hors Assets/Synty/ (informatif, ne bloque pas)
+  [WARN] [projet] x11 Assembly for Assembly Definition File 'Assets/RoadRage/Features/SandboxStops/RoadRage.Features.SandboxStops.asmdef' will not be compiled, because it has no scripts associated with it.
+  [WARN] x9 Assets\RoadRage\Tests\EditMode\TrafficOracle\TrafficOracleTests.cs(441,38): warning UAC0005: AppDomain.GetAssemblies() in Unity may return already unloaded assemblies and result in errors or leaks. Use Unity APIs instead, such as 'CurrentAssemblies.GetLoadedAssemblies()' or 'TypeCache.GetTypesDerivedFrom()'.
+  [WARN] x5 Assets\RoadRage\Features\Vehicles\AiRageTargetResolution.cs(35,23): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+  [WARN] x5 Assets\RoadRage\Features\Vehicles\AiRageTargetResolution.cs(35,102): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+  [WARN] x3 Assets\RoadRage\DevTools\RoadRageNetcodeSmokeTestAutoStart.cs(162,99): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+  [WARN] x3 Assets\RoadRage\DevTools\RoadRageNetcodeSmokeTestAutoStart.cs(162,30): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1244,26): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1206,28): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1244,96): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+  [WARN] x3 Assets\RoadRage\DevTools\RageSandboxAutoStart.cs(293,30): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\Tests\PlayMode\Story533PerformanceDiagnosticPlayModeTests.cs(221,39): warning UAC1001: Field 'Recorders' type 'Unity.Profiling.ProfilerRecorder' is skipped by serialization (missing the [Serializable] attribute). Refer to the Serialization rules analyzer reference. (https://docs.unity3d.com/6000.6/Documentation/Manual/script-serialization-analyzer.html#uac1001)
+  [WARN] x3 Assets\RoadRage\DevTools\RageSandboxAutoStart.cs(293,99): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+  ... 18 autre(s) message(s) distinct(s) non affiche(s) ; total : 100
+==> profil de validation (Story)
+  categorie : Story535
+==> unity cmd list_tests --mode editor (comptes et partition)
+  34 test(s) attendus (categorie Story535) ; 1221 non executes par selection ; 3 test(s) [Explicit] hors suite par defaut
+==> unity cmd run_tests --mode EditMode
+==> unity cmd test_status (EditMode)
+  [FAIL] RoadRage.Tests.EditMode.Story535JunctionRulesTests.AFourWayRightOfWayCycleIsBrokenOnceForTheOldestAndAnOpenChainIsNot :   Junction snapshot source 1 effectif 2 / lot valide / acteurs 2 occupants 0 demandes 2 valides 2 / Granted 1 Held 0 Denied 1 Revoked 0 Released 0 / EnteredWithoutGrant 0 IncompatibleOccupancy 0 / paires 1 / StopRequired 0 YieldToPriority 0 MergeGap 0 DeadlockBreak 0 CrossingRefusals 1 MergeGapRefusals 0
+  0000000000000535000000000000000c Granted(Granted) 490b6106a4522c5dfec0040c66cd82b9 traversee 4f7e560ced3c5a4bfbf14942df76f198 [4f7e560ced3c5a4bfbf14942df76f198] depuis 1 source 1 effectif 2 expire apres 2
+  0000000000000535000000000000000d Denied(ConflictGranted) 490b6106a4522c5dfec0040c66cd82b9 traversee 410eb197d612c9963b40e6d1b7fe15bf [410eb197d612c9963b40e6d1b7fe15bf] depuis 1 source 1 effectif 2 expire apres 2 cause @0000000000000535000000000000000c zone 46987262dd6fe1111a00229ab6c9d8ab
+  Expected: YieldToPriority
+  But was:  ConflictGranted
+
+  [FAIL] RoadRage.Tests.EditMode.Story535JunctionRulesTests.AnOldYieldingRequestDoesNotReserveAgainstTheEndOfAnOpenChainAndKeepsItsAge :   Junction snapshot source 2 effectif 3 / lot valide / acteurs 3 occupants 0 demandes 3 valides 3 / Granted 0 Held 1 Denied 2 Revoked 0 Released 0 / EnteredWithoutGrant 0 IncompatibleOccupancy 0 / paires 2 / StopRequired 0 YieldToPriority 0 MergeGap 0 DeadlockBreak 0 CrossingRefusals 2 MergeGapRefusals 0
+  00000000000005350000000000000001 Denied(ConflictGranted) 490b6106a4522c5dfec0040c66cd82b9 traversee 410eb197d612c9963b40e6d1b7fe15bf [410eb197d612c9963b40e6d1b7fe15bf] depuis 1 source 2 effectif 3 expire apres 3 cause @00000000000005350000000000000003 zone 4b168164d6d552a9e382264821c7dcbe
+  00000000000005350000000000000002 Denied(ConflictGranted) 490b6106a4522c5dfec0040c66cd82b9 traversee 4b0942d72a850d61b60bc3e8a6a52384 [4b0942d72a850d61b60bc3e8a6a52384] depuis 1 source 2 effectif 3 expire apres 3 cause @00000000000005350000000000000003 zone 44eb41658994bf0d068556234e7c7491
+  00000000000005350000000000000003 Held(Pending) 490b6106a4522c5dfec0040c66cd82b9 traversee 4c6997b98ac692f6bd24a50f86009eb3 [4c6997b98ac692f6bd24a50f86009eb3] depuis 1 source 2 effectif 3 expire apres 3
+  Expected: Granted
+  But was:  Held
+
+ECHEC: 2/34 test(s) EditMode en echec.
+
+---- Recapitulatif de validation ----
+  VALIDATION STORY (Story535)
+  Profil                   Story (Story535)
+  Tests executes           34 au total (34 en EditMode)
+  Suites completes         non executees ; reservees a la fin d'epic
+  SelfTest lecteur CLI     passe (cas detailles ci-dessus)
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          1381 (29 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            completed
+  Erreurs Console          0 depuis le curseur 1381
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 100 (informatif, hors gate)
+  Selection                34 test(s) attendus (categorie Story535) ; 1221 non executes par selection ; 3 test(s) [Explicit] hors suite par defaut
+-------------------------------------
+VALIDATION FAILED / INCOMPLETE
+

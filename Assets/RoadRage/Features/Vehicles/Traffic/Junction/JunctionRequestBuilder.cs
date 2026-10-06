@@ -103,9 +103,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                     approachEnd = last;
                     float boundary = index.BoundaryOf(occurrences[k0].Id);
                     double lineFront = boundary > 0f ? referenceFront : front;
-                    float d = (float)(start[k0] + boundary - lineFront);
+                    // Une replanification dans le mouvement tronque sa premiere occurrence : b reste une abscisse du
+                    // modele, donc son origine de route precede start[k0] de StartSMeters.
+                    float d = (float)(start[k0] + boundary - occurrences[k0].StartSMeters - lineFront);
                     var startsAhead = new float[at.Count];
-                    for (int i = 0; i < at.Count; i++) startsAhead[i] = (float)(start[at[i]] - front);
+                    for (int i = 0; i < at.Count; i++) startsAhead[i] = (float)(start[at[i]] - occurrences[at[i]].StartSMeters - front);
                     var distances = JunctionDistances.For(driver.Value, actor.TangentialSpeedMetersPerSecond, deltaTimeSeconds,
                         controlMarginMeters, holdEntrySpeedMetersPerSecond);
                     JunctionRecord grant;
@@ -152,7 +154,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 // Le premier mouvement d'une traversee n'est occupe qu'au-dela de la frontiere de controle, mesuree au pare-chocs
                 // de reference (Story 5.35).
                 float line = ChainStart(index, occurrences, k) == k ? index.BoundaryOf(occurrences[k].Id) : 0f;
-                double a = start[k] + line, b = start[k + 1], reach = line > 0f ? referenceFront : front;
+                double a = start[k] + line - occurrences[k].StartSMeters, b = start[k + 1], reach = line > 0f ? referenceFront : front;
                 var status = !occupied ? (k == q ? JunctionMovementStatus.Occupied : JunctionMovementStatus.Unknown)
                     : a < reach && b > rear ? JunctionMovementStatus.Occupied
                     : b <= rear ? JunctionMovementStatus.Behind : JunctionMovementStatus.Ahead;
@@ -255,7 +257,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             double[] start, int q, int k0, float boundary, double front, RoadId self, out RoadId masking)
         {
             masking = RoadId.None;
-            double entry = start[k0] + boundary;
+            double entry = start[k0] + boundary - occurrences[k0].StartSMeters;
             if (entry <= front) return true;
             // Story 5.35 : un acteur arrete a la ligne occupe deja le debut du mouvement, avant la frontiere.
             if (boundary > 0f && Cuts(frame.GetOccupants(occurrences[k0].Id), start[k0] - occurrences[k0].StartSMeters, front, entry, self,

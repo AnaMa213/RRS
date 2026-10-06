@@ -39,7 +39,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
     /// <list type="bullet">
     /// <item>t_clear(D, v, a, v_max) : temps minimal pour parcourir D depuis v, acceleration a jusqu'a v_max, sans depasser v_max
     /// (une vitesse initiale superieure est ramenee a v_max : temps plus long, donc conservatif pour le demandeur) ;</item>
-    /// <item>ETA(D, v, a, v0) : meme forme, plafond v0 seul (borne basse du temps d'arrivee, conservative) ;</item>
+    /// <item>ETA(D, v, a, v0) : meme forme, sans ramener instantanement une vitesse reelle superieure a v0 (borne basse conservative) ;</item>
     /// <item>t_gap = t_clear + t_lat + m_gap.</item>
     /// </list>
     /// </summary>
@@ -50,6 +50,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
 
         /// <summary>Stop (P6) : arret marque sous cette vitesse tangentielle, pare-chocs dans la fenetre d'arret de la frontiere.</summary>
         public const float StopHaltSpeedMetersPerSecond = 0.05f;
+
+        /// <summary>Tolerance sous m_ctrl de l'arret marque P6, decision proprietaire du 2026-10-06 (m).</summary>
+        public const float StopHaltIntegrationToleranceMeters = 0.02f;
 
         /// <summary>Temps minimal pour parcourir <paramref name="distance"/> (m) ; +inf si impossible, 0 si distance &lt;= 0.</summary>
         public static float TravelSeconds(float distance, float speed, float acceleration, float maxSpeed)
@@ -63,6 +66,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             double accelerating = (maxSpeed * (double)maxSpeed - v * v) / (2d * a);
             if (distance <= accelerating) return (float)((Math.Sqrt(v * v + 2d * a * distance) - v) / a);
             return (float)((maxSpeed - v) / a + (distance - accelerating) / maxSpeed);
+        }
+
+        /// <summary>
+        /// ETA minimal : acceleration jusqu'a v0, ou vitesse reelle conservee si elle depasse deja v0. Ne suppose aucune
+        /// deceleration instantanee du prioritaire/titulaire ; le temps de degagement du demandeur garde son plafond conservatif.
+        /// </summary>
+        public static float EarliestArrivalSeconds(float distance, float speed, float acceleration, float desiredSpeed)
+        {
+            return TravelSeconds(distance, speed, acceleration, Math.Max(desiredSpeed, speed));
         }
 
         /// <summary>Plafond de vitesse d'un mouvement : min(v0, √(a_lat / κmax)) ; v0 si le mouvement est droit.</summary>

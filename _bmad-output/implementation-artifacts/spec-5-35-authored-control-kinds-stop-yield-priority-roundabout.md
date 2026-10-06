@@ -2,9 +2,9 @@
 title: 'Story 5.35 -- Genres de controle authores : stop, cedez-le-passage, priorite routiere, priorite a droite et entree de giratoire, lignes d''arret, Gate C'
 type: 'feature'
 created: '2026-10-05'
-status: 'in-progress'
+status: 'done'
 baseline_commit: '183a329d410bd3e6e353c8c16cbfd76c84beffca'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context:
   - '{project-root}/_bmad-output/planning-artifacts/traffic-v2/ROAD-WORLD-MODEL-AND-RESPONSIBILITY-CONTRACTS.md'
   - '{project-root}/_bmad-output/implementation-artifacts/spec-5-34-junction-coordination-core-grants-and-conflicts.md'
@@ -96,12 +96,13 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
   - Un P refuse `ExitBlocked` au lot courant ne compte pas. Les paires de traversees pertinentes et leurs longueurs sont precalculees par modele.
 - **`Yield`** : aucun arret obligatoire. Grant si creneau suffisant, sinon arret a la frontiere par `JunctionEntry`.
 - **`Stop`**, deux conditions distinctes et ordonnees :
-  1. arret marque : vitesse tangentielle ≤ `StopHaltSpeedMetersPerSecond` (0,05 m/s, declaree), pare-chocs dans la fenetre d'arret de b ;
+  1. arret marque : vitesse tangentielle ≤ `StopHaltSpeedMetersPerSecond` (0,05 m/s, declaree), pare-chocs dans la bande [`m_ctrl` − `StopHaltIntegrationToleranceMeters` (0,02 m) ; fenetre d'arret de b]. Borne basse confirmee par le proprietaire le 2026-10-06 lors de la reprise de revue ;
   2. ensuite seulement, acceptation de creneau.
   - Avant 1 : `Denied(StopRequired)`. L'etat « arret marque » vit dans le coordinateur, avec la duree de vie de l'anciennete O2 : jamais de minuterie.
 - **Ordre du lot, par demande.** sortie -> `StopRequired` -> occupant protege -> grant incompatible (`Crossing` strict ; `Merge` admis seulement par `GrantedMergeGap`) -> `YieldToPriority` -> reservation de l'ancien -> `Granted`.
   - La sortie est toujours evaluee avant toute priorite.
   - Une reservation d'ancien ne bloque jamais un plus jeune qui a preseance sur elle.
+  - **P3(b), decision proprietaire du 2026-10-06 apres revue :** une demande ancienne actuellement `YieldToPriority` conserve son `RequestSinceFrame`, mais ne reserve pas contre un autre demandeur qui peut progresser normalement. Elle reste membre possible du cycle ferme examine par le briseur.
   - Un grant non engage n'est pas revoque pour priorite.
 - **Briseur d'interblocage (P3), jamais a la place de la regle.** A la fin du lot, par carrefour, il agit seulement si toutes ces conditions sont reunies :
   - aucun grant tenu ou emis ;
@@ -126,7 +127,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - **P12 -- satisfaite le 2026-10-06.** L'addendum `spec-5-53a-west-merge-typing-v2.md` a type les 4 paires `continuation ouest x entree ouest` en `Merge` (`ContactStartSMeters` 0 / 1,4607 m). Criteres d'anneau actualises sur le modele reel `v5:a98e645f…` avant le checkpoint d'approbation (problem, limites d'anneau, matrice, criteres).
 
 - **Dependance 5.53 (satisfaite le 2026-10-05).** La 5.35 lit le modele type sans le modifier. Une paire dont la 5.35 aurait besoin autrement que prouvee releve d'une story de modele, jamais d'une exception runtime : P11 en est le cas connu ; P12 a ete traitee par l'addendum 5.53a.
-- **Scenario C de la 5.34** : depuis sa cloture, la branche (`FromSouth`, plus petit `TrafficId`) gagne le departage. Sous la 5.35, l'axe `Priority` passe d'abord : l'issue de C change. Le scenario E le remplace pour le verdict, et C n'est modifie que par decision proprietaire consignee. D reste inchange.
+- **Scenario C de la 5.34, adaptation autorisee le 2026-10-06 :** conserver C et ses routes ; l'axe `Priority` passe avant la branche `Yield`, qui conserve le plus petit `TrafficId`. Adapter le staging a b et les verdicts de preseance. Preserver l'exclusivite des grants incompatibles, l'absence de contact et la progression finale. E complete C. D reste inchange.
 
 - **P8 (tranchee le 2026-10-05, option a)** : `CandidateModel` inclut les controles, donc sa version change et `AutomatedPairDecisionPolicy.SameInputs` echoue. L'exception `5.50-AUTO-DECISIONS-v1` est etendue a la 5.35 par `sprint-change-proposal-2026-10-05.md`, approuvee le 2026-10-05, sous toutes ses conditions (build rules §6). Preuve exigee : a geometrie inchangee, chaque paire garde sa classification, sa raison et sa preuve ; seuls changent les identifiants de run et de revision. Toute classification differente : HALT. L'extension n'autorise ni la revue ni la signature de Gate A.
 - Un verdict de preuve Gate A, une decision de paire ou un ensemble de raccords signes qui change.
@@ -141,7 +142,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - Authorer un controle ou une ligne pour la couverture de code. Inferer une regle depuis un nom, un cycle ou un nombre de noeuds. Recalculer une preseance par vehicule et par pas. Recopier la relation de droite dans `road-authoring.json`.
 - Un stop par minuterie. `s0` comme retrait a la ligne. Un briseur qui agit alors qu'une progression est possible.
 - Signaux (5.36), escalade d'interblocage (5.40), exceptions de regle et Code de la route au-dela de ces regles (5.41), changement de voie, recuperation (5.39), optimisation de cout (5.46, AD-42).
-- Modifier geometrie, trottoirs, seuils de preuve ou ε_t. Signer Gate A. Lancer un test PlayMode.
+- Modifier geometrie, trottoirs, seuils de preuve ou ε_t. Signer Gate A. Les executions PlayMode agent sont autorisees par le proprietaire le 2026-10-06 (Spec Change Log).
 
 ## I/O & Edge-Case Matrix
 
@@ -158,6 +159,7 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 | Sortie et priorite | Sortie insuffisante et priorite | `ExitBlocked` evalue d'abord | N/A |
 | P bloque en sortie | P `ExitBlocked` au lot | P ignore pour le creneau de R | N/A |
 | Reservation | Ancien `Yield` en attente, jeune `Priority` | Le jeune n'est pas `SeniorRequestPending` | N/A |
+| Chaine ouverte P3(b) | A ancien cede a B, B a C ; C peut progresser normalement et est incompatible avec A sans preseance directe | C `Granted`, aucun briseur ; A et B gardent leur anciennete | Aucun blocage par reservation de A |
 | Ligne dans le mouvement | b = 3,47 m (droite) / 3,41 m (gauche) (`TJunction_West`, branche ; fin des trottoirs d'angle, decision proprietaire B du 2026-10-06) | Arret pare-chocs a [`m_ctrl` − 0,02 ; fenetre] de b ; non occupant, non engage avant b | N/A |
 | Sans ligne | Entree de giratoire | b = 0, comportement 5.34 | Disposition au rapport |
 | Rotation | Carrefour synthetique tourne de 0 a 345° par 15°, et miroir | Relation invariante en rotation, gauche/droite echangees en miroir | `Ambiguous` dans la bande |
@@ -300,6 +302,19 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 
 ## Spec Change Log
 
+- **2026-10-06 -- Cloture demandee : « Fais tous ça sans HALT ».** Cette instruction autorise les rejeux historiques, la promotion BMAD et le commit local, et leve l'arret avant promotion. Apres les derniers correctifs : `Story531` **50/50 EditMode + 13/13 PlayMode**, `Story552` **26/26 + 4/4**, `Story533` **69/69 + 12/12** (A/B inclus), `Story534` **48/48 EditMode** ; C/D et saturation 5.34 deja verts dans les **6/6 PlayMode Story535**, avec **42/42 EditMode Story535**. Gate C explicite **3/3**, p95 N8 en population pleine **8,624 ms**. Sorties officielles completes conservees, zero erreur Console dans chaque fenetre finale, MVP_Run propre. Premier rejeu 5.31 interrompu avant tests par CLI muet/code 6, puis reprise annoncee et verte, sans contournement. [Rapport de cloture et preuves](traffic-v2-5-35-explorations/review-followup-20261006.md). Spec `done`, sprint `review` selon le rendu BMAD ; `done` du sprint reste reserve a la story checkpoint de fin d'epic. Aucun finding confirme ouvert ; la confrontation ligne par ligne au rapport original introuvable reste une limite documentaire explicite. Aucune suite complete ni regeneration/signature Gate A dans cette reprise.
+
+- **2026-10-06 -- Autorisation proprietaire des executions agent.** « Tu as la main pour faire les executions » leve l'interdiction PlayMode precedente pour Story535 puis Gate C. Premier run 4/6 : C/E/F/saturation verts, D conserve un critere d'entree generique obsolete sous b>0, G obstacle dans la garde de portail empechant toute insertion. D controle maintenant le franchissement physique de b ; G cree sa retenue apres premiere insertion et place l'entrant avant le second anneau dans le calendrier serialise. Nouveau run Both : **42/42 EditMode et 6/6 PlayMode**, puis Gate C explicite **3/3**, N2/N4/N8 = 2/2, 4/4, 8/8 sorties ; **p95 N8 en population pleine 8,624 ms < 10 ms**. Compilation saine, zero erreur Console dans chaque fenetre finale, MVP_Run propre. [Sorties brutes et dispositions](traffic-v2-5-35-explorations/review-followup-20261006.md). Aucun changement runtime supplementaire pendant les reprises D/G, **arret avant promotion finale**, statut `in-review` conserve.
+
+- **2026-10-06 -- Suite de revue demandee apres clarification Gate C.** C libere ses deux obstacles ensemble pour conserver un grant `Priority` frais au lot commun ; G synchronise les anneaux avec l'entrant et exige un refus de creneau sur la fusion ouest. E verifie l'arret `JunctionEntry`, et les helpers C/D/E mesurent le vrai franchissement de b. Origine de route partielle corrigee pour d, ETA/degagement, occupation et tete apres replanification dans un mouvement ; regression EditMode a pose constante. **Decision proprietaire P6 : borne basse de l'arret marque = m_ctrl - 0,02 m**, appliquee et testee aux bornes. Gate C historiquement verte avant cette correction runtime, aucun verdict transfere au nouvel etat. [Complement et sorties](traffic-v2-5-35-explorations/review-followup-20261006.md). Aucun PlayMode agent, aucune promotion finale.
+  - Validation finale du nouveau diff : **42/42 EditMode Story535**, 0 skipped/inconclusive, compilation saine, 0 erreur Console, MVP_Run propre ; `graphify update .` et `git diff --check` conformes. Verdicts PlayMode a fournir par le proprietaire, statut `in-review` conserve.
+
+- **2026-10-06 -- Reprise de revue sur `a3c1faac89e12cefe8f873835a4cbc5fa980e15d`, decisions proprietaires P3(b), C et P5.** Reprise du code existant, sans rollback ni nouvelle planification. P3 est amende dans le bloc fige : `YieldToPriority` conserve l'anciennete mais ne reserve pas contre une progression normale ; le briseur reste limite aux cycles fermes. C de la 5.34 est conserve et adapte a `Priority` avant `Yield`, avec invariants de surete et progression maintenus. P5 cas B est confirme : perte de marge maximale 0,05 m relativement a b = 0, aucun nouveau contact nominal. Garder le modele, la geometrie, les preuves et la signature Gate A existants. Pour cette reprise, seules les validations EditMode `Story535` sont autorisees ; aucun PlayMode, aucune promotion finale.
+  - Correctifs et preuves : P3(b), ETA prioritaire/titulaire sans deceleration instantanee si v > v0, negatifs P5 cas B et hash de droite, projection de trace, responsabilites explicites `Junction/`, C conserve et adapte. Premier run 32/34 (deux premisses TooFar corrigees), run final **40/40 EditMode Story535**, 0 erreur Console, scene propre. [Suivi de revue et sorties brutes](traffic-v2-5-35-explorations/review-followup-20261006.md).
+  - **HALT PlayMode** : C/D, E/F/G, Gate C et D13 runtime attendent le proprietaire ; `in-review` conserve, aucune promotion finale. Le rapport initial non retrouve reste a confronter ; ce suivi ne pretend pas le remplacer integralement.
+  - **Retour proprietaire ulterieur « c'est vert » :** rapports Gate C N2/N4/N8 presents, 2/2, 4/4 et 8/8 sorties, p95 N8 en population pleine 7,383 ms. E/F : 2/2 sorties. Portee du verdict a confirmer : dernier resume G disponible = 2/3 sorties et obstacle non retire ; aucun nouveau resume C correspondant aux journaux de 17:54 et 18:12. Aucune relance agent, aucune promotion sur une preuve absente ; voir le suivi de reprise.
+  - **Clarification proprietaire : « Gate C uniquement verte ».** Gate C et D13 N8 confirmes par le proprietaire. Le profil PlayMode Story535 n'est pas declare vert ; C et G restent ouverts. Aucun test relance par l'agent, statut `in-review` conserve et aucune promotion finale.
+
 - **2026-10-06 -- Position de la `StopLine` de branche des T (decision proprietaire C).** Mesure statique (prefab et scene) : les tuiles Synty ont leur pivot au coin max, prouve par la coincidence exacte des colliders de trottoir avec les tuiles visuelles. Le passage pieton de la branche couvre donc z local [−8 ; −4] et non x monde [−30 ; −26] comme dans le constat visuel 5.34. L'ancien b = 6,4 m placait le nez sur l'axe de la voie traversante la plus proche (z local −2).
   - Frontieres proposees, identiques sur les 4 T : A debut du mouvement (b = 0) ; B fin des trottoirs d'angle (3,47 / 3,41) ; C bord interieur du passage = debut de la chaussee traversante (4,17 / 4,02) ; D flanc du vehicule d'axe + a_e (4,99 / 4,68).
   - **Retenue : C**. Ligne locale (0, −4) -> (4, −4) sur chaque branche, soit b = 4,17 m (droite) et 4,02 m (gauche) ; pare-chocs arrete a z local ≈ −4,25, 4,7 m plus avant que l'arret 5.34 (≈ −8,95).
@@ -373,12 +388,12 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
   - Perimetre P8 etendu a typing-v2 (`sprint-change-proposal-2026-10-05.md`, section 9). (Depasse : signature dediee 5.53a le 2026-10-06, 5.53 et 5.53a `done`.)
   - typing-v2 vit dans la politique v3 (`TypeZone`) : la regeneration P8 de la phase 2 doit reproduire a l'identique les genres et debuts issus de l'addendum, sinon HALT.
 
-**Hypotheses non verifiees.**
+**Mesures et hypotheses.**
 - Le gain de debit des giratoires est limite par P11 ; il n'est pas mesure.
-- P8 : effet reel de `SameInputs` sur la regeneration (refus ou nouveau run), a mesurer en phase 1 ; l'identite des classifications a geometrie inchangee est attendue, pas prouvee. Precedent : l'application 5.53a n'a change que `DecisionRunId` hors perimetre typing-v2.
+- P8 verifiee en phase 2 : les 136 paires gardent classification, raison, preuve, genre, debuts et revisions ; seuls `DecisionRunId` et `ModelVersion` changent (commit `4952648`, journal du checkpoint 2).
 - Verifiee le 2026-10-06 : a_lat est disponible par profil (`SpeedPlan.cs:236`).
-- Le debit de la croix sous priorite a droite et la frequence du briseur ne sont pas mesures.
-- Le cout par vehicule du creneau n'est pas mesure, avec une marge D13 de 0,7 a 1,7 ms.
+- Le debit de la croix n'est pas mesure. Les briseurs sont observes en Gate C : N2 = 0, N4 = 1, N8 = 1 ; aucune frequence en production deduite.
+- Le cout individuel du creneau n'est pas isole. En Gate C N8, coordinateur p95 0,056 ms (priorite incluse), pas hote p95 8,624 ms en population pleine ; marge D13 1,376 ms.
 
 ## Verification
 
@@ -389,3 +404,61 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 **Manual checks (proprietaire):**
 - Re-signature Gate A sur le nouveau record (phase 2).
 - `.\scripts\validate.ps1 -Profile Story -Story 5.35 -TestMode PlayMode` puis `-TestFilter Story535GateC -TestFilterType category -IncludeExplicit` -- E/F/G et Gate C verts, rapports ecrits ; rejeux 5.31, 5.52, 5.33, 5.34 verts.
+
+## Suggested Review Order
+
+**Arbitrage et progression**
+
+- Le lot applique les controles sans perdre les garanties de conflit et de sortie.
+  [JunctionCoordinator.cs:96](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L96)
+
+- P3(b) conserve l'anciennete sans reserver contre un demandeur qui peut progresser.
+  [JunctionCoordinator.cs:313](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L313)
+
+- L'ETA preserve la vitesse reelle excessive ; le degagement reste conservatif.
+  [JunctionPriority.cs:72](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionPriority.cs#L72)
+
+- L'arret marque respecte les deux bornes de la bande decidee.
+  [JunctionCoordinator.cs:670](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionCoordinator.cs#L670)
+
+
+**Frontiere et intention routiere**
+
+- L'origine physique reste stable quand une route replanifiee commence dans un mouvement.
+  [JunctionRequestBuilder.cs:73](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/JunctionRequestBuilder.cs#L73)
+
+- Les genres et lignes invalides echouent avant la compilation du modele.
+  [RoadModelValidator.cs:1022](../../Assets/RoadRage/Features/Vehicles/Traffic/RoadModelValidator.cs#L1022)
+
+- La ligne conserve la separation ou respecte le contact conservatif preexistant borne.
+  [StopLineSeparation.cs:47](../../Assets/RoadRage/Features/Vehicles/Traffic/Migration/StopLineSeparation.cs#L47)
+
+- La relation de droite est precalculee une fois et liee a la signature.
+  [RightOfWay.cs:97](../../Assets/RoadRage/Features/Vehicles/Traffic/Junction/RightOfWay.cs#L97)
+
+- L'admission refuse une relation derivee qui diverge de la preuve signee.
+  [GateAEvidenceBinding.cs:104](../../Assets/RoadRage/Features/Vehicles/Traffic/Planning/GateAEvidenceBinding.cs#L104)
+
+
+**Preuves et montages**
+
+- C adapte la preseance tout en conservant exclusivite, absence de contact et sorties.
+  [Story534JunctionPlayModeTests.cs:231](../../Assets/RoadRage/Tests/PlayMode/Story534JunctionPlayModeTests.cs#L231)
+
+- E/F/G prouvent arret, priorite a droite et rencontre effective sur la fusion.
+  [Story535JunctionPlayModeTests.cs:28](../../Assets/RoadRage/Tests/PlayMode/Story535JunctionPlayModeTests.cs#L28)
+
+- La campagne publie sorties, invariants et cout hote en population pleine.
+  [Story535GateCPlayModeTests.cs:27](../../Assets/RoadRage/Tests/PlayMode/Story535GateCPlayModeTests.cs#L27)
+
+- Les cas negatifs distinguent perte excessive de marge et nouveau contact nominal.
+  [Story535ControlAuthoringTests.cs:362](../../Assets/RoadRage/Tests/EditMode/Story535ControlAuthoringTests.cs#L362)
+
+- Les permutations distinguent cycle ferme, chaine ouverte et anciennete conservee.
+  [Story535JunctionRulesTests.cs:354](../../Assets/RoadRage/Tests/EditMode/Story535JunctionRulesTests.cs#L354)
+
+- Les responsabilites explicites remplacent le comptage fragile des fichiers.
+  [Story534JunctionEntryTests.cs:913](../../Assets/RoadRage/Tests/EditMode/Story534JunctionEntryTests.cs#L913)
+
+- Decisions, dispositions et sorties brutes de la reprise puis de la cloture.
+  [Suivi de revue](traffic-v2-5-35-explorations/review-followup-20261006.md)
