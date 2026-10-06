@@ -238,9 +238,9 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
 - Checkpoint 1 : `Story535` EditMode vert.
 
 *Phase 2 -- Gate A*
-- [ ] Regenerer modele, rapport, preuves et diff sur la nouvelle version, par le chemin 5.52, avec le run v3 autorise par P8 (~8 min par plan). Verdicts, classifications, genres, debuts de contact et raccords identiques, sinon HALT.
-- [ ] `AutomatedPairDecisionPolicy.cs` -- ajouter a `RefinementIdentity` les constantes de typage hors identite (`ZoneTyping.EndToleranceMeters`, `MinimumRefinedLengthMeters`, seuil du temoin) : entree differee 5.53, reouverture « prochaine regeneration ».
-- [ ] `GateAEvidenceBinding.cs`, signoff de `AuthoredRoadModel.cs`, `TrafficV2Composition.cs` -- hash de relation de droite lie et verifie a l'admission.
+- [x] Regenerer modele, rapport, preuves et diff sur la nouvelle version, par le chemin 5.52, avec le run v3 autorise par P8 (~8 min par plan). Verdicts, classifications, genres, debuts de contact et raccords identiques, sinon HALT.
+- [x] `AutomatedPairDecisionPolicy.cs` -- ajouter a `RefinementIdentity` les constantes de typage hors identite (`ZoneTyping.EndToleranceMeters`, `MinimumRefinedLengthMeters`, seuil du temoin) : entree differee 5.53, reouverture « prochaine regeneration ».
+- [x] `GateAEvidenceBinding.cs`, signoff de `AuthoredRoadModel.cs`, `TrafficV2Composition.cs` -- hash de relation de droite lie et verifie a l'admission.
 - Checkpoint 2 : **HALT, re-signature dediee 5.35 par le proprietaire**, puis rejeu EditMode `Story553`, `Story534`, `Story533`, `Story531` et `Story552`.
 
 *Phase 3 -- regles pures*
@@ -309,6 +309,10 @@ Ajouter des `StopLine` la ou la map en porte l'intention. Le coordinateur 5.34 r
   - Decision : le critere strict est remplace par la comparaison au repli b = 0 (cas A / cas B, bloc fige P5). Position **B** retenue : ligne locale (0, −4,6) -> (4, −4,6), b = 3,47 m (droite) / 3,41 m (gauche), pare-chocs arrete a z local ≈ −4,85, environ 4,1 m plus avant que l'arret 5.34. [2'] (b ≈ 3,65 m) ecarte : gain de 0,2 m, aucun repere visible, trop pres de la limite numerique.
   - Lecture chiffree du cas B par l'agent, a confirmer au checkpoint suivant : « degradation non bornee » = baisse de marge au-dela de `EnvelopeOverlapToleranceMeters` (0,05 m, deja declaree au profil) ; « nouvelle region de recouvrement physique » = empreintes nominales separees a b = 0 et en recouvrement a la ligne.
   - Fixtures adaptees a la nouvelle regle de validateur (lignes) : `Story525` (genre compare sans ligne, la ligne synthetique ne coupant pas ses demi-tours) et `Story528` (genres authores P2 au lieu de « tous `Uncontrolled` »).
+- **2026-10-06 -- Phases 1 et 2 : checkpoint 1 vert, regeneration P8 appliquee, HALT pour la re-signature Gate A.**
+  - Checkpoint 1 : `validate.ps1 -Profile Story -Story 5.35 -TestMode EditMode` 12/12, 0 erreur Console. Commits `593b863` (moteur, phases 0-2) et `22d5352` (graphe).
+  - Phase 2 : menus « Appliquer les decisions automatisees 5.52 » puis « Compiler le modele authore » ; commit `4952648`. Controle P8 : 136 paires, classification, raison, preuve, genre, debuts et revisions identiques ; seuls `DecisionRunId` et `ModelVersion` changent, manifeste idem. Modele `v5:6d145fd3…` : seul le bloc `Controls` change. Relation de droite `03b75b53…`, 0 paire ambigue. `RefinementIdentity` porte desormais les constantes de typage (entree differee 5.53 soldee).
+  - Separation des lignes (rapport 5.28) : 32 paires conformes. Cas A le plus serre : tourne-a-droite de branche contre le tout-droit de la voie proche, marge Gate A **+0,009 m** a la ligne B (tourne-a-gauche : +0,091 m). Cas B (virages de l'axe entrant dans la branche) : marge −1,192 -> −1,103 / −1,111 (amelioree), distance nominale 1,69-1,94 -> 1,59-1,82 m.
 
 ## Design Notes
 
