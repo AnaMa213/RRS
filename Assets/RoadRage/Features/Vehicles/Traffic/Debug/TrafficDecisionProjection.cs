@@ -175,18 +175,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         public VehicleCoverage VehicleCoverage { get; }
         /// <summary>Null hors run de mesure.</summary>
         public string MeasurementLabel { get; }
+        /// <summary>Verdict du SafetyFilter (5.37) ; null sans commande evaluee.</summary>
+        public string Safety { get; }
 
         public TrafficDriveOutcome(ulong decisionEpoch, ulong physicsEpoch, ulong sourceFrameId, float throttle,
             float steer, float brakeReverse, float handbrake, bool fallback, string fallbackReason, string binding,
             IReadOnlyList<string> appliedConstraints, IReadOnlyList<string> deferredConstraints,
-            VehicleCoverage vehicleCoverage, string measurementLabel)
+            VehicleCoverage vehicleCoverage, string measurementLabel, string safety = null)
         {
             DecisionEpoch = decisionEpoch; PhysicsEpoch = physicsEpoch; SourceFrameId = sourceFrameId;
             Throttle = throttle; Steer = steer; BrakeReverse = brakeReverse; Handbrake = handbrake;
             Fallback = fallback; FallbackReason = fallbackReason ?? "None"; Binding = binding ?? "None";
             AppliedConstraints = Array.AsReadOnly(Copy(appliedConstraints));
             DeferredConstraints = Array.AsReadOnly(Copy(deferredConstraints));
-            VehicleCoverage = vehicleCoverage; MeasurementLabel = measurementLabel;
+            VehicleCoverage = vehicleCoverage; MeasurementLabel = measurementLabel; Safety = safety;
         }
 
         private static string[] Copy(IReadOnlyList<string> source)

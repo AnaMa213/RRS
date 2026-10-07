@@ -24,7 +24,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
         /// </summary>
         TrackingToleranceExceeded = 10,
         /// <summary>Story 5.33 : la frame partagee du pas n'a pas pu etre construite ; chaque vehicule recoit le repli.</summary>
-        FrameUnavailable = 11
+        FrameUnavailable = 11,
+        /// <summary>Story 5.37 : le SafetyFilter a rejete la commande pour une raison objective.</summary>
+        SafetyRejected = 12
     }
 
     /// <summary>Etat terminal du repli, diagnostique et publie ; le vehicule reste present.</summary>
@@ -248,7 +250,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
             return float.IsPositiveInfinity(minimum) ? 0f : minimum;
         }
 
-        private static void ResolveCapacities(VehicleProfile vehicle, out float drive, out float brake)
+        /// <summary>Capacites physiques moteur et frein (m/s2) d'un profil, partagees avec le SafetyFilter (5.37).</summary>
+        internal static void ResolveCapacities(VehicleProfile vehicle, out float drive, out float brake)
         {
             int driven = 0;
             float radiusSum = 0f;

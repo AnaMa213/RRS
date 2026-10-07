@@ -10,6 +10,7 @@ using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Routing;
+using RoadRage.Features.Vehicles.Traffic.Safety;
 using Unity.Netcode;
 using Unity.Profiling;
 using UnityEngine;
@@ -369,6 +370,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private RoutePlan route;
         private RoadId previousElement;
         private VehicleDriveIntentComposer composer;
+        private SafetyLimits safetyLimits;
+        private bool warnedInvalidSafetyLimits;
         private ulong stepCounter;
         private int pieceHint;
         private VehicleDriveIntent lastIntent = VehicleDriveIntent.Idle;
@@ -471,6 +474,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public bool HasReachedExitPortal { get { return reachedExitPortal && !toleranceResponse.Latched; } }
         public TrafficDecisionProjection LastProjection { get; private set; }
         public ComposedDrive LastComposed { get; private set; }
+        /// <summary>Verdict du SafetyFilter au dernier pas (5.37) ; nul sans commande evaluee.</summary>
+        public SafetyResult LastSafety { get; private set; }
         public IReadOnlyList<V2StepRecord> Trace { get { return trace; } }
         public IReadOnlyList<ReferenceTrack> Tracks { get { return tracks; } }
         public IReadOnlyList<string> Contacts { get { return contacts; } }
@@ -608,6 +613,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             if (composer == null)
             {
                 float dt = Time.fixedDeltaTime;
+                try
+                {
+                    safetyLimits = SafetyLimits.For(physicsBody.Profile, admission.Model.DrivabilityProfile, dt,
+                        TrafficV2Settings.PlanValiditySteps);
+                }
+                catch (ArgumentException)
+                {
+                    // Bornes physiques non positives : aucun SafetyFilter possible, vehicule inerte (reste acteur de la frame).
+                    if (!warnedInvalidSafetyLimits)
+                    {
+                        warnedInvalidSafetyLimits = true;
+                        UnityEngine.Debug.LogWarning("[Traffic V2] " + name + " : bornes physiques du SafetyFilter invalides, vehicule inerte.", this);
+                    }
+                    return true;
+                }
                 composer = new VehicleDriveIntentComposer(physicsBody.Profile, driverProfile.Profile.SafeBrakingLimit, dt);
                 FixedDeltaTimeSeconds = dt;
             }
@@ -769,6 +789,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             SpeedPlan plan = null;
             MotionCommand? command = null;
             LongitudinalDecision longitudinal = null;
+            LongitudinalPerception perceived = null;
             var refusal = V2FallbackReason.NoCommand;
             if (frame == null) refusal = V2FallbackReason.FrameUnavailable;
             else if (decision == null || decision.Motion == null) refusal = V2FallbackReason.NoRoute;
@@ -786,7 +807,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                     // Arbitrage longitudinal (5.33) : le profil 5.31, la route libre et les contraintes d'interaction.
                     ArbitrationMarker.Begin();
                     detailWatch.Restart();
-                    var perceived = LongitudinalPerception.From(observation, decision.PerceptionPath,
+                    perceived = LongitudinalPerception.From(observation, decision.PerceptionPath,
                         LongitudinalPerception.FrontDistanceMeters(frame, insertion.TrafficId, decision.PerceptionPath), hazardQuery.Saturated);
                     longitudinal = LongitudinalArbitration.Decide(plan, driver, speed, dt, perceived, longitudinalMemory,
                         TrafficV2Settings.StopHold, entry);
@@ -821,6 +842,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                     trackMs = detailWatch.Elapsed.TotalMilliseconds;
                     MotionCommandMarker.End();
                 }
+            }
+            // SafetyFilter (5.37) : seule frontiere entre la commande de suivi et le composeur ; un rejet passe au repli.
+            // Un verrou de tolerance retire de toute facon la commande : aucun verdict publie pour elle.
+            LastSafety = null;
+            if (command.HasValue && !toleranceResponse.Latched)
+            {
+                LastSafety = SafetyFilter.Evaluate(command.Value, frameId, frame, insertion.TrafficId, speed, decision.Path,
+                    perceived, safetyLimits);
+                command = LastSafety.Command;
+                if (LastSafety.Verdict == SafetyVerdict.Reject) refusal = LastSafety.Refusal;
             }
             if (toleranceResponse.Latched)
             {
@@ -1005,7 +1036,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             // Plus aucune limite reportee depuis la 5.33 : la liste reportee reste vide.
             return new TrafficDriveOutcome(frameId, stepCounter, composed.SourceFrameId, composed.Intent.Throttle, composed.Intent.Steer,
                 composed.Intent.BrakeReverse, composed.Intent.Handbrake, composed.Fallback, composed.Reason.ToString(), binding,
-                applied, null, VehicleCoverageVerdict, MeasurementLabel);
+                applied, null, VehicleCoverageVerdict, MeasurementLabel, LastSafety == null ? null : LastSafety.ToText());
         }
 
         private void OnCollisionEnter(Collision collision)

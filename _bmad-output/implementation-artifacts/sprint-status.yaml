@@ -217,7 +217,7 @@ development_status:
   # 2026-10-07 : cloture proprietaire explicite des stories 5.35 et 5.36.
   5-35-authored-control-kinds-stop-yield-priority-roundabout: done
   5-36-signal-phase-runtime-and-coordinator-integration: done
-  5-37-safety-filter-narrow-veto-and-clamp-boundary: backlog
+  5-37-safety-filter-narrow-veto-and-clamp-boundary: review
   5-38-collision-response-physics-yields-tactical-handshake: backlog
   5-39-recovery-supervisor-progress-and-physical-reattachment: backlog
   5-40-gridlock-detection-and-bounded-escalation: backlog
