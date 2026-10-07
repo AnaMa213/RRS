@@ -185,6 +185,191 @@ namespace RoadRage.Tests.EditMode
 
         // ============================================================ creneau : fonctions pures
 
+        // Modele en memoire : approches droites independantes, aucune modification des artefacts signes.
+        private static RoadModelSource CrossingSource(params float[] headings)
+        {
+            var authored = RoadModelDocument.Load(File.ReadAllText(TrafficV2Settings.ModelPath));
+            var source = new RoadModelSource { ModelId = Id(1000), ValidationProfile = authored.ValidationProfile,
+                LocalizationProfile = authored.LocalizationProfile, DrivabilityProfile = authored.DrivabilityProfile,
+                Sections = new RoadSection[headings.Length * 2], Corridors = new LaneCorridor[headings.Length * 2],
+                Movements = new JunctionMovement[headings.Length], Controls = new JunctionControl[headings.Length],
+                Junctions = new[] { new Junction { Id = Id(1001), Feature = JunctionFeature.Crossroads,
+                    Boundary = new RoadBoundsBox { Center = Vector3.zero, Extents = new Vector3(15f, 3f, 15f) } } } };
+            for (int i = 0; i < headings.Length; i++)
+            {
+                Vector3 tangent = Quaternion.AngleAxis(headings[i], Vector3.up) * Vector3.forward;
+                // La cinquieme approche est une voie distincte, pas un suiveur masque par la tete de file.
+                Vector3 offset = i == 4 ? Vector3.Cross(Vector3.up, tangent) * 5f : Vector3.zero;
+                for (int j = 0; j < 2; j++)
+                {
+                    int k = i * 2 + j;
+                    source.Sections[k] = new RoadSection { Id = Id(1100 + k), DefaultSpeedLimitMetersPerSecond = 10f,
+                        DefaultAllowedVehicleClasses = VehicleClassMask.All };
+                    source.Corridors[k] = new LaneCorridor { Id = Id(1200 + k), SectionId = source.Sections[k].Id,
+                        IsCrossSectionDatum = true, LengthMeters = 40f,
+                        Samples = ReviewStraight(offset + tangent * (j == 0 ? -45f : 5f), tangent, 40f, source.ValidationProfile) };
+                }
+                source.Movements[i] = new JunctionMovement { Id = Id(1300 + i), JunctionId = Id(1001),
+                    FromCorridorId = source.Corridors[i * 2].Id, ToCorridorId = source.Corridors[i * 2 + 1].Id,
+                    LengthMeters = 10f, Samples = ReviewStraight(offset - tangent * 5f, tangent, 10f, source.ValidationProfile) };
+                source.Controls[i] = new JunctionControl { Id = Id(1400 + i), JunctionId = Id(1001),
+                    Kind = JunctionControlKind.Uncontrolled, ControlledMovementIds = new[] { source.Movements[i].Id } };
+            }
+            source.ConflictZones = new[] { new ConflictZone { Id = Id(1500), JunctionId = Id(1001), Kind = ConflictKind.Crossing,
+                Volume = source.Junctions[0].Boundary, MemberMovementIds = source.Movements.Select(m => m.Id).ToArray() } };
+            return source;
+        }
+
+        private static RoadCurveSample[] ReviewStraight(Vector3 start, Vector3 tangent, float length, RoadModelValidationProfile profile)
+        {
+            int count = Mathf.RoundToInt(length / 0.1f);
+            return Enumerable.Range(0, count + 1).Select(i => new RoadCurveSample { SMeters = length * i / count,
+                Position = start + tangent * (length * i / count), Tangent = tangent, Up = Vector3.up,
+                HalfWidthLeftMeters = profile.MaxVehicleHalfWidthMeters + profile.LateralClearanceMarginMeters,
+                HalfWidthRightMeters = profile.MaxVehicleHalfWidthMeters + profile.LateralClearanceMarginMeters }).ToArray();
+        }
+
+        [Test]
+        public void AClosedCycleDoesNotHideASecondExternalPriorityThreat()
+        {
+            var m = RoadModelCompiler.Compile(CrossingSource(0f, -90f, 180f, 90f, -90f));
+            var index = JunctionConflictIndex.For(m);
+            var moves = m.Movements.OrderBy(x => x.Id).Select(x => Traversal(index, x.Id)).ToArray();
+            var cycle = Enumerable.Range(0, 4).Select(i => Requesting(m, Id(i + 1), moves[i], 0.3f, 0f)).ToArray();
+            Assert.That(Batch(m, new JunctionCoordinator(m), 1, cycle).Counters.DeadlockBreaks, Is.EqualTo(1));
+            var outside = Requesting(m, Id(5), moves[4], JustTooFarAt(8f), 8f);
+            Assert.That(outside.Rejection, Is.EqualTo(JunctionRequestRejection.TooFar));
+            Assert.That(outside.Request.HeadOfQueue, Is.True);
+            Assert.That(index.FromCorridorOf(moves[4].FirstMovementId), Is.Not.EqualTo(index.FromCorridorOf(moves[1].FirstMovementId)));
+            var reports = cycle.Concat(new[] { outside }).ToArray();
+            foreach (var order in new[] { reports, reports.Reverse().ToArray(), reports.Skip(2).Concat(reports.Take(2)).ToArray() })
+            {
+                var snapshot = Batch(m, new JunctionCoordinator(m), 1, order);
+                Assert.That(snapshot.Counters.DeadlockBreaks, Is.Zero, snapshot.ToText());
+                Assert.That(snapshot.Records.Any(r => r.IsEffectiveGrant), Is.False, snapshot.ToText());
+                AssertDecision(snapshot, Id(1), moves[0].FirstMovementId, JunctionGrantStatus.Denied, JunctionReason.YieldToPriority, Id(2));
+            }
+        }
+
+        [Test]
+        public void CommonCompilationRejectsMissingInconsistentAndAmbiguousUncontrolledApproaches()
+        {
+            var empty = CrossingSource(0f, -90f);
+            empty.Controls = empty.Controls.Concat(new[] { new JunctionControl { Id = Id(1499), JunctionId = Id(1001),
+                Kind = JunctionControlKind.Uncontrolled, ControlledMovementIds = Array.Empty<RoadId>() } }).ToArray();
+            Assert.That(RoadModelValidator.Validate(empty).Select(x => x.Code), Has.Member(RoadModelValidationCode.ControlApproachMissing));
+            Assert.Throws<RoadModelCompilationException>(() => RoadModelCompiler.Compile(empty));
+            foreach (bool reverse in new[] { false, true })
+            {
+                var mixed = CrossingSource(0f, -90f);
+                mixed.Controls[0].ControlledMovementIds = mixed.Movements.Select(x => x.Id).ToArray();
+                if (reverse) Array.Reverse(mixed.Controls[0].ControlledMovementIds);
+                mixed.Controls = mixed.Controls.Take(1).ToArray();
+                Assert.That(RoadModelValidator.Validate(mixed).Select(x => x.Code), Has.Member(RoadModelValidationCode.ControlApproachInconsistent));
+                Assert.Throws<RoadModelCompilationException>(() => RoadModelCompiler.Compile(mixed));
+            }
+            var ambiguous = CrossingSource(0f, 45f);
+            Assert.That(RoadModelValidator.Validate(ambiguous).Select(x => x.Code), Has.Member(RoadModelValidationCode.RightOfWayAmbiguous));
+            Assert.Throws<RoadModelCompilationException>(() => RoadModelCompiler.Compile(ambiguous));
+            // Une liaison peut porter plusieurs corridors si leur cap et leur plan d'approche sont identiques.
+            var parallel = CrossingSource(0f, 0f);
+            parallel.Controls[0].ControlledMovementIds = parallel.Movements.Select(x => x.Id).ToArray();
+            parallel.Controls = parallel.Controls.Take(1).ToArray();
+            Assert.That(RoadModelValidator.Validate(parallel), Is.Empty);
+            Assert.DoesNotThrow(() => RoadModelCompiler.Compile(parallel));
+        }
+
+        [Test]
+        public void FreshReportsReuseTheModelsTraversalGeometryAcrossBatches()
+        {
+            var m = RoadModelCompiler.Compile(CrossingSource(0f, -90f));
+            var index = JunctionConflictIndex.For(m);
+            var moves = m.Movements.OrderBy(x => x.Id).ToArray();
+            Func<JunctionActorReport[]> fresh = () => new[] { Requesting(m, Id(1), Traversal(index, moves[0].Id), 0.3f, 0f),
+                Requesting(m, Id(2), Traversal(index, moves[1].Id), JustTooFarAt(8f), 8f) };
+            Batch(m, new JunctionCoordinator(m), 1, fresh());
+            long traversals = TrafficV2WorkCounters.Work.JunctionTraversalBuilds;
+            long pairs = TrafficV2WorkCounters.Work.JunctionTraversalPairBuilds;
+            Assert.That(pairs, Is.GreaterThan(0));
+            for (ulong frame = 2; frame <= 20; frame++) Batch(m, new JunctionCoordinator(m), frame, fresh());
+            Assert.That(TrafficV2WorkCounters.Work.JunctionTraversalBuilds, Is.EqualTo(traversals));
+            Assert.That(TrafficV2WorkCounters.Work.JunctionTraversalPairBuilds, Is.EqualTo(pairs));
+        }
+
+        [Test]
+        public void ALongerTraversalWithTheSameFirstMovementKeepsItsOwnClearanceFacts()
+        {
+            var source = CrossingSource(0f, -90f);
+            var continuation = source.Movements[0];
+            continuation.Id = Id(1600);
+            continuation.FromCorridorId = source.Corridors[1].Id;
+            continuation.ToCorridorId = Id(1602);
+            continuation.Samples = continuation.Samples.Select(s => { s.Position += Vector3.forward * 50f; return s; }).ToArray();
+            var exit = source.Corridors[1]; exit.Id = Id(1602); exit.SectionId = Id(1601);
+            exit.Samples = exit.Samples.Select(s => { s.Position += Vector3.forward * 50f; return s; }).ToArray();
+            var section = source.Sections[1]; section.Id = Id(1601);
+            source.Sections = source.Sections.Concat(new[] { section }).ToArray();
+            source.Corridors = source.Corridors.Concat(new[] { exit }).ToArray();
+            source.Movements = source.Movements.Concat(new[] { continuation }).ToArray();
+            source.Controls = source.Controls.Concat(new[] { new JunctionControl { Id = Id(1603), JunctionId = Id(1001),
+                Kind = JunctionControlKind.Uncontrolled, ControlledMovementIds = new[] { continuation.Id } } }).ToArray();
+            source.Junctions[0].Boundary.Extents = new Vector3(100f, 3f, 100f);
+            source.ConflictZones = source.ConflictZones.Concat(new[] { new ConflictZone { Id = Id(1604), JunctionId = Id(1001),
+                Kind = ConflictKind.Crossing, Volume = source.Junctions[0].Boundary,
+                MemberMovementIds = new[] { source.Movements[1].Id, continuation.Id } } }).ToArray();
+            var m = RoadModelCompiler.Compile(source); var index = JunctionConflictIndex.For(m);
+            var threat = Requesting(m, Id(2), Traversal(index, source.Movements[1].Id), JustTooFarAt(8f), 8f);
+            var shortRequest = Requesting(m, Id(1), Traversal(index, source.Movements[0].Id), 0.3f, 0f);
+            var shortResult = Batch(m, new JunctionCoordinator(m), 1, shortRequest, threat);
+            long pairs = TrafficV2WorkCounters.Work.JunctionTraversalPairBuilds;
+            var longRequest = Requesting(m, Id(1), Traversal(index, source.Movements[0].Id, continuation.Id), 0.3f, 0f);
+            var longResult = Batch(m, new JunctionCoordinator(m), 2, longRequest, threat);
+            Assert.That(TrafficV2WorkCounters.Work.JunctionTraversalPairBuilds, Is.EqualTo(pairs + 1));
+            Assert.That(Decision(longResult, Id(1), source.Movements[0].Id).GapSeconds,
+                Is.GreaterThan(Decision(shortResult, Id(1), source.Movements[0].Id).GapSeconds));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void AllZonesOfAMovementPairContributeConservatively(bool crossingFirst)
+        {
+            var source = RoadModelDocument.Load(File.ReadAllText(TrafficV2Settings.ModelPath));
+            RoadId entry = R("Connector_West_In ->"), continuation = R("Ring_Split_West -> Ring_Merge_West");
+            int at = Array.FindIndex(source.ConflictZones, z => z.Kind == ConflictKind.Merge
+                && z.MemberMovementIds.Contains(entry) && z.MemberMovementIds.Contains(continuation));
+            Assert.That(at, Is.GreaterThanOrEqualTo(0));
+            var merge = source.ConflictZones[at];
+            merge.Id = new RoadId(crossingFirst ? ulong.MaxValue : 0UL, 900UL);
+            var crossing = merge;
+            crossing.Id = new RoadId(crossingFirst ? 0UL : ulong.MaxValue, 901UL);
+            crossing.Kind = ConflictKind.Crossing;
+            crossing.ContactStartSMeters = Array.Empty<float>();
+            source.ConflictZones[at] = merge;
+            source.ConflictZones = source.ConflictZones.Concat(new[] { crossing }).ToArray();
+            var m = RoadModelCompiler.Compile(source);
+            var index = JunctionConflictIndex.For(m);
+            RoadId zone; ConflictKind kind; float a, b;
+            Assert.That(index.TryGetConflict(entry, continuation, out zone, out kind, out a, out b), Is.True);
+            Assert.That(kind, Is.EqualTo(ConflictKind.Crossing));
+            Assert.That(zone, Is.EqualTo(crossing.Id));
+            var far = Traversal(index, R("Connector_South_In ->"), R("Ring_Split_Diagonal -> Ring_Merge_Diagonal"), continuation,
+                R("Ring_Split_South -> Connector_South_Out"));
+            var snapshot = Batch(m, new JunctionCoordinator(m), 1, Inside(m, Id(1), far, 0, 0f, 0f),
+                Requesting(m, Id(2), Traversal(index, entry), 2f, 2.8f));
+            AssertDecision(snapshot, Id(2), entry, JunctionGrantStatus.Denied, JunctionReason.ConflictGranted, Id(1));
+            // Toutes Merge : retenir chaque contact le plus precoce, independamment des ids et du sens de la paire.
+            source.ConflictZones[source.ConflictZones.Length - 1].Kind = ConflictKind.Merge;
+            source.ConflictZones[source.ConflictZones.Length - 1].ContactStartSMeters = new[] { 0.1f, 0.2f };
+            index = JunctionConflictIndex.For(RoadModelCompiler.Compile(source));
+            Assert.That(index.TryGetConflict(merge.MemberMovementIds[0], merge.MemberMovementIds[1], out zone, out kind, out a, out b), Is.True);
+            Assert.That(kind, Is.EqualTo(ConflictKind.Merge));
+            Assert.That(a, Is.EqualTo(Math.Min(merge.ContactStartSMeters[0], 0.1f)));
+            Assert.That(b, Is.EqualTo(Math.Min(merge.ContactStartSMeters[1], 0.2f)));
+            float reverseA, reverseB;
+            index.TryGetConflict(merge.MemberMovementIds[1], merge.MemberMovementIds[0], out zone, out kind, out reverseA, out reverseB);
+            Assert.That(reverseA, Is.EqualTo(b)); Assert.That(reverseB, Is.EqualTo(a));
+        }
+
         [Test]
         public void TravelAndGapFunctionsAreBoundedAtTheEdges()
         {
@@ -193,7 +378,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(JunctionPriority.TravelSeconds(10f, 0f, 0f, 8f), Is.EqualTo(float.PositiveInfinity), "v = 0 sans acceleration.");
             Assert.That(JunctionPriority.TravelSeconds(10f, 2f, 0f, 8f), Is.EqualTo(5f).Within(1e-5f));
             Assert.That(JunctionPriority.TravelSeconds(10f, 0f, 1.5f, 0f), Is.EqualTo(float.PositiveInfinity), "plafond nul.");
-            // Depuis l'arret, sans atteindre le plafond : √(2D/a).
+            // Depuis l'arret, sans atteindre le plafond : âˆš(2D/a).
             Assert.That(JunctionPriority.TravelSeconds(3f, 0f, 1.5f, 8f), Is.EqualTo(2f).Within(1e-5f));
             // Plafond atteint : acceleration puis croisiere.
             Assert.That(JunctionPriority.TravelSeconds(100f, 0f, 2f, 4f), Is.EqualTo(2f + (100f - 4f) / 4f).Within(1e-4f));
@@ -279,7 +464,7 @@ namespace RoadRage.Tests.EditMode
             var branch = Traversal(index, Movement(Model, "TJunction_West", "Junction_FromSouth -> Connector_West_Out"));
             var blocker = Traversal(index, Movement(Model, "TJunction_West", "Junction_FromWest -> Connector_East_Out"));
             var coordinator = new JunctionCoordinator(Model);
-            // L'ancien (branche) est refuse a cause d'un occupant incompatible ; le jeune (axe) n'est pas « SeniorRequestPending ».
+            // L'ancien (branche) est refuse a cause d'un occupant incompatible ; le jeune (axe) n'est pas Â« SeniorRequestPending Â».
             RoadId zone;
             Assert.That(index.TryGetConflict(blocker.FirstMovementId, branch.FirstMovementId, out zone), Is.True);
             Assert.That(index.TryGetConflict(blocker.FirstMovementId, axis.FirstMovementId, out zone), Is.False, "Premisse : axes compatibles.");

@@ -41,6 +41,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         /// fusion et ruptures d'interblocage. Bornes par les demandes et grants du carrefour concerne.
         /// </summary>
         public long JunctionPrecedenceChecks, JunctionGapEvaluations, JunctionMergeGapGrants, JunctionDeadlockBreaks;
+        /// <summary>Faits de chaines et paires de traversees construits au premier acces, une fois par modele/chaine.</summary>
+        public long JunctionTraversalBuilds, JunctionTraversalPairBuilds;
     }
 
     public static class TrafficV2WorkCounters

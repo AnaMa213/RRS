@@ -330,6 +330,126 @@
             "Pushes": []
         },
         {
+            "Label": "G-gap",
+            "MaxPopulation": 2,
+            "MaxSteps": 9000,
+            "Insertions": [
+                {
+                    "Entry": "4882b42dcf37410f4f629825c30f5f99",
+                    "Exit": "436d9a1a58c93bd19cdf0014de309f98",
+                    "Seed": 0,
+                    "EarliestStep": 0,
+                    "Elements": [
+                        "4f3543b1218b82af65b5b8fc58457fb3",
+                        "452ee31e83feea5ebc05406c271424a9",
+                        "4ec40e5f82f7a65bed1dc3d9679f8693",
+                        "4ac98ed2e41d83c91f0714135aa67ba7",
+                        "4db6ebc158e0dff4369373f117f51690",
+                        "40ca7f10a97f50a918e8c3a2a1e58493",
+                        "40e937a99618cac3ce12d56586514283",
+                        "4cec0461fb9fd74541d5772b2264b88f",
+                        "427041528b28cda9499c4ab5aafe0d9c",
+                        "4a61888b6162623b5f3b239c6967a1b7",
+                        "41aade042322996080b638a3a86e1088",
+                        "4e0c96d3fe6dbf797b6b539c16fe42ac",
+                        "48e681e799268186449903ef2aa3258f",
+                        "419d893b269e14c02e84e3509d9bf193",
+                        "46b219bca5cdaf1087d30d9622fab0a5",
+                        "4dc4e81b4c9cdd45e0484d2e9daeb888",
+                        "48c833c71f68abef819cb5a36c99208f",
+                        "4f7e560ced3c5a4bfbf14942df76f198",
+                        "43cf13ae1ef6b701bbcd906cdea7df90",
+                        "408a596007f75c3640fb9f816f896c86",
+                        "4ae5e1290d8b815bcb8f509e915fef89",
+                        "4f47e1a8140c798681fef66fa633b3b5",
+                        "4e67d7a19f6083c020b14cda38733f93",
+                        "4a772fed8c8aaeab952d011659612ea7",
+                        "4dc46e84668993d38378e9cfd4f366b4"
+                    ]
+                },
+                {
+                    "Entry": "4882b42dcf37410f4f629825c30f5f99",
+                    "Exit": "436d9a1a58c93bd19cdf0014de309f98",
+                    "Seed": 0,
+                    "EarliestStep": 0,
+                    "Elements": [
+                        "4f3543b1218b82af65b5b8fc58457fb3",
+                        "452ee31e83feea5ebc05406c271424a9",
+                        "4ec40e5f82f7a65bed1dc3d9679f8693",
+                        "4ac98ed2e41d83c91f0714135aa67ba7",
+                        "4db6ebc158e0dff4369373f117f51690",
+                        "44942dfab8e1f05d644474a6257b5e96",
+                        "48c833c71f68abef819cb5a36c99208f",
+                        "4b0942d72a850d61b60bc3e8a6a52384",
+                        "42ad3d5187bfa4104bf4917b93ede39e",
+                        "4d2aea792f643724e2d9f9ed853eb1a1",
+                        "433f39ba8eeb012212b7d5a05468b09d",
+                        "43605e569eb08d6ffe62fa7470d59fa0",
+                        "48e681e799268186449903ef2aa3258f",
+                        "419d893b269e14c02e84e3509d9bf193",
+                        "46b219bca5cdaf1087d30d9622fab0a5",
+                        "4dc4e81b4c9cdd45e0484d2e9daeb888",
+                        "48c833c71f68abef819cb5a36c99208f",
+                        "4f7e560ced3c5a4bfbf14942df76f198",
+                        "43cf13ae1ef6b701bbcd906cdea7df90",
+                        "408a596007f75c3640fb9f816f896c86",
+                        "4ae5e1290d8b815bcb8f509e915fef89",
+                        "4f47e1a8140c798681fef66fa633b3b5",
+                        "4e67d7a19f6083c020b14cda38733f93",
+                        "4a772fed8c8aaeab952d011659612ea7",
+                        "4dc46e84668993d38378e9cfd4f366b4"
+                    ]
+                }
+            ],
+            "Obstacles": [
+                {
+                    "Label": "attente-entree",
+                    "ElementId": "433f39ba8eeb012212b7d5a05468b09d",
+                    "RouteDistanceMeters": 115.58165740966797,
+                    "Center": {
+                        "x": -13.999999046325684,
+                        "y": 0.75,
+                        "z": -30.0
+                    },
+                    "Forward": {
+                        "x": -1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "Size": {
+                        "x": 2.0,
+                        "y": 1.5,
+                        "z": 1.0
+                    },
+                    "FromStep": 0,
+                    "UntilStep": -1
+                },
+                {
+                    "Label": "attente-anneau-lointain",
+                    "ElementId": "4a61888b6162623b5f3b239c6967a1b7",
+                    "RouteDistanceMeters": 85.88074493408203,
+                    "Center": {
+                        "x": -37.04337692260742,
+                        "y": 0.75,
+                        "z": -35.24997329711914
+                    },
+                    "Forward": {
+                        "x": 0.3083075284957886,
+                        "y": 0.0,
+                        "z": -0.951286792755127
+                    },
+                    "Size": {
+                        "x": 2.0,
+                        "y": 1.5,
+                        "z": 1.0
+                    },
+                    "FromStep": 0,
+                    "UntilStep": -1
+                }
+            ],
+            "Pushes": []
+        },
+        {
             "Label": "gatec-2",
             "MaxPopulation": 2,
             "MaxSteps": 7500,

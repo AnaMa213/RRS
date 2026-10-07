@@ -7,6 +7,7 @@ using NUnit.Framework;
 using RoadRage.Features.Vehicles;
 using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Coordination;
+using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Routing;
@@ -151,7 +152,8 @@ namespace RoadRage.Tests.EditMode
             return prepared;
         }
 
-        private static TrafficV2Insertion TryInsertionVia(RoadId movement, ulong counter, ulong earliest, out InsertionRecord record)
+        private static TrafficV2Insertion TryInsertionVia(RoadId movement, ulong counter, ulong earliest, out InsertionRecord record,
+            bool measured = false, params RoadId[] alsoRequired)
         {
             var entries = Model.Portals.Where(p => p.Role == PortalRole.Entry).OrderBy(p => p.Id).ToList();
             var exits = Model.Portals.Where(p => p.Role == PortalRole.Exit).OrderBy(p => p.Id).ToList();
@@ -159,8 +161,10 @@ namespace RoadRage.Tests.EditMode
                 foreach (var entry in entries)
                     foreach (var exit in exits)
                     {
-                        var prepared = TrafficV2Lifecycle.PrepareInsertion(Admission, entry.Id, exit.Id, seed, counter, Driver, Dt);
-                        if (prepared.Code != TrafficV2Code.Allowed || !prepared.Route.Occurrences.Any(o => o.Id == movement)) continue;
+                        var prepared = TrafficV2Lifecycle.PrepareInsertion(Admission, entry.Id, exit.Id, seed, counter, Driver, Dt,
+                            measured ? movement : RoadId.None);
+                        if (prepared.Code != TrafficV2Code.Allowed || !prepared.Route.Occurrences.Any(o => o.Id == movement)
+                            || alsoRequired.Any(id => !prepared.Route.Occurrences.Any(o => o.Id == id))) continue;
                         record = Record(entry, exit, seed, earliest, prepared);
                         return prepared;
                     }
@@ -231,6 +235,16 @@ namespace RoadRage.Tests.EditMode
             return features;
         }
 
+        private static ObstacleRecord OnTrack(RoutePlan route, RoadId movement, float fromEntry, string label)
+        {
+            float near = EntryDistance(route, movement) + fromEntry;
+            var track = ReferenceTrack.FromRoute(Model, route.Occurrences, 0f);
+            var pose = track.Nominal(track.PieceAt(near + ObstacleLengthMeters * 0.5f), near + ObstacleLengthMeters * 0.5f);
+            return new ObstacleRecord { Label = label, ElementId = movement.ToString(), RouteDistanceMeters = near,
+                Center = VectorRecord.Of(pose.Position + pose.Up * (ObstacleHeightMeters * 0.5f)), Forward = VectorRecord.Of(pose.Forward),
+                Size = VectorRecord.Of(new Vector3(ObstacleWidthMeters, ObstacleHeightMeters, ObstacleLengthMeters)), FromStep = 0, UntilStep = -1 };
+        }
+
         private static string BuildScenarioText()
         {
             var car = Car;
@@ -274,6 +288,20 @@ namespace RoadRage.Tests.EditMode
                 Obstacles = new[] { Waiting(enteringG.Route, entryG, WaitingDistanceMeters, "attente-entree"),
                     Waiting(firstRingG.Route, ringApproach, 2f, "attente-anneau") },
                 Pushes = new PushRecord[0] });
+
+            // G-gap utilise le chemin de mesure existant (5.31), avec objectifs intermediaires :
+            // H entre au sud et R a l'ouest ; les deux sortent au sud. Apres liberation de l'entree sud par H,
+            // leur seul conflit restant est la fusion ouest. Les routes restent produites par RoutePlanner.
+            RoadId southEntry = Movement("4cec0461"), diagonalContinuation = Movement("4a61888b"), southExit = Movement("419d893b");
+            InsertionRecord gapHolder, gapEntrant;
+            var holder = TryInsertionVia(continuation, 1UL, 0UL, out gapHolder, true, southEntry, southExit);
+            var entrant = TryInsertionVia(entryG, 2UL, 0UL, out gapEntrant, true, southExit);
+            Assert.That(holder, Is.Not.Null, "route sud -> sortie sud via l'ouest");
+            Assert.That(entrant, Is.Not.Null, "route ouest -> sortie sud");
+            scenarios.Add(new ScenarioRecord { Label = "G-gap", MaxPopulation = 2, MaxSteps = 9000,
+                Insertions = new[] { gapHolder, gapEntrant }, Obstacles = new[] {
+                    Waiting(entrant.Route, entryG, WaitingDistanceMeters, "attente-entree"),
+                    OnTrack(holder.Route, diagonalContinuation, Driver.MinimumGap + 0.5f, "attente-anneau-lointain") }, Pushes = new PushRecord[0] });
 
             // Gate C : deux insertions par entree vers deux sorties atteignables (rotation par entree, construction d'explore-8) ;
             // la seconde vague passe par la croix. N = 8 : les deux vagues ; N = 4 : la seconde vague d'un coup ; N = 2 : ses deux
@@ -324,12 +352,66 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void ARealPoseAndFullRouteAdmitTheEntryBeforeTheDistantHolderArrives()
+        {
+            RoadId entry = Movement(WestEntryPrefix), continuation = Movement(WestContinuationPrefix), southEntry = Movement("4cec0461"),
+                diagonalContinuation = Movement("4a61888b"), southExit = Movement("419d893b");
+            InsertionRecord ignored;
+            var holder = TryInsertionVia(continuation, 1UL, 0UL, out ignored, true, southEntry, southExit);
+            var entrant = TryInsertionVia(entry, 2UL, 0UL, out ignored, true, southExit);
+            Assert.That(holder, Is.Not.Null); Assert.That(entrant, Is.Not.Null);
+            var holderId = new RoadId(0x535EFUL, 1UL); var entrantId = new RoadId(0x535EFUL, 2UL);
+            Func<RoadId, RoutePlan, float, float, TrafficActorInput> input = (id, route, center, speed) =>
+            {
+                var track = ReferenceTrack.FromRoute(Model, route.Occurrences, 0f);
+                int piece = track.PieceAt(center); var pose = track.Nominal(piece, center);
+                return new TrafficActorInput(id, new VehicleFootprintPose { Position = pose.Position, Forward = pose.Forward,
+                    Up = pose.Up, Footprint = Car }, speed, track.Pieces[piece].Id, TrafficV2Lifecycle.ExpectedElements(route), track.KinematicAnchors(piece));
+            };
+            var frame = new TrafficFrame(1, Model, new[] {
+                input(holderId, holder.Route, EntryDistance(holder.Route, diagonalContinuation) + 0.5f - Car.FrontMeters, 0f),
+                input(entrantId, entrant.Route, EntryDistance(entrant.Route, entry) - 2f - Car.FrontMeters, 2.8f) });
+            var initial = JunctionSnapshot.Initial(1);
+            var d = Driver;
+            var slow = new DriverProfile(d.DesiredSpeed, d.TimeHeadway, d.MinimumGap, d.MaxAcceleration / 4f,
+                d.ComfortableDeceleration, d.Politeness, d.LaneChangeThreshold, d.SafeBrakingLimit,
+                d.ReactionTime, d.LaneChangeEvaluationInterval, d.Consistency, d.AimPointRecallSpeed);
+            var h = JunctionRequestBuilder.Build(frame, Index, holderId, holder.Route, slow, Dt,
+                TrafficV2Settings.JunctionStopControlMarginMeters, initial, 1, TrafficV2Settings.StopHold.EntrySpeedMetersPerSecond);
+            var r = JunctionRequestBuilder.Build(frame, Index, entrantId, entrant.Route, Driver, Dt,
+                TrafficV2Settings.JunctionStopControlMarginMeters, initial, 1, TrafficV2Settings.StopHold.EntrySpeedMetersPerSecond);
+            Assert.That(h.StatusOf(southEntry), Is.EqualTo(JunctionMovementStatus.Behind), h.ToText());
+            Assert.That(h.OccupiedTraversals.Count, Is.GreaterThan(0), h.ToText());
+            Assert.That(r.RequestValid, Is.True, r.ToText());
+            var coordinator = new JunctionCoordinator(Model);
+            coordinator.Resolve(1, new[] { h });
+            var snapshot = coordinator.Resolve(2, new[] { h, r });
+            JunctionRecord decision;
+            Assert.That(snapshot.TryGetDecision(entrantId, entry, out decision), Is.True, snapshot.ToText());
+            Assert.That(decision.Reason, Is.EqualTo(JunctionReason.GrantedMergeGap), snapshot.ToText());
+            Assert.That(decision.EtaSeconds, Is.GreaterThanOrEqualTo(decision.GapSeconds));
+            Assert.That(snapshot.Records.Any(x => x.TrafficId == holderId && x.IsEffectiveGrant), Is.True);
+        }
+
+        [Test]
+        public void MeasurementPopulationDefaultsToOneAndAcceptsOnlyABoundedExplicitPopulation()
+        {
+            var triplets = new[] { new CampaignTriplet(new RoadId(1, 1), new RoadId(1, 2), 0),
+                new CampaignTriplet(new RoadId(1, 1), new RoadId(1, 2), 1) };
+            Assert.That(new MeasurementRun(MeasurementKind.Exploratory, "default", triplets).MaxPopulation, Is.EqualTo(1));
+            Assert.That(new MeasurementRun(MeasurementKind.Exploratory, "two", triplets, 2).MaxPopulation, Is.EqualTo(2));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new MeasurementRun(MeasurementKind.Exploratory, "zero", triplets, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new MeasurementRun(MeasurementKind.Exploratory, "negative", triplets, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new MeasurementRun(MeasurementKind.Exploratory, "too many", triplets, 3));
+        }
+
+        [Test]
         public void TheScenarioBuilderIsDeterministicAndWritesScenariosEFGAndTheGateCCampaigns()
         {
             string text = BuildScenarioText();
             Assert.That(BuildScenarioText(), Is.EqualTo(text), "memes entrees, memes scenarios");
             var file = JsonUtility.FromJson<ScenarioFile>(text);
-            Assert.That(file.Scenarios.Select(s => s.Label), Is.EqualTo(new[] { "E", "F", "G", "gatec-2", "gatec-4", "gatec-8" }));
+            Assert.That(file.Scenarios.Select(s => s.Label), Is.EqualTo(new[] { "E", "F", "G", "G-gap", "gatec-2", "gatec-4", "gatec-8" }));
 
             var e = file.Scenarios[0];
             Assert.That(e.Insertions[0].Elements, Has.Member(SouthLeft.ToString()));
@@ -367,7 +449,7 @@ namespace RoadRage.Tests.EditMode
             Assert.That(g.Obstacles.Single(o => o.Label == "attente-entree").ElementId,
                 Is.Not.EqualTo(ringWait.ElementId), "les obstacles d'attente sont independants");
 
-            foreach (var campaign in file.Scenarios.Skip(3))
+            foreach (var campaign in file.Scenarios.Skip(4))
             {
                 Assert.That(campaign.Insertions.Length, Is.EqualTo(campaign.MaxPopulation), campaign.Label);
                 var features = Features(campaign.Insertions.SelectMany(i => i.Elements));

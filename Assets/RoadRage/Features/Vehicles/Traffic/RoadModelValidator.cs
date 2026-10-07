@@ -133,7 +133,14 @@ namespace RoadRage.Features.Vehicles.Traffic
         SignalPlanScopeInvalid = 48,
 
         /// <summary>Phase qui n'enonce pas exactement une fois l'etat de chaque groupe du plan : aucun etat implicite.</summary>
-        SignalPhaseStatesIncomplete = 49
+        SignalPhaseStatesIncomplete = 49,
+
+        /// <summary>Controle Uncontrolled sans mouvement donnant une approche.</summary>
+        ControlApproachMissing = 50,
+        /// <summary>Controle Uncontrolled liant plusieurs corridors d'approche.</summary>
+        ControlApproachInconsistent = 51,
+        /// <summary>Approches Uncontrolled dans la bande ambigue de la relation de droite.</summary>
+        RightOfWayAmbiguous = 52
     }
 
     /// <summary>Un echec de validation : son code stable, l'identifiant fautif et un message.</summary>
@@ -631,6 +638,11 @@ namespace RoadRage.Features.Vehicles.Traffic
             {
                 RoadGeometryValidator.Validate(source, issues);
             }
+
+            // Les documents signes schema 4 restent relisibles avec leurs anciens controles Uncontrolled.
+            // Les regles d'approche 5.35 concernent les sources courantes (schema 0 -> courant) et schema 5+.
+            if (issues.Count == 0 && RoadModelCompiler.SchemaVersionOf(source) >= 5)
+                Coordination.RightOfWay.ValidateApproaches(source, issues);
 
             return issues;
         }

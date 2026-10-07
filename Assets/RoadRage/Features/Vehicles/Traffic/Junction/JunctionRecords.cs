@@ -116,6 +116,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
     public sealed class JunctionTraversal
     {
         private readonly RoadId[] movements;
+        internal readonly int GeometryKeyHash;
 
         public RoadId JunctionId { get; }
         public IReadOnlyList<RoadId> MovementIds { get; }
@@ -128,7 +129,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         {
             if (movementIds == null || movementIds.Count == 0) throw new ArgumentException("EmptyTraversal", "movementIds");
             movements = new RoadId[movementIds.Count];
-            for (int i = 0; i < movements.Length; i++) movements[i] = movementIds[i];
+            int hash = junctionId.GetHashCode();
+            for (int i = 0; i < movements.Length; i++)
+            { movements[i] = movementIds[i]; unchecked { hash = hash * 31 + movements[i].GetHashCode(); } }
+            GeometryKeyHash = hash;
             JunctionId = junctionId;
             MovementIds = Array.AsReadOnly(movements);
             ExitCorridorId = exitCorridorId;

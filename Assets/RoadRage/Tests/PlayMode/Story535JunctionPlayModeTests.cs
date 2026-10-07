@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using NUnit.Framework;
 using RoadRage.App.Run;
@@ -45,6 +46,7 @@ namespace RoadRage.Tests.PlayMode
         private const float ResumeCeilingSeconds = 3f;
 
         private Story533Harness harness;
+        private DriverProfileDef slowHolderProfile;
         private float stagedFrontMeters;
 
         [SetUp]
@@ -59,6 +61,7 @@ namespace RoadRage.Tests.PlayMode
         public IEnumerator TearDown()
         {
             yield return harness.Cleanup();
+            if (slowHolderProfile != null) Object.Destroy(slowHolderProfile);
         }
 
         private static float Speed(TrafficV2VehicleDriver driver)
@@ -103,7 +106,14 @@ namespace RoadRage.Tests.PlayMode
             Assert.That(admission.Admitted, Is.True, admission.Code.ToString());
             Story533Harness.ScenarioFile file;
             var record = Story533Harness.Load(admission, label, out file, ScenarioPath);
-            TrafficV2Session.Request(TrafficComposition.V2Slice, null, Story533Harness.ToScenario(record));
+            if (label == "G-gap")
+            {
+                var objectives = new[] { WestContinuationPrefix, WestEntryPrefix };
+                var triplets = record.Insertions.Select((r, i) => new CampaignTriplet(RoadId.Parse(r.Entry), RoadId.Parse(r.Exit), r.Seed,
+                    admission.Model.Movements.Single(m => m.Id.ToString().StartsWith(objectives[i], StringComparison.Ordinal)).Id)).ToArray();
+                TrafficV2Session.Request(TrafficComposition.V2Slice, new MeasurementRun(MeasurementKind.Exploratory, label, triplets, 2));
+            }
+            else TrafficV2Session.Request(TrafficComposition.V2Slice, null, Story533Harness.ToScenario(record));
             yield return harness.EnterMvpRun();
             int parked = 0;
             yield return harness.ParkHostPlayer(file.Parking.Value, n => parked = n);
@@ -373,6 +383,102 @@ namespace RoadRage.Tests.PlayMode
         }
 
         // ================================================================== scenario G
+
+        [UnityTest]
+        [Timeout(900000)]
+        public IEnumerator ScenarioGGapTheEntryClearsTheMergeWhileTheDistantRingHolderKeepsItsGrant()
+        {
+            Story533Harness.ScenarioRecord record = null;
+            TrafficV2Admission admission = null;
+            yield return Enter("G-gap", (r, a) => { record = r; admission = a; });
+            var spawner = Object.FindAnyObjectByType<PortalTrafficSpawner>();
+            Assert.That(spawner, Is.Not.Null);
+            var entry = admission.Model.Movements.Single(m => m.Id.ToString().StartsWith(WestEntryPrefix, StringComparison.Ordinal)).Id;
+            var observer = new Story533Harness.Observer(spawner, record.MaxPopulation, admission.Model);
+            var batches = new List<Batch>();
+            var waiting = harness.CreateObstacle(record.Obstacles.Single(o => o.Label == "attente-entree"));
+            var distant = harness.CreateObstacle(record.Obstacles.Single(o => o.Label == "attente-anneau-lointain"));
+            slowHolderProfile = Object.Instantiate(UnityEditor.AssetDatabase.LoadAssetAtPath<DriverProfileDef>(DriverProfilePath));
+            var d = slowHolderProfile.Profile;
+            var slow = new DriverProfile(d.DesiredSpeed, d.TimeHeadway, d.MinimumGap, d.MaxAcceleration / 4f,
+                d.ComfortableDeceleration, d.Politeness, d.LaneChangeThreshold, d.SafeBrakingLimit,
+                d.ReactionTime, d.LaneChangeEvaluationInterval, d.Consistency, d.AimPointRecallSpeed);
+            typeof(DriverProfileDef).GetField("profile", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(slowHolderProfile, slow);
+            ulong entrantReleased = 0, holderReleased = 0, gapFrame = 0;
+            JunctionRecord gap = default(JunctionRecord);
+            int settled = 0;
+            for (int step = 0; step < record.MaxSteps && spawner.V2Removals < record.Insertions.Length; step++)
+            {
+                yield return new WaitForFixedUpdate();
+                observer.Observe();
+                if (observer.PlayerFacts > 0) Assert.Inconclusive("run invalide : joueur hote dans un fait V2");
+                if (observer.ToleranceLatch != null) break;
+                Capture(spawner, batches);
+                var holder = Story533Harness.DriverOf(spawner, TrafficV2Lifecycle.TrafficIdentity(record.Insertions[0].Seed, 1));
+                var entrant = Story533Harness.DriverOf(spawner, TrafficV2Lifecycle.TrafficIdentity(record.Insertions[1].Seed, 2));
+                if (holder != null && holder.DriverProfileDefinition != slowHolderProfile)
+                    typeof(TrafficV2VehicleDriver).GetField("driverProfile", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .SetValue(holder, slowHolderProfile);
+                if (entrantReleased == 0)
+                {
+                    settled = Held(holder) && Held(entrant) ? settled + 1 : 0;
+                    if (settled >= SettleSteps) { harness.Destroy(waiting); entrantReleased = spawner.V2Runner.FrameId; }
+                    continue;
+                }
+                if (holderReleased != 0 || holder == null || entrant == null) continue;
+                var snapshot = spawner.V2Runner.JunctionSnapshot;
+                var granted = snapshot.Records.FirstOrDefault(r => r.TrafficId == entrant.TrafficId && r.TraversalId == entry
+                    && r.IsEffectiveGrant && r.Reason == JunctionReason.GrantedMergeGap);
+                if (gapFrame == 0 && !granted.TrafficId.IsEmpty)
+                {
+                    var continuation = admission.Model.Movements.Single(m => m.Id.ToString().StartsWith(WestContinuationPrefix, StringComparison.Ordinal)).Id;
+                    Assert.That(snapshot.Records.Any(r => r.TrafficId == holder.TrafficId && r.IsEffectiveGrant && r.Contains(continuation)), Is.True,
+                        "le titulaire garde son grant pendant l'admission par creneau");
+                    Assert.That(Held(holder), Is.True, "H reste retenu pendant l'admission de R");
+                    gap = granted; gapFrame = snapshot.SourceFrame;
+                }
+                // Le nez et l'arriere de R ont libere la fusion avant de laisser H repartir.
+                if (gapFrame != 0 && snapshot.Records.Any(r => r.TrafficId == entrant.TrafficId && r.IsEffectiveGrant
+                    && r.TraversalId == entry && !r.Contains(entry)))
+                { harness.Destroy(distant); holderReleased = snapshot.SourceFrame; }
+            }
+            var runs = Story533Harness.Runs(spawner);
+            foreach (var run in runs)
+                for (int i = 0; i < record.Insertions.Length; i++)
+                    if (run.TrafficId == TrafficV2Lifecycle.TrafficIdentity(record.Insertions[i].Seed, (ulong)i + 1)) run.Index = i;
+            string stamp = Story533Harness.Stamp();
+            string trace = Story533Harness.WriteTrace("scenario-G-gap", stamp, runs, Folder);
+            string journal = Story533Harness.WriteJunctionLog("scenario-G-gap", stamp, observer, Folder);
+            List<string> vehicleContacts, obstacleContacts, otherContacts;
+            Story533Harness.Contacts(runs, out vehicleContacts, out obstacleContacts, out otherContacts);
+            var holderRun = runs.Single(r => r.Index == 0);
+            var entrantRun = runs.Single(r => r.Index == 1);
+            var following = holderRun.Record.Trace.Where(r => r.Interaction.FrameId > holderReleased
+                && r.Interaction.LeaderId == entrantRun.TrafficId && float.IsFinite(r.Interaction.LeaderGapMeters)).ToArray();
+            int boundFollowing = following.Count(r => r.Interaction.BindingConstraint == SpeedConstraint.LeaderFollowing);
+            var sequence = new List<string> { "entrant libere au pas " + entrantReleased,
+                "grant par creneau au lot " + gapFrame + " : " + (gapFrame == 0 ? "absent" : gap.ToText()),
+                "anneau libere apres degagement au pas " + holderReleased,
+                "poursuite de R par H : " + following.Length + " pas, dont " + boundFollowing + " bornes par LeaderFollowing",
+                "profil H en memoire : acceleration " + F(slow.MaxAcceleration) + " m/s2 ; vitesse desiree " + F(slow.DesiredSpeed) + " m/s" };
+            try
+            {
+                Assert.That(entrantReleased, Is.GreaterThan(0UL), "staging des deux vehicules");
+                Assert.That(gapFrame, Is.GreaterThan(0UL), "aucun GrantedMergeGap sur poses et routes reelles");
+                Assert.That(gap.EtaSeconds, Is.GreaterThanOrEqualTo(gap.GapSeconds));
+                Assert.That(holderReleased, Is.GreaterThan(gapFrame), "H ne repart qu'apres le degagement de R");
+                Assert.That(observer.MergeGapGrants, Is.GreaterThan(0));
+                Assert.That(observer.MaxLive, Is.EqualTo(2));
+                Assert.That(spawner.V2Removals, Is.EqualTo(2));
+                Assert.That(following, Is.Not.Empty, "H doit percevoir R comme leader apres la fusion");
+                Assert.That(boundFollowing, Is.GreaterThan(0), "poursuite longitudinale effectivement exercee");
+                Assert.That(following.All(r => r.Interaction.LeaderGapMeters > 0f), Is.True, "jeu longitudinal positif");
+                AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
+            }
+            catch (AssertionException failure) { sequence.Add("ECHEC : " + failure.Message); throw; }
+            finally { WriteSummary("scenario-G-gap", stamp, record, spawner, observer, sequence, vehicleContacts, obstacleContacts,
+                otherContacts, trace, journal); }
+        }
 
         [UnityTest]
         [Timeout(900000)]

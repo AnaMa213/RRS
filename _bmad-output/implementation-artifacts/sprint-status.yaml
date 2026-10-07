@@ -210,8 +210,13 @@ development_status:
   5-53a-west-merge-typing-v2: done
   # 2026-10-06 : revue et rejeux cibles clos ; spec done, Gate C 3/3 verte.
   # BMAD build synchronise review ; sprint done reserve au checkpoint de fin d'epic.
-  5-35-authored-control-kinds-stop-yield-priority-roundabout: review
-  5-36-signal-phase-runtime-and-coordinator-integration: review
+  # 2026-10-07 code review: R1-R8 implementation/coverage actions for 5.35;
+  # R9 repairs the unexecutable Story525 non-regression gate for 5.36.
+  # R1-R9 fixed; R7 harness extension owner-approved. Story535 51/51 + 7/7,
+  # Story531 50/50 + 13/13 green. Specs 5.35/5.36 done, sprint review per checkpoint rule.
+  # 2026-10-07 : cloture proprietaire explicite des stories 5.35 et 5.36.
+  5-35-authored-control-kinds-stop-yield-priority-roundabout: done
+  5-36-signal-phase-runtime-and-coordinator-integration: done
   5-37-safety-filter-narrow-veto-and-clamp-boundary: backlog
   5-38-collision-response-physics-yields-tactical-handshake: backlog
   5-39-recovery-supervisor-progress-and-physical-reattachment: backlog

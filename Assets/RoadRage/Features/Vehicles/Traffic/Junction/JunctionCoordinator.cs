@@ -360,7 +360,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             }
 
             traceGap = traceEta = float.NaN;
-            BreakDeadlocks(yielded, live, occupants, kept, records, frameId, effective);
+            BreakDeadlocks(yielded, threats, live, occupants, kept, records, frameId, effective);
 
             // 3. Publication : tout grant vivant est republie, sinon il expire.
             kept.Sort(CompareGrants);
@@ -589,7 +589,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// elle arrive au debut de son premier mouvement en conflit avant la fin du creneau du demandeur (ETA_P &lt; t_gap).
         /// </summary>
         private bool YieldsToPriority(JunctionActorReport requester, Dictionary<RoadId, List<JunctionActorReport>> threats,
-            out RoadId cause, out RoadId zone)
+            out RoadId cause, out RoadId zone, HashSet<RoadId> ignoredCauses = null)
         {
             cause = RoadId.None; zone = RoadId.None;
             var traversal = requester.Request.Traversal;
@@ -597,26 +597,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             if (!threats.TryGetValue(traversal.JunctionId, out list)) return false;
             foreach (var other in list)
             {
-                if (other.TrafficId == requester.TrafficId) continue;
+                if (other.TrafficId == requester.TrafficId || (ignoredCauses != null && ignoredCauses.Contains(other.TrafficId))) continue;
                 var approached = other.Request.Traversal;
                 if (!Index.HasPrecedence(approached.FirstMovementId, traversal.FirstMovementId)) continue;
-                int lastRequest = -1, firstOther = -1;
-                RoadId found = RoadId.None;
-                for (int i = 0; i < traversal.MovementIds.Count; i++)
-                    for (int j = 0; j < approached.MovementIds.Count; j++)
-                    {
-                        RoadId z;
-                        if (!Index.TryGetConflict(traversal.MovementIds[i], approached.MovementIds[j], out z)) continue;
-                        if (found.IsEmpty) found = z;
-                        lastRequest = Math.Max(lastRequest, i);
-                        if (firstOther < 0 || j < firstOther) firstOther = j;
-                    }
+                var pair = Index.PairOf(traversal, approached);
                 // Traversees compatibles : aucune preseance, aucun creneau evalue (P9).
-                if (lastRequest < 0) continue;
+                if (pair.LastRequest < 0) continue;
                 TrafficV2WorkCounters.Work.JunctionGapEvaluations++;
-                float etaP = Eta(other, firstOther), gap = GapSeconds(requester, lastRequest);
+                float etaP = Eta(other, pair.FirstOther), gap = GapSeconds(requester, pair.LastRequest);
                 Trace(gap, etaP);
-                if (etaP < gap) { cause = other.TrafficId; zone = found; return true; }
+                if (etaP < gap) { cause = other.TrafficId; zone = pair.Zone; return true; }
             }
             return false;
         }
@@ -627,7 +617,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// un grant, au plus ancien membre de W (RequestSinceFrame, puis TrafficId), raison GrantedDeadlockBreak.
         /// </summary>
         private void BreakDeadlocks(Dictionary<RoadId, List<KeyValuePair<JunctionActorReport, RoadId>>> yielded,
-            Dictionary<RoadId, List<Grant>> live, Dictionary<RoadId, List<Occupation>> occupants, List<Grant> kept,
+            Dictionary<RoadId, List<JunctionActorReport>> threats, Dictionary<RoadId, List<Grant>> live, Dictionary<RoadId, List<Occupation>> occupants, List<Grant> kept,
             List<JunctionRecord> records, ulong frameId, ulong effective)
         {
             var junctions = new List<RoadId>(yielded.Keys);
@@ -643,6 +633,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 foreach (var member in members) ids.Add(member.Key.TrafficId);
                 bool closed = true;
                 foreach (var member in members) closed &= ids.Contains(member.Value);
+                if (!closed) continue;
+                // La raison publiee ne cite que le premier acteur. Une autre cause exterieure interdit le briseur.
+                foreach (var member in members)
+                {
+                    RoadId outside, zone;
+                    if (YieldsToPriority(member.Key, threats, out outside, out zone, ids)) { closed = false; break; }
+                }
+                traceGap = traceEta = float.NaN;
                 if (!closed) continue;
                 JunctionActorReport chosen = null;
                 foreach (var member in members)
@@ -671,14 +669,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             var approach = requester.Request;
             var k = requester.Kinematics;
             if (!k.Known || approach.MovementStartMeters == null || approach.MovementStartMeters.Count <= lastIndex) return float.PositiveInfinity;
-            var movements = approach.Traversal.MovementIds;
             // ponytail: plafond = min des plafonds des mouvements jusqu'au degagement (corridors d'anneau intermediaires non lus),
             // conservatif tant qu'un mouvement d'anneau est au moins aussi courbe que les corridors qui le relient.
-            float cap = k.DesiredSpeedMetersPerSecond;
-            for (int i = 0; i <= lastIndex; i++)
-                cap = Math.Min(cap, JunctionPriority.MovementSpeedCap(k.DesiredSpeedMetersPerSecond, k.LateralAccelerationMetersPerSecondSquared,
-                    Index.MaxCurvatureOf(movements[i])));
-            float distance = approach.MovementStartMeters[lastIndex] + Index.LengthOf(movements[lastIndex]) + k.LengthMeters;
+            float length, curvature;
+            Index.ClearanceOf(approach.Traversal, lastIndex, out length, out curvature);
+            float cap = JunctionPriority.MovementSpeedCap(k.DesiredSpeedMetersPerSecond, k.LateralAccelerationMetersPerSecondSquared, curvature);
+            float distance = approach.MovementStartMeters[lastIndex] + length + k.LengthMeters;
             float clear = JunctionPriority.TravelSeconds(distance, k.SpeedMetersPerSecond, k.MaxAccelerationMetersPerSecondSquared, cap);
             return JunctionPriority.GapSeconds(clear, approach.Distances.LatencySeconds);
         }

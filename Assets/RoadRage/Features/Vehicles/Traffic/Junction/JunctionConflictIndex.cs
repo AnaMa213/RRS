@@ -46,6 +46,81 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// <summary>Paires ordonnees (P, R) de controles d'un meme carrefour ou P a preseance sur R.</summary>
         private readonly HashSet<long> precedence = new HashSet<long>();
         private readonly Dictionary<RoadId, int> controlIndex = new Dictionary<RoadId, int>();
+        // Faits statiques calcules au premier acces d'une chaine, puis partages par tous les lots du modele.
+        private readonly Dictionary<JunctionTraversal, TraversalFacts> traversals = new Dictionary<JunctionTraversal, TraversalFacts>(new TraversalComparer());
+        private readonly Dictionary<(TraversalFacts, TraversalFacts), TraversalPairFacts> traversalPairs = new Dictionary<(TraversalFacts, TraversalFacts), TraversalPairFacts>();
+
+        private sealed class TraversalComparer : IEqualityComparer<JunctionTraversal>
+        {
+            public int GetHashCode(JunctionTraversal value) { return value.GeometryKeyHash; }
+            public bool Equals(JunctionTraversal a, JunctionTraversal b)
+            {
+                if (ReferenceEquals(a, b)) return true;
+                if (a == null || b == null || a.JunctionId != b.JunctionId || a.MovementIds.Count != b.MovementIds.Count) return false;
+                for (int i = 0; i < a.MovementIds.Count; i++) if (a.MovementIds[i] != b.MovementIds[i]) return false;
+                return true;
+            }
+        }
+
+        private sealed class TraversalFacts
+        {
+            public float[] PrefixCurvature, Lengths;
+        }
+
+        internal readonly struct TraversalPairFacts
+        {
+            public readonly int LastRequest, FirstOther;
+            public readonly RoadId Zone;
+            public TraversalPairFacts(int lastRequest, int firstOther, RoadId zone)
+            { LastRequest = lastRequest; FirstOther = firstOther; Zone = zone; }
+        }
+
+        private TraversalFacts FactsOf(JunctionTraversal traversal)
+        {
+            TraversalFacts facts;
+            if (traversals.TryGetValue(traversal, out facts)) return facts;
+            int count = traversal.MovementIds.Count;
+            facts = new TraversalFacts { PrefixCurvature = new float[count], Lengths = new float[count] };
+            float curvature = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                curvature = Math.Max(curvature, MaxCurvatureOf(traversal.MovementIds[i]));
+                facts.PrefixCurvature[i] = curvature;
+                facts.Lengths[i] = LengthOf(traversal.MovementIds[i]);
+            }
+            traversals.Add(traversal, facts);
+            TrafficV2WorkCounters.Work.JunctionTraversalBuilds++;
+            return facts;
+        }
+
+        internal void ClearanceOf(JunctionTraversal traversal, int last, out float movementLength, out float maxCurvature)
+        {
+            var facts = FactsOf(traversal);
+            movementLength = facts.Lengths[last];
+            maxCurvature = facts.PrefixCurvature[last];
+        }
+
+        internal TraversalPairFacts PairOf(JunctionTraversal request, JunctionTraversal other)
+        {
+            var key = (FactsOf(request), FactsOf(other));
+            TraversalPairFacts facts;
+            if (traversalPairs.TryGetValue(key, out facts)) return facts;
+            int last = -1, first = -1;
+            RoadId found = RoadId.None;
+            for (int i = 0; i < request.MovementIds.Count; i++)
+                for (int j = 0; j < other.MovementIds.Count; j++)
+                {
+                    RoadId zone;
+                    if (!TryGetConflict(request.MovementIds[i], other.MovementIds[j], out zone)) continue;
+                    if (found.IsEmpty) found = zone;
+                    last = Math.Max(last, i);
+                    if (first < 0 || j < first) first = j;
+                }
+            facts = new TraversalPairFacts(last, first, found);
+            traversalPairs.Add(key, facts);
+            TrafficV2WorkCounters.Work.JunctionTraversalPairBuilds++;
+            return facts;
+        }
 
         public CompiledRoadModel Model { get; }
         /// <summary>Paires (ordonnees) de mouvements incompatibles : deux fois le nombre de paires non ordonnees.</summary>
@@ -88,7 +163,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 foreach (var next in successors) movements[next].HasPredecessor = true;
             }
 
-            // Zones par id croissant : la premiere zone qui reunit une paire est la plus petite, retenue comme zone en cause.
+            // Zones par id croissant : Crossing domine Merge ; premiere zone du genre retenu pour la cause,
+            // et contacts les plus precoces de toutes les zones pour une admission conservative.
             var zones = new List<CompiledConflictZone>(model.ConflictZones);
             zones.Sort((a, b) => a.Id.CompareTo(b.Id));
             var pairs = new Dictionary<RoadId, SortedDictionary<RoadId, PairFact>>();
@@ -100,7 +176,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                         if (first == second) continue;
                         SortedDictionary<RoadId, PairFact> partners;
                         if (!pairs.TryGetValue(first, out partners)) pairs.Add(first, partners = new SortedDictionary<RoadId, PairFact>());
-                        if (partners.ContainsKey(second)) continue;
+                        PairFact previous;
+                        if (partners.TryGetValue(second, out previous))
+                        {
+                            // P10 : toute Crossing domine ; toutes les fusions doivent etre franchies assez tard.
+                            if (previous.Kind == ConflictKind.Merge && zone.Kind != ConflictKind.Merge)
+                            { previous.Kind = zone.Kind; previous.Zone = zone.Id; }
+                            previous.StartSelf = Math.Min(previous.StartSelf, a < zone.ContactStartSMeters.Count ? zone.ContactStartSMeters[a] : 0f);
+                            previous.StartOther = Math.Min(previous.StartOther, b < zone.ContactStartSMeters.Count ? zone.ContactStartSMeters[b] : 0f);
+                            partners[second] = previous;
+                            continue;
+                        }
                         // Debuts absents (schema anterieur) : 0, le plus precoce ; genre lu tel quel, jamais infere.
                         partners.Add(second, new PairFact
                         {

@@ -1,0 +1,366 @@
+diff --git a/Assets/RoadRage/Tests/EditMode/Story535ScenarioBuilderTests.cs b/Assets/RoadRage/Tests/EditMode/Story535ScenarioBuilderTests.cs
+index 02d4c15..abcb9f1 100644
+--- a/Assets/RoadRage/Tests/EditMode/Story535ScenarioBuilderTests.cs
++++ b/Assets/RoadRage/Tests/EditMode/Story535ScenarioBuilderTests.cs
+@@ -7,6 +7,7 @@
+ using RoadRage.Features.Vehicles;
+ using RoadRage.Features.Vehicles.Traffic;
+ using RoadRage.Features.Vehicles.Traffic.Coordination;
++using RoadRage.Features.Vehicles.Traffic.Frame;
+ using RoadRage.Features.Vehicles.Traffic.Lifecycle;
+ using RoadRage.Features.Vehicles.Traffic.Planning;
+ using RoadRage.Features.Vehicles.Traffic.Routing;
+@@ -151,7 +152,8 @@ private static TrafficV2Insertion InsertionVia(RoadId movement, ulong counter, u
+             return prepared;
+         }
+ 
+-        private static TrafficV2Insertion TryInsertionVia(RoadId movement, ulong counter, ulong earliest, out InsertionRecord record)
++        private static TrafficV2Insertion TryInsertionVia(RoadId movement, ulong counter, ulong earliest, out InsertionRecord record,
++            bool measured = false, params RoadId[] alsoRequired)
+         {
+             var entries = Model.Portals.Where(p => p.Role == PortalRole.Entry).OrderBy(p => p.Id).ToList();
+             var exits = Model.Portals.Where(p => p.Role == PortalRole.Exit).OrderBy(p => p.Id).ToList();
+@@ -159,8 +161,10 @@ private static TrafficV2Insertion TryInsertionVia(RoadId movement, ulong counter
+                 foreach (var entry in entries)
+                     foreach (var exit in exits)
+                     {
+-                        var prepared = TrafficV2Lifecycle.PrepareInsertion(Admission, entry.Id, exit.Id, seed, counter, Driver, Dt);
+-                        if (prepared.Code != TrafficV2Code.Allowed || !prepared.Route.Occurrences.Any(o => o.Id == movement)) continue;
++                        var prepared = TrafficV2Lifecycle.PrepareInsertion(Admission, entry.Id, exit.Id, seed, counter, Driver, Dt,
++                            measured ? movement : RoadId.None);
++                        if (prepared.Code != TrafficV2Code.Allowed || !prepared.Route.Occurrences.Any(o => o.Id == movement)
++                            || alsoRequired.Any(id => !prepared.Route.Occurrences.Any(o => o.Id == id))) continue;
+                         record = Record(entry, exit, seed, earliest, prepared);
+                         return prepared;
+                     }
+@@ -231,6 +235,16 @@ private static HashSet<JunctionFeature> Features(IEnumerable<string> elements)
+             return features;
+         }
+ 
++        private static ObstacleRecord OnTrack(RoutePlan route, RoadId movement, float fromEntry, string label)
++        {
++            float near = EntryDistance(route, movement) + fromEntry;
++            var track = ReferenceTrack.FromRoute(Model, route.Occurrences, 0f);
++            var pose = track.Nominal(track.PieceAt(near + ObstacleLengthMeters * 0.5f), near + ObstacleLengthMeters * 0.5f);
++            return new ObstacleRecord { Label = label, ElementId = movement.ToString(), RouteDistanceMeters = near,
++                Center = VectorRecord.Of(pose.Position + pose.Up * (ObstacleHeightMeters * 0.5f)), Forward = VectorRecord.Of(pose.Forward),
++                Size = VectorRecord.Of(new Vector3(ObstacleWidthMeters, ObstacleHeightMeters, ObstacleLengthMeters)), FromStep = 0, UntilStep = -1 };
++        }
++
+         private static string BuildScenarioText()
+         {
+             var car = Car;
+@@ -275,6 +289,20 @@ private static string BuildScenarioText()
+                     Waiting(firstRingG.Route, ringApproach, 2f, "attente-anneau") },
+                 Pushes = new PushRecord[0] });
+ 
++            // G-gap utilise le chemin de mesure existant (5.31), avec objectifs intermediaires :
++            // H entre au sud et R a l'ouest ; les deux sortent au sud. Apres liberation de l'entree sud par H,
++            // leur seul conflit restant est la fusion ouest. Les routes restent produites par RoutePlanner.
++            RoadId southEntry = Movement("4cec0461"), diagonalContinuation = Movement("4a61888b"), southExit = Movement("419d893b");
++            InsertionRecord gapHolder, gapEntrant;
++            var holder = TryInsertionVia(continuation, 1UL, 0UL, out gapHolder, true, southEntry, southExit);
++            var entrant = TryInsertionVia(entryG, 2UL, 0UL, out gapEntrant, true, southExit);
++            Assert.That(holder, Is.Not.Null, "route sud -> sortie sud via l'ouest");
++            Assert.That(entrant, Is.Not.Null, "route ouest -> sortie sud");
++            scenarios.Add(new ScenarioRecord { Label = "G-gap", MaxPopulation = 2, MaxSteps = 9000,
++                Insertions = new[] { gapHolder, gapEntrant }, Obstacles = new[] {
++                    Waiting(entrant.Route, entryG, WaitingDistanceMeters, "attente-entree"),
++                    OnTrack(holder.Route, diagonalContinuation, Driver.MinimumGap + 0.5f, "attente-anneau-lointain") }, Pushes = new PushRecord[0] });
++
+             // Gate C : deux insertions par entree vers deux sorties atteignables (rotation par entree, construction d'explore-8) ;
+             // la seconde vague passe par la croix. N = 8 : les deux vagues ; N = 4 : la seconde vague d'un coup ; N = 2 : ses deux
+             // premieres routes. Sans obstacle ni poussee : campagnes nominales.
+@@ -323,13 +351,51 @@ private static string BuildScenarioText()
+             return JsonUtility.ToJson(file, true);
+         }
+ 
++        [Test]
++        public void ARealPoseAndFullRouteAdmitTheEntryBeforeTheDistantHolderArrives()
++        {
++            RoadId entry = Movement(WestEntryPrefix), continuation = Movement(WestContinuationPrefix), southEntry = Movement("4cec0461"),
++                diagonalContinuation = Movement("4a61888b"), southExit = Movement("419d893b");
++            InsertionRecord ignored;
++            var holder = TryInsertionVia(continuation, 1UL, 0UL, out ignored, true, southEntry, southExit);
++            var entrant = TryInsertionVia(entry, 2UL, 0UL, out ignored, true, southExit);
++            Assert.That(holder, Is.Not.Null); Assert.That(entrant, Is.Not.Null);
++            var holderId = new RoadId(0x535EFUL, 1UL); var entrantId = new RoadId(0x535EFUL, 2UL);
++            Func<RoadId, RoutePlan, float, float, TrafficActorInput> input = (id, route, center, speed) =>
++            {
++                var track = ReferenceTrack.FromRoute(Model, route.Occurrences, 0f);
++                int piece = track.PieceAt(center); var pose = track.Nominal(piece, center);
++                return new TrafficActorInput(id, new VehicleFootprintPose { Position = pose.Position, Forward = pose.Forward,
++                    Up = pose.Up, Footprint = Car }, speed, track.Pieces[piece].Id, TrafficV2Lifecycle.ExpectedElements(route), track.KinematicAnchors(piece));
++            };
++            var frame = new TrafficFrame(1, Model, new[] {
++                input(holderId, holder.Route, EntryDistance(holder.Route, diagonalContinuation) + 0.5f - Car.FrontMeters, 0f),
++                input(entrantId, entrant.Route, EntryDistance(entrant.Route, entry) - 2f - Car.FrontMeters, 2.8f) });
++            var initial = JunctionSnapshot.Initial(1);
++            var h = JunctionRequestBuilder.Build(frame, Index, holderId, holder.Route, Driver, Dt,
++                TrafficV2Settings.JunctionStopControlMarginMeters, initial, 1, TrafficV2Settings.StopHold.EntrySpeedMetersPerSecond);
++            var r = JunctionRequestBuilder.Build(frame, Index, entrantId, entrant.Route, Driver, Dt,
++                TrafficV2Settings.JunctionStopControlMarginMeters, initial, 1, TrafficV2Settings.StopHold.EntrySpeedMetersPerSecond);
++            Assert.That(h.StatusOf(southEntry), Is.EqualTo(JunctionMovementStatus.Behind), h.ToText());
++            Assert.That(h.OccupiedTraversals.Count, Is.GreaterThan(0), h.ToText());
++            Assert.That(r.RequestValid, Is.True, r.ToText());
++            var coordinator = new JunctionCoordinator(Model);
++            coordinator.Resolve(1, new[] { h });
++            var snapshot = coordinator.Resolve(2, new[] { h, r });
++            JunctionRecord decision;
++            Assert.That(snapshot.TryGetDecision(entrantId, entry, out decision), Is.True, snapshot.ToText());
++            Assert.That(decision.Reason, Is.EqualTo(JunctionReason.GrantedMergeGap), snapshot.ToText());
++            Assert.That(decision.EtaSeconds, Is.GreaterThanOrEqualTo(decision.GapSeconds));
++            Assert.That(snapshot.Records.Any(x => x.TrafficId == holderId && x.IsEffectiveGrant), Is.True);
++        }
++
+         [Test]
+         public void TheScenarioBuilderIsDeterministicAndWritesScenariosEFGAndTheGateCCampaigns()
+         {
+             string text = BuildScenarioText();
+             Assert.That(BuildScenarioText(), Is.EqualTo(text), "memes entrees, memes scenarios");
+             var file = JsonUtility.FromJson<ScenarioFile>(text);
+-            Assert.That(file.Scenarios.Select(s => s.Label), Is.EqualTo(new[] { "E", "F", "G", "gatec-2", "gatec-4", "gatec-8" }));
++            Assert.That(file.Scenarios.Select(s => s.Label), Is.EqualTo(new[] { "E", "F", "G", "G-gap", "gatec-2", "gatec-4", "gatec-8" }));
+ 
+             var e = file.Scenarios[0];
+             Assert.That(e.Insertions[0].Elements, Has.Member(SouthLeft.ToString()));
+@@ -367,7 +433,7 @@ public void TheScenarioBuilderIsDeterministicAndWritesScenariosEFGAndTheGateCCam
+             Assert.That(g.Obstacles.Single(o => o.Label == "attente-entree").ElementId,
+                 Is.Not.EqualTo(ringWait.ElementId), "les obstacles d'attente sont independants");
+ 
+-            foreach (var campaign in file.Scenarios.Skip(3))
++            foreach (var campaign in file.Scenarios.Skip(4))
+             {
+                 Assert.That(campaign.Insertions.Length, Is.EqualTo(campaign.MaxPopulation), campaign.Label);
+                 var features = Features(campaign.Insertions.SelectMany(i => i.Elements));
+diff --git a/Assets/RoadRage/Tests/PlayMode/Story535JunctionPlayModeTests.cs b/Assets/RoadRage/Tests/PlayMode/Story535JunctionPlayModeTests.cs
+index bdf91e3..c0036f7 100644
+--- a/Assets/RoadRage/Tests/PlayMode/Story535JunctionPlayModeTests.cs
++++ b/Assets/RoadRage/Tests/PlayMode/Story535JunctionPlayModeTests.cs
+@@ -103,7 +103,14 @@ private IEnumerator Enter(string label, Action<Story533Harness.ScenarioRecord, T
+             Assert.That(admission.Admitted, Is.True, admission.Code.ToString());
+             Story533Harness.ScenarioFile file;
+             var record = Story533Harness.Load(admission, label, out file, ScenarioPath);
+-            TrafficV2Session.Request(TrafficComposition.V2Slice, null, Story533Harness.ToScenario(record));
++            if (label == "G-gap")
++            {
++                var objectives = new[] { WestContinuationPrefix, WestEntryPrefix };
++                var triplets = record.Insertions.Select((r, i) => new CampaignTriplet(RoadId.Parse(r.Entry), RoadId.Parse(r.Exit), r.Seed,
++                    admission.Model.Movements.Single(m => m.Id.ToString().StartsWith(objectives[i], StringComparison.Ordinal)).Id)).ToArray();
++                TrafficV2Session.Request(TrafficComposition.V2Slice, new MeasurementRun(MeasurementKind.Exploratory, label, triplets));
++            }
++            else TrafficV2Session.Request(TrafficComposition.V2Slice, null, Story533Harness.ToScenario(record));
+             yield return harness.EnterMvpRun();
+             int parked = 0;
+             yield return harness.ParkHostPlayer(file.Parking.Value, n => parked = n);
+@@ -374,6 +381,79 @@ public IEnumerator ScenarioFTheApproachFromTheRightPassesFirstAtTheCrossroads()
+ 
+         // ================================================================== scenario G
+ 
++        [UnityTest]
++        [Timeout(900000)]
++        public IEnumerator ScenarioGGapTheEntryClearsTheMergeWhileTheDistantRingHolderKeepsItsGrant()
++        {
++            Story533Harness.ScenarioRecord record = null;
++            TrafficV2Admission admission = null;
++            yield return Enter("G-gap", (r, a) => { record = r; admission = a; });
++            var spawner = Object.FindAnyObjectByType<PortalTrafficSpawner>();
++            Assert.That(spawner, Is.Not.Null);
++            var entry = admission.Model.Movements.Single(m => m.Id.ToString().StartsWith(WestEntryPrefix, StringComparison.Ordinal)).Id;
++            var observer = new Story533Harness.Observer(spawner, record.MaxPopulation, admission.Model);
++            var batches = new List<Batch>();
++            var waiting = harness.CreateObstacle(record.Obstacles.Single(o => o.Label == "attente-entree"));
++            var distant = harness.CreateObstacle(record.Obstacles.Single(o => o.Label == "attente-anneau-lointain"));
++            ulong entrantReleased = 0, holderReleased = 0, gapFrame = 0;
++            JunctionRecord gap = default(JunctionRecord);
++            int settled = 0;
++            for (int step = 0; step < record.MaxSteps && spawner.V2Removals < record.Insertions.Length; step++)
++            {
++                yield return new WaitForFixedUpdate();
++                observer.Observe();
++                if (observer.PlayerFacts > 0) Assert.Inconclusive("run invalide : joueur hote dans un fait V2");
++                if (observer.ToleranceLatch != null) break;
++                Capture(spawner, batches);
++                var holder = Story533Harness.DriverOf(spawner, TrafficV2Lifecycle.TrafficIdentity(record.Insertions[0].Seed, 1));
++                var entrant = Story533Harness.DriverOf(spawner, TrafficV2Lifecycle.TrafficIdentity(record.Insertions[1].Seed, 2));
++                if (entrantReleased == 0)
++                {
++                    settled = Held(holder) && Held(entrant) ? settled + 1 : 0;
++                    if (settled >= SettleSteps) { harness.Destroy(waiting); entrantReleased = spawner.V2Runner.FrameId; }
++                    continue;
++                }
++                if (holderReleased != 0 || holder == null || entrant == null) continue;
++                var snapshot = spawner.V2Runner.JunctionSnapshot;
++                var granted = snapshot.Records.FirstOrDefault(r => r.TrafficId == entrant.TrafficId && r.TraversalId == entry
++                    && r.IsEffectiveGrant && r.Reason == JunctionReason.GrantedMergeGap);
++                if (gapFrame == 0 && !granted.TrafficId.IsEmpty)
++                {
++                    Assert.That(snapshot.Records.Any(r => r.TrafficId == holder.TrafficId && r.IsEffectiveGrant), Is.True,
++                        "le titulaire garde son grant pendant l'admission par creneau");
++                    gap = granted; gapFrame = snapshot.SourceFrame;
++                }
++                // Le nez et l'arriere de R ont libere la fusion avant de laisser H repartir.
++                if (gapFrame != 0 && snapshot.Records.Any(r => r.TrafficId == entrant.TrafficId && r.IsEffectiveGrant
++                    && r.TraversalId == entry && !r.Contains(entry)))
++                { harness.Destroy(distant); holderReleased = snapshot.SourceFrame; }
++            }
++            var runs = Story533Harness.Runs(spawner);
++            foreach (var run in runs)
++                for (int i = 0; i < record.Insertions.Length; i++)
++                    if (run.TrafficId == TrafficV2Lifecycle.TrafficIdentity(record.Insertions[i].Seed, (ulong)i + 1)) run.Index = i;
++            string stamp = Story533Harness.Stamp();
++            string trace = Story533Harness.WriteTrace("scenario-G-gap", stamp, runs, Folder);
++            string journal = Story533Harness.WriteJunctionLog("scenario-G-gap", stamp, observer, Folder);
++            List<string> vehicleContacts, obstacleContacts, otherContacts;
++            Story533Harness.Contacts(runs, out vehicleContacts, out obstacleContacts, out otherContacts);
++            var sequence = new List<string> { "entrant libere au pas " + entrantReleased,
++                "grant par creneau au lot " + gapFrame + " : " + (gapFrame == 0 ? "absent" : gap.ToText()),
++                "anneau libere apres degagement au pas " + holderReleased };
++            try
++            {
++                Assert.That(entrantReleased, Is.GreaterThan(0UL), "staging des deux vehicules");
++                Assert.That(gapFrame, Is.GreaterThan(0UL), "aucun GrantedMergeGap sur poses et routes reelles");
++                Assert.That(gap.EtaSeconds, Is.GreaterThanOrEqualTo(gap.GapSeconds));
++                Assert.That(holderReleased, Is.GreaterThan(gapFrame), "H ne repart qu'apres le degagement de R");
++                Assert.That(observer.MergeGapGrants, Is.GreaterThan(0));
++                AssertCleanRuns(observer, runs, vehicleContacts, obstacleContacts);
++            }
++            catch (AssertionException failure) { sequence.Add("ECHEC : " + failure.Message); throw; }
++            finally { WriteSummary("scenario-G-gap", stamp, record, spawner, observer, sequence, vehicleContacts, obstacleContacts,
++                otherContacts, trace, journal); }
++        }
++
+         [UnityTest]
+         [Timeout(900000)]
+         public IEnumerator ScenarioGTheRoundaboutEntryWaitsForTheRingToClear()
+diff --git a/_bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenarios-5-35.json b/_bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenarios-5-35.json
+index 2fbcf8e..72054db 100644
+--- a/_bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenarios-5-35.json
++++ b/_bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenarios-5-35.json
+@@ -329,6 +329,126 @@
+             ],
+             "Pushes": []
+         },
++        {
++            "Label": "G-gap",
++            "MaxPopulation": 2,
++            "MaxSteps": 9000,
++            "Insertions": [
++                {
++                    "Entry": "4882b42dcf37410f4f629825c30f5f99",
++                    "Exit": "436d9a1a58c93bd19cdf0014de309f98",
++                    "Seed": 0,
++                    "EarliestStep": 0,
++                    "Elements": [
++                        "4f3543b1218b82af65b5b8fc58457fb3",
++                        "452ee31e83feea5ebc05406c271424a9",
++                        "4ec40e5f82f7a65bed1dc3d9679f8693",
++                        "4ac98ed2e41d83c91f0714135aa67ba7",
++                        "4db6ebc158e0dff4369373f117f51690",
++                        "40ca7f10a97f50a918e8c3a2a1e58493",
++                        "40e937a99618cac3ce12d56586514283",
++                        "4cec0461fb9fd74541d5772b2264b88f",
++                        "427041528b28cda9499c4ab5aafe0d9c",
++                        "4a61888b6162623b5f3b239c6967a1b7",
++                        "41aade042322996080b638a3a86e1088",
++                        "4e0c96d3fe6dbf797b6b539c16fe42ac",
++                        "48e681e799268186449903ef2aa3258f",
++                        "419d893b269e14c02e84e3509d9bf193",
++                        "46b219bca5cdaf1087d30d9622fab0a5",
++                        "4dc4e81b4c9cdd45e0484d2e9daeb888",
++                        "48c833c71f68abef819cb5a36c99208f",
++                        "4f7e560ced3c5a4bfbf14942df76f198",
++                        "43cf13ae1ef6b701bbcd906cdea7df90",
++                        "408a596007f75c3640fb9f816f896c86",
++                        "4ae5e1290d8b815bcb8f509e915fef89",
++                        "4f47e1a8140c798681fef66fa633b3b5",
++                        "4e67d7a19f6083c020b14cda38733f93",
++                        "4a772fed8c8aaeab952d011659612ea7",
++                        "4dc46e84668993d38378e9cfd4f366b4"
++                    ]
++                },
++                {
++                    "Entry": "4882b42dcf37410f4f629825c30f5f99",
++                    "Exit": "436d9a1a58c93bd19cdf0014de309f98",
++                    "Seed": 0,
++                    "EarliestStep": 0,
++                    "Elements": [
++                        "4f3543b1218b82af65b5b8fc58457fb3",
++                        "452ee31e83feea5ebc05406c271424a9",
++                        "4ec40e5f82f7a65bed1dc3d9679f8693",
++                        "4ac98ed2e41d83c91f0714135aa67ba7",
++                        "4db6ebc158e0dff4369373f117f51690",
++                        "44942dfab8e1f05d644474a6257b5e96",
++                        "48c833c71f68abef819cb5a36c99208f",
++                        "4b0942d72a850d61b60bc3e8a6a52384",
++                        "42ad3d5187bfa4104bf4917b93ede39e",
++                        "4d2aea792f643724e2d9f9ed853eb1a1",
++                        "433f39ba8eeb012212b7d5a05468b09d",
++                        "43605e569eb08d6ffe62fa7470d59fa0",
++                        "48e681e799268186449903ef2aa3258f",
++                        "419d893b269e14c02e84e3509d9bf193",
++                        "46b219bca5cdaf1087d30d9622fab0a5",
++                        "4dc4e81b4c9cdd45e0484d2e9daeb888",
++                        "48c833c71f68abef819cb5a36c99208f",
++                        "4f7e560ced3c5a4bfbf14942df76f198",
++                        "43cf13ae1ef6b701bbcd906cdea7df90",
++                        "408a596007f75c3640fb9f816f896c86",
++                        "4ae5e1290d8b815bcb8f509e915fef89",
++                        "4f47e1a8140c798681fef66fa633b3b5",
++                        "4e67d7a19f6083c020b14cda38733f93",
++                        "4a772fed8c8aaeab952d011659612ea7",
++                        "4dc46e84668993d38378e9cfd4f366b4"
++                    ]
++                }
++            ],
++            "Obstacles": [
++                {
++                    "Label": "attente-entree",
++                    "ElementId": "433f39ba8eeb012212b7d5a05468b09d",
++                    "RouteDistanceMeters": 115.58165740966797,
++                    "Center": {
++                        "x": -13.999999046325684,
++                        "y": 0.75,
++                        "z": -30.0
++                    },
++                    "Forward": {
++                        "x": -1.0,
++                        "y": 0.0,
++                        "z": 0.0
++                    },
++                    "Size": {
++                        "x": 2.0,
++                        "y": 1.5,
++                        "z": 1.0
++                    },
++                    "FromStep": 0,
++                    "UntilStep": -1
++                },
++                {
++                    "Label": "attente-anneau-lointain",
++                    "ElementId": "4a61888b6162623b5f3b239c6967a1b7",
++                    "RouteDistanceMeters": 85.88074493408203,
++                    "Center": {
++                        "x": -37.04337692260742,
++                        "y": 0.75,
++                        "z": -35.24997329711914
++                    },
++                    "Forward": {
++                        "x": 0.3083075284957886,
++                        "y": 0.0,
++                        "z": -0.951286792755127
++                    },
++                    "Size": {
++                        "x": 2.0,
++                        "y": 1.5,
++                        "z": 1.0
++                    },
++                    "FromStep": 0,
++                    "UntilStep": -1
++                }
++            ],
++            "Pushes": []
++        },
+         {
+             "Label": "gatec-2",
+             "MaxPopulation": 2,

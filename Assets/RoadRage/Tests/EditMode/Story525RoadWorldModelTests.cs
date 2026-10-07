@@ -14,6 +14,7 @@ namespace RoadRage.Tests.EditMode
     /// main. Deterministe, sans scene, sans asset, sans Netcode.
     /// </summary>
     [Category("Core")]
+    [Category("Story525")]
     public sealed class Story525RoadWorldModelTests
     {
         private const string FeaturesRootPath = "Assets/RoadRage";
@@ -1583,6 +1584,7 @@ namespace RoadRage.Tests.EditMode
         // ================================================================== propriete et index
 
         [Test]
+        [Category("Story536")]
         public void NoSourceRecordOwnsAnAuthorableReciprocalCollection()
         {
             // Seules appartenances possedees autorisees par AD-43/AD-46, plus la lignee d'import.
@@ -1594,15 +1596,19 @@ namespace RoadRage.Tests.EditMode
                 "ImportManifest.TombstonedIds"
             };
 
-            foreach (var type in typeof(RoadModelSource).Assembly.GetTypes())
+            // Parcourir le schema source, pas tous les types runtime du meme namespace (ElementIndex, etc.).
+            var pending = new Stack<Type>();
+            var visited = new HashSet<Type>();
+            pending.Push(typeof(RoadModelSource));
+            while (pending.Count > 0)
             {
-                if (type.Namespace != typeof(RoadModelSource).Namespace)
-                {
-                    continue;
-                }
-
+                var type = pending.Pop();
+                if (!visited.Add(type)) continue;
                 foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
+                    var child = field.FieldType.IsArray ? field.FieldType.GetElementType() : field.FieldType;
+                    if (child.Namespace == typeof(RoadModelSource).Namespace && !child.IsEnum && child != typeof(RoadId))
+                        pending.Push(child);
                     if (field.FieldType != typeof(RoadId[]))
                     {
                         continue;

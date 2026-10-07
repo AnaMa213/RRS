@@ -37,6 +37,56 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// <summary>Bande declaree autour de chaque frontiere de secteur ou la relation est ambigue (deg).</summary>
         public const float AmbiguityDegrees = 10f;
 
+        /// <summary>Validation commune au compilateur et a l'authoring : un controle = une approche resolue.</summary>
+        internal static void ValidateApproaches(RoadModelSource source, List<RoadModelValidationIssue> issues)
+        {
+            var movementById = new Dictionary<RoadId, JunctionMovement>();
+            foreach (var movement in source.Movements ?? Array.Empty<JunctionMovement>()) movementById.Add(movement.Id, movement);
+            var corridorById = new Dictionary<RoadId, LaneCorridor>();
+            foreach (var corridor in source.Corridors ?? Array.Empty<LaneCorridor>()) corridorById.Add(corridor.Id, corridor);
+            var approaches = new Dictionary<RoadId, RoadCurveSample>();
+            var controls = source.Controls ?? Array.Empty<JunctionControl>();
+            foreach (var control in controls)
+            {
+                if (control.Kind != JunctionControlKind.Uncontrolled) continue;
+                var ids = control.ControlledMovementIds;
+                if (ids == null || ids.Length == 0)
+                {
+                    issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.ControlApproachMissing, control.Id,
+                        "Controle Uncontrolled sans approche."));
+                    continue;
+                }
+                var samples = corridorById[movementById[ids[0]].FromCorridorId].Samples;
+                var end = samples[samples.Length - 1];
+                bool consistent = true;
+                foreach (var id in ids)
+                {
+                    var other = corridorById[movementById[id].FromCorridorId].Samples;
+                    var otherEnd = other[other.Length - 1];
+                    // Plusieurs voies paralleles sont une meme approche ; aucun seuil angulaire nouveau.
+                    consistent &= end.Tangent.normalized.Equals(otherEnd.Tangent.normalized)
+                        && end.Up.normalized.Equals(otherEnd.Up.normalized);
+                }
+                if (!consistent)
+                {
+                    issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.ControlApproachInconsistent, control.Id,
+                        "Controle Uncontrolled qui lie des caps ou plans d'approche differents."));
+                    continue;
+                }
+                approaches.Add(control.Id, end);
+            }
+            foreach (var a in controls)
+                foreach (var b in controls)
+                {
+                    RoadCurveSample endA, endB;
+                    if (a.Id == b.Id || a.JunctionId != b.JunctionId || !approaches.TryGetValue(a.Id, out endA)
+                        || !approaches.TryGetValue(b.Id, out endB)) continue;
+                    if (Classify(endA.Tangent, endB.Tangent, endA.Up) == RightOfWayRelation.Ambiguous)
+                        issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.RightOfWayAmbiguous, a.Id,
+                            "Relation de droite ambigue avec le controle " + b.Id + "."));
+                }
+        }
+
         /// <summary>Relation de B vue de A, caps et normale route quelconques (projetes dans le plan route).</summary>
         public static RightOfWayRelation Classify(Vector3 headingA, Vector3 headingB, Vector3 up)
         {
@@ -116,7 +166,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                     CompiledJunctionControl control;
                     RoadCurveSample end;
                     if (!model.TryGetControl(id, out control) || control.Kind != JunctionControlKind.Uncontrolled) { uncontrolled = false; break; }
-                    if (!TryApproachEnd(model, control, out end)) { uncontrolled = false; break; }
+                    if (!TryApproachEnd(model, control, out end)) throw new InvalidOperationException("ControlApproachMissing");
                     approaches.Add(new KeyValuePair<RoadId, RoadCurveSample>(id, end));
                 }
                 if (!uncontrolled) continue;

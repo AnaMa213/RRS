@@ -515,7 +515,8 @@ namespace RoadRage.App.Run
             }
 
             // Le retrait a deja eu lieu dans ReleaseVehiclesAtExitPortals, seul chemin de despawn du trafic.
-            if (LiveV2Population >= (scenario != null ? scenario.MaxPopulation : TrafficV2Settings.V2SliceMaxPopulation))
+            if (LiveV2Population >= (scenario != null ? scenario.MaxPopulation
+                : measurement != null ? measurement.MaxPopulation : TrafficV2Settings.V2SliceMaxPopulation))
             {
                 return;
             }

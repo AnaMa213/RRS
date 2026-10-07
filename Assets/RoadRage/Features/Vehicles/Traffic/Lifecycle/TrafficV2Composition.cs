@@ -171,7 +171,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
 
     /// <summary>
     /// Jeton de run de mesure : il porte la campagne (entree, sortie imposee, graine). Construit
-    /// uniquement par les tests PlayMode de la Story 5.31 ; une garde structurelle refuse toute
+    /// uniquement par les tests ; une garde structurelle refuse toute
     /// construction hors de Tests/. Il ne permet aucune conduite normale.
     /// </summary>
     public sealed class MeasurementRun
@@ -179,13 +179,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public MeasurementKind Kind { get; }
         public string Label { get; }
         public IReadOnlyList<CampaignTriplet> Triplets { get; }
+        public int MaxPopulation { get; }
 
-        public MeasurementRun(MeasurementKind kind, string label, IReadOnlyList<CampaignTriplet> triplets)
+        public MeasurementRun(MeasurementKind kind, string label, IReadOnlyList<CampaignTriplet> triplets, int maxPopulation = 1)
         {
             if (triplets == null || triplets.Count == 0) throw new ArgumentException("EmptyCampaign", "triplets");
+            if (maxPopulation < 1 || maxPopulation > triplets.Count)
+                throw new ArgumentOutOfRangeException(nameof(maxPopulation));
             Kind = kind;
             Label = string.IsNullOrEmpty(label) ? kind.ToString() : label;
             Triplets = new List<CampaignTriplet>(triplets).AsReadOnly();
+            MaxPopulation = maxPopulation;
         }
     }
 

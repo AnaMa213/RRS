@@ -250,6 +250,45 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void ALeaderInsideALinedMovementMasksTheFollowerBeforeTheLineEvenAfterReplanning()
+        {
+            var route = RouteVia(SouthLeft);
+            var track = ReferenceTrack.FromRoute(Model, route.Occurrences, 0f);
+            float entry = EntryDistance(route, SouthLeft);
+            // Deux petits gabarits independants permettent d'isoler la file entierement entre l'entree et b.
+            var footprint = new VehicleFootprint { FrontMeters = 0.4f, RearMeters = 0.4f, LeftMeters = 0.2f, RightMeters = 0.2f };
+            var leaderId = new RoadId(0x535EUL, 2UL);
+            Func<RoadId, float, TrafficActorInput> input = (id, center) =>
+            {
+                int piece = track.PieceAt(center);
+                var pose = track.Nominal(piece, center);
+                return new TrafficActorInput(id, new VehicleFootprintPose { Position = pose.Position, Forward = pose.Forward,
+                    Up = pose.Up, Footprint = footprint }, 0f, SouthLeft, TrafficV2Lifecycle.ExpectedElements(route), track.KinematicAnchors(piece));
+            };
+            var frame = new TrafficFrame(1, Model, new[] { input(Agent, entry + 1.2f), input(leaderId, entry + 2.4f) });
+            TrafficActor actor;
+            Assert.That(frame.TryGetActor(Agent, out actor), Is.True);
+            Assert.That(actor.Location.ElementId, Is.EqualTo(SouthLeft));
+            Assert.That(actor.Location.SMeters, Is.GreaterThan(0f));
+            var replanned = RoutePlanner.Plan(new RouteRequest(Model, actor.Location, route.ExitPortalId, new RouteSeed(0),
+                Agent, "route", new DecisionCounter(0), route, true));
+            Assert.That(replanned.Outcome, Is.EqualTo(RouteOutcome.Replanned));
+            foreach (var plan in new[] { route, replanned.Plan })
+            {
+                var report = JunctionRequestBuilder.Build(frame, Index, Agent, plan, Driver, Dt, Margin, JunctionSnapshot.Initial(1), 1, HoldEntrySpeed);
+                Assert.That(report.HasRequest, Is.True, report.ToText());
+                Assert.That(report.Request.DistanceMeters, Is.GreaterThan(0f));
+                Assert.That(report.Request.MaskingActorId, Is.EqualTo(leaderId));
+                Assert.That(report.Request.HeadOfQueue, Is.False);
+                Assert.That(report.RequestValid, Is.False);
+                Assert.That(report.Rejection, Is.EqualTo(JunctionRequestRejection.NotHeadOfQueue));
+            }
+            var leader = JunctionRequestBuilder.Build(frame, Index, leaderId, route, Driver, Dt, Margin, JunctionSnapshot.Initial(1), 1, HoldEntrySpeed);
+            Assert.That(leader.Request.DistanceMeters, Is.GreaterThan(0f));
+            Assert.That(leader.Request.HeadOfQueue, Is.True);
+        }
+
+        [Test]
         public void ARefusedBranchVehicleStopsInTheLineBandPastTheGenericEntryAndResumesOnItsGrant()
         {
             var driver = Driver;
