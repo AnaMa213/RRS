@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-10-07'
 status: 'done'
 baseline_commit: 'e922d455b97a2a777c7be8db4722c176a2181c17'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/spec-5-36-signal-phase-runtime-and-coordinator-integration.md'
 ---
@@ -103,7 +103,17 @@ context:
 - Given `Safety/`, when il est inspecte, then il ne contient aucune logique de route, de manoeuvre, de carrefour, de regle, de cible ou de recuperation.
 - Given le branchement, when les campagnes PlayMode 5.33 et 5.35 tournent sur `MVP_Run`, then elles restent vertes et `MVP_Run` est inchange.
 
+### Review Findings — 2026-10-07
+
+Review target: `e922d45..a313d50`, checked on `4450afd`. Four independent configured review layers completed. [Review report and validation evidence](code-review-5-37-2026-10-07.md).
+
+- [x] [Review][Patch][Medium] R1 — Render the safety verdict, objective reason and epochs in `TrafficDecisionProjection.ToText()`. The driver supplies `Drive.Safety`, but the textual projection never reads it. Fixed; all four verdicts, epochs and culture-invariant output covered in Story537.
+- [x] [Review][Patch][High] R2 — Preserve emergency braking through composition: normal damping compensation reduces the requested maximum braking, and normal translation coasts for `0.05 < speed <= ServiceBandMetersPerSecond`. Fixed with an explicit emergency translation in the composer and verdict passed from the driver; normal-command, fallback and Idle semantics retained. Story537 covers nonzero damping, full brake/handbrake around the service band and no reverse drive torque.
+- [x] [Review][Defer] R3 — Longitudinal memory after a safety veto remains the previously approved deferral in `deferred-work.md`; runtime driver veto coverage remains assigned to 5.38 by the existing spec change log.
+
 ## Spec Change Log
+
+- **2026-10-07 — Requested independent code review and closeout.** Four configured layers completed; R1/R2 fixed and covered by two additional Story537 tests. The diagnostic text publishes every safety verdict and its reason/epochs. The composer receives the emergency verdict explicitly and applies full service brake, or handbrake below its service band, without damping reducing the braking authority. Safety's frozen command contract, normal translation, fallback and Idle are preserved. Post-fix validation through `validate.ps1`: Story537 EditMode 22/22, Story531 EditMode 50/50, Story535 PlayMode 7/7, Story533 PlayMode 12/12; zero Console errors on every validation window, compilation healthy, MVP_Run unchanged and clean in memory. Approved longitudinal-memory and runtime driver-veto deferrals remain with 5.38. Graphify updated. Spec and sprint entry set to `done` under the owner's explicit request to close 5.37. [Review dispositions and raw results](code-review-5-37-2026-10-07.md).
 
 - **2026-10-07 -- Revue (blind-hunter en ligne, edge-case-hunter, verification-gap ; security-review inactive, aucune frontiere reseau).** Aucun intent_gap ni bad_spec. Patchs : (1) aucun verdict evalue ni publie quand le verrou de tolerance retire la commande ; (2) echantillon recent ignore s'il est sans perception, non posterieur a la frame ou au-dela du pas courant ; (3) bornes calculees avant le composeur : profil degenere (capacite nulle) -> avertissement unique et vehicule inerte, au lieu d'une exception suivie de bornes nulles ; (4) `SafetyResult.Refusal`, et tests : bornes de `SafetyLimits.For` egales aux capacites reelles du composeur et a la drivabilite declaree, verdicts passes au vrai composeur (Reject -> repli `SafetyRejected`, EmergencyStop -> frein plein), source du driver renforcee. Differe : memoire longitudinale apres un veto (`deferred-work.md`). Rejetes : perception indisponible lue comme absence de fait (l'arbitrage la traite, Safety n'absorbe pas la routine), danger non fini, marche arriere (V2 ne recule pas), libelle `PhysicsStep` (une frame par pas hote). Reste : le driver lui-meme n'est exerce qu'en PlayMode nominal (verdict Pass) ; ses vetos le seront par la 5.38. Validation brute : Story537 EditMode 20/20, Story531 EditMode 50/50, Story535 PlayMode 7/7, Story533 PlayMode 12/12, 0 erreur Console, `MVP_Run` propre.
 

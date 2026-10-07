@@ -1,0 +1,150 @@
+==> self-test du lecteur de statut CLI
+[PASS] aucune reponse -> aucune reponse -> statut valide -> Ok=True, 3 appel(s), 2 attente(s)
+[PASS] aucune reponse x 5 -> echec ferme -> Ok=False, 5 appel(s), 4 attente(s)
+[PASS] code 6 -> code 6 -> statut termine -> Ok=True, 3 appel(s), 2 attente(s)
+[PASS] code 6 x 5 -> echec ferme -> Ok=False, 5 appel(s), 4 attente(s)
+[PASS] melange silence et code 6 puis statut -> Ok=True, 5 appel(s), 4 attente(s)
+[PASS] statut failed rendu tel quel (jamais retente) -> Ok=True, 1 appel(s), 0 attente(s)
+[PASS] code non reconnu -> bloquant immediatement -> Ok=False, 1 appel(s), 0 attente(s)
+[PASS] code non reconnu sans texte -> bloquant immediatement -> Ok=False, 1 appel(s), 0 attente(s)
+[PASS] silence puis code non reconnu sans texte -> bloquant -> Ok=False, 2 appel(s), 1 attente(s)
+[PASS] code 6 sans texte -> statut termine -> Ok=True, 2 appel(s), 1 attente(s)
+[PASS] refus logique (success:false, code 0) -> bloquant -> Ok=False, 1 appel(s), 0 attente(s)
+[PASS] sortie illisible -> bloquante -> Ok=False, 1 appel(s), 0 attente(s)
+[PASS] silence puis code non reconnu -> bloquant -> Ok=False, 2 appel(s), 1 attente(s)
+--- SelfTest : 13/13 cas conformes ---
+==> Version Unity CLI
+  1.0.0-beta.8 (reference validee)
+==> unity status
+  port 7801, Unity 6000.6.0f1, etat ready
+==> editeur stabilise (compiling / domainReloadInProgress)
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+==> unity cmd console (curseur de fenetre)
+  curseur 3042 ; 0 erreur(s) anterieure(s) hors fenetre
+==> unity cmd recompile
+==> unity cmd recompile_status
+  recompile_status: up_to_date
+==> stabilisation apres recompile + unity cmd console --level error --since 3042
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+  0 erreur depuis le curseur 3042
+==> etat de compilation courant (EditorUtility.scriptCompilationFailed)
+  scriptCompilationFailed=false
+  100 avertissement(s) hors Assets/Synty/ (informatif, ne bloque pas)
+  [WARN] x6 [Run] Trafic portail-a-portail : composition de trafic changee apres la premiere lecture : changement
+ignore, la session reste en V2Slice.
+  [WARN] x5 Assets\RoadRage\Tests\PlayMode\Story533PerformanceDiagnosticPlayModeTests.cs(221,39): warning UAC1001:
+Field 'Recorders' type 'Unity.Profiling.ProfilerRecorder' is skipped by serialization (missing the [Serializable]
+attribute). Refer to the Serialization rules analyzer reference.
+(https://docs.unity3d.com/6000.6/Documentation/Manual/script-serialization-analyzer.html#uac1001)
+  [WARN] x4 Assets\RoadRage\DevTools\RageSandboxAutoStart.cs(278,30): warning CS0618:
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and
+previous sort order cannot be maintained.'
+  [WARN] x4 Assets\RoadRage\DevTools\RoadRageNetcodeSmokeTestAutoStart.cs(162,30): warning CS0618:
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and
+previous sort order cannot be maintained.'
+  [WARN] x4 Assets\RoadRage\DevTools\RageSandboxAutoStart.cs(278,109): warning CS0618: 'FindObjectsSortMode' is
+obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a
+FindObjectsSortMode parameter.'
+  [WARN] x4 Assets\RoadRage\DevTools\RageSandboxAutoStart.cs(293,99): warning CS0618: 'FindObjectsSortMode' is
+obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a
+FindObjectsSortMode parameter.'
+  [WARN] [projet] x4 Assembly for Assembly Definition File
+'Assets/RoadRage/Features/SandboxStops/RoadRage.Features.SandboxStops.asmdef' will not be compiled, because it has no
+scripts associated with it.
+  [WARN] x4 Assets\RoadRage\Tests\EditMode\TrafficOracle\TrafficOracleTests.cs(441,38): warning UAC0005:
+AppDomain.GetAssemblies() in Unity may return already unloaded assemblies and result in errors or leaks. Use Unity
+APIs instead, such as 'CurrentAssemblies.GetLoadedAssemblies()' or 'TypeCache.GetTypesDerivedFrom()'.
+  [WARN] x4 Assets\RoadRage\DevTools\RageSandboxAutoStart.cs(293,30): warning CS0618:
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and
+previous sort order cannot be maintained.'
+  [WARN] x4 Assets\RoadRage\DevTools\RoadRageNetcodeSmokeTestAutoStart.cs(162,99): warning CS0618:
+'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that
+do not take a FindObjectsSortMode parameter.'
+  [WARN] x4 Assets\RoadRage\App\Run\NetworkedVehicleSeatService.cs(465,20): warning CS0618:
+'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with
+FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or
+FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and
+previous sort order cannot be maintained.'
+  [WARN] x4 Assets\RoadRage\App\Run\RunFlowController.cs(764,109): warning CS0618: 'FindObjectsSortMode' is obsolete:
+'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode
+parameter.'
+  ... 14 autre(s) message(s) distinct(s) non affiche(s) ; total : 100
+==> profil de validation (Story)
+  categorie : Story535
+==> unity cmd list_tests --mode playmode (compte Story)
+  7 test(s) PlayMode attendus (categorie Story535)
+==> unity cmd run_tests --mode PlayMode
+==> unity cmd test_status (PlayMode)
+  test_status : 1 lecture(s) retentee(s) pendant une indisponibilite passagere du CLI (Domain Reload)
+  7/7 test(s) PlayMode passes
+==> stabilisation apres tests + unity cmd console --level error --since 3042
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+  0 erreur depuis le curseur 3042
+==> unity cmd list_open_scenes + git status
+  MVP_Run [propre]
+  git status --short :
+     M Assets/RoadRage/Features/Vehicles/Traffic/Debug/TrafficDecisionProjection.cs
+     M Assets/RoadRage/Features/Vehicles/Traffic/Intent/VehicleDriveIntentComposer.cs
+     M Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs
+     M Assets/RoadRage/Tests/EditMode/Story537SafetyFilterTests.cs
+     M _bmad-output/implementation-artifacts/spec-5-37-safety-filter-narrow-veto-and-clamp-boundary.md
+     M graphify-out/GRAPH_REPORT.md
+     M graphify-out/graph.json
+    ?? _bmad-output/implementation-artifacts/code-review-5-37-2026-10-07.md
+    ?? _bmad-output/implementation-artifacts/review-5-37-story531-editmode.txt
+    ?? _bmad-output/implementation-artifacts/review-5-37-story535-playmode.txt
+    ?? _bmad-output/implementation-artifacts/review-5-37-story537-editmode.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenario-C-20261007-155945-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenario-C-20261007-155945-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenario-C-20261007-161125-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenario-C-20261007-161125-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenario-D-20261007-160046-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenario-D-20261007-160046-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenario-D-20261007-161236-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-34-explorations/scenario-D-20261007-161236-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-E-20261007-160139-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-E-20261007-160139-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-E-20261007-161329-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-E-20261007-161329-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-F-20261007-160233-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-F-20261007-160233-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-F-20261007-161423-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-F-20261007-161423-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-G-20261007-160545-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-G-20261007-160545-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-G-20261007-161735-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-G-20261007-161735-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-G-gap-20261007-160446-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-G-gap-20261007-160446-summary.md
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-G-gap-20261007-161636-junction.txt
+    ?? _bmad-output/implementation-artifacts/traffic-v2-5-35-explorations/scenario-G-gap-20261007-161636-summary.md
+
+---- Recapitulatif de validation ----
+  VALIDATION STORY (Story535)
+  Profil                   Story (Story535)
+  Tests executes           7 au total (7 en PlayMode)
+  Suites completes         non executees ; reservees a la fin d'epic
+  SelfTest lecteur CLI     passe (cas detailles ci-dessus)
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          3042 (0 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            up_to_date
+  Erreurs Console          0 depuis le curseur 3042
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 100 (informatif, hors gate)
+  Selection PlayMode       7 test(s) attendus (categorie Story535)
+  Tests PlayMode           7/7 passes
+  Ignores PlayMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Couverture PlayMode      7 test(s) de la story ; suite complete non executee
+  Scenes ouvertes          aucune scene modifiee
+  Arbre de travail         35 entree(s) modifiee(s) -- voir git status
+-------------------------------------
+OK
+VALIDATION STORY (Story535) : tests de la story seulement. Suites completes non executees ; elles relevent de la fin
+d'epic. Cette sortie ne vaut pas validation complete.

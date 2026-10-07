@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -6,11 +7,13 @@ using System.Text.RegularExpressions;
 using NUnit.Framework;
 using RoadRage.Features.Vehicles;
 using RoadRage.Features.Vehicles.Traffic;
+using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
+using RoadRage.Features.Vehicles.Traffic.Routing;
 using RoadRage.Features.Vehicles.Traffic.Safety;
 using UnityEditor;
 using UnityEngine;
@@ -321,7 +324,7 @@ namespace RoadRage.Tests.EditMode
             var limits = SafetyLimits.For(vehicle, Model.DrivabilityProfile, Dt, TrafficV2Settings.PlanValiditySteps);
             float safeBraking = AssetDatabase.LoadAssetAtPath<DriverProfileDef>(DriverProfilePath).Profile.SafeBrakingLimit;
             System.Func<SafetyResult, ComposedDrive> compose = result => new VehicleDriveIntentComposer(vehicle, safeBraking, Dt)
-                .Compose(Frame, result.Command, result.Refusal, 10f, 0f);
+                .Compose(Frame, result.Command, result.Refusal, 10f, 0f, emergencyStop: result.Verdict == SafetyVerdict.EmergencyStop);
 
             var rejected = SafetyFilter.Evaluate(Command(acceleration: float.NaN), Frame, FrameWith(), Self, 10f, null, null, limits);
             Assert.That(rejected.Refusal, Is.EqualTo(V2FallbackReason.SafetyRejected));
@@ -336,6 +339,63 @@ namespace RoadRage.Tests.EditMode
             Assert.That(brake.Fallback, Is.False);
             Assert.That(brake.Intent.Throttle, Is.EqualTo(0f));
             Assert.That(brake.Intent.BrakeReverse, Is.EqualTo(1f).Within(1e-5f));
+        }
+
+        [Test]
+        public void EmergencyBrakingKeepsFullAuthorityWithDampingAndInsideTheServiceBand()
+        {
+            var vehicle = AssetDatabase.LoadAssetAtPath<VehicleProfileDef>(VehicleProfilePath).Profile;
+            var limits = SafetyLimits.For(vehicle, Model.DrivabilityProfile, Dt, TrafficV2Settings.PlanValiditySteps);
+            float safeBraking = AssetDatabase.LoadAssetAtPath<DriverProfileDef>(DriverProfilePath).Profile.SafeBrakingLimit;
+            var composer = new VehicleDriveIntentComposer(vehicle, safeBraking, Dt);
+            foreach (float speed in new[] { 0.04f, 0.2f, composer.ServiceBandMetersPerSecond,
+                composer.ServiceBandMetersPerSecond + 0.01f, 10f })
+            {
+                var stopped = SafetyFilter.Evaluate(Command(curvature: 0f), Frame, FrameWith(), Self, speed,
+                    null, Leader(Other, 0f, 0f), limits);
+                Expect(stopped, SafetyVerdict.EmergencyStop, SafetyReason.ImminentUnintendedCollision);
+                foreach (float damping in new[] { 0f, 0.3f, 3f })
+                {
+                    var drive = composer.Compose(Frame, stopped.Command, stopped.Refusal, speed, damping,
+                        emergencyStop: stopped.Verdict == SafetyVerdict.EmergencyStop);
+                    Assert.That(drive.Fallback, Is.False);
+                    Assert.That(drive.Intent.Throttle, Is.EqualTo(0f), speed + " m/s, damping " + damping);
+                    Assert.That(drive.Intent.BrakeReverse, Is.EqualTo(speed > composer.ServiceBandMetersPerSecond ? 1f : 0f));
+                    Assert.That(drive.Intent.Handbrake, Is.EqualTo(speed > composer.ServiceBandMetersPerSecond ? 0f : 1f));
+                    Assert.That(VehicleDriveIntentComposer.MinimumWheelDriveTorque(vehicle, drive.Intent, drive.MaxForwardSpeed, speed),
+                        Is.GreaterThanOrEqualTo(0f), "aucune marche arriere d'urgence");
+                }
+            }
+            var normal = composer.Compose(Frame, Command(acceleration: -3f), V2FallbackReason.None, 0.2f, 0f);
+            Assert.That(normal.Intent.BrakeReverse, Is.EqualTo(0f));
+            Assert.That(normal.Intent.Handbrake, Is.EqualTo(0f), "la commande normale conserve sa roue libre");
+        }
+
+        [Test]
+        public void TheProjectionRendersEverySafetyVerdictReasonAndEpochInEveryCulture()
+        {
+            var projection = PlanningSpine.Evaluate(new PlanningRequest(FrameWith(), Self, null, Other,
+                new RouteSeed(1), 10f, null, null, null, default(DriverProfile),
+                bounds: new LongitudinalBounds(2f, 3f))).Projection;
+            foreach (var result in new[] { Evaluate(Command()), Evaluate(Command(angle: 40f)),
+                Evaluate(Command(), Leader(Other, 0f, 0f)), Evaluate(Command(acceleration: float.NaN)) })
+            {
+                var withDrive = projection.WithDrive(new TrafficDriveOutcome(Frame, Frame, Frame,
+                    0f, 0f, 0f, 0f, result.Verdict == SafetyVerdict.Reject, result.Refusal.ToString(), "None",
+                    null, null, VehicleCoverage.NotEstablished, null, result.ToText()));
+                var originalCulture = CultureInfo.CurrentCulture;
+                try
+                {
+                    CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+                    string invariant = withDrive.ToText();
+                    StringAssert.Contains("Safety " + result.ToText(), invariant);
+                    CultureInfo.CurrentCulture = new CultureInfo("fr-FR");
+                    Assert.That(withDrive.ToText(), Is.EqualTo(invariant));
+                }
+                finally { CultureInfo.CurrentCulture = originalCulture; }
+            }
+            StringAssert.DoesNotContain("\nSafety ", projection.WithDrive(new TrafficDriveOutcome(Frame, Frame, Frame,
+                0f, 0f, 0f, 0f, false, null, "None", null, null, VehicleCoverage.NotEstablished, null)).ToText());
         }
 
         // ------------------------------------------------------------------ structure et branchement
@@ -374,6 +434,7 @@ namespace RoadRage.Tests.EditMode
             string between = source.Substring(filter, compose - filter);
             StringAssert.Contains("command = LastSafety.Command;", between);
             StringAssert.Contains("refusal = LastSafety.Refusal;", between);
+            StringAssert.Contains("emergencyStop: LastSafety != null && LastSafety.Verdict == SafetyVerdict.EmergencyStop", source);
             StringAssert.Contains("if (command.HasValue && !toleranceResponse.Latched)", source.Substring(track, filter - track));
             Assert.That((int)V2FallbackReason.SafetyRejected, Is.EqualTo(12));
         }

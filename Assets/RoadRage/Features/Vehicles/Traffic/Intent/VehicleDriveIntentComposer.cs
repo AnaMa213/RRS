@@ -121,9 +121,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
         /// <summary>
         /// Compose l'intent du pas <paramref name="step"/>. <paramref name="command"/> nul : pas de commande,
         /// <paramref name="refusal"/> dit pourquoi.
+        /// <paramref name="emergencyStop"/> : commande de freinage d'urgence, frein de service plein au-dessus
+        /// de la bande de service, frein a main en dessous ; aucune compensation de trainee ne reduit ce freinage.
         /// </summary>
         public ComposedDrive Compose(ulong step, MotionCommand? command, V2FallbackReason refusal,
-            float measuredLongitudinalSpeed, float linearDamping)
+            float measuredLongitudinalSpeed, float linearDamping, bool emergencyStop = false)
         {
             if (!profileFinite)
             {
@@ -143,7 +145,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
                 else
                 {
                     VehicleDriveIntent intent;
-                    if (TryTranslate(value, speed, linearDamping, out intent))
+                    if (TryTranslate(value, speed, linearDamping, emergencyStop, out intent))
                     {
                         inFallback = false;
                         terminal = V2FallbackTerminal.None;
@@ -201,10 +203,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
         /// capacite moteur ou de frein du profil, trainee lineaire compensee). Sous la bande de service,
         /// une demande de freinage ne passe jamais par BrakeReverse : roue libre, ou maintien a l'arret.
         /// </summary>
-        private bool TryTranslate(MotionCommand command, float speed, float linearDamping, out VehicleDriveIntent intent)
+        private bool TryTranslate(MotionCommand command, float speed, float linearDamping, bool emergencyStop,
+            out VehicleDriveIntent intent)
         {
             float acceleration = command.TargetAccelerationMetersPerSecondSquared;
-            if (speed > 0f && Finite(linearDamping) && linearDamping > 0f)
+            if (!emergencyStop && speed > 0f && Finite(linearDamping) && linearDamping > 0f)
             {
                 float retained = Math.Max(0.01f, 1f - linearDamping * fixedDeltaTime);
                 acceleration = (acceleration + linearDamping * speed) / retained;
@@ -214,7 +217,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
             if (!(lock_ > 0f)) lock_ = vehicle.MaxSteerAngleDegrees;
             float steer = lock_ > 0f ? Mathf.Clamp(command.TargetWheelAngleDegrees / lock_, -1f, 1f) : 0f;
             float throttle = 0f, brake = 0f, handbrake = 0f;
-            if (acceleration > 0f)
+            if (emergencyStop)
+            {
+                // Sous la bande de service, BrakeReverse engagerait la marche arriere : maintien au frein a main.
+                if (speed > ServiceBandMetersPerSecond) brake = 1f;
+                else handbrake = 1f;
+            }
+            else if (acceleration > 0f)
             {
                 float available = driveCapacity * VehicleTireModel.ResolveDriveTorqueFactor(speed, vehicle.MaxForwardSpeed);
                 throttle = available > 0f ? Mathf.Clamp01(acceleration / available) : 0f;

@@ -331,6 +331,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
                     .Append(" / fallback ").Append(Drive.Fallback ? "yes " + Drive.FallbackReason : "no").Append('\n');
                 text.Append("Vehicle coverage ").Append(Drive.VehicleCoverage)
                     .Append(" / measurement ").Append(Drive.MeasurementLabel ?? "hors mesure");
+                if (Drive.Safety != null) text.Append('\n').Append("Safety ").Append(Drive.Safety);
             }
             if (Longitudinal != null) text.Append('\n').Append(Longitudinal.ToText());
             if (Junction != null) text.Append('\n').Append(Junction.ToText());

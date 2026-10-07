@@ -861,7 +861,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 refusal = V2FallbackReason.TrackingToleranceExceeded;
             }
 
-            var composed = composer.Compose(frameId, command, refusal, speed, body.linearDamping);
+            var composed = composer.Compose(frameId, command, refusal, speed, body.linearDamping,
+                emergencyStop: LastSafety != null && LastSafety.Verdict == SafetyVerdict.EmergencyStop);
             // Seul point d'application V2 : un intent par pas physique.
             physicsBody.ApplyDriveIntent(composed.Intent, composed.MaxForwardSpeed, composed.SteerRateDegreesPerSecond,
                 composed.BrakeTorque);
