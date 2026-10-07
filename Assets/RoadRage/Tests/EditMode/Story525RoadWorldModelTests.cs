@@ -713,6 +713,7 @@ namespace RoadRage.Tests.EditMode
         // ================================================================== matrice : changement comportemental
 
         [Test]
+        [Category("Story536")]
         public void EveryBehaviorAffectingChangeMovesTheVersion()
         {
             AssertVersionChanges(
@@ -731,18 +732,25 @@ namespace RoadRage.Tests.EditMode
                 RoadModelValidationCode.MovementSeamBroken,
                 "Mouvement : comportemental.");
 
-            // Story 5.35 : une ligne Stop doit couper ses mouvements une fois ; le genre est donc compare sans ligne de part et d'autre.
-            Action<RoadModelSource> withoutLines = delegate(RoadModelSource source)
+            // Story 5.35 : une ligne Stop doit couper ses mouvements une fois ; Story 5.36 : un plan ne vit que sur un carrefour
+            // signalise. Le genre est donc compare entre Stop et Yield, sans ligne ni plan de part et d'autre : seul le genre differe.
+            Action<RoadModelSource> withoutLinesNorPlan = delegate(RoadModelSource source)
             {
                 source.Controls[ControlC1Index].HasStopLine = false;
                 source.Controls[ControlC2Index].HasStopLine = false;
+                source.SignalPlans = new SignalPlan[0];
             };
-            Assert.That(VersionOf(delegate(RoadModelSource source)
+            Func<JunctionControlKind, Action<RoadModelSource>> allOfKind = delegate(JunctionControlKind kind)
+            {
+                return delegate(RoadModelSource source)
                 {
-                    withoutLines(source);
-                    source.Controls[ControlC1Index].Kind = JunctionControlKind.Stop;
-                    source.Controls[ControlC2Index].Kind = JunctionControlKind.Stop;
-                }), Is.Not.EqualTo(VersionOf(withoutLines)), "Genre de controle : comportemental.");
+                    withoutLinesNorPlan(source);
+                    source.Controls[ControlC1Index].Kind = kind;
+                    source.Controls[ControlC2Index].Kind = kind;
+                };
+            };
+            Assert.That(VersionOf(allOfKind(JunctionControlKind.Stop)), Is.Not.EqualTo(VersionOf(allOfKind(JunctionControlKind.Yield))),
+                "Genre de controle : comportemental.");
 
             AssertVersionChanges(
                 delegate(RoadModelSource source) { source.ConflictZones[0].Volume = Box(new Vector3(0f, 0f, 25f), new Vector3(4f, 2f, 3f)); },
@@ -1292,16 +1300,16 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        [Category("Story536")]
         public void EachMovementReadsItsKindFromItsSingleAuthoritativeControlBinding()
         {
+            // Story 5.36 : Signalized ne se melange a aucun autre genre ; deux genres distincts sans ligne ni plan gardent l'objet du test.
             var source = BuildModel();
+            source.Controls[ControlC1Index].Kind = JunctionControlKind.Priority;
             source.Controls[ControlC2Index].Kind = JunctionControlKind.Yield;
-            source.SignalPlans[0].Groups = new[] { Group(GroupG1, new[] { MovementM1, MovementM2 }) };
-            source.SignalPlans[0].Phases = new[]
-            {
-                PhaseForSingleGroup(PhasePh1, 30f, SignalState.Green),
-                PhaseForSingleGroup(PhasePh2, 30f, SignalState.Red)
-            };
+            source.Controls[ControlC1Index].HasStopLine = false;
+            source.Controls[ControlC2Index].HasStopLine = false;
+            source.SignalPlans = new SignalPlan[0];
 
             var model = RoadModelCompiler.Compile(source);
 
@@ -1309,7 +1317,7 @@ namespace RoadRage.Tests.EditMode
             CompiledJunctionControl m4Control;
             Assert.That(model.TryGetControlForMovement(MovementM1, out m1Control), Is.True);
             Assert.That(model.TryGetControlForMovement(MovementM4, out m4Control), Is.True);
-            Assert.That(m1Control.Kind, Is.EqualTo(JunctionControlKind.Signalized));
+            Assert.That(m1Control.Kind, Is.EqualTo(JunctionControlKind.Priority));
             Assert.That(m4Control.Kind, Is.EqualTo(JunctionControlKind.Yield),
                 "Le genre vient de la liaison, jamais d'une classification de carrefour ni de l'approche.");
         }
@@ -1694,17 +1702,6 @@ namespace RoadRage.Tests.EditMode
                     }
                 }
             }
-        }
-
-        // ================================================================== helpers
-
-        private static SignalPhase PhaseForSingleGroup(RoadId phaseId, float duration, SignalState state)
-        {
-            var phase = new SignalPhase();
-            phase.PhaseId = phaseId;
-            phase.DurationSeconds = duration;
-            phase.GroupStates = new[] { GroupState(GroupG1, state) };
-            return phase;
         }
 
         // ================================================================== coupe transversale (AD-48)

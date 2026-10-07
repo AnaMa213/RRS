@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 2026-09-02 16:30
-last_updated: 2026-10-06
+last_updated: 2026-10-07
 # 2026-09-22 planning run: the Traffic V2 replacement stories now exist as
 # 5.24-5.48, planned INSIDE Epic 5 because building the AI traffic network is
 # Epic 5's own unfinished mission. This filing decision supersedes section 3.14
@@ -211,7 +211,7 @@ development_status:
   # 2026-10-06 : revue et rejeux cibles clos ; spec done, Gate C 3/3 verte.
   # BMAD build synchronise review ; sprint done reserve au checkpoint de fin d'epic.
   5-35-authored-control-kinds-stop-yield-priority-roundabout: review
-  5-36-signal-phase-runtime-and-coordinator-integration: backlog
+  5-36-signal-phase-runtime-and-coordinator-integration: review
   5-37-safety-filter-narrow-veto-and-clamp-boundary: backlog
   5-38-collision-response-physics-yields-tactical-handshake: backlog
   5-39-recovery-supervisor-progress-and-physical-reattachment: backlog

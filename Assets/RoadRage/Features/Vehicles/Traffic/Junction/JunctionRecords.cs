@@ -50,7 +50,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// <summary>Story 5.35 : grant emis malgre un grant incompatible tenu, toutes les zones entre eux etant Merge et le creneau suffisant.</summary>
         GrantedMergeGap = 20,
         /// <summary>Story 5.35 : briseur d'interblocage, aucune progression possible par la regle.</summary>
-        GrantedDeadlockBreak = 21
+        GrantedDeadlockBreak = 21,
+        /// <summary>Story 5.36 : feu du controle d'approche Yellow ou Red ; un grant non engage est revoque, un engage conserve.</summary>
+        SignalStop = 22,
+        /// <summary>Story 5.36 : aucun etat de feu dans la frame du lot pour un mouvement Signalized (fail-closed, jamais un vert).</summary>
+        SignalUnavailable = 23
     }
 
     /// <summary>Ce qui a borne la recherche de sortie.</summary>

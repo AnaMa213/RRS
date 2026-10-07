@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Frame;
+using RoadRage.Features.Vehicles.Traffic.Signals;
 using Unity.Profiling;
 
 namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
@@ -31,6 +32,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
     /// cette frame et l'instantane de coordination effectif a N, et aucun autre ; enfin le coordinateur resout les demandes
     /// de N et publie l'instantane effectif a N+1. Une frame refusee donne un lot fail-closed. Les horizons d'intention
     /// publies ne sont pas alimentes.
+    /// Story 5.36 : il possede aussi l'horloge de phase des feux du modele, etat hote : la frame N porte la phase courante, le lot
+    /// la lit dans cette frame, puis l'horloge avance d'un pas fixe. Sans plan (MVP_Run), elle ne fait rien.
     /// </summary>
     public sealed class TrafficV2StepRunner
     {
@@ -40,6 +43,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private readonly List<TrafficV2VehicleDriver> actorsInFrame = new List<TrafficV2VehicleDriver>();
         private readonly List<JunctionActorReport> reports = new List<JunctionActorReport>();
         private JunctionCoordinator coordinator;
+        private SignalPhaseController signals;
         private readonly List<TrafficActorInput> inputs = new List<TrafficActorInput>();
         private readonly List<HazardQuery> queries = new List<HazardQuery>();
         private readonly HashSet<RoadId> actorIds = new HashSet<RoadId>();
@@ -82,6 +86,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public TrafficV2StepCost LastCost { get; private set; }
         /// <summary>Coordinateur de carrefour hote unique (5.34) ; nul avant le premier pas sur un modele.</summary>
         public JunctionCoordinator Coordinator { get { return coordinator; } }
+        /// <summary>Horloge de phase des feux du modele (Story 5.36) ; nulle avant le premier pas sur un modele.</summary>
+        public SignalPhaseController Signals { get { return signals; } }
         /// <summary>Dernier instantane publie : effectif au pas hote suivant (EffectiveFrame = FrameId + 1).</summary>
         public JunctionSnapshot JunctionSnapshot { get { return coordinator != null ? coordinator.Current : null; } }
 
@@ -111,6 +117,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             if (model == null || drivers == null) return;
             // Un coordinateur par modele ; son instantane initial, vide, est effectif a ce pas.
             if (coordinator == null || coordinator.Model != model) coordinator = new JunctionCoordinator(model, FrameId);
+            if (signals == null || signals.Model != model) signals = new SignalPhaseController(model);
             var snapshot = coordinator.Current;
             ordered.Clear();
             foreach (var driver in drivers)
@@ -158,7 +165,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             FrameBuildMarker.Begin();
             try
             {
-                frame = new TrafficFrame(FrameId, model, inputs, hazards);
+                frame = new TrafficFrame(FrameId, model, inputs, hazards, signals.Current);
                 FramesBuilt++;
             }
             catch (ArgumentException)
@@ -208,10 +215,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 }
             bool refused = frame == null && inputs.Count > 0;
             if (refused) coordinator.ResolveUnavailableFrame(FrameId);
-            else coordinator.Resolve(FrameId, reports);
+            else coordinator.Resolve(FrameId, reports, frame);
             CoordinateMarker.End();
             cost.CoordinatorMilliseconds = sectionWatch.Elapsed.TotalMilliseconds;
             cost.CoordinatorBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
+            // Story 5.36 : apres le lot de N, un pas fixe ; la frame N+1 porte la phase suivante.
+            signals.Advance(UnityEngine.Time.fixedDeltaTime);
         }
     }
 }

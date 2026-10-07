@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using RoadRage.Features.Vehicles.Traffic.Diagnostics;
+using RoadRage.Features.Vehicles.Traffic.Frame;
 
 namespace RoadRage.Features.Vehicles.Traffic.Coordination
 {
@@ -12,13 +13,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
     /// Un lot (frame N) resout ensemble, de facon deterministe et independante de l'ordre des entrees :
     /// 0. la protection des occupants reels, depuis l'occupation structuree et independamment de la memoire ;
     /// 1. les grants anterieurs (ActorGone, liberation, engagement, demande retiree, sortie) ;
-    /// 2. les nouvelles demandes, triees par (RequestSinceFrame, TrafficId) : sortie, StopRequired, occupant protege, grant
+    /// 2. les nouvelles demandes, triees par (RequestSinceFrame, TrafficId) : sortie, feu (Story 5.36), StopRequired, occupant protege, grant
     ///    incompatible (Crossing strict ; Merge admis seulement par GrantedMergeGap), YieldToPriority, demande plus ancienne
     ///    refusee pour conflit (sauf si le demandeur a preseance sur elle), sinon Granted ; puis, par carrefour, le briseur
     ///    d'interblocage quand aucune progression n'est possible (Story 5.35) ;
     /// 3. la publication d'un instantane immuable effectif a N+1, qui expire apres N+1.
     /// La preseance (Story 5.35) ne s'evalue qu'entre traversees incompatibles (co-appartenance a une zone compilee) et se lit
     /// sur les controles de leur premier mouvement : deux traversees compatibles ne se refusent jamais.
+    /// Le feu (Story 5.36) est une regle, lue dans la frame du lot sur le premier mouvement de la traversee : seul Green autorise un
+    /// grant ; Yellow ou Red refusent la demande et revoquent un grant non engage (SignalStop), un etat absent est un refus
+    /// (SignalUnavailable). Un refus de feu ne reserve contre personne et n'entre jamais dans le briseur ; un vert ne leve ni la
+    /// protection d'occupant, ni l'exclusivite des conflits, ni la sortie.
     /// Une frame invalide ne fait examiner aucune demande : les grants engages sont republies (CommittedCarried), les autres
     /// revoques (FrameUnavailable).
     /// </summary>
@@ -75,6 +80,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         }
 
         private List<Grant> grants = new List<Grant>();
+        // Frame du lot courant (Story 5.36) : seule source de l'etat des feux ; nulle hors lot ou sans frame.
+        private TrafficFrame signalFrame;
         private Dictionary<RoadId, Seniority> seniority = new Dictionary<RoadId, Seniority>();
 
         /// <param name="firstEffectiveFrame">Frame a laquelle l'instantane initial, vide, est lu.</param>
@@ -93,7 +100,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         public int Batches { get; private set; }
 
         /// <summary>Lot de la frame <paramref name="frameId"/>, construite : un rapport par acteur present.</summary>
-        public JunctionSnapshot Resolve(ulong frameId, IReadOnlyList<JunctionActorReport> reports)
+        /// <param name="frame">Frame N du lot, source de l'etat des feux ; nulle : tout mouvement Signalized est SignalUnavailable.</param>
+        public JunctionSnapshot Resolve(ulong frameId, IReadOnlyList<JunctionActorReport> reports, TrafficFrame frame = null)
+        {
+            if (frame != null && (frame.FrameId != frameId || frame.Model != Model)) throw new ArgumentException("FrameMismatch", "frame");
+            signalFrame = frame;
+            try { return ResolveBatch(frameId, reports); }
+            finally { signalFrame = null; }
+        }
+
+        private JunctionSnapshot ResolveBatch(ulong frameId, IReadOnlyList<JunctionActorReport> reports)
         {
             Batches++;
             TrafficV2WorkCounters.Work.JunctionBatches++;
@@ -241,6 +257,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                         exitBound: bound));
                     continue;
                 }
+                // Story 5.36 : feu non vert, le titulaire peut encore s'arreter (grant non engage).
+                var signal = SignalReason(grant.TraversalId);
+                if (signal != JunctionReason.None)
+                {
+                    records.Add(Record(grant, grant.Movements, frameId, effective, JunctionGrantStatus.Revoked, signal));
+                    continue;
+                }
                 // Un occupant incompatible (entre sans grant, etape 0) bloque les mouvements incompatibles : un grant non engage
                 // ne survit pas a lui, son titulaire pouvant encore s'arreter.
                 RoadId occupant, zone;
@@ -286,11 +309,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 RoadId cause, zone;
                 JunctionExitBound bound;
                 bool mergeGap = false;
+                JunctionReason signal;
                 traceGap = traceEta = float.NaN;
                 if (!Known(traversal))
                     records.Add(Denied(actor, traversal, since, frameId, effective, JunctionReason.InvalidRequest));
                 else if (!ExitSufficient(actor.Request, actor.TrafficId, kept, byId, out bound))
                     records.Add(Denied(actor, traversal, since, frameId, effective, JunctionReason.ExitBlocked, exitBound: bound));
+                else if ((signal = SignalReason(traversal.FirstMovementId)) != JunctionReason.None)
+                    // Story 5.36 : regle, hors reservation d'ancien et hors briseur ; aucun grant ne nait sur un feu non vert.
+                    records.Add(Denied(actor, traversal, since, frameId, effective, signal));
                 else if (Index.ControlKindOf(traversal.FirstMovementId) == JunctionControlKind.Stop && !seniority[actor.TrafficId].StopMarked)
                 {
                     batchStopRequired++;
@@ -664,6 +691,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             if (!k.Known || approach.MovementStartMeters == null || approach.MovementStartMeters.Count <= index) return 0f;
             return JunctionPriority.EarliestArrivalSeconds(approach.MovementStartMeters[index], k.SpeedMetersPerSecond,
                 k.MaxAccelerationMetersPerSecondSquared, k.DesiredSpeedMetersPerSecond);
+        }
+
+        /// <summary>Story 5.36 : None si le premier mouvement n'est pas Signalized ou si son feu est Green dans la frame du lot.</summary>
+        private JunctionReason SignalReason(RoadId firstMovementId)
+        {
+            if (Index.ControlKindOf(firstMovementId) != JunctionControlKind.Signalized) return JunctionReason.None;
+            SignalState state;
+            if (signalFrame == null || !signalFrame.TryGetSignalState(firstMovementId, out state)) return JunctionReason.SignalUnavailable;
+            return state == SignalState.Green ? JunctionReason.None : JunctionReason.SignalStop;
         }
 
         /// <summary>Arret marque (P6) : vitesse tangentielle sous le seuil declare, pare-chocs dans la fenetre d'arret de la frontiere.</summary>

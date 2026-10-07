@@ -122,7 +122,18 @@ namespace RoadRage.Features.Vehicles.Traffic
         JunctionControlKindsMixed = 46,
 
         /// <summary>Ligne d'arret sur un controle `Uncontrolled` ou `Priority`, ou ligne `Stop`/`Yield` dont le croisement avec un mouvement controle est absent, multiple ou au bord.</summary>
-        StopLineInvalid = 47
+        StopLineInvalid = 47,
+
+        // ---------------------------------------------------------------- feux (Story 5.36)
+
+        /// <summary>
+        /// Plan de feux sur un carrefour sans controle `Signalized` (plan factice), ou membre de groupe qui n'est pas un
+        /// mouvement d'un controle `Signalized` du carrefour du plan.
+        /// </summary>
+        SignalPlanScopeInvalid = 48,
+
+        /// <summary>Phase qui n'enonce pas exactement une fois l'etat de chaque groupe du plan : aucun etat implicite.</summary>
+        SignalPhaseStatesIncomplete = 49
     }
 
     /// <summary>Un echec de validation : son code stable, l'identifiant fautif et un message.</summary>
@@ -596,6 +607,7 @@ namespace RoadRage.Features.Vehicles.Traffic
             }
 
             ValidateSignalizedCoverage(issues, controls, planByJunction);
+            ValidateSignalPlanScope(issues, controls, signalPlans);
             ValidateConflictingGreens(issues, signalPlans, conflictZones);
 
             // ------------------------------------------------ portails
@@ -1018,6 +1030,7 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// <summary>
         /// Story 5.35 : `Uncontrolled` (priorite a droite) ne se melange a aucun autre genre dans un carrefour ; aucune ligne sur
         /// `Uncontrolled` ni `Priority` ; une ligne `Stop` ou `Yield` coupe chaque mouvement controle une seule fois, dans ]0, L[.
+        /// Story 5.36 : `Signalized` ne se melange non plus a aucun autre genre ; ses lignes restent hors de cette validation.
         /// </summary>
         private static void CheckControlKindsAndLines(List<RoadModelValidationIssue> issues, JunctionControl[] controls,
             JunctionMovement[] movements)
@@ -1038,6 +1051,11 @@ namespace RoadRage.Features.Vehicles.Traffic
                     issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.JunctionControlKindsMixed, pair.Key,
                         "Carrefour qui melange Uncontrolled (priorite a droite) et un autre genre de controle."));
                 }
+                else if (pair.Value.Contains(JunctionControlKind.Signalized) && pair.Value.Count > 1)
+                {
+                    issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.JunctionControlKindsMixed, pair.Key,
+                        "Carrefour qui melange Signalized et un autre genre de controle."));
+                }
             }
 
             var movementById = new Dictionary<RoadId, JunctionMovement>();
@@ -1049,11 +1067,12 @@ namespace RoadRage.Features.Vehicles.Traffic
                 if (control.Kind == JunctionControlKind.Uncontrolled || control.Kind == JunctionControlKind.Priority)
                 {
                     issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.StopLineInvalid, control.Id,
-                        "Ligne d'arret sur un controle " + control.Kind + " : seuls Stop, Yield (et Signalized, 5.36) en portent une."));
+                        "Ligne d'arret sur un controle " + control.Kind + " : seuls Stop, Yield et Signalized en portent une."));
                     continue;
                 }
 
-                // Lignes de feux : projection et usage relevent de la Story 5.36.
+                // Lignes de feux : leur validation geometrique arrive avec le format d'authoring des plans (integration Signalized
+                // differee, decision proprietaire du 2026-10-07 sur la 5.36).
                 if (control.Kind == JunctionControlKind.Signalized) continue;
 
                 foreach (var movementId in Safe(control.ControlledMovementIds))
@@ -1175,6 +1194,7 @@ namespace RoadRage.Features.Vehicles.Traffic
                         "SignalPhase " + phase.PhaseId + " est vide."));
                 }
 
+                var stated = new Dictionary<RoadId, int>();
                 for (int s = 0; s < states.Length; s++)
                 {
                     if (!groupIds.Contains(states[s].GroupId))
@@ -1183,6 +1203,27 @@ namespace RoadRage.Features.Vehicles.Traffic
                             RoadModelValidationCode.UnresolvedReference,
                             states[s].GroupId,
                             "SignalPhase " + phase.PhaseId + " reference un groupe absent du plan " + plan.Id + "."));
+                        continue;
+                    }
+
+                    int count;
+                    stated.TryGetValue(states[s].GroupId, out count);
+                    stated[states[s].GroupId] = count + 1;
+                }
+
+                // Story 5.36 : chaque groupe a exactement un etat par phase ; un groupe omis n'a jamais d'etat implicite.
+                if (states.Length == 0) continue;
+                foreach (var groupId in groupIds)
+                {
+                    int count;
+                    stated.TryGetValue(groupId, out count);
+                    if (count != 1)
+                    {
+                        issues.Add(new RoadModelValidationIssue(
+                            RoadModelValidationCode.SignalPhaseStatesIncomplete,
+                            groupId,
+                            "SignalPhase " + phase.PhaseId + " du plan " + plan.Id + " enonce " + count
+                                + " etat(s) pour ce groupe ; exactement un est exige."));
                     }
                 }
             }
@@ -1238,6 +1279,47 @@ namespace RoadRage.Features.Vehicles.Traffic
                             "Mouvement signalise couvert par " + cover + " groupe(s) du plan " + plan.Id + " ; exactement un est exige."));
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Story 5.36 : un plan ne vit que sur un carrefour signalise, et ses groupes ne contiennent que des mouvements de
+        /// controles `Signalized` de ce carrefour. Un carrefour non signalise ne recoit jamais de plan factice.
+        /// </summary>
+        private static void ValidateSignalPlanScope(
+            List<RoadModelValidationIssue> issues,
+            JunctionControl[] controls,
+            SignalPlan[] signalPlans)
+        {
+            var signalizedJunctions = new HashSet<RoadId>();
+            var signalizedMovementJunction = new Dictionary<RoadId, RoadId>();
+            for (int i = 0; i < controls.Length; i++)
+            {
+                if (controls[i].Kind != JunctionControlKind.Signalized) continue;
+                signalizedJunctions.Add(controls[i].JunctionId);
+                foreach (var movementId in Safe(controls[i].ControlledMovementIds))
+                    signalizedMovementJunction[movementId] = controls[i].JunctionId;
+            }
+
+            for (int i = 0; i < signalPlans.Length; i++)
+            {
+                var plan = signalPlans[i];
+                if (!signalizedJunctions.Contains(plan.JunctionId))
+                {
+                    issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.SignalPlanScopeInvalid, plan.Id,
+                        "SignalPlan sur le carrefour " + plan.JunctionId + ", qui n'a aucun controle Signalized."));
+                    continue;
+                }
+
+                foreach (var group in Safe(plan.Groups))
+                    foreach (var member in Safe(group.MemberMovementIds))
+                    {
+                        RoadId junction;
+                        if (signalizedMovementJunction.TryGetValue(member, out junction) && junction == plan.JunctionId) continue;
+                        issues.Add(new RoadModelValidationIssue(RoadModelValidationCode.SignalPlanScopeInvalid, member,
+                            "Membre du groupe " + group.GroupId + " du plan " + plan.Id
+                                + " : pas un mouvement d'un controle Signalized du carrefour " + plan.JunctionId + "."));
+                    }
             }
         }
 

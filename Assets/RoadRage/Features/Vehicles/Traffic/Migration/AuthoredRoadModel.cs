@@ -423,7 +423,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Migration
 
                 if (decision.Kind == JunctionControlKind.Signalized)
                 {
-                    failures.Add("Genre de controle non admis pour '" + decision.ApproachKey + "' : Signalized (plans de feux : Story 5.36).");
+                    failures.Add("Genre de controle non admis pour '" + decision.ApproachKey + "' : Signalized (runtime des feux livre par la Story 5.36, integration MVP_Run differee : aucun format d'authoring de plan).");
                     continue;
                 }
 
