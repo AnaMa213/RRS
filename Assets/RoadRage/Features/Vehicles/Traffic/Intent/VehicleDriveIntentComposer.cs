@@ -26,7 +26,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
         /// <summary>Story 5.33 : la frame partagee du pas n'a pas pu etre construite ; chaque vehicule recoit le repli.</summary>
         FrameUnavailable = 11,
         /// <summary>Story 5.37 : le SafetyFilter a rejete la commande pour une raison objective.</summary>
-        SafetyRejected = 12
+        SafetyRejected = 12,
+        /// <summary>
+        /// Story 5.39 : aucune manoeuvre de recuperation ne preserve les invariants ; arret sur diagnostique, vehicule present
+        /// jusqu'a la politique de nettoyage catastrophique (differee).
+        /// </summary>
+        Faulted = 13
     }
 
     /// <summary>Etat terminal du repli, diagnostique et publie ; le vehicule reste present.</summary>
@@ -90,6 +95,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
         private readonly bool profileFinite;
         private readonly float driveCapacity;
         private readonly float brakeCapacity;
+        private readonly float reverseCapacity;
 
         private float lastValidSteer;
         private bool inFallback;
@@ -107,6 +113,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
                 && Finite(vehicle.BrakeTorque) && Finite(vehicle.MinimumDirectionSpeed) && Finite(safeBrakingLimit)
                 && safeBrakingLimit > 0f && Finite(fixedDeltaTime) && fixedDeltaTime > 0f;
             ResolveCapacities(vehicle, out driveCapacity, out brakeCapacity);
+            // Capacite de recul (5.39) : meme conversion que le moteur, par le couple de marche arriere du profil.
+            reverseCapacity = vehicle.ReverseTorque > 0f && driveCapacity > 0f && vehicle.EngineTorque > 0f
+                ? driveCapacity * vehicle.ReverseTorque / vehicle.EngineTorque : 0f;
         }
 
         /// <summary>Bande de service v_s = v_dir + 2 b dt (0,41 m/s pour 0,25 m/s, 4 m/s2 et 0,02 s).</summary>
@@ -125,9 +134,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
         /// de la bande de service, frein a main en dessous ; aucune compensation de trainee ne reduit ce freinage.
         /// <paramref name="propulsion"/> faux (but de reponse a collision, 5.38) : jamais de gaz ni de compensation de
         /// trainee, et une demande de freinage sous la bande de service donne le frein a main.
+        /// <paramref name="reverse"/> (recul controle de recuperation, 5.39) : jamais de gaz ; une acceleration negative
+        /// freine au-dessus de v_dir et engage la marche arriere (BrakeReverse) en dessous ; positive : roue libre.
         /// </summary>
         public ComposedDrive Compose(ulong step, MotionCommand? command, V2FallbackReason refusal,
-            float measuredLongitudinalSpeed, float linearDamping, bool emergencyStop = false, bool propulsion = true)
+            float measuredLongitudinalSpeed, float linearDamping, bool emergencyStop = false, bool propulsion = true,
+            bool reverse = false)
         {
             if (!profileFinite)
             {
@@ -147,7 +159,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
                 else
                 {
                     VehicleDriveIntent intent;
-                    if (TryTranslate(value, speed, linearDamping, emergencyStop, propulsion, out intent))
+                    if (TryTranslate(value, speed, linearDamping, emergencyStop, propulsion, reverse, out intent))
                     {
                         inFallback = false;
                         terminal = V2FallbackTerminal.None;
@@ -206,7 +218,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
         /// une demande de freinage ne passe jamais par BrakeReverse : roue libre, ou maintien a l'arret.
         /// </summary>
         private bool TryTranslate(MotionCommand command, float speed, float linearDamping, bool emergencyStop, bool propulsion,
-            out VehicleDriveIntent intent)
+            bool reverse, out VehicleDriveIntent intent)
         {
             float acceleration = command.TargetAccelerationMetersPerSecondSquared;
             if (!emergencyStop && propulsion && speed > 0f && Finite(linearDamping) && linearDamping > 0f)
@@ -224,6 +236,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Intent
                 // Sous la bande de service, BrakeReverse engagerait la marche arriere : maintien au frein a main.
                 if (speed > ServiceBandMetersPerSecond) brake = 1f;
                 else handbrake = 1f;
+            }
+            else if (reverse)
+            {
+                // Recul controle (5.39) : au-dessus de v_dir, BrakeReverse freine ; en dessous, il engage la marche arriere.
+                float capacity = speed > vehicle.MinimumDirectionSpeed ? brakeCapacity : reverseCapacity;
+                float demand = command.TargetAccelerationMetersPerSecondSquared;
+                if (demand < 0f) brake = capacity > 0f ? Mathf.Clamp01(-demand / capacity) : 0f;
             }
             else if (acceleration > 0f && propulsion)
             {

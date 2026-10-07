@@ -179,11 +179,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         public string Safety { get; }
         /// <summary>But tactique et raison (5.38) ; null en conduite nominale sans requete au pas.</summary>
         public string Tactical { get; }
+        /// <summary>Etat de recuperation (5.39) : cause, tentatives, progression attendue et reelle ; null sans recuperation.</summary>
+        public string Recovery { get; }
 
         public TrafficDriveOutcome(ulong decisionEpoch, ulong physicsEpoch, ulong sourceFrameId, float throttle,
             float steer, float brakeReverse, float handbrake, bool fallback, string fallbackReason, string binding,
             IReadOnlyList<string> appliedConstraints, IReadOnlyList<string> deferredConstraints,
-            VehicleCoverage vehicleCoverage, string measurementLabel, string safety = null, string tactical = null)
+            VehicleCoverage vehicleCoverage, string measurementLabel, string safety = null, string tactical = null,
+            string recovery = null)
         {
             DecisionEpoch = decisionEpoch; PhysicsEpoch = physicsEpoch; SourceFrameId = sourceFrameId;
             Throttle = throttle; Steer = steer; BrakeReverse = brakeReverse; Handbrake = handbrake;
@@ -192,6 +195,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
             DeferredConstraints = Array.AsReadOnly(Copy(deferredConstraints));
             VehicleCoverage = vehicleCoverage; MeasurementLabel = measurementLabel; Safety = safety;
             Tactical = tactical;
+            Recovery = recovery;
         }
 
         private static string[] Copy(IReadOnlyList<string> source)
@@ -336,6 +340,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
                     .Append(" / measurement ").Append(Drive.MeasurementLabel ?? "hors mesure");
                 if (Drive.Safety != null) text.Append('\n').Append("Safety ").Append(Drive.Safety);
                 if (Drive.Tactical != null) text.Append('\n').Append("Tactical ").Append(Drive.Tactical);
+                if (Drive.Recovery != null) text.Append('\n').Append("Recovery ").Append(Drive.Recovery);
             }
             if (Longitudinal != null) text.Append('\n').Append(Longitudinal.ToText());
             if (Junction != null) text.Append('\n').Append(Junction.ToText());

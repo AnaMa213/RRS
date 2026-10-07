@@ -10,6 +10,7 @@ using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
+using RoadRage.Features.Vehicles.Traffic.Recovery;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 using RoadRage.Features.Vehicles.Traffic.Safety;
 using RoadRage.Features.Vehicles.Traffic.Tactical;
@@ -167,6 +168,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             Hold = decision != null ? decision.Hold : default(StopHoldState);
         }
     }
+
+    /// <summary>
+    /// Cycle de vie hote d'un vehicule V2 (Story 5.39, AD-40). Faulted : aucune manoeuvre ne preserve les invariants ; repli
+    /// tenu et diagnostique, vehicule present. Seule une politique de nettoyage catastrophique (differee) pourrait en sortir.
+    /// </summary>
+    public enum TrafficV2LifecycleState { Active = 0, Faulted = 1 }
 
     /// <summary>Un pas physique enregistre par le driver V2 (trace brute pour la borne entre deux pas).</summary>
     public readonly struct V2StepRecord
@@ -446,6 +453,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private readonly CollisionAnalysis collisionAnalysis = new CollisionAnalysis();
         private readonly TacticalDecision tactical = new TacticalDecision();
         private string tacticalTextOfStep;
+        // Story 5.39 : superviseur de recuperation (detection, requetes, historique, Faulted) et parcours plan du pas.
+        private readonly RecoverySupervisor recovery = new RecoverySupervisor();
+        private Vector3 lastStepPosition;
+        private bool hasLastStepPosition;
+        private float preparedTravel;
+        private string recoveryTextOfStep;
 
         /// <summary>Empreinte du BoxCollider de caisse depuis le point de reference (contrat AD-45, H3 5.31).</summary>
         public VehicleFootprint Footprint { get { return footprint; } }
@@ -493,6 +506,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public CollisionResponseRequest LastCollisionRequest { get; private set; }
         /// <summary>Reponse de la tactique a cette requete ; nulle sans requete.</summary>
         public TacticalResponse? LastTacticalResponse { get; private set; }
+        /// <summary>Superviseur de recuperation (5.39) : cause, tentatives, historique et diagnostic Faulted.</summary>
+        public RecoverySupervisor Recovery { get { return recovery; } }
+        /// <summary>Requete de recuperation soumise au dernier pas ; nulle sans requete.</summary>
+        public RecoveryRequest LastRecoveryRequest { get; private set; }
+        /// <summary>Reponse de la tactique a cette requete ; nulle sans requete.</summary>
+        public TacticalResponse? LastRecoveryResponse { get; private set; }
+        /// <summary>Cycle de vie hote (5.39) : Faulted = arret sur diagnostique, jamais retire ni deplace.</summary>
+        public TrafficV2LifecycleState Lifecycle
+        {
+            get { return recovery.Faulted ? TrafficV2LifecycleState.Faulted : TrafficV2LifecycleState.Active; }
+        }
         public IReadOnlyList<V2StepRecord> Trace { get { return trace; } }
         public IReadOnlyList<ReferenceTrack> Tracks { get { return tracks; } }
         public IReadOnlyList<string> Contacts { get { return contacts; } }
@@ -651,6 +675,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             }
             ulong step = ++stepCounter;
             lastSpeed = speed;
+            // Parcours plan du pas ecoule (5.39, R5) : mesure de la manoeuvre, jamais une ecriture du corps.
+            preparedTravel = hasLastStepPosition ? Vector3.Distance(state.Position, lastStepPosition) : 0f;
+            lastStepPosition = state.Position;
+            hasLastStepPosition = true;
             preparedState = state; preparedSpeed = speed; preparedPose = pose; preparedTrack = current;
             preparedOffset = current.OffsetRadians(currentPiece, currentDistance);
             float displacement = TrackingMeasurement.StepDisplacement(state, current, currentDistance, gauge);
@@ -732,23 +760,44 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             long frameBytes = EndStage(LocalizeMarker, out localizeMs);
             double frameMs = frameShareMilliseconds + localizeMs;
 
-            // C3/C7 : la collision prend possession du but AVANT toute progression ou recherche de route.
+            // C3/C7 : la collision prend possession du but AVANT toute progression ou recherche de route. Un vehicule Faulted
+            // (5.39, R7) ne decide plus rien : repli tenu a chaque pas.
             var facts = preparedFacts;
-            bool wasCollisionGoal = tactical.Active;
+            bool faulted = recovery.Faulted;
+            bool wasGoal = tactical.Active;
             LastCollisionFacts = facts;
-            LastCollisionRequest = collisionAnalysis.Analyze(facts, frameId, insertion.TrafficId, declared.Meters);
+            LastCollisionRequest = faulted ? null : collisionAnalysis.Analyze(facts, frameId, insertion.TrafficId, declared.Meters);
             LastTacticalResponse = LastCollisionRequest == null ? (TacticalResponse?)null
                 : tactical.Submit(LastCollisionRequest, frameId, toleranceResponse.Latched, insertion.Seed,
                     driverProfile.CollisionReaction, physicsBody.CurrentSteerAngleDegrees);
+            // R3 (5.39) : la recuperation soumet apres la collision, qui garde la priorite ; jamais au pas d'un choc accepte.
+            LastRecoveryRequest = faulted || (LastTacticalResponse.HasValue && LastTacticalResponse.Value.Accepted) ? null
+                : recovery.TryRequest(frameId, insertion.TrafficId);
+            LastRecoveryResponse = null;
+            if (LastRecoveryRequest != null)
+            {
+                var response = tactical.SubmitRecovery(LastRecoveryRequest, frameId, CollisionPredicates.Stability(facts, declared.Meters),
+                    route != null && tracks.Count > 0,
+                    RecoverySupervisor.RearSweepClear(frame, insertion.TrafficId, TrafficV2Settings.RecoveryReverseTravelMeters));
+                recovery.Record(LastRecoveryRequest, response, frameId);
+                LastRecoveryResponse = response;
+                // Decision D3 (5.39, etendue au recul en revue le 2026-10-07) : toute manoeuvre acceptee relache le verrou 2a ;
+                // la manoeuvre le suspend ensuite. Sans cela, un recul accepte apres un realignement echoue serait nul.
+                if (response.Accepted && toleranceResponse.Latched) toleranceResponse.Release();
+            }
+            faulted = recovery.Faulted;
             // Garder la reference aussi au pas de terminaison : d a ete mesure sur cette reference.
-            bool preserveCollisionRoute = tactical.Active;
-            tactical.Update(facts, dt, declared.Meters, HasReachedExitPortal);
-            bool collisionGoal = tactical.Active;
-            tacticalTextOfStep = wasCollisionGoal || collisionGoal || LastTacticalResponse.HasValue ? tactical.ToText() : null;
+            bool preserveGoalRoute = tactical.Active;
+            tactical.Update(facts, dt, declared.Meters, HasReachedExitPortal,
+                new RecoveryMotion(speed, preparedTravel, driver.MaxAcceleration));
+            bool collisionGoal = tactical.CollisionActive;
+            bool tacticalGoal = tactical.Active;
+            tacticalTextOfStep = wasGoal || tacticalGoal || LastTacticalResponse.HasValue || LastRecoveryResponse.HasValue
+                ? tactical.ToText() : null;
 
             BeginStage(SpineMarker);
             PlanningDecision decision = null;
-            if (located && !toleranceResponse.Latched)
+            if (located && !toleranceResponse.Latched && !faulted)
             {
                 try
                 {
@@ -756,7 +805,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                         insertion.Seed, TrafficV2Settings.LookAheadMeters, null, null, null, driver, TrackingTolerance.Undeclared,
                         null, null, admission.Evidence, viaMovement, current.HasKinematicPose ? offset : (float?)null,
                         PlanningReach.For(driver, speed, Math.Max(Math.Max(0f, speed) * dt, MotionCommand.PreviewFloorMeters),
-                            TrafficV2Settings.PlanningReachMarginMeters), preserveRoute: preserveCollisionRoute));
+                            TrafficV2Settings.PlanningReachMarginMeters), preserveRoute: preserveGoalRoute));
                 }
                 catch (ArgumentException) { decision = null; }
                 catch (InvalidOperationException) { decision = null; }
@@ -844,12 +893,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 else
                 {
                     // Arbitrage longitudinal (5.33) : le profil 5.31, la route libre et les contraintes d'interaction. Un but de
-                    // collision (5.38) le remplace : seuls les faits de proximite restent lus, pour le SafetyFilter.
+                    // collision (5.38) ou de recuperation (5.39) le remplace : seuls les faits de proximite restent lus, pour le
+                    // SafetyFilter.
                     ArbitrationMarker.Begin();
                     detailWatch.Restart();
                     perceived = LongitudinalPerception.From(observation, decision.PerceptionPath,
                         LongitudinalPerception.FrontDistanceMeters(frame, insertion.TrafficId, decision.PerceptionPath), hazardQuery.Saturated);
-                    if (!collisionGoal) longitudinal = LongitudinalArbitration.Decide(plan, driver, speed, dt, perceived, longitudinalMemory,
+                    if (!tacticalGoal) longitudinal = LongitudinalArbitration.Decide(plan, driver, speed, dt, perceived, longitudinalMemory,
                         TrafficV2Settings.StopHold, entry);
                     arbitrationMs = detailWatch.Elapsed.TotalMilliseconds;
                     ArbitrationMarker.End();
@@ -864,12 +914,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             stepDistance = track.Project(state.Position, pieceHint, out stepPiece);
             pieceHint = stepPiece;
             float nominalHeading = track.NominalHeadingErrorDegrees(stepPiece, stepDistance);
-            if (collisionGoal)
+            if (tacticalGoal)
             {
-                // But de reponse a collision (5.38, C5) : commande sans propulsion, a la place du suivi de route.
+                // But de reponse a collision (5.38, C5) : commande sans propulsion, a la place du suivi de route. Manoeuvre de
+                // recuperation (5.39, R5) : realignement par la loi de suivi vers la pose nominale de la reference projetee,
+                // ou recul controle roues droites.
+                float realign = 0f;
+                if (tactical.RecoveryActive && tactical.Maneuver == RecoveryManeuver.Realign)
+                {
+                    var piece = track.Pieces[stepPiece];
+                    float lateral, heading, curvature, referenceS;
+                    realign = MotionCommand.TrackingWheelAngleDegrees(model.DrivabilityProfile, piece.Curve, piece.ElementS(stepDistance),
+                        pose.Position, pose.Forward, Math.Max(0f, speed), nominalHeading, out lateral, out heading, out curvature,
+                        out referenceS);
+                }
                 command = tactical.CommandFor(frameId, TrafficV2Settings.PlanValiditySteps,
                     safetyLimits.MaxBrakingDecelerationMetersPerSecondSquared, driver.ComfortableDeceleration,
-                    model.DrivabilityProfile.LowSpeedLockDegrees);
+                    model.DrivabilityProfile.LowSpeedLockDegrees, new RecoveryCommandInput(speed, dt, driver.MaxAcceleration, realign));
             }
             else if (plan != null && plan.Accepted && decision.Path.Intervals.Count > 0)
             {
@@ -907,9 +968,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 command = null;
                 refusal = V2FallbackReason.TrackingToleranceExceeded;
             }
+            if (faulted)
+            {
+                // R7 (5.39) : aucune manoeuvre ne preserve les invariants ; repli tenu, vehicule present, rien ne le deplace.
+                command = null;
+                refusal = V2FallbackReason.Faulted;
+            }
 
             var composed = composer.Compose(frameId, command, refusal, speed, body.linearDamping,
-                emergencyStop: LastSafety != null && LastSafety.Verdict == SafetyVerdict.EmergencyStop, propulsion: !collisionGoal);
+                emergencyStop: LastSafety != null && LastSafety.Verdict == SafetyVerdict.EmergencyStop, propulsion: !collisionGoal,
+                reverse: tactical.Reversing);
             // Seul point d'application V2 : un intent par pas physique.
             physicsBody.ApplyDriveIntent(composed.Intent, composed.MaxForwardSpeed, composed.SteerRateDegreesPerSecond,
                 composed.BrakeTorque);
@@ -926,12 +994,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             bool commanded = longitudinal != null && command.HasValue && !composed.Fallback;
             longitudinalMemory = commanded ? longitudinal.Memory : LongitudinalMemory.None;
             // « Hors repli » (5.34) : la demande d'un pas qui aboutit au repli n'est pas valide.
-            // Decision D5 (5.38) : pendant un but de collision, la demande de carrefour est invalide comme pendant un repli.
-            if (junctionReport != null) junctionReport = junctionReport.WithFallback(composed.Fallback || collisionGoal);
+            // Decision D5 (5.38) : pendant un but (collision ou recuperation, 5.39), la demande de carrefour est invalide comme
+            // pendant un repli.
+            if (junctionReport != null) junctionReport = junctionReport.WithFallback(composed.Fallback || tacticalGoal);
             LastJunctionReport = junctionReport;
             LastJunctionReportFrameId = frameId;
             blockers = BlockerTracker.Update(blockers, commanded ? longitudinal : null, driver, frameId,
                 JunctionCause(junctionReport, junctions));
+            // R1/R2 (5.39) : le superviseur lit les faits du pas compose ; sa requete eventuelle part au pas suivant.
+            recovery.Observe(new RecoveryObservation(frameId, tactical.Active, tactical.AwaitingRecovery,
+                toleranceResponse.Latched && composed.Terminal == V2FallbackTerminal.Held, commanded, commanded ? longitudinal : null,
+                blockers, speed, driver.DesiredSpeed, tracks.Count - 1, stepDistance, dt, HasReachedExitPortal,
+                tactical.RecoveryOutcomeVersion, tactical.RecoveryOutcome));
+            recoveryTextOfStep = recovery.Faulted || recovery.Cause != RecoveryCause.None || recovery.EpisodeAttempts > 0
+                || tactical.RecoveryActive || LastRecoveryRequest != null ? recovery.ToText() : null;
             LastObservation = observation;
             LastLongitudinal = commanded ? longitudinal : null;
 
@@ -1091,7 +1167,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             return new TrafficDriveOutcome(frameId, stepCounter, composed.SourceFrameId, composed.Intent.Throttle, composed.Intent.Steer,
                 composed.Intent.BrakeReverse, composed.Intent.Handbrake, composed.Fallback, composed.Reason.ToString(), binding,
                 applied, null, VehicleCoverageVerdict, MeasurementLabel, LastSafety == null ? null : LastSafety.ToText(),
-                tacticalTextOfStep);
+                tacticalTextOfStep, recoveryTextOfStep);
         }
 
         private void OnCollisionEnter(Collision collision)

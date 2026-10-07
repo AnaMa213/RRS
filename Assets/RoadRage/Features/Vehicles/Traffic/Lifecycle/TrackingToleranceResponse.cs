@@ -28,5 +28,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             LatchedAtStep = step;
             return true;
         }
+
+        /// <summary>
+        /// Story 5.39 (decision D3) : une manoeuvre de recuperation acceptee par la tactique relache le verrou ; elle le suspend
+        /// ensuite comme tout but (D3 5.38). LatchedAtStep garde le dernier verrouillage pour le diagnostic.
+        /// </summary>
+        public void Release() { Latched = false; }
     }
 }

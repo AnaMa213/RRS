@@ -107,10 +107,30 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                 acceleration = Math.Min(DriverModel.ComputeAcceleration(driver, speed, 0f, DriverModel.NoLeaderGap), tracking);
             }
 
+            float lateral, heading, curvature, referenceS;
+            float angle = TrackingWheelAngleDegrees(drivability, curve, progressSMeters, referencePoint, forward, speed,
+                nominalHeadingErrorDegrees, out lateral, out heading, out curvature, out referenceS);
+            return new MotionCommand(frameId, frameId, frameId + (ulong)(validitySteps - 1), acceleration, angle,
+                plan.Binding, lateral, heading, curvature, referenceS);
+        }
+
+        /// <summary>
+        /// Loi d'angle de <see cref="Track"/> (anticipation de courbure, correction de cap et d'ecart lateral, bornee au
+        /// braquage declare), partagee avec le realignement de recuperation (Story 5.39) : projection sur
+        /// [s - 1, s + 4] de la courbe autour de <paramref name="progressSMeters"/>.
+        /// </summary>
+        /// <param name="speedMetersPerSecond">Vitesse positive ou nulle (adoucissement du terme lateral).</param>
+        public static float TrackingWheelAngleDegrees(DrivabilityProfile drivability, RoadCurve curve, float progressSMeters,
+            Vector3 referencePoint, Vector3 forward, float speedMetersPerSecond, float? nominalHeadingErrorDegrees,
+            out float lateral, out float heading, out float curvature, out float referenceSMeters)
+        {
+            if (curve == null) throw new ArgumentNullException("curve");
+            float speed = speedMetersPerSecond;
             var projection = curve.Project(referencePoint, progressSMeters - 1f, progressSMeters + 4f);
-            float lateral = projection.LateralOffsetMeters;
-            float heading = projection.Point.SignedHeadingDegrees(forward);
-            float curvature = projection.Point.CurvaturePerMeter;
+            lateral = projection.LateralOffsetMeters;
+            heading = projection.Point.SignedHeadingDegrees(forward);
+            curvature = projection.Point.CurvaturePerMeter;
+            referenceSMeters = projection.SMeters;
             float feedforward;
             float expectedHeading;
             if (nominalHeadingErrorDegrees.HasValue)
@@ -133,9 +153,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             }
             float correction = -(heading - expectedHeading) - Mathf.Atan(LateralGainPerSecond * lateral
                 / (LateralSofteningSpeedMetersPerSecond + speed)) * Mathf.Rad2Deg;
-            float angle = Mathf.Clamp(feedforward + correction, -drivability.LowSpeedLockDegrees, drivability.LowSpeedLockDegrees);
-            return new MotionCommand(frameId, frameId, frameId + (ulong)(validitySteps - 1), acceleration, angle,
-                plan.Binding, lateral, heading, curvature, projection.SMeters);
+            return Mathf.Clamp(feedforward + correction, -drivability.LowSpeedLockDegrees, drivability.LowSpeedLockDegrees);
         }
     }
 }

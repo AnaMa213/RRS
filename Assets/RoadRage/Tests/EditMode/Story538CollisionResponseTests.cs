@@ -487,6 +487,7 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        [Category("Story539")]
         public void TheDriverRunsAnalysisSubmitUpdateCommandSafetyThenCompose()
         {
             string step = Body(File.ReadAllText(DriverPath), "internal void Step(");
@@ -500,9 +501,10 @@ namespace RoadRage.Tests.EditMode
                 Assert.That(step.IndexOf(call, index + 1, StringComparison.Ordinal), Is.EqualTo(-1), "un seul appel : " + call);
                 last = index;
             }
-            StringAssert.Contains("if (!collisionGoal) longitudinal = LongitudinalArbitration.Decide(", step);
+            // R6 (5.39, accord proprietaire du 2026-10-07) : arbitrage saute et demande de carrefour invalide pour tout but.
+            StringAssert.Contains("if (!tacticalGoal) longitudinal = LongitudinalArbitration.Decide(", step);
             StringAssert.Contains("propulsion: !collisionGoal", step);
-            StringAssert.Contains("WithFallback(composed.Fallback || collisionGoal)", step);
+            StringAssert.Contains("WithFallback(composed.Fallback || tacticalGoal)", step);
             StringAssert.Contains("decision != null ? decision.Path : null", step);
             string prepare = Body(File.ReadAllText(DriverPath), "private bool PrepareStep(");
             StringAssert.Contains("ObserveTrackingTolerance(step, displacement, !collisionHoldsLatch)", prepare);

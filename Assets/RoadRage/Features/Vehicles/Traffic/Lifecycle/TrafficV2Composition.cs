@@ -143,6 +143,25 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         /// </summary>
         public static TrackingTolerance DeclaredTrackingTolerance { get { return new TrackingTolerance(0.34f); } }
 
+        // Story 5.39 (decision D1, 2026-10-07) : seuils declares de la recuperation, calibres par la recette Gate D. Toute
+        // revision est une decision proprietaire (Ask First).
+        /// <summary>R2 : progression attendue E qui rend eligible un vehicule qui n'a pas avance (m).</summary>
+        public const float RecoveryExpectedProgressMeters = 2f;
+        /// <summary>R2 : avance reelle A qui prouve une progression et remet l'episode a zero (m).</summary>
+        public const float RecoveryMinimumProgressMeters = 0.5f;
+        /// <summary>R4 : tentatives (acceptees ou refusees) par episode avant Faulted.</summary>
+        public const int RecoveryMaxAttempts = 4;
+        /// <summary>R4 : refus consecutifs qui donnent Faulted.</summary>
+        public const int RecoveryMaxConsecutiveRejections = 2;
+        /// <summary>R5 : vitesse visee du realignement en marche avant (m/s).</summary>
+        public const float RecoveryRealignSpeedMetersPerSecond = 2f;
+        /// <summary>R5 : parcours du realignement au-dela duquel il echoue en NoProgress (m).</summary>
+        public const float RecoveryRealignMaxTravelMeters = 20f;
+        /// <summary>R5 : vitesse visee du recul controle (m/s, en valeur absolue).</summary>
+        public const float RecoveryReverseSpeedMetersPerSecond = 1f;
+        /// <summary>R5 : parcours du recul controle (m).</summary>
+        public const float RecoveryReverseTravelMeters = 3f;
+
         /// <summary>Verification du modele M par pas : ecart de position du centre de masse (m).</summary>
         public const float ModelPositionToleranceMeters = 0.002f;
 

@@ -221,7 +221,7 @@ development_status:
   # Story537 22/22, Story531 50/50 EditMode ; Story535 7/7 et Story533 12/12 PlayMode.
   5-37-safety-filter-narrow-veto-and-clamp-boundary: done
   5-38-collision-response-physics-yields-tactical-handshake: review
-  5-39-recovery-supervisor-progress-and-physical-reattachment: backlog
+  5-39-recovery-supervisor-progress-and-physical-reattachment: review
   5-40-gridlock-detection-and-bounded-escalation: backlog
   5-41-driving-policy-and-traffic-rule-exception-protocol: backlog
   5-42-unstructured-maneuvers-bypass-overtaking-head-on: backlog

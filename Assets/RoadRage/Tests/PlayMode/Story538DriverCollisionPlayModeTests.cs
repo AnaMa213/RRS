@@ -10,6 +10,7 @@ using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Planning;
+using RoadRage.Features.Vehicles.Traffic.Recovery;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 using RoadRage.Features.Vehicles.Traffic.Tactical;
 using UnityEngine;
@@ -41,6 +42,7 @@ namespace RoadRage.Tests.PlayMode
 
         [UnityTest]
         [Timeout(300000)]
+        [Category("Story539")]
         public IEnumerator TheLiveDriverPreservesItsReferenceAndPublishesTerminalAndInvalidReasons()
         {
             var admission = TrafficV2Lifecycle.AdmitCommittedArtifacts();
@@ -98,19 +100,26 @@ namespace RoadRage.Tests.PlayMode
             Step(driver, admission, displacedState, ++frameId, contact: true, normalSpeed: 6f);
             Assert.That(driver.LastTacticalResponse.Value.Reason, Is.EqualTo(TacticalReason.Accepted));
             AssertFrozen(driver, route, originalTrack, originalTracks, originalReplans);
+            // Story 5.39 (accord proprietaire du 2026-10-07) : une fois en AwaitingRecovery, la recuperation prend le relais par
+            // un realignement qui propulse ; le gaz nul n'est exige que pendant le but de collision. Route et reference restent
+            // figees pendant les deux buts.
+            bool awaited = false;
             for (int i = 0; i < 100; i++)
             {
-                Step(driver, admission, displacedState, ++frameId);
+                Step(driver, admission, displacedState, ++frameId, travel: RealignTravel);
                 AssertFrozen(driver, route, originalTrack, originalTracks, originalReplans);
                 Assert.That(driver.Tactical.Active, Is.True, "la nouvelle voie ne remplace pas la reference de recovery");
-                Assert.That(driver.LastComposed.Intent.Throttle, Is.Zero);
+                if (driver.Tactical.CollisionActive) Assert.That(driver.LastComposed.Intent.Throttle, Is.Zero);
+                awaited |= driver.Tactical.AwaitingRecovery;
                 Assert.That(driver.LastLongitudinal, Is.Null);
                 Assert.That(driver.LastJunctionReport == null || !driver.LastJunctionReport.RequestValid, Is.True);
             }
-            Assert.That(driver.Tactical.Phase, Is.EqualTo(CollisionGoalPhase.AwaitingRecovery));
+            Assert.That(awaited, Is.True, "stable mais deplace : AwaitingRecovery");
+            Assert.That(driver.Tactical.Goal, Is.EqualTo(TacticalGoalKind.Recovery), driver.Recovery.ToText());
+            Assert.That(driver.Tactical.Maneuver, Is.EqualTo(RecoveryManeuver.Realign));
 
             // Retour dans l'enveloppe de la reference originale : raison visible seulement au pas de terminaison.
-            for (int i = 0; i < 50 && driver.Tactical.Active; i++) Step(driver, admission, originalState, ++frameId);
+            for (int i = 0; i < 50 && driver.Tactical.Active; i++) Step(driver, admission, originalState, ++frameId, travel: RealignTravel);
             Assert.That(driver.Tactical.LastReason, Is.EqualTo(TacticalReason.Resumed));
             Assert.That(driver.LastTacticalResponse, Is.Null);
             StringAssert.Contains("Tactical Nominal Resumed", driver.LastProjection.ToText());
@@ -152,8 +161,14 @@ namespace RoadRage.Tests.PlayMode
                 Read<RoadId>(driver, "previousElement")) }, null, null, null);
         }
 
+        /// <summary>
+        /// Parcours injecte d'un pas de realignement (5.39) : la pose injectee est figee, mais le realignement propulse ; sans
+        /// parcours, le registre R5 le declarerait a juste titre Stalled.
+        /// </summary>
+        private static float RealignTravel { get { return TrafficV2Settings.RecoveryRealignSpeedMetersPerSecond * Time.fixedDeltaTime; } }
+
         private static void Step(TrafficV2VehicleDriver driver, TrafficV2Admission admission, BodyState state, ulong frameId,
-            bool contact = false, float normalSpeed = 0f)
+            bool contact = false, float normalSpeed = 0f, float travel = 0f)
         {
             var track = driver.Tracks.Last();
             int piece;
@@ -162,6 +177,7 @@ namespace RoadRage.Tests.PlayMode
             ulong step = Read<ulong>(driver, "stepCounter") + 1UL;
             Write(driver, "stepCounter", step);
             Write(driver, "stepPrepared", true);
+            Write(driver, "preparedTravel", travel);
             Write(driver, "preparedState", state);
             Write(driver, "preparedSpeed", 0f);
             Write(driver, "preparedPose", new VehicleFootprintPose { Position = state.Position,

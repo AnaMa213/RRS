@@ -18,6 +18,8 @@ using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Migration;
 using RoadRage.Features.Vehicles.Traffic.Planning;
+using RoadRage.Features.Vehicles.Traffic.Recovery;
+using RoadRage.Features.Vehicles.Traffic.Tactical;
 using UnityEditor;
 using Unity.Netcode;
 using UnityEngine;
@@ -123,7 +125,8 @@ namespace RoadRage.Tests.PlayMode
 
         [UnityTest]
         [Timeout(300000)]
-        public IEnumerator AnActualToleranceExceedanceHoldsTheDriverAcrossPushesAndItsExit()
+        [Category("Story539")]
+        public IEnumerator AnActualToleranceExceedanceLatchesUntilHeldThenRecoveryRejoinsAndExits()
         {
             var admission = TrafficV2Lifecycle.AdmitCommittedArtifacts();
             Assert.That(admission.Admitted, Is.True);
@@ -169,49 +172,40 @@ namespace RoadRage.Tests.PlayMode
             Assert.That(driver.MaxStepDisplacementMeters, Is.GreaterThan(TrafficV2Settings.DeclaredTrackingTolerance.Meters));
             int replans = driver.ReplanCount;
             int tracks = driver.Tracks.Count;
-            float latchedS = corridor.Curve.Project(body.position).SMeters;
             for (int i = 0; i < 1500 && driver.LastComposed.Terminal != V2FallbackTerminal.Held; i++)
             {
                 yield return new WaitForFixedUpdate();
                 AssertLatchedVehicle(driver, spawner, body, replans, tracks);
             }
             Assert.That(driver.LastComposed.Terminal, Is.EqualTo(V2FallbackTerminal.Held));
-            for (int i = 0; i < 50; i++)
-            {
-                yield return new WaitForFixedUpdate();
-                AssertLatchedVehicle(driver, spawner, body, replans, tracks);
-            }
 
-            Assert.That(body.linearVelocity.magnitude, Is.LessThan(0.25f), "Arret physique maintenu avant les poussees externes.");
-            Vector3 backwardStart = body.position;
-            for (int i = 0; i < 600 && corridor.Curve.Project(body.position).SMeters >= latchedS - 1f; i++)
+            // Story 5.39 (decision D3, accord proprietaire du 2026-10-07) : le verrou 2a n'est plus definitif. Une fois l'arret
+            // tenu, la recuperation (ToleranceLatched) obtient un realignement qui relache le verrou ; le vehicule rejoint sa
+            // reference sans teleportation et sort normalement par son portail.
+            var recovery = driver.Recovery;
+            bool released = false;
+            for (int i = 0; i < MaxFixedSteps && spawner.V2Removals == 0; i++)
             {
-                body.AddForce(-corridor.Curve.Sample(latchedS).Tangent * body.mass * 30f, ForceMode.Force);
+                Vector3 before = body.position;
+                float speedBefore = body.linearVelocity.magnitude;
                 yield return new WaitForFixedUpdate();
-                AssertLatchedVehicle(driver, spawner, body, replans, tracks);
+                if (spawner.V2Removals > 0 || driver == null || body == null) break;
+                Assert.That(Vector3.Distance(before, body.position),
+                    Is.LessThanOrEqualTo(Mathf.Max(speedBefore, body.linearVelocity.magnitude) * Time.fixedDeltaTime + 0.01f),
+                    "aucune teleportation au pas " + i);
+                Assert.That(driver.Lifecycle, Is.EqualTo(TrafficV2LifecycleState.Active), recovery.ToText());
+                Assert.That(body.isKinematic, Is.False);
+                Assert.That(body.constraints, Is.EqualTo(RigidbodyConstraints.None));
+                released |= !driver.ToleranceResponse.Latched;
             }
-            Assert.That(corridor.Curve.Project(body.position).SMeters, Is.LessThan(latchedS - 1f), "Poussee en arriere de la progression acquise.");
-            Assert.That(Vector3.Distance(backwardStart, body.position), Is.GreaterThan(0.02f), "Le maintien reste poussable.");
-            for (int i = 0; i < 1500 && driver.LastComposed.Terminal != V2FallbackTerminal.Held; i++)
-                yield return new WaitForFixedUpdate();
-            bool crossed = false;
-            for (int i = 0; i < 900 && !crossed; i++)
-            {
-                body.AddForce(corridor.Curve.Sample(exit.SMeters).Tangent * body.mass * 30f, ForceMode.Force);
-                yield return new WaitForFixedUpdate();
-                AssertLatchedVehicle(driver, spawner, body, replans, tracks);
-                var pose = new VehicleFootprintPose { Position = body.position, Forward = driver.transform.forward, Up = driver.transform.up };
-                var frame = new TrafficFrame((ulong)i, admission.Model, new[] { new TrafficActorInput(driver.TrafficId, pose, 0f, exit.CorridorId) });
-                TrafficActor actor;
-                Assert.That(frame.TryGetActor(driver.TrafficId, out actor), Is.True);
-                crossed = TrafficV2Lifecycle.HasReachedExit(actor.Location, exit);
-            }
-            Assert.That(crossed, Is.True, "La poussee doit franchir physiquement le portail, avec une localisation de sortie valide.");
-            for (int i = 0; i < 10; i++)
-            {
-                yield return new WaitForFixedUpdate();
-                AssertLatchedVehicle(driver, spawner, body, replans, tracks);
-            }
+            Assert.That(released, Is.True, "le realignement accepte relache le verrou 2a");
+            Assert.That(recovery.Attempts.Count, Is.GreaterThan(0), recovery.ToText());
+            var first = recovery.Attempts[0];
+            Assert.That(first.Request.Cause, Is.EqualTo(RecoveryCause.ToleranceLatched), recovery.ToText());
+            Assert.That(first.Request.Maneuver, Is.EqualTo(RecoveryManeuver.Realign));
+            Assert.That(first.Response, Is.EqualTo(TacticalReason.Accepted), recovery.ToText());
+            Assert.That(recovery.Faulted, Is.False, recovery.ToText());
+            Assert.That(spawner.V2Removals, Is.EqualTo(1), "sortie normale au portail apres la recuperation : " + recovery.ToText());
         }
 
         private static void AssertLatchedVehicle(TrafficV2VehicleDriver driver, PortalTrafficSpawner spawner,
