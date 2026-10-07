@@ -1,0 +1,18 @@
+  recompile_status: completed
+==> stabilisation apres recompile + unity cmd console --level error --since 4317
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+  [ERROR] seq 4342 Assets\RoadRage\Tests\PlayMode\Story538DriverCollisionPlayModeTests.cs(60,110): error CS0019: Operator '!=' cannot be applied to operands of type 'ComposedDrive' and '<null>'
+ECHEC: 1 erreur(s) en Console depuis le curseur 4317 (apres recompile, AD-7).
+
+---- Recapitulatif de validation ----
+  VALIDATION STORY (Story538)
+  Profil                   Story (Story538)
+  Tests executes           0 (validation interrompue avant tests)
+  Suites completes         non executees ; reservees a la fin d'epic
+  SelfTest lecteur CLI     passe (cas detailles ci-dessus)
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          4317 (6 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            completed
+-------------------------------------
+VALIDATION FAILED / INCOMPLETE

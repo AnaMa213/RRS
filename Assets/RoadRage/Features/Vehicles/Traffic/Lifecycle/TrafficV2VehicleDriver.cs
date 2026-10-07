@@ -445,6 +445,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private CollisionFacts preparedFacts;
         private readonly CollisionAnalysis collisionAnalysis = new CollisionAnalysis();
         private readonly TacticalDecision tactical = new TacticalDecision();
+        private string tacticalTextOfStep;
 
         /// <summary>Empreinte du BoxCollider de caisse depuis le point de reference (contrat AD-45, H3 5.31).</summary>
         public VehicleFootprint Footprint { get { return footprint; } }
@@ -488,7 +489,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public TacticalDecision Tactical { get { return tactical; } }
         /// <summary>Faits de collision du dernier pas decide (5.38).</summary>
         public CollisionFacts LastCollisionFacts { get; private set; }
-        /// <summary>Requete de collision soumise au dernier pas ; nulle sans collision significative.</summary>
+        /// <summary>Requete de collision soumise au dernier pas ; nulle sans collision significative ni faits invalides.</summary>
         public CollisionResponseRequest LastCollisionRequest { get; private set; }
         /// <summary>Reponse de la tactique a cette requete ; nulle sans requete.</summary>
         public TacticalResponse? LastTacticalResponse { get; private set; }
@@ -731,6 +732,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             long frameBytes = EndStage(LocalizeMarker, out localizeMs);
             double frameMs = frameShareMilliseconds + localizeMs;
 
+            // C3/C7 : la collision prend possession du but AVANT toute progression ou recherche de route.
+            var facts = preparedFacts;
+            bool wasCollisionGoal = tactical.Active;
+            LastCollisionFacts = facts;
+            LastCollisionRequest = collisionAnalysis.Analyze(facts, frameId, insertion.TrafficId, declared.Meters);
+            LastTacticalResponse = LastCollisionRequest == null ? (TacticalResponse?)null
+                : tactical.Submit(LastCollisionRequest, frameId, toleranceResponse.Latched, insertion.Seed,
+                    driverProfile.CollisionReaction, physicsBody.CurrentSteerAngleDegrees);
+            // Garder la reference aussi au pas de terminaison : d a ete mesure sur cette reference.
+            bool preserveCollisionRoute = tactical.Active;
+            tactical.Update(facts, dt, declared.Meters, HasReachedExitPortal);
+            bool collisionGoal = tactical.Active;
+            tacticalTextOfStep = wasCollisionGoal || collisionGoal || LastTacticalResponse.HasValue ? tactical.ToText() : null;
+
             BeginStage(SpineMarker);
             PlanningDecision decision = null;
             if (located && !toleranceResponse.Latched)
@@ -741,7 +756,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                         insertion.Seed, TrafficV2Settings.LookAheadMeters, null, null, null, driver, TrackingTolerance.Undeclared,
                         null, null, admission.Evidence, viaMovement, current.HasKinematicPose ? offset : (float?)null,
                         PlanningReach.For(driver, speed, Math.Max(Math.Max(0f, speed) * dt, MotionCommand.PreviewFloorMeters),
-                            TrafficV2Settings.PlanningReachMarginMeters)));
+                            TrafficV2Settings.PlanningReachMarginMeters), preserveRoute: preserveCollisionRoute));
                 }
                 catch (ArgumentException) { decision = null; }
                 catch (InvalidOperationException) { decision = null; }
@@ -807,16 +822,6 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 : default(JunctionEntryInput);
             double perceptionMs;
             long perceptionBytes = EndStage(PerceptionMarker, out perceptionMs);
-
-            // Reponse aux collisions (5.38, C3/C7) : l'analyse soumet, la tactique accepte ou refuse et possede le but.
-            var facts = preparedFacts;
-            LastCollisionFacts = facts;
-            LastCollisionRequest = collisionAnalysis.Analyze(facts, frameId, insertion.TrafficId, declared.Meters);
-            LastTacticalResponse = LastCollisionRequest == null ? (TacticalResponse?)null
-                : tactical.Submit(LastCollisionRequest, frameId, toleranceResponse.Latched, insertion.Seed,
-                    driverProfile.CollisionReaction, physicsBody.CurrentSteerAngleDegrees);
-            tactical.Update(facts, dt, declared.Meters, HasReachedExitPortal);
-            bool collisionGoal = tactical.Active;
 
             BeginStage(SpeedPlanMarker);
             double arbitrationMs = 0d, trackMs = 0d;
@@ -1086,7 +1091,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             return new TrafficDriveOutcome(frameId, stepCounter, composed.SourceFrameId, composed.Intent.Throttle, composed.Intent.Steer,
                 composed.Intent.BrakeReverse, composed.Intent.Handbrake, composed.Fallback, composed.Reason.ToString(), binding,
                 applied, null, VehicleCoverageVerdict, MeasurementLabel, LastSafety == null ? null : LastSafety.ToText(),
-                tactical.Active || LastTacticalResponse.HasValue ? tactical.ToText() : null);
+                tacticalTextOfStep);
         }
 
         private void OnCollisionEnter(Collision collision)

@@ -38,6 +38,8 @@ namespace RoadRage.Features.Vehicles.Traffic
         /// l'horizon de planification s'arrete a H et la perception lit le chemin complet (<see cref="PlanningDecision.PerceptionPath"/>).
         /// </summary>
         public readonly PlanningReach? Reach;
+        /// <summary>But de collision : conserver la route sans progression ni recherche (reprise par Recovery, 5.39).</summary>
+        public readonly bool PreserveRoute;
 
         public PlanningRequest(TrafficFrame frame, RoadId trafficId, RoutePlan existingRoute,
             RoadId destinationExitId, RouteSeed sessionSeed, float lookAheadMeters,
@@ -46,8 +48,9 @@ namespace RoadRage.Features.Vehicles.Traffic
             LongitudinalBounds? bounds = null,
             IReadOnlyList<SpeedProfilePoint> candidateSpeedProfile = null,
             GateAEvidenceResult? evidence = null, RoadId viaMovementId = default(RoadId),
-            float? nominalOffsetRadians = null, PlanningReach? reach = null)
+            float? nominalOffsetRadians = null, PlanningReach? reach = null, bool preserveRoute = false)
         {
+            PreserveRoute = preserveRoute;
             ViaMovementId = viaMovementId;
             Reach = reach;
             NominalOffsetRadians = nominalOffsetRadians;
@@ -99,7 +102,10 @@ namespace RoadRage.Features.Vehicles.Traffic
 
             var observation = new AgentObservation(frame.FrameId, actor);
             RouteMarker.Begin();
-            var route = RoutePlanner.Plan(new RouteRequest(frame.Model, observation.Location,
+            var route = request.PreserveRoute
+                ? new RouteResult(request.ExistingRoute == null ? RouteOutcome.InvalidInput : RouteOutcome.Planned,
+                    request.ExistingRoute == null ? RouteReason.InvalidStart : RouteReason.Requested, request.ExistingRoute)
+                : RoutePlanner.Plan(new RouteRequest(frame.Model, observation.Location,
                 request.DestinationExitId, request.SessionSeed, request.TrafficId, "route",
                 new DecisionCounter(frame.FrameId), request.ExistingRoute, false, null, request.ViaMovementId));
             RouteMarker.End();

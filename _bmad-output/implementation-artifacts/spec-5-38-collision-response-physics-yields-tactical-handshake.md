@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-10-07'
 status: 'done'
 baseline_commit: 'd50a5437cc1eca8a559390251541c3383afb3d56'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/spec-5-37-safety-filter-narrow-veto-and-clamp-boundary.md'
   - '{project-root}/_bmad-output/implementation-artifacts/anomalies/epic 5/ANO-5.10-03/ANO-5.10-03.md'
@@ -100,7 +100,18 @@ context:
 - Given un vehicule en contact significatif, en rotation, deplace ou instable, when il est mis a jour, then il ne reprend pas la conduite nominale. L'analyse soumet une requete ; seule la tactique accepte ou refuse avec une raison et possede le but.
 - Given aucune collision significative, when les campagnes PlayMode 5.33 et 5.35 tournent sur `MVP_Run`, then elles restent vertes et `MVP_Run` est inchange.
 
+### Review Findings — 2026-10-07
+
+Independent requested review of `d50a543..7a9a1e0`, inspected on `3a97536`. Four configured review layers completed. The owner's option 1 authorized all four patches, now applied. [Review report, dispositions and validation evidence](code-review-5-38-2026-10-07.md). Story538 passes 16/16 EditMode and 1/1 PlayMode in MVP_Run with healthy compilation and zero Console errors in the validation window; actual contact extraction/calibration remains assigned to Gate D.
+
+- [x] [Review][Patch][High] R1 — Preserve the route and displacement reference from the first significant collision through the active goal. Fixed by collision submission before planning and `PlanningRequest.PreserveRoute`, which bypasses route search/progression while retaining perception. The live MVP_Run driver fixture proves a nominal replan would occur on another corridor, then verifies collision acceptance preserves the route/reference and remains AwaitingRecovery. `TrafficV2VehicleDriver.cs:735`, `PlanningSpine.cs:105`.
+- [x] [Review][Patch][Medium] R2 — Publish `Resumed` and `ExitPortalReached` on the goal's termination frame. Fixed with per-step tactical text captured before/after goal update; the live driver test covers both terminal reasons without a fresh request and removal of terminal text on the following nominal frame. `TrafficV2VehicleDriver.cs:747`.
+- [x] [Review][Patch][Medium] R3 — Carry nonfinite collision facts through the analysis-to-submission path to `InvalidRequest`. Analysis now emits a versioned request for invalid facts; EditMode and live-driver tests confirm rejection, no goal and published reason. Finite contact-free facts remain request-free. `CollisionResponse.cs:210`.
+- [x] [Review][Patch][Medium] R4 — Count stability from physical timesteps that actually used braking. Fixed by inspecting the previous phase before advancing the reaction timer. The production-order test requires at least 0.5 s of commanded braking for both Evade and MisReact. C6's threshold is unchanged. `TacticalDecision.cs:180`.
+
 ## Spec Change Log
+
+- **2026-10-07 — Requested independent review and owner-authorized patches (option 1).** Four review layers completed; R1–R4 fixed without changing frozen requirements, thresholds, weights, scene/prefab authoring or Gate A. Collision submission precedes planning, and route/reference progression is frozen while the goal owns it. Terminal tactical reasons are published for one frame; nonfinite facts produce the InvalidRequest handshake; braking stability credits the preceding phase. Validation through validate.ps1: Story538 16/16 EditMode + 1/1 PlayMode on the live driver in MVP_Run, Story537 22/22 and Story531 50/50 EditMode, Story535 7/7 and Story533 12/12 PlayMode; exact expected counts, no skipped/inconclusive tests, healthy compilation and zero Console errors in each window. Graphify updated. Actual contact extraction/calibration remains assigned to Gate D, and existing deferrals remain unchanged. Sprint promotion remains governed by the project checkpoint rule. [Dispositions, initial compilation failure and raw validation records](code-review-5-38-2026-10-07.md).
 
 - **2026-10-07 -- Revue.** Couches actives : blind-hunter (en ligne), edge-case-hunter et verification-gap. security-review est inactive : aucune frontiere reseau n'est deplacee. La revue ne releve ni intent_gap ni bad_spec.
   - **Correctifs (patch) :**
@@ -130,6 +141,7 @@ L'ecart d est la mesure meme d'ε_t : reprendre seulement a d ≤ ε_t remet la 
 ## Verification
 
 **Commands:**
+- `.\scripts\validate.ps1 -Profile Story -Story 5.38 -TestMode Both` -- review regression coverage: 16 EditMode tests and the live-driver PlayMode fixture in MVP_Run; prepared facts/state are injected, actual contact extraction remains Gate D.
 - `.\scripts\validate.ps1 -Profile Story -Story 5.38 -TestMode EditMode` -- expected: `VALIDATION STORY`, compte execute = compte attendu, 0 erreur Console.
 - `.\scripts\validate.ps1 -Profile Story -Story 5.37 -TestMode EditMode`, puis la meme commande avec `-Story 5.31` -- expected: verts (composeur).
 - `.\scripts\validate.ps1 -Profile Story -Story 5.35 -TestMode PlayMode`, puis la meme commande avec `-Story 5.33` -- expected: verts (AC8).

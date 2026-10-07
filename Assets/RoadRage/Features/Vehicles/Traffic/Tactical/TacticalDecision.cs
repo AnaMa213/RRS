@@ -176,13 +176,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             if (!Active) return;
             if (exitReached) { End(TacticalReason.ExitPortalReached); return; }
             float dt = Finite(deltaTimeSeconds) && deltaTimeSeconds > 0f ? deltaTimeSeconds : 0f;
+            // Les faits de ce pas decrivent la commande precedente, pas celle produite apres Update.
+            bool braking = Phase != CollisionGoalPhase.Reacting;
             if (Phase == CollisionGoalPhase.Reacting)
             {
                 reactingSeconds += dt;
                 if (reactingSeconds >= phaseSeconds) Phase = CollisionGoalPhase.Braking;
             }
             // La stabilite se compte en freinage seulement : la reaction est toujours suivie de 0,5 s de freinage au moins.
-            bool braking = Phase != CollisionGoalPhase.Reacting;
             LastBlocker = CollisionPredicates.Stability(facts, toleranceMeters);
             stableSeconds = LastBlocker == StabilityBlocker.None && braking ? stableSeconds + dt : 0f;
             if (!braking || stableSeconds < CollisionThresholds.StableSeconds) return;

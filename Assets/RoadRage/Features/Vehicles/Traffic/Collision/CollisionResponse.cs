@@ -205,7 +205,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Collisions
         public CollisionResponseRequest Analyze(CollisionFacts facts, ulong frameId, RoadId trafficId, float toleranceMeters)
         {
             var significance = CollisionPredicates.Significance(facts, toleranceMeters);
-            if (significance == CollisionSignificance.None) return null;
+            // Faits invalides : la tactique doit publier InvalidRequest, pas une absence silencieuse de requete.
+            if (facts.IsFinite && significance == CollisionSignificance.None) return null;
             return new CollisionResponseRequest(++lastVersion, frameId, trafficId, significance, facts);
         }
     }

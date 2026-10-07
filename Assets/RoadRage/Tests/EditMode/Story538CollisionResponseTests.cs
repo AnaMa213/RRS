@@ -125,6 +125,51 @@ namespace RoadRage.Tests.EditMode
         // ------------------------------------------------------------------ C3 poignee de main
 
         [Test]
+        public void InvalidFactsReachTheTacticalBoundaryThroughAnalysis()
+        {
+            var analysis = new CollisionAnalysis();
+            var tactical = new TacticalDecision();
+            foreach (var facts in new[] { Facts(relative: float.NaN), Facts(contact: false, yaw: float.PositiveInfinity),
+                Facts(mass: float.NaN) })
+            {
+                var request = analysis.Analyze(facts, Frame, Self, Tol);
+                Assert.That(request, Is.Not.Null, "faits invalides : requete de refus, pas absence de collision");
+                Assert.That(tactical.Submit(request, Frame, false, Seed, CollisionReactionWeights.Default, 0f).Reason,
+                    Is.EqualTo(TacticalReason.InvalidRequest));
+                Assert.That(tactical.Active, Is.False);
+            }
+            Assert.That(analysis.Analyze(Facts(contact: false), Frame, Self, Tol), Is.Null, "faits valides sans contact");
+            var valid = analysis.Analyze(Facts(relative: 6f), Frame, Self, Tol);
+            Assert.That(valid.Version, Is.EqualTo(4UL), "les refus aussi portent une version");
+            Assert.That(tactical.Submit(valid, Frame, false, Seed, CollisionReactionWeights.Default, 0f).Accepted, Is.True);
+        }
+
+        [Test]
+        public void UpdateBeforeCommandCreditsOnlyPreviouslyAppliedBraking()
+        {
+            foreach (var reaction in new[] { CollisionReaction.Evade, CollisionReaction.MisReact })
+            {
+                var tactical = Accepted(Only(reaction));
+                int brakingSteps = 0;
+                for (int step = 0; step < 200 && tactical.Active; step++)
+                {
+                    // Ordre du driver : faits du pas ecoule, Update, puis commande du prochain pas.
+                    tactical.Update(Facts(contact: false), Dt, Tol, false);
+                    if (!tactical.Active) break;
+                    var command = tactical.CommandFor(Frame, 1, BMax, BComfort, Lock);
+                    if (tactical.Phase == CollisionGoalPhase.Braking)
+                    {
+                        Assert.That(command.TargetAccelerationMetersPerSecondSquared, Is.EqualTo(-BMax));
+                        brakingSteps++;
+                    }
+                }
+                Assert.That(tactical.LastReason, Is.EqualTo(TacticalReason.Resumed), reaction.ToString());
+                Assert.That(brakingSteps * Dt, Is.GreaterThanOrEqualTo(CollisionThresholds.StableSeconds),
+                    "au moins 0,5 s de freinage REEL apres " + reaction);
+            }
+        }
+
+        [Test]
         public void TacticalAcceptsOrRejectsEachRequestWithItsReason()
         {
             var weights = CollisionReactionWeights.Default;

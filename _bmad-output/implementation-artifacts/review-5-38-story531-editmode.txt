@@ -1,0 +1,63 @@
+  scriptCompilationFailed=false
+  100 avertissement(s) hors Assets/Synty/ (informatif, ne bloque pas)
+  [WARN] [projet] x6 Assembly for Assembly Definition File 'Assets/RoadRage/Features/SandboxStops/RoadRage.Features.SandboxStops.asmdef' will not be compiled, because it has no scripts associated with it.
+  [WARN] x5 Assets\RoadRage\Tests\PlayMode\Story533PerformanceDiagnosticPlayModeTests.cs(221,39): warning UAC1001: Field 'Recorders' type 'Unity.Profiling.ProfilerRecorder' is skipped by serialization (missing the [Serializable] attribute). Refer to the Serialization rules analyzer reference. (https://docs.unity3d.com/6000.6/Documentation/Manual/script-serialization-analyzer.html#uac1001)
+  [WARN] x5 [Run] Trafic portail-a-portail : composition de trafic changee apres la premiere lecture : changement ignore, la session reste en V2Slice.
+  [WARN] x5 Assets\RoadRage\Tests\EditMode\TrafficOracle\TrafficOracleTests.cs(441,38): warning UAC0005: AppDomain.GetAssemblies() in Unity may return already unloaded assemblies and result in errors or leaks. Use Unity APIs instead, such as 'CurrentAssemblies.GetLoadedAssemblies()' or 'TypeCache.GetTypesDerivedFrom()'.
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1206,109): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1206,28): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(1244,96): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(764,28): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\App\Run\NetworkedVehicleSeatService.cs(465,90): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+  [WARN] x3 Assets\RoadRage\App\Run\NetworkedVehicleSeatService.cs(465,20): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+  [WARN] x3 Assets\RoadRage\App\Run\RunFlowController.cs(764,109): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+  [WARN] x3 Assets\RoadRage\DevTools\RageSandboxAutoStart.cs(278,30): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsInactive, FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+  ... 27 autre(s) message(s) distinct(s) non affiche(s) ; total : 100
+==> profil de validation (Story)
+  categorie : Story531
+==> unity cmd list_tests --mode editor (comptes et partition)
+  50 test(s) attendus (categorie Story531) ; 1270 non executes par selection ; 3 test(s) [Explicit] hors suite par defaut
+==> unity cmd run_tests --mode EditMode
+==> unity cmd test_status (EditMode)
+  50/50 test(s) EditMode passes
+==> stabilisation apres tests + unity cmd console --level error --since 4534
+  editeur stabilise (compiling=false, domainReloadInProgress=false)
+  0 erreur depuis le curseur 4534
+==> unity cmd list_open_scenes + git status
+  MVP_Run [propre]
+  git status --short :
+     M Assets/RoadRage/Features/Vehicles/Traffic/Collision/CollisionResponse.cs
+     M Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs
+     M Assets/RoadRage/Features/Vehicles/Traffic/PlanningSpine.cs
+     M Assets/RoadRage/Features/Vehicles/Traffic/Tactical/TacticalDecision.cs
+     M Assets/RoadRage/Tests/EditMode/Story538CollisionResponseTests.cs
+     M _bmad-output/implementation-artifacts/spec-5-38-collision-response-physics-yields-tactical-handshake.md
+     M graphify-out/GRAPH_REPORT.md
+     M graphify-out/graph.json
+    ?? Assets/RoadRage/Tests/PlayMode/Story538DriverCollisionPlayModeTests.cs
+    ?? Assets/RoadRage/Tests/PlayMode/Story538DriverCollisionPlayModeTests.cs.meta
+    ?? _bmad-output/implementation-artifacts/code-review-5-38-2026-10-07.md
+    ?? _bmad-output/implementation-artifacts/review-5-38-initial-compilation-failure.txt
+
+---- Recapitulatif de validation ----
+  VALIDATION STORY (Story531)
+  Profil                   Story (Story531)
+  Tests executes           50 au total (50 en EditMode)
+  Suites completes         non executees ; reservees a la fin d'epic
+  SelfTest lecteur CLI     passe (cas detailles ci-dessus)
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          4534 (7 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            up_to_date
+  Erreurs Console          0 depuis le curseur 4534
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 100 (informatif, hors gate)
+  Selection                50 test(s) attendus (categorie Story531) ; 1270 non executes par selection ; 3 test(s) [Explicit] hors suite par defaut
+  Tests EditMode           50/50 passes
+  Ignores EditMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Non executes (selection) 1270 test(s) de la suite EditMode, hors profil Story
+  Scenes ouvertes          aucune scene modifiee
+  Arbre de travail         12 entree(s) modifiee(s) -- voir git status
+-------------------------------------
+OK
+VALIDATION STORY (Story531) : tests de la story seulement. Suites completes non executees ; elles relevent de la fin d'epic. Cette sortie ne vaut pas validation complete.

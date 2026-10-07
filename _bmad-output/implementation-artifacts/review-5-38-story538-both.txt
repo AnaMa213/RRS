@@ -1,0 +1,26 @@
+---- Recapitulatif de validation ----
+  VALIDATION STORY (Story538)
+  Profil                   Story (Story538)
+  Tests executes           17 au total (1 en PlayMode)
+  Suites completes         non executees ; reservees a la fin d'epic
+  SelfTest lecteur CLI     passe (cas detailles ci-dessus)
+  Unity CLI                1.0.0-beta.8
+  Editeur                  port 7801, Unity 6000.6.0f1, ready
+  Curseur Console          4344 (7 erreur(s) anterieure(s) ignoree(s))
+  Recompilation            completed
+  Erreurs Console          0 depuis le curseur 4344
+  Etat de compilation      sain (scriptCompilationFailed=false)
+  Avertissements hors Synty 100 (informatif, hors gate)
+  Selection                16 test(s) attendus (categorie Story538) ; 1304 non executes par selection ; 3 test(s) [Explicit] hors suite par defaut
+  Selection PlayMode       1 test(s) attendus (categorie Story538)
+  Tests EditMode           16/16 passes
+  Ignores EditMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Non executes (selection) 1304 test(s) de la suite EditMode, hors profil Story
+  Tests PlayMode           1/1 passes
+  Ignores PlayMode         0 skipped, 0 inconclusive (reels, dans l'execution)
+  Couverture PlayMode      1 test(s) de la story ; suite complete non executee
+  Scenes ouvertes          aucune scene modifiee
+  Arbre de travail         10 entree(s) modifiee(s) -- voir git status
+-------------------------------------
+OK
+VALIDATION STORY (Story538) : tests de la story seulement. Suites completes non executees ; elles relevent de la fin d'epic. Cette sortie ne vaut pas validation complete.
