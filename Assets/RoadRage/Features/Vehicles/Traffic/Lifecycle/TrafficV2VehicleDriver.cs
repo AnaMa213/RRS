@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using RoadRage.Features.Vehicles.Traffic.Blockers;
+using RoadRage.Features.Vehicles.Traffic.Collisions;
 using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
@@ -11,6 +12,7 @@ using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 using RoadRage.Features.Vehicles.Traffic.Safety;
+using RoadRage.Features.Vehicles.Traffic.Tactical;
 using Unity.Netcode;
 using Unity.Profiling;
 using UnityEngine;
@@ -437,6 +439,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private ReferenceTrack preparedTrack;
         private float preparedOffset;
         private float? preparedDisplacement;
+        // Story 5.38 : contacts de caisse du pas simule (hors dessous), consommes par la preparation du pas suivant ; analyse
+        // de collision et tactique, seule proprietaire du but.
+        private readonly StepContactAccumulator contactsOfStep = new StepContactAccumulator();
+        private CollisionFacts preparedFacts;
+        private readonly CollisionAnalysis collisionAnalysis = new CollisionAnalysis();
+        private readonly TacticalDecision tactical = new TacticalDecision();
 
         /// <summary>Empreinte du BoxCollider de caisse depuis le point de reference (contrat AD-45, H3 5.31).</summary>
         public VehicleFootprint Footprint { get { return footprint; } }
@@ -476,6 +484,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public ComposedDrive LastComposed { get; private set; }
         /// <summary>Verdict du SafetyFilter au dernier pas (5.37) ; nul sans commande evaluee.</summary>
         public SafetyResult LastSafety { get; private set; }
+        /// <summary>Decision tactique du vehicule (5.38) : but courant, reaction, phase et derniere raison.</summary>
+        public TacticalDecision Tactical { get { return tactical; } }
+        /// <summary>Faits de collision du dernier pas decide (5.38).</summary>
+        public CollisionFacts LastCollisionFacts { get; private set; }
+        /// <summary>Requete de collision soumise au dernier pas ; nulle sans collision significative.</summary>
+        public CollisionResponseRequest LastCollisionRequest { get; private set; }
+        /// <summary>Reponse de la tactique a cette requete ; nulle sans requete.</summary>
+        public TacticalResponse? LastTacticalResponse { get; private set; }
         public IReadOnlyList<V2StepRecord> Trace { get { return trace; } }
         public IReadOnlyList<ReferenceTrack> Tracks { get { return tracks; } }
         public IReadOnlyList<string> Contacts { get { return contacts; } }
@@ -608,7 +624,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             float currentDistance = current.Project(state.Position, pieceHint, out currentPiece);
             input = new TrafficActorInput(insertion.TrafficId, pose, speed, previousElement, TrafficV2Lifecycle.ExpectedElements(route),
                 current.KinematicAnchors(currentPiece));
-            if (!drivable) return true;
+            if (!drivable) { contactsOfStep.Reset(); return true; }
 
             if (composer == null)
             {
@@ -621,6 +637,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 catch (ArgumentException)
                 {
                     // Bornes physiques non positives : aucun SafetyFilter possible, vehicule inerte (reste acteur de la frame).
+                    contactsOfStep.Reset();
                     if (!warnedInvalidSafetyLimits)
                     {
                         warnedInvalidSafetyLimits = true;
@@ -635,9 +652,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             lastSpeed = speed;
             preparedState = state; preparedSpeed = speed; preparedPose = pose; preparedTrack = current;
             preparedOffset = current.OffsetRadians(currentPiece, currentDistance);
+            float displacement = TrackingMeasurement.StepDisplacement(state, current, currentDistance, gauge);
+            preparedFacts = contactsOfStep.Consume(step, Time.fixedDeltaTime,
+                Vector3.Dot(state.AngularVelocity, state.Rotation * Vector3.up), state.AngularVelocity.magnitude,
+                physicsBody.GroundedWheelCount, physicsBody.WheelCount, displacement, body.mass);
+            // Decision D3 (5.38) : le verrou 2a est suspendu pendant un but de collision et tant qu'un contact dure ; la
+            // reprise nominale exige d <= epsilon_t (C6).
+            bool collisionHoldsLatch = CollisionPredicates.SuspendsToleranceLatch(tactical.Active, preparedFacts);
             // Hors mesure, observer avant toute progression/replanification ou detection de sortie.
             preparedDisplacement = MeasurementLabel == null
-                ? ObserveTrackingTolerance(step, state, current, currentDistance) : (float?)null;
+                ? ObserveTrackingTolerance(step, displacement, !collisionHoldsLatch) : (float?)null;
             stepPrepared = true;
             return true;
         }
@@ -784,6 +808,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             double perceptionMs;
             long perceptionBytes = EndStage(PerceptionMarker, out perceptionMs);
 
+            // Reponse aux collisions (5.38, C3/C7) : l'analyse soumet, la tactique accepte ou refuse et possede le but.
+            var facts = preparedFacts;
+            LastCollisionFacts = facts;
+            LastCollisionRequest = collisionAnalysis.Analyze(facts, frameId, insertion.TrafficId, declared.Meters);
+            LastTacticalResponse = LastCollisionRequest == null ? (TacticalResponse?)null
+                : tactical.Submit(LastCollisionRequest, frameId, toleranceResponse.Latched, insertion.Seed,
+                    driverProfile.CollisionReaction, physicsBody.CurrentSteerAngleDegrees);
+            tactical.Update(facts, dt, declared.Meters, HasReachedExitPortal);
+            bool collisionGoal = tactical.Active;
+
             BeginStage(SpeedPlanMarker);
             double arbitrationMs = 0d, trackMs = 0d;
             SpeedPlan plan = null;
@@ -804,12 +838,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                         : V2FallbackReason.ProfileRefused;
                 else
                 {
-                    // Arbitrage longitudinal (5.33) : le profil 5.31, la route libre et les contraintes d'interaction.
+                    // Arbitrage longitudinal (5.33) : le profil 5.31, la route libre et les contraintes d'interaction. Un but de
+                    // collision (5.38) le remplace : seuls les faits de proximite restent lus, pour le SafetyFilter.
                     ArbitrationMarker.Begin();
                     detailWatch.Restart();
                     perceived = LongitudinalPerception.From(observation, decision.PerceptionPath,
                         LongitudinalPerception.FrontDistanceMeters(frame, insertion.TrafficId, decision.PerceptionPath), hazardQuery.Saturated);
-                    longitudinal = LongitudinalArbitration.Decide(plan, driver, speed, dt, perceived, longitudinalMemory,
+                    if (!collisionGoal) longitudinal = LongitudinalArbitration.Decide(plan, driver, speed, dt, perceived, longitudinalMemory,
                         TrafficV2Settings.StopHold, entry);
                     arbitrationMs = detailWatch.Elapsed.TotalMilliseconds;
                     ArbitrationMarker.End();
@@ -824,7 +859,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             stepDistance = track.Project(state.Position, pieceHint, out stepPiece);
             pieceHint = stepPiece;
             float nominalHeading = track.NominalHeadingErrorDegrees(stepPiece, stepDistance);
-            if (plan != null && plan.Accepted && decision.Path.Intervals.Count > 0)
+            if (collisionGoal)
+            {
+                // But de reponse a collision (5.38, C5) : commande sans propulsion, a la place du suivi de route.
+                command = tactical.CommandFor(frameId, TrafficV2Settings.PlanValiditySteps,
+                    safetyLimits.MaxBrakingDecelerationMetersPerSecondSquared, driver.ComfortableDeceleration,
+                    model.DrivabilityProfile.LowSpeedLockDegrees);
+            }
+            else if (plan != null && plan.Accepted && decision.Path.Intervals.Count > 0)
             {
                 var first = decision.Path.Intervals[0];
                 RoadCurve curve = null;
@@ -848,8 +890,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             LastSafety = null;
             if (command.HasValue && !toleranceResponse.Latched)
             {
-                LastSafety = SafetyFilter.Evaluate(command.Value, frameId, frame, insertion.TrafficId, speed, decision.Path,
-                    perceived, safetyLimits);
+                LastSafety = SafetyFilter.Evaluate(command.Value, frameId, frame, insertion.TrafficId, speed,
+                    decision != null ? decision.Path : null, perceived, safetyLimits);
                 command = LastSafety.Command;
                 if (LastSafety.Verdict == SafetyVerdict.Reject) refusal = LastSafety.Refusal;
             }
@@ -862,7 +904,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             }
 
             var composed = composer.Compose(frameId, command, refusal, speed, body.linearDamping,
-                emergencyStop: LastSafety != null && LastSafety.Verdict == SafetyVerdict.EmergencyStop);
+                emergencyStop: LastSafety != null && LastSafety.Verdict == SafetyVerdict.EmergencyStop, propulsion: !collisionGoal);
             // Seul point d'application V2 : un intent par pas physique.
             physicsBody.ApplyDriveIntent(composed.Intent, composed.MaxForwardSpeed, composed.SteerRateDegreesPerSecond,
                 composed.BrakeTorque);
@@ -879,7 +921,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             bool commanded = longitudinal != null && command.HasValue && !composed.Fallback;
             longitudinalMemory = commanded ? longitudinal.Memory : LongitudinalMemory.None;
             // « Hors repli » (5.34) : la demande d'un pas qui aboutit au repli n'est pas valide.
-            if (junctionReport != null) junctionReport = junctionReport.WithFallback(composed.Fallback);
+            // Decision D5 (5.38) : pendant un but de collision, la demande de carrefour est invalide comme pendant un repli.
+            if (junctionReport != null) junctionReport = junctionReport.WithFallback(composed.Fallback || collisionGoal);
             LastJunctionReport = junctionReport;
             LastJunctionReportFrameId = frameId;
             blockers = BlockerTracker.Update(blockers, commanded ? longitudinal : null, driver, frameId,
@@ -940,7 +983,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
 
         private float ObserveTrackingTolerance(ulong step, BodyState state, ReferenceTrack track, float distance)
         {
-            float displacement = TrackingMeasurement.StepDisplacement(state, track, distance, gauge);
+            return ObserveTrackingTolerance(step, TrackingMeasurement.StepDisplacement(state, track, distance, gauge), true);
+        }
+
+        /// <param name="latchAllowed">Faux pendant un but de collision (D3, 5.38) : depassement compte, verrou 2a non pose.</param>
+        private float ObserveTrackingTolerance(ulong step, float displacement, bool latchAllowed)
+        {
             MaxStepDisplacementMeters = Math.Max(MaxStepDisplacementMeters, displacement);
             if (TrackingToleranceResponse.Exceeds(declared, displacement))
             {
@@ -948,7 +996,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 if (ToleranceExceededCount == 1)
                     UnityEngine.Debug.LogWarning("[Traffic V2] TrackingToleranceExceeded : " + name + " d = "
                         + displacement.ToString("0.####", CultureInfo.InvariantCulture) + " m au pas " + step + ".", this);
-                if (toleranceResponse.Observe(step, MeasurementLabel != null, declared, displacement))
+                if (latchAllowed && toleranceResponse.Observe(step, MeasurementLabel != null, declared, displacement))
                     UnityEngine.Debug.LogWarning("[Traffic V2] TrackingToleranceExceeded hors mesure : " + name
                         + " passe en repli V2 jusqu'a l'arret maintenu (Story 5.52, decision 2a).", this);
             }
@@ -1037,7 +1085,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             // Plus aucune limite reportee depuis la 5.33 : la liste reportee reste vide.
             return new TrafficDriveOutcome(frameId, stepCounter, composed.SourceFrameId, composed.Intent.Throttle, composed.Intent.Steer,
                 composed.Intent.BrakeReverse, composed.Intent.Handbrake, composed.Fallback, composed.Reason.ToString(), binding,
-                applied, null, VehicleCoverageVerdict, MeasurementLabel, LastSafety == null ? null : LastSafety.ToText());
+                applied, null, VehicleCoverageVerdict, MeasurementLabel, LastSafety == null ? null : LastSafety.ToText(),
+                tactical.Active || LastTacticalResponse.HasValue ? tactical.ToText() : null);
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -1049,6 +1098,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             contactEpisodes.Add(episode);
             openContacts[collision.collider] = episode;
             Accumulate(episode, collision);
+            AccumulateStep(collision);
         }
 
         private void OnCollisionStay(Collision collision)
@@ -1056,6 +1106,38 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             if (!IsServer || collision == null || collision.collider == null) return;
             V2ContactEpisode episode;
             if (openContacts.TryGetValue(collision.collider, out episode)) Accumulate(episode, collision);
+            AccumulateStep(collision);
+        }
+
+        /// <summary>
+        /// Contacts du pas simule (5.38, C1) : une paire par appel, avec son impulsion, sa plus grande vitesse normale relative
+        /// et la position laterale moyenne de ses points. Un contact qui ne touche que le dessous de la caisse (relief franchi,
+        /// filtre 5.15) n'est pas un choc.
+        /// </summary>
+        private void AccumulateStep(Collision collision)
+        {
+            int count = collision.contactCount;
+            if (count <= 0 || IsSurfaceOnly(collision)) return;
+            float centerX = bodyCollider != null ? bodyCollider.center.x : 0f;
+            float maxNormalSpeed = 0f, sumX = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                var contact = collision.GetContact(i);
+                maxNormalSpeed = Math.Max(maxNormalSpeed, Math.Abs(Vector3.Dot(collision.relativeVelocity, contact.normal)));
+                sumX += transform.InverseTransformPoint(contact.point).x - centerX;
+            }
+            contactsOfStep.Add(collision.impulse.magnitude, maxNormalSpeed, sumX / count);
+        }
+
+        /// <summary>Meme regle que la 5.15 : tous les points sous le dessous de la caisse, tolerance du profil physique.</summary>
+        private bool IsSurfaceOnly(Collision collision)
+        {
+            if (bodyCollider == null || physicsBody == null || !physicsBody.HasProfile) return false;
+            float underside = bodyCollider.bounds.min.y;
+            float tolerance = physicsBody.Profile.SurfaceContactTolerance;
+            for (int i = 0; i < collision.contactCount; i++)
+                if (!VehicleSuspensionModel.IsSurfaceContact(collision.GetContact(i).point.y, underside, tolerance)) return false;
+            return true;
         }
 
         private void OnCollisionExit(Collision collision)

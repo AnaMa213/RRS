@@ -177,11 +177,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         public string MeasurementLabel { get; }
         /// <summary>Verdict du SafetyFilter (5.37) ; null sans commande evaluee.</summary>
         public string Safety { get; }
+        /// <summary>But tactique et raison (5.38) ; null en conduite nominale sans requete au pas.</summary>
+        public string Tactical { get; }
 
         public TrafficDriveOutcome(ulong decisionEpoch, ulong physicsEpoch, ulong sourceFrameId, float throttle,
             float steer, float brakeReverse, float handbrake, bool fallback, string fallbackReason, string binding,
             IReadOnlyList<string> appliedConstraints, IReadOnlyList<string> deferredConstraints,
-            VehicleCoverage vehicleCoverage, string measurementLabel, string safety = null)
+            VehicleCoverage vehicleCoverage, string measurementLabel, string safety = null, string tactical = null)
         {
             DecisionEpoch = decisionEpoch; PhysicsEpoch = physicsEpoch; SourceFrameId = sourceFrameId;
             Throttle = throttle; Steer = steer; BrakeReverse = brakeReverse; Handbrake = handbrake;
@@ -189,6 +191,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
             AppliedConstraints = Array.AsReadOnly(Copy(appliedConstraints));
             DeferredConstraints = Array.AsReadOnly(Copy(deferredConstraints));
             VehicleCoverage = vehicleCoverage; MeasurementLabel = measurementLabel; Safety = safety;
+            Tactical = tactical;
         }
 
         private static string[] Copy(IReadOnlyList<string> source)
@@ -332,6 +335,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
                 text.Append("Vehicle coverage ").Append(Drive.VehicleCoverage)
                     .Append(" / measurement ").Append(Drive.MeasurementLabel ?? "hors mesure");
                 if (Drive.Safety != null) text.Append('\n').Append("Safety ").Append(Drive.Safety);
+                if (Drive.Tactical != null) text.Append('\n').Append("Tactical ").Append(Drive.Tactical);
             }
             if (Longitudinal != null) text.Append('\n').Append(Longitudinal.ToText());
             if (Junction != null) text.Append('\n').Append(Junction.ToText());

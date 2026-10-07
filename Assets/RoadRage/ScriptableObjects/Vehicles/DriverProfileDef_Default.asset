@@ -26,3 +26,9 @@ MonoBehaviour:
     laneChangeEvaluationInterval: 1
     consistency: 0.8
     aimPointRecallSpeed: 12
+  collisionReaction:
+    brake: 0.75
+    evade: 0.15
+    misReact: 0.1
+    evadeSeconds: 0.8
+    misReactSeconds: 0.6

@@ -518,7 +518,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Routing
             return true;
         }
 
-        private static double UnitDraw(ulong seed, RoadId trafficId, string domain, ulong counter, RoadId edgeId)
+        /// <summary>Tirage deterministe dans ]0, 1[ ; partage avec le tirage des reactions de collision (5.38).</summary>
+        internal static double UnitDraw(ulong seed, RoadId trafficId, string domain, ulong counter, RoadId edgeId)
         {
             ulong hash = 14695981039346656037UL;
             Mix(ref hash, seed);

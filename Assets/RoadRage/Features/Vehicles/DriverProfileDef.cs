@@ -1,3 +1,4 @@
+using RoadRage.Features.Vehicles.Traffic.Tactical;
 using RoadRage.Shared.Definitions;
 using UnityEngine;
 
@@ -39,6 +40,10 @@ namespace RoadRage.Features.Vehicles
             // une visee rapide reste legerement lissee.
             aimPointRecallSpeed: 12f);
 
+        [SerializeField]
+        [Tooltip("Story 5.38 : distribution authoree des reactions a une collision significative (Traffic V2) et duree de leur premiere phase. Hors de la struct de conduite : le V1 ne la lit pas.")]
+        private CollisionReactionWeights collisionReaction = CollisionReactionWeights.Default;
+
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
         {
@@ -55,6 +60,12 @@ namespace RoadRage.Features.Vehicles
         public DriverProfile Profile
         {
             get { return profile; }
+        }
+
+        /// <summary>Reactions authorees a une collision significative (Story 5.38), lues par la tactique V2.</summary>
+        public CollisionReactionWeights CollisionReaction
+        {
+            get { return collisionReaction; }
         }
 
         public bool TryValidate(out string error)
@@ -139,6 +150,11 @@ namespace RoadRage.Features.Vehicles
             if (!IsFiniteAndAtLeast(profile.AimPointRecallSpeed, 0f))
             {
                 error = "AimPointRecallSpeed invalide : 'aimPointRecallSpeed' doit etre fini et superieur ou egal a 0 -- une valeur negative inverserait le sens du rappel de cible au lieu de l'eteindre.";
+                return false;
+            }
+
+            if (!collisionReaction.TryValidate(out error))
+            {
                 return false;
             }
 
