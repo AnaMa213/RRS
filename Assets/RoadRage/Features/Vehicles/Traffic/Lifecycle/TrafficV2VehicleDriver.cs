@@ -493,7 +493,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public string MeasurementLabel { get; private set; }
         public VehicleCoverage VehicleCoverageVerdict { get; private set; }
         private bool reachedExitPortal;
-        public bool HasReachedExitPortal { get { return reachedExitPortal && !toleranceResponse.Latched; } }
+        public bool HasReachedExitPortal { get { return reachedExitPortal && !toleranceResponse.Latched && !recovery.Faulted; } }
         public TrafficDecisionProjection LastProjection { get; private set; }
         public ComposedDrive LastComposed { get; private set; }
         /// <summary>Verdict du SafetyFilter au dernier pas (5.37) ; nul sans commande evaluee.</summary>
@@ -754,7 +754,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 if (actor.Location.ElementId == viaMovement) onViaMovement = true;
                 else if (onViaMovement) { viaMovement = RoadId.None; onViaMovement = false; }
             }
-            if (located && !toleranceResponse.Latched && !HasReachedExitPortal && TrafficV2Lifecycle.HasReachedExit(actor.Location, exitPortal))
+            if (located && !recovery.Faulted && !toleranceResponse.Latched && !HasReachedExitPortal
+                && TrafficV2Lifecycle.HasReachedExit(actor.Location, exitPortal))
                 reachedExitPortal = true;
             double localizeMs;
             long frameBytes = EndStage(LocalizeMarker, out localizeMs);

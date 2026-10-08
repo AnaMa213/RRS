@@ -203,6 +203,36 @@ namespace RoadRage.Tests.PlayMode
             }
             Assert.That(driver.LastComposed.Intent.Handbrake, Is.EqualTo(1f), "repli tenu");
             StringAssert.Contains("\nRecovery Faulted AttemptsExhausted", driver.LastProjection.ToText());
+
+            // Un deplacement physique jusqu'au portail ne rend pas un vehicule Faulted retirable.
+            // Comme les pas precedents, le banc verse cet etat mesure a Prepare/Step, sans toucher le corps.
+            Portal exit;
+            Vector3 exitPosition;
+            Quaternion exitRotation;
+            Assert.That(TrafficV2Lifecycle.TryPortalPose(admission.Model, driver.ExitPortalId, out exit, out exitPosition,
+                out exitRotation), Is.True);
+            var exitState = new BodyState(exitPosition, exitRotation, exitPosition, Vector3.zero, Vector3.zero);
+            var exitPose = new VehicleFootprintPose { Position = exitPosition, Forward = exitRotation * Vector3.forward,
+                Up = exitRotation * Vector3.up, Footprint = driver.Footprint };
+            var exitFrame = new TrafficFrame(++frameId, admission.Model,
+                new[] { new TrafficActorInput(driver.TrafficId, exitPose, 0f, exit.CorridorId) });
+            TrafficActor exitActor;
+            Assert.That(exitFrame.TryGetActor(driver.TrafficId, out exitActor), Is.True);
+            Assert.That(TrafficV2Lifecycle.HasReachedExit(exitActor.Location, exit), Is.True, "pose de sortie reellement localisee");
+            Write(driver, "previousElement", exit.CorridorId);
+            Step(driver, admission, exitState, ++frameId);
+            Assert.That(Read<bool>(driver, "reachedExitPortal"), Is.False, "aucune nouvelle detection de sortie en Faulted");
+            // Couvre aussi une detection acquise au pas meme ou Faulted devient terminal.
+            Write(driver, "reachedExitPortal", true);
+            Assert.That(driver.HasReachedExitPortal, Is.False, "Faulted exclu du contrat de retrait");
+            var spawner = Object.FindAnyObjectByType<PortalTrafficSpawner>();
+            Assert.That(spawner, Is.Not.Null);
+            int removals = spawner.V2Removals;
+            var release = typeof(PortalTrafficSpawner).GetMethod("ReleaseVehiclesAtExitPortals", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(release, Is.Not.Null);
+            release.Invoke(spawner, null);
+            Assert.That(spawner.V2Removals, Is.EqualTo(removals), "le consommateur reel ne retire pas le vehicule Faulted");
+            Assert.That(spawner.LiveV2Vehicles.Any(n => n != null && n.GetComponent<TrafficV2VehicleDriver>() == driver), Is.True);
             Assert.That(driver != null && driver.IsSpawned && driver.gameObject.activeInHierarchy, Is.True, "vehicule present");
         }
 

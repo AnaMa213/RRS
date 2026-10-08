@@ -229,12 +229,19 @@ namespace RoadRage.Features.Vehicles.Traffic.Recovery
         /// </summary>
         public RecoveryRequest TryRequest(ulong frameId, RoadId trafficId)
         {
-            if (Faulted || awaiting != null || Cause == RecoveryCause.None || trafficId.IsEmpty) return null;
+            if (Faulted || awaiting != null || trafficId.IsEmpty) return null;
             if (EpisodeAttempts >= TrafficV2Settings.RecoveryMaxAttempts)
             {
-                Fault(frameId, "AttemptsExhausted");
-                return null;
+                // L'epuisement ne depend pas d'une nouvelle cause : une attente legitime ne peut pas l'effacer.
+                // Resumed et la sortie terminent en revanche une manoeuvre reussie, sans exiger une autre tentative.
+                var outcome = attempts[attempts.Count - 1].Outcome;
+                if (Cause != RecoveryCause.None || (outcome != TacticalReason.Resumed && outcome != TacticalReason.ExitPortalReached))
+                {
+                    Fault(frameId, "AttemptsExhausted");
+                    return null;
+                }
             }
+            if (Cause == RecoveryCause.None) return null;
             var maneuver = lastManeuver.HasValue
                 ? (lastManeuver.Value == RecoveryManeuver.Realign ? RecoveryManeuver.Reverse : RecoveryManeuver.Realign)
                 : Cause == RecoveryCause.ProgressDeficit ? RecoveryManeuver.Reverse : RecoveryManeuver.Realign;
@@ -315,7 +322,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Recovery
 
         /// <summary>
         /// Balayage arriere d'un recul (D5) : aucun autre acteur de la frame dans le rectangle derriere la caisse, sur la
-        /// longueur du recul, elargi du plus grand demi-encombrement de l'acteur. Les obstacles statiques n'y sont pas.
+        /// longueur du recul. Les coins de chaque empreinte sont projetes dans le repere du balayage : leur boite projetee
+        /// est conservative, quelle que soit l'orientation ou la position du point de reference. Les obstacles statiques n'y sont pas.
         /// </summary>
         public static bool RearSweepClear(TrafficFrame frame, RoadId self, float travelMeters)
         {
@@ -325,16 +333,24 @@ namespace RoadRage.Features.Vehicles.Traffic.Recovery
             Vector3 up = me.Pose.Up.sqrMagnitude > 0f ? me.Pose.Up.normalized : Vector3.up;
             Vector3 forward = Vector3.ProjectOnPlane(me.Pose.Forward, up).normalized;
             Vector3 right = Vector3.Cross(up, forward).normalized;
-            float halfWidth = Math.Max(footprint.LeftMeters, footprint.RightMeters);
+            var origin = footprint.ReferenceOriginLocal;
+            Vector3 reference = me.Pose.Position + right * origin.x + up * origin.y + forward * origin.z;
+            float rear = -footprint.RearMeters, end = rear - travelMeters;
             for (int i = 0; i < frame.Actors.Count; i++)
             {
                 var other = frame.Actors[i];
                 if (other.TrafficId == self) continue;
-                var g = other.Pose.Footprint;
-                float reach = Math.Max(Math.Max(g.FrontMeters, g.RearMeters), Math.Max(g.LeftMeters, g.RightMeters));
-                Vector3 d = other.Pose.Position - me.Pose.Position;
-                float along = Vector3.Dot(d, forward), across = Vector3.Dot(d, right);
-                if (along <= 0f && along >= -(footprint.RearMeters + travelMeters + reach) && Math.Abs(across) <= halfWidth + reach)
+                var corners = TrafficFrame.Corners(other.Pose);
+                float minAlong = float.PositiveInfinity, maxAlong = float.NegativeInfinity;
+                float minAcross = float.PositiveInfinity, maxAcross = float.NegativeInfinity;
+                for (int c = 0; c < corners.Length; c++)
+                {
+                    Vector3 d = corners[c] - reference;
+                    float along = Vector3.Dot(d, forward), across = Vector3.Dot(d, right);
+                    minAlong = Math.Min(minAlong, along); maxAlong = Math.Max(maxAlong, along);
+                    minAcross = Math.Min(minAcross, across); maxAcross = Math.Max(maxAcross, across);
+                }
+                if (maxAlong >= end && minAlong <= rear && maxAcross >= -footprint.LeftMeters && minAcross <= footprint.RightMeters)
                     return false;
             }
             return true;

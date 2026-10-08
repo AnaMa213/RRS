@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-10-07'
 status: 'done'
 baseline_commit: 'cd46557d0e4ad9ef288a86c8fb2ad21435c5d1b3'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/spec-5-38-collision-response-physics-yields-tactical-handshake.md'
   - '{project-root}/_bmad-output/implementation-artifacts/anomalies/epic 5/ANO-5.10-03/ANO-5.10-03.md'
@@ -116,7 +116,20 @@ context:
 - Given aucune manoeuvre ne preserve les invariants, when l'escalade s'acheve, then le vehicule est `Faulted`, arrete et diagnostique. Il n'est ni retire ni deplace.
 - Given aucune collision ni aucun deplacement, when les campagnes PlayMode 5.33 et 5.35 tournent, then elles restent vertes et `MVP_Run` est inchange.
 
+### Review Findings — 2026-10-07 — Independent requested review
+
+Four configured review layers completed on `cd46557..a52ca8c`, inspected at `9cd2fdf`. The owner's option 1 authorized all four medium-severity patches on 2026-10-08; they are now applied and verified. Story539 passes 22/22 EditMode and 4/4 PlayMode, with healthy compilation, zero Console errors and clean `MVP_Run`. Existing approved deferrals were not reopened. [Detailed findings, dispositions, reproductions and validation evidence](code-review-5-39-2026-10-07.md).
+
+- [x] [Review][Patch][Medium] R1 — Rear sweep now compares the rear rectangle with conservative bounds of all four actor footprint corners projected into its frame. Rotated and extended footprints block even when their reference point is ahead; disjoint actors remain clear. Reproduced before the patch and verified by the new EditMode geometry cases. `Assets/RoadRage/Features/Vehicles/Traffic/Recovery/RecoverySupervisor.cs:329`.
+- [x] [Review][Patch][Medium] R2 — Exhaustion is checked before the no-cause return in the next request phase, so the Faulted fallback is applied on that same step. Legitimate waits cannot hide a last failed or rejected attempt; last-attempt `Resumed` and exit success are preserved. Regression cases cover `Stalled`, `NoProgress`, a nonconsecutive fourth rejection and a successful fourth realignment. `Assets/RoadRage/Features/Vehicles/Traffic/Recovery/RecoverySupervisor.cs:232`.
+- [x] [Review][Patch][Medium] R3 — Faulted blocks both new exit detection and the driver's portal-completion property, including a previously acquired exit flag. The live MVP_Run fixture injects an actually localized exit pose and exercises the production spawner's removal consumer; the Faulted vehicle remains spawned and listed. `Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2VehicleDriver.cs:496`.
+- [x] [Review][Patch][Medium] R4 — Existing forward-speed reverse cases now require positive brake input and positive service torque through the actual tire model, with coast torque disabled for that assertion. No composer behavior changed. `Assets/RoadRage/Tests/EditMode/Story539RecoveryTests.cs:451`.
+
 ## Spec Change Log
+
+- **2026-10-08 — Cloture demandee par le proprietaire.** Apres la correction et la validation des quatre findings, synchronisation de la 5.39 en `done` dans `sprint-status.yaml` ; la spec etait deja `done`. La validation finale reste 22/22 EditMode et 4/4 PlayMode, compilation saine et zero erreur Console. Cette cloture de story ne remplace pas les suites completes de fin d'epic ni les recettes et limites deja assignees a la Gate D.
+
+- **2026-10-08 — Owner-authorized review patches (option 1).** All four independent review findings fixed. New fixtures reproduced four EditMode failures and the Faulted portal PlayMode failure before source corrections; a successful fourth realignment remained green. Final `validate.ps1 -Profile Story -Story 5.39 -TestMode Both`: 22/22 EditMode, 4/4 PlayMode, no skipped/inconclusive tests, healthy compilation, zero Console errors since cursor 101, `MVP_Run` clean. Initial infrastructure interruption and failing reproduction output are retained in the review report. Graphify updated: 4,803 nodes / 11,071 edges / 197 communities. Thresholds, scene/prefab authoring and Gate A unchanged. Sprint entry remains `review` under the checkpoint-only promotion rule; full suites and actual contact/calibration recipes remain assigned to their original gates.
 
 - **2026-10-07 -- Revue.** Couches actives : blind-hunter (en ligne), edge-case-hunter et verification-gap. security-review est inactive : aucune frontiere reseau n'est deplacee. La revue ne releve ni intent_gap ni bad_spec. Correctifs autorises par le proprietaire :
   1. Le verrou 2a est relache par toute manoeuvre acceptee, et plus seulement par un `Realign` (extension de D3). Sans cela, apres un realignement echoue, le verrou se reposait et le recul accepte ensuite recevait une commande nulle.

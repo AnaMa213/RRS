@@ -259,6 +259,64 @@ namespace RoadRage.Tests.EditMode
             Assert.That(supervisor.Attempts.Count, Is.EqualTo(1), "l'historique reste");
         }
 
+        [TestCase(RecoveryCause.Displaced, TacticalReason.Stalled)]
+        [TestCase(RecoveryCause.ProgressDeficit, TacticalReason.NoProgress)]
+        [TestCase(RecoveryCause.ProgressDeficit, TacticalReason.Resumed)]
+        public void TheLastFailedAttemptFaultsBeforeALegitimateWaitCanResetTheBudget(RecoveryCause cause, TacticalReason outcome)
+        {
+            var free = FreeDecision();
+            var supervisor = cause == RecoveryCause.Displaced ? Displaced() : new RecoverySupervisor();
+            if (cause == RecoveryCause.ProgressDeficit)
+                for (int i = 0; i < 200; i++) supervisor.Observe(Nominal(free, BlockerTracker.Empty, 0f, 10f));
+            Assert.That(supervisor.Cause, Is.EqualTo(cause));
+            RecoveryRequest last = null;
+            for (int i = 1; i <= TrafficV2Settings.RecoveryMaxAttempts; i++)
+            {
+                last = supervisor.TryRequest(Frame + (ulong)i, Agent);
+                Assert.That(last, Is.Not.Null);
+                supervisor.Record(last, new TacticalResponse(last.Version, TacticalReason.Accepted), Frame);
+                Assert.That(supervisor.Faulted, Is.False, "la derniere tentative acceptee peut encore reussir");
+                if (i < TrafficV2Settings.RecoveryMaxAttempts)
+                    supervisor.Observe(Observation(goal: true, awaiting: true, outcomeVersion: last.Version, outcome: TacticalReason.Stalled));
+            }
+            var blockers = new[] { BlockerRules.Leader(Other, 5f, Driver.MinimumGap, -1f, Frame) };
+            supervisor.Observe(new RecoveryObservation(Frame + 5UL, false, false, false, true, free, blockers, 0f,
+                Driver.DesiredSpeed, 0, 10f, Dt, false, last.Version, outcome));
+            bool failed = outcome != TacticalReason.Resumed;
+            Assert.That(supervisor.TryRequest(Frame + 6UL, Agent), Is.Null, "aucune requete pendant l'attente legitime");
+            Assert.That(supervisor.Faulted, Is.EqualTo(failed), "un blocker legitime ne masque pas le dernier echec");
+            if (failed)
+            {
+                Assert.That(supervisor.FaultReason, Is.EqualTo("AttemptsExhausted"));
+                Assert.That(supervisor.FaultedAtFrame, Is.EqualTo(Frame + 6UL));
+            }
+            for (int i = 0; i < 100; i++) supervisor.Observe(Nominal(free, BlockerTracker.Empty, 1f, 10f + i * Dt));
+            Assert.That(supervisor.Faulted, Is.EqualTo(failed));
+            Assert.That(supervisor.EpisodeAttempts, Is.EqualTo(failed ? TrafficV2Settings.RecoveryMaxAttempts : 0),
+                "la progression ne ressuscite pas un vehicule Faulted ; une derniere reussite ferme l'episode");
+        }
+
+        [Test]
+        public void ALastRejectionExhaustsTheBudgetEvenWithoutTwoConsecutiveRejections()
+        {
+            var supervisor = Displaced();
+            for (int i = 1; i <= TrafficV2Settings.RecoveryMaxAttempts; i++)
+            {
+                var request = supervisor.TryRequest(Frame + (ulong)i, Agent);
+                Assert.That(request, Is.Not.Null);
+                bool accepted = i % 2 == 1;
+                supervisor.Record(request, new TacticalResponse(request.Version,
+                    accepted ? TacticalReason.Accepted : TacticalReason.RearBlocked), Frame);
+                if (accepted) supervisor.Observe(Observation(goal: true, awaiting: true, outcomeVersion: request.Version,
+                    outcome: TacticalReason.Stalled));
+            }
+            supervisor.Observe(Observation());
+            Assert.That(supervisor.TryRequest(Frame + 5UL, Agent), Is.Null);
+            Assert.That(supervisor.Faulted, Is.True, "la quatrieme tentative refusee epuise le budget");
+            Assert.That(supervisor.FaultReason, Is.EqualTo("AttemptsExhausted"));
+            Assert.That(supervisor.TryRequest(Frame + 5UL, Agent), Is.Null);
+        }
+
         // ------------------------------------------------------------------ R3 tactique
 
         [Test]
@@ -386,7 +444,14 @@ namespace RoadRage.Tests.EditMode
                     Assert.That(composed.Intent.Throttle, Is.EqualTo(0f), "jamais de gaz : " + label);
                     Assert.That(composed.Intent.Handbrake, Is.EqualTo(0f), label);
                     float torque = VehicleDriveIntentComposer.MinimumWheelDriveTorque(vehicle, composed.Intent, composed.MaxForwardSpeed, speed);
-                    if (speed > vDir) Assert.That(torque, Is.GreaterThanOrEqualTo(0f), "roule en avant : freine, sans marche arriere : " + label);
+                    if (speed > vDir)
+                    {
+                        Assert.That(torque, Is.EqualTo(0f), "roule en avant : aucun couple moteur : " + label);
+                        Assert.That(composed.Intent.BrakeReverse, Is.GreaterThan(0f), "frein de service demande : " + label);
+                        float brakeTorque = VehicleTireModel.ResolveWheelBrakeTorque(composed.Intent.Throttle,
+                            composed.Intent.BrakeReverse, speed, vDir, vehicle.BrakeTorque, 0f);
+                        Assert.That(brakeTorque, Is.GreaterThan(0f), "freinage effectif, sans compter le frein moteur : " + label);
+                    }
                     if (speed <= vDir && speed > -TrafficV2Settings.RecoveryReverseSpeedMetersPerSecond)
                         Assert.That(torque, Is.LessThan(0f), "marche arriere engagee : " + label);
                     if (speed <= -TrafficV2Settings.RecoveryReverseSpeedMetersPerSecond)
@@ -461,6 +526,34 @@ namespace RoadRage.Tests.EditMode
             Assert.That(RecoverySupervisor.RearSweepClear(with(30f), Agent, TrafficV2Settings.RecoveryReverseTravelMeters), Is.True,
                 "acteur devant");
             Assert.That(RecoverySupervisor.RearSweepClear(null, Agent, 3f), Is.False, "sans frame : refus");
+        }
+
+        [Test]
+        public void TheRearSweepIncludesRotatedCornersAndFootprintsWhoseReferenceIsAhead()
+        {
+            var bench = Straight;
+            var self = ActorAt(Agent, bench, 20f, 0f);
+            var pose = self.Pose;
+            Vector3 right = Vector3.Cross(pose.Up, pose.Forward).normalized;
+            Func<float, float, float, VehicleFootprint, bool> clear = (along, across, yaw, footprint) =>
+            {
+                var otherPose = new VehicleFootprintPose
+                {
+                    Position = pose.Position + pose.Forward * along + right * across,
+                    Forward = Quaternion.AngleAxis(yaw, pose.Up) * pose.Forward, Up = pose.Up, Footprint = footprint
+                };
+                var frame = new TrafficFrame(Frame, Admission.Model, new[] { self,
+                    new TrafficActorInput(Other, otherPose, 0f, bench.Ids[0]) });
+                return RecoverySupervisor.RearSweepClear(frame, Agent, TrafficV2Settings.RecoveryReverseTravelMeters);
+            };
+            Assert.That(clear(-7.60f, 0f, 25f, Car), Is.False, "coin tourne dans le bout du balayage");
+            Assert.That(clear(-7.85f, 0f, 25f, Car), Is.True, "coin tourne au-dela du balayage");
+            Assert.That(clear(-3.8f, 3.3f, 65f, Car), Is.False, "coin tourne dans le cote du balayage");
+            Assert.That(clear(-3.8f, 3.6f, 65f, Car), Is.True, "empreinte lateralement separee");
+            var longRear = Car;
+            longRear.RearMeters = 5f;
+            Assert.That(clear(0.2f, 0f, 0f, longRear), Is.False, "reference devant, empreinte dans le recul");
+            Assert.That(clear(0.2f, 0f, 0f, Car), Is.True, "acteur devant sans empreinte dans le recul");
         }
 
         // ------------------------------------------------------------------ structure et branchement
