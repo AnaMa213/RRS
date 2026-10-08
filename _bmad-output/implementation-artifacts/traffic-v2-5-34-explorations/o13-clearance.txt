@@ -1,6 +1,0 @@
-48 entrees de traversee, degagement minimal 1.95 m ; cinq plus serres :
-1.95 m  TJunction_East: Junction_FromSouth -> Connector_East_Out (droite)  /  TJunction_East: Junction_FromWest -> Connector_South_Out (droite)
-1.95 m  TJunction_East: Junction_FromSouth -> Connector_West_Out (gauche)  /  TJunction_East: Junction_FromWest -> Connector_South_Out (droite)
-1.95 m  TJunction_West: Junction_FromEast -> Connector_West_Out (tout droit)  /  TJunction_West: Junction_FromSouth -> Connector_East_Out (droite)
-1.95 m  Intersection_Center_Crossroads: Junction_FromNorth -> Connector_South_Out (tout droit)  /  Intersection_Center_Crossroads: Junction_FromWest -> Connector_North_Out (gauche)
-1.95 m  Intersection_Center_Crossroads: Junction_FromNorth -> Connector_East_Out (gauche)  /  Intersection_Center_Crossroads: Junction_FromSouth -> Connector_North_Out (tout droit)

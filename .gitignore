@@ -140,14 +140,9 @@ __pycache__/
 # Dated Graphify backups are local; Git history preserves the versioned main graph.
 /graphify-out/20??-??-??/
 
-# Traffic V2 campaign raw per-step output: exploratory runs stay local (5-10 MB each);
-# acceptance runs are committed as closing evidence.
-/_bmad-output/implementation-artifacts/traffic-v2-*-measurements/exploratory-*-steps.tsv
-/_bmad-output/implementation-artifacts/traffic-v2-*-explorations/explore-*-steps.tsv
-/_bmad-output/implementation-artifacts/traffic-v2-*-explorations/perf-*-steps.tsv
-/_bmad-output/implementation-artifacts/traffic-v2-*-explorations/perf-*-frames.tsv
-/_bmad-output/implementation-artifacts/traffic-v2-*-explorations/acceptance-*-steps.tsv
-/_bmad-output/implementation-artifacts/traffic-v2-*-explorations/scenario-*-steps.tsv
+# BMAD exploration campaigns stay local for every ticket, including summaries and diagnostics.
+/_bmad-output/implementation-artifacts/**/*-explorations/
+/_bmad-output/implementation-artifacts/**/*-measurements/exploratory-*
 
 # Third-party paid asset packs. Synty EULA / Unity Asset Store Extension Asset licence forbids
 # redistribution, and this repository is public, so the raw pack must never be committed.
