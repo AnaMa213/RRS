@@ -354,6 +354,7 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        [Category("Story540")]
         public void TheRunnerOwnsTheClockAndAdvancesItOncePerHostStep()
         {
             var runner = new TrafficV2StepRunner();
@@ -374,7 +375,8 @@ namespace RoadRage.Tests.EditMode
             // courante, le lot lit cette frame, puis l'horloge avance d'un pas fixe.
             string source = File.ReadAllText("Assets/RoadRage/Features/Vehicles/Traffic/Lifecycle/TrafficV2StepRunner.cs");
             int frame = source.IndexOf("new TrafficFrame(FrameId, model, inputs, hazards, signals.Current)", StringComparison.Ordinal);
-            int resolve = source.IndexOf("coordinator.Resolve(FrameId, reports, frame)", StringComparison.Ordinal);
+            // Story 5.40 (accord proprietaire 2026-10-08, option 1) : le lot recoit aussi les cycles d'attente.
+            int resolve = source.IndexOf("coordinator.Resolve(FrameId, reports, frame, cycles)", StringComparison.Ordinal);
             int advance = source.IndexOf("signals.Advance(", StringComparison.Ordinal);
             Assert.That(frame, Is.GreaterThan(0), "la frame recoit les phases de l'horloge");
             Assert.That(resolve, Is.GreaterThan(0), "le lot recoit la frame");

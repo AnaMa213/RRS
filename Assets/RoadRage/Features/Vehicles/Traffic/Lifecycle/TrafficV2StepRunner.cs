@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Frame;
+using RoadRage.Features.Vehicles.Traffic.Recovery;
 using RoadRage.Features.Vehicles.Traffic.Signals;
 using Unity.Profiling;
 
@@ -34,6 +35,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
     /// publies ne sont pas alimentes.
     /// Story 5.36 : il possede aussi l'horloge de phase des feux du modele, etat hote : la frame N porte la phase courante, le lot
     /// la lit dans cette frame, puis l'horloge avance d'un pas fixe. Sans plan (MVP_Run), elle ne fait rien.
+    /// Story 5.40 : il possede le superviseur d'interblocage ; apres les pas de conduite de N, le graphe d'attente de N donne les
+    /// cycles soumis au lot de N, puis les resolutions publiees sont journalisees.
     /// </summary>
     public sealed class TrafficV2StepRunner
     {
@@ -47,6 +50,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private readonly List<TrafficActorInput> inputs = new List<TrafficActorInput>();
         private readonly List<HazardQuery> queries = new List<HazardQuery>();
         private readonly HashSet<RoadId> actorIds = new HashSet<RoadId>();
+        private readonly GridlockSupervisor gridlock = new GridlockSupervisor();
+        private readonly Dictionary<string, RoadId> actorNames = new Dictionary<string, RoadId>(StringComparer.Ordinal);
+        private readonly List<GridlockArc> waits = new List<GridlockArc>();
         private readonly Stopwatch stopwatch = new Stopwatch();
         private readonly Stopwatch stepWatch = new Stopwatch();
         private readonly Stopwatch sectionWatch = new Stopwatch();
@@ -90,6 +96,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public SignalPhaseController Signals { get { return signals; } }
         /// <summary>Dernier instantane publie : effectif au pas hote suivant (EffectiveFrame = FrameId + 1).</summary>
         public JunctionSnapshot JunctionSnapshot { get { return coordinator != null ? coordinator.Current : null; } }
+        /// <summary>Superviseur d'interblocage (Story 5.40) : cycles de la derniere detection.</summary>
+        public GridlockSupervisor Gridlock { get { return gridlock; } }
 
         public void Step(CompiledRoadModel model, IEnumerable<TrafficV2VehicleDriver> drivers)
         {
@@ -145,7 +153,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             cost.PrepareBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
             if (inputs.Count == 0)
             {
-                // Aucun acteur : lot valide vide, les grants des absents sont revoques (ActorGone).
+                // Aucun acteur : lot valide vide, les grants des absents sont revoques (ActorGone) ; aucun cycle (5.40).
+                gridlock.Detect(FrameId, null);
                 Coordinate(null, snapshot, ref cost);
                 return;
             }
@@ -194,12 +203,36 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             cost.Vehicles = prepared.Count;
             LastSteppedCount = prepared.Count;
 
+            // Story 5.40 : graphe d'attente des pas de N, cycles soumis au lot de N.
+            var cycles = DetectGridlocks(frame);
+
             // Resolution des demandes de N apres tous les pas : instantane effectif a N+1 seulement.
-            Coordinate(frame, snapshot, ref cost);
+            Coordinate(frame, snapshot, ref cost, cycles);
+            gridlock.Report(coordinator.Current);
+        }
+
+        /// <summary>Story 5.40 (G1-G2) : arcs des vehicules ayant recu un pas a N, entre acteurs de la frame N.</summary>
+        private IReadOnlyList<GridlockCycle> DetectGridlocks(TrafficFrame frame)
+        {
+            waits.Clear();
+            bool held = false;
+            for (int i = 0; frame != null && i < prepared.Count && !held; i++) held = prepared[i].Blockers.Count > 0;
+            // Frame refusee ou aucun vehicule tenu : aucun arc, donc aucun cycle, sans allocation.
+            if (!held) return gridlock.Detect(FrameId, waits);
+            actorNames.Clear();
+            foreach (var id in actorIds) actorNames[id.ToString()] = id;
+            for (int i = 0; i < prepared.Count; i++)
+            {
+                var driver = prepared[i];
+                var report = driver.LastJunctionReportFrameId == FrameId ? driver.LastJunctionReport : null;
+                GridlockSupervisor.WaitsOf(driver.TrafficId, driver.Blockers, report, actorNames, waits);
+            }
+            return gridlock.Detect(FrameId, waits);
         }
 
         /// <summary>Lot du coordinateur, rapports d'occupation sans pas compris ; fail-closed si la frame a ete refusee.</summary>
-        private void Coordinate(TrafficFrame frame, JunctionSnapshot snapshot, ref TrafficV2StepCost cost)
+        private void Coordinate(TrafficFrame frame, JunctionSnapshot snapshot, ref TrafficV2StepCost cost,
+            IReadOnlyList<GridlockCycle> cycles = null)
         {
             long allocated = GC.GetAllocatedBytesForCurrentThread();
             sectionWatch.Restart();
@@ -215,7 +248,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 }
             bool refused = frame == null && inputs.Count > 0;
             if (refused) coordinator.ResolveUnavailableFrame(FrameId);
-            else coordinator.Resolve(FrameId, reports, frame);
+            else coordinator.Resolve(FrameId, reports, frame, cycles);
             CoordinateMarker.End();
             cost.CoordinatorMilliseconds = sectionWatch.Elapsed.TotalMilliseconds;
             cost.CoordinatorBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;

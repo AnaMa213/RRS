@@ -224,7 +224,7 @@ development_status:
   # 2026-10-08 : cloture proprietaire demandee apres les quatre correctifs de revue ;
   # Story539 22/22 EditMode et 4/4 PlayMode, compilation saine, zero erreur Console.
   5-39-recovery-supervisor-progress-and-physical-reattachment: done
-  5-40-gridlock-detection-and-bounded-escalation: backlog
+  5-40-gridlock-detection-and-bounded-escalation: review
   5-41-driving-policy-and-traffic-rule-exception-protocol: backlog
   5-42-unstructured-maneuvers-bypass-overtaking-head-on: backlog
   5-43-rage-and-fear-as-continuous-policy-modulation: backlog

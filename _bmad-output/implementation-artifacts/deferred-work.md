@@ -597,3 +597,7 @@ evidence: Revue d'overlay 5.28 : V1 a connu des interblocages face a face sur gi
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-39-recovery-supervisor-progress-and-physical-reattachment.md`
   summary: Un realignement de recuperation (5.39) pres d'un carrefour peut franchir l'entree d'une traversee sans grant, la demande de carrefour etant invalide pendant tout but (R6).
   evidence: Revue blind-hunter de la 5.39 (2026-10-07) : pendant le but Recovery, l'arbitrage (contrainte JunctionEntry) est saute et `WithFallback(... || tacticalGoal)` invalide la demande ; le realignement roule a 2 m/s jusqu'a d <= epsilon_t et 0,5 s de stabilite. Inatteignable dans les PlayMode 5.39 (deplacements en ligne droite). CONDITION DE REOUVERTURE : premier `EnteredWithoutGrant` dont l'acteur etait en manoeuvre de recuperation, ou recette Gate D 5.39 pres d'un carrefour.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-40-gridlock-detection-and-bounded-escalation.md`
+  summary: Le cablage du runner (blockers reels des pilotes -> arcs -> cycles soumis -> resolutions publiees) n'a qu'une preuve par scan de source, aucune execution avec des pilotes V2 lies.
+  evidence: Revue verification-gap 5.40 du 2026-10-08 ; aucun pilote V2 n'est liable en EditMode et l'epic place toute verification PlayMode d'interblocage en observation candidate de Gate D (epics.md, Story 5.40). A couvrir par un interblocage mis en scene a la Gate D, ou par une fixture PlayMode si un banc a 3+ vehicules devient bon marche.

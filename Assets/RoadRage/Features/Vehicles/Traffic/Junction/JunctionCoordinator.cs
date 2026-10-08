@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
+using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 
 namespace RoadRage.Features.Vehicles.Traffic.Coordination
 {
@@ -16,7 +17,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
     /// 2. les nouvelles demandes, triees par (RequestSinceFrame, TrafficId) : sortie, feu (Story 5.36), StopRequired, occupant protege, grant
     ///    incompatible (Crossing strict ; Merge admis seulement par GrantedMergeGap), YieldToPriority, demande plus ancienne
     ///    refusee pour conflit (sauf si le demandeur a preseance sur elle), sinon Granted ; puis, par carrefour, le briseur
-    ///    d'interblocage quand aucune progression n'est possible (Story 5.35) ;
+    ///    d'interblocage quand aucune progression n'est possible (Story 5.35) ; puis l'escalade des cycles d'attente soumis
+    ///    (Story 5.40), decidee ici seulement, par paliers authores ;
     /// 3. la publication d'un instantane immuable effectif a N+1, qui expire apres N+1.
     /// La preseance (Story 5.35) ne s'evalue qu'entre traversees incompatibles (co-appartenance a une zone compilee) et se lit
     /// sur les controles de leur premier mouvement : deux traversees compatibles ne se refusent jamais.
@@ -101,15 +103,17 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
 
         /// <summary>Lot de la frame <paramref name="frameId"/>, construite : un rapport par acteur present.</summary>
         /// <param name="frame">Frame N du lot, source de l'etat des feux ; nulle : tout mouvement Signalized est SignalUnavailable.</param>
-        public JunctionSnapshot Resolve(ulong frameId, IReadOnlyList<JunctionActorReport> reports, TrafficFrame frame = null)
+        /// <param name="cycles">Story 5.40 : cycles d'attente soumis par le superviseur d'interblocage ; nul ou vide : aucune escalade.</param>
+        public JunctionSnapshot Resolve(ulong frameId, IReadOnlyList<JunctionActorReport> reports, TrafficFrame frame = null,
+            IReadOnlyList<GridlockCycle> cycles = null)
         {
             if (frame != null && (frame.FrameId != frameId || frame.Model != Model)) throw new ArgumentException("FrameMismatch", "frame");
             signalFrame = frame;
-            try { return ResolveBatch(frameId, reports); }
+            try { return ResolveBatch(frameId, reports, cycles); }
             finally { signalFrame = null; }
         }
 
-        private JunctionSnapshot ResolveBatch(ulong frameId, IReadOnlyList<JunctionActorReport> reports)
+        private JunctionSnapshot ResolveBatch(ulong frameId, IReadOnlyList<JunctionActorReport> reports, IReadOnlyList<GridlockCycle> cycles)
         {
             Batches++;
             TrafficV2WorkCounters.Work.JunctionBatches++;
@@ -361,6 +365,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
 
             traceGap = traceEta = float.NaN;
             BreakDeadlocks(yielded, threats, live, occupants, kept, records, frameId, effective);
+            var gridlocks = EscalateGridlocks(cycles, byId, unserved, threats, refused, live, occupants, kept, records, frameId, effective);
 
             // 3. Publication : tout grant vivant est republie, sinon il expire.
             kept.Sort(CompareGrants);
@@ -370,7 +375,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             grants = kept;
             Current = Publish(frameId, effective, records, true, actors.Count, occupantCount, requests, valid, entered, incompatible,
                 TrafficV2WorkCounters.Work.JunctionPairChecks - pairStart, batchStopRequired, batchYield, batchMergeGaps,
-                batchDeadlockBreaks, batchCrossingRefusals, batchMergeGapRefusals);
+                batchDeadlockBreaks, batchCrossingRefusals, batchMergeGapRefusals, gridlocks);
             return Current;
         }
 
@@ -495,14 +500,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// demandeur plus jeune qui a preseance sur elle.
         /// </summary>
         private bool ConflictsWithSeniors(JunctionTraversal traversal, RoadId self, Dictionary<RoadId, List<Pending>> refused,
-            out RoadId cause, out RoadId zone)
+            out RoadId cause, out RoadId zone, HashSet<RoadId> ignoredSeniors = null)
         {
             cause = RoadId.None; zone = RoadId.None;
             List<Pending> list;
             if (!refused.TryGetValue(traversal.JunctionId, out list)) return false;
             foreach (var senior in list)
             {
-                if (senior.Actor == self || Index.HasPrecedence(traversal.FirstMovementId, senior.Traversal.FirstMovementId)) continue;
+                if (senior.Actor == self || (ignoredSeniors != null && ignoredSeniors.Contains(senior.Actor))
+                    || Index.HasPrecedence(traversal.FirstMovementId, senior.Traversal.FirstMovementId)) continue;
                 foreach (var other in senior.Traversal.MovementIds)
                     foreach (var movement in traversal.MovementIds)
                         if (Index.TryGetConflict(movement, other, out zone)) { cause = senior.Actor; return true; }
@@ -663,6 +669,99 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             }
         }
 
+        /// <summary>
+        /// Escalade d'interblocage (Story 5.40, G5-G7), a la fin du lot, apres le briseur 5.35. Un cycle dont un membre a obtenu un
+        /// grant neuf a ce lot progresse. Sinon chaque palier authore est essaye dans l'ordre, puis chaque membre par (anciennete,
+        /// TrafficId) ; au plus un grant est emis par cycle, raison GrantedGridlockEscalation. Aucun membre admissible : Exhausted,
+        /// et rien n'est retire ni deplace. Les cycles sont des composantes disjointes, traitees par cle.
+        /// </summary>
+        private List<GridlockResolution> EscalateGridlocks(IReadOnlyList<GridlockCycle> cycles, Dictionary<RoadId, JunctionActorReport> byId,
+            HashSet<RoadId> unserved, Dictionary<RoadId, List<JunctionActorReport>> threats, Dictionary<RoadId, List<Pending>> refused,
+            Dictionary<RoadId, List<Grant>> live, Dictionary<RoadId, List<Occupation>> occupants, List<Grant> kept,
+            List<JunctionRecord> records, ulong frameId, ulong effective)
+        {
+            if (cycles == null || cycles.Count == 0) return null;
+            var resolutions = new List<GridlockResolution>();
+            var ordered = new List<GridlockCycle>();
+            foreach (var cycle in cycles) if (cycle != null) ordered.Add(cycle);
+            ordered.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+            foreach (var cycle in ordered)
+            {
+                RoadId progressed = RoadId.None;
+                foreach (var grant in kept)
+                    if (grant.Fresh && IsNewGrant(grant.Reason) && cycle.Contains(grant.TrafficId)) { progressed = grant.TrafficId; break; }
+                if (!progressed.IsEmpty)
+                {
+                    resolutions.Add(new GridlockResolution(cycle, GridlockOutcome.Progressed, GridlockEscalationTier.None, progressed));
+                    continue;
+                }
+                var members = new List<JunctionActorReport>();
+                foreach (var id in cycle.Members)
+                {
+                    JunctionActorReport actor;
+                    if (byId.TryGetValue(id, out actor) && actor.RequestValid && !unserved.Contains(id) && !CoveredByOwnGrant(actor, kept))
+                        members.Add(actor);
+                }
+                members.Sort((a, b) =>
+                {
+                    int order = seniority[a.TrafficId].Since.CompareTo(seniority[b.TrafficId].Since);
+                    return order != 0 ? order : a.TrafficId.CompareTo(b.TrafficId);
+                });
+                var ignored = new HashSet<RoadId>(cycle.Members);
+                JunctionActorReport served = null;
+                var applied = GridlockEscalationTier.None;
+                foreach (var tier in TrafficV2Settings.GridlockEscalationTiers)
+                {
+                    foreach (var member in members)
+                        if (EscalationAdmits(tier, member, ignored, byId, threats, refused, live, occupants, kept)) { served = member; break; }
+                    if (served != null) { applied = tier; break; }
+                }
+                traceGap = traceEta = float.NaN;
+                if (served == null)
+                {
+                    resolutions.Add(new GridlockResolution(cycle, GridlockOutcome.Exhausted, GridlockEscalationTier.None, RoadId.None));
+                    continue;
+                }
+                var traversal = served.Request.Traversal;
+                // Le refus remplace ne compte plus : un YieldToPriority retire sort du compteur du lot (patron du briseur 5.35).
+                batchYield -= records.RemoveAll(r => r.TrafficId == served.TrafficId && r.TraversalId == traversal.FirstMovementId
+                    && r.Status == JunctionGrantStatus.Denied && r.Reason == JunctionReason.YieldToPriority);
+                records.RemoveAll(r => r.TrafficId == served.TrafficId && r.TraversalId == traversal.FirstMovementId
+                    && r.Status == JunctionGrantStatus.Denied);
+                var escalated = NewGrant(served.TrafficId, traversal, seniority[served.TrafficId].Since, served.Request.Exit.RequiredMeters,
+                    JunctionReason.GrantedGridlockEscalation);
+                escalated.Fresh = true;
+                kept.Add(escalated);
+                Bucket(live, traversal.JunctionId).Add(escalated);
+                resolutions.Add(new GridlockResolution(cycle, GridlockOutcome.Escalated, applied, served.TrafficId));
+            }
+            return resolutions;
+        }
+
+        /// <summary>
+        /// Admission d'un membre par un palier (G6). PrecedenceRelaxation n'ignore que YieldToPriority et SeniorRequestPending causes
+        /// par un membre du cycle ; sortie suffisante, feu vert, arret marque, occupants, grants vivants (toute zone, Merge compris) et
+        /// priorite ou reservation d'un non-membre tiennent. Un palier inconnu n'admet rien.
+        /// </summary>
+        private bool EscalationAdmits(GridlockEscalationTier tier, JunctionActorReport actor, HashSet<RoadId> members,
+            Dictionary<RoadId, JunctionActorReport> byId, Dictionary<RoadId, List<JunctionActorReport>> threats,
+            Dictionary<RoadId, List<Pending>> refused, Dictionary<RoadId, List<Grant>> live, Dictionary<RoadId, List<Occupation>> occupants,
+            List<Grant> kept)
+        {
+            if (tier != GridlockEscalationTier.PrecedenceRelaxation) return false;
+            var traversal = actor.Request.Traversal;
+            JunctionExitBound bound;
+            RoadId cause, zone;
+            return Known(traversal)
+                && ExitSufficient(actor.Request, actor.TrafficId, kept, byId, out bound)
+                && SignalReason(traversal.FirstMovementId) == JunctionReason.None
+                && (Index.ControlKindOf(traversal.FirstMovementId) != JunctionControlKind.Stop || StopMarkedOf(actor.TrafficId))
+                && !ConflictsWithOccupants(traversal, actor.TrafficId, occupants, out cause, out zone)
+                && !ConflictsWithGrants(traversal, actor.TrafficId, live, out cause, out zone)
+                && !YieldsToPriority(actor, threats, out cause, out zone, members)
+                && !ConflictsWithSeniors(traversal, actor.TrafficId, refused, out cause, out zone, members);
+        }
+
         /// <summary>t_gap du demandeur pour degager jusqu'a la fin de son mouvement de rang <paramref name="lastIndex"/> ; +inf si inconnu.</summary>
         private float GapSeconds(JunctionActorReport requester, int lastIndex)
         {
@@ -721,7 +820,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
 
         private static bool IsNewGrant(JunctionReason reason)
         {
-            return reason == JunctionReason.Granted || reason == JunctionReason.GrantedMergeGap || reason == JunctionReason.GrantedDeadlockBreak;
+            return reason == JunctionReason.Granted || reason == JunctionReason.GrantedMergeGap || reason == JunctionReason.GrantedDeadlockBreak
+                || reason == JunctionReason.GrantedGridlockEscalation;
         }
 
         private bool Known(JunctionTraversal traversal)
@@ -820,7 +920,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
 
         private static JunctionSnapshot Publish(ulong frameId, ulong effective, List<JunctionRecord> records, bool frameValid,
             int actors, int occupants, int requests, int valid, int entered, int incompatible, long pairs, int stopRequired = 0,
-            int yieldToPriority = 0, int mergeGaps = 0, int deadlockBreaks = 0, int crossingRefusals = 0, int mergeGapRefusals = 0)
+            int yieldToPriority = 0, int mergeGaps = 0, int deadlockBreaks = 0, int crossingRefusals = 0, int mergeGapRefusals = 0,
+            List<GridlockResolution> gridlocks = null)
         {
             int granted = 0, held = 0, denied = 0, revoked = 0, released = 0;
             foreach (var record in records)
@@ -833,7 +934,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             }
             return new JunctionSnapshot(frameId, effective, records, new JunctionBatchCounters(frameValid, actors, occupants, requests,
                 valid, granted, held, denied, revoked, released, entered, incompatible, pairs, stopRequired, yieldToPriority, mergeGaps,
-                deadlockBreaks, crossingRefusals, mergeGapRefusals));
+                deadlockBreaks, crossingRefusals, mergeGapRefusals), gridlocks);
         }
     }
 }

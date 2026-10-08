@@ -162,6 +162,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         /// <summary>R5 : parcours du recul controle (m).</summary>
         public const float RecoveryReverseTravelMeters = 3f;
 
+        /// <summary>
+        /// Story 5.40 (G4, decision D1 du 2026-10-08) : paliers d'escalade d'interblocage, authores et tous actifs, appliques dans
+        /// cet ordre par le coordinateur. Tout ajout est une decision proprietaire (Ask First) ; 5.41 et 5.42 en sont les extensions.
+        /// </summary>
+        public static readonly IReadOnlyList<Coordination.GridlockEscalationTier> GridlockEscalationTiers =
+            Array.AsReadOnly(new[] { Coordination.GridlockEscalationTier.PrecedenceRelaxation });
+
         /// <summary>Verification du modele M par pas : ecart de position du centre de masse (m).</summary>
         public const float ModelPositionToleranceMeters = 0.002f;
 

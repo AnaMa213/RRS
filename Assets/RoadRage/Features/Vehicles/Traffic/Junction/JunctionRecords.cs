@@ -54,7 +54,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// <summary>Story 5.36 : feu du controle d'approche Yellow ou Red ; un grant non engage est revoque, un engage conserve.</summary>
         SignalStop = 22,
         /// <summary>Story 5.36 : aucun etat de feu dans la frame du lot pour un mouvement Signalized (fail-closed, jamais un vert).</summary>
-        SignalUnavailable = 23
+        SignalUnavailable = 23,
+        /// <summary>Story 5.40 : grant d'escalade d'un interblocage detecte, par un palier authore (G5-G6).</summary>
+        GrantedGridlockEscalation = 24
     }
 
     /// <summary>Ce qui a borne la recherche de sortie.</summary>
@@ -512,11 +514,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         public ulong EffectiveFrame { get; }
         public IReadOnlyList<JunctionRecord> Records { get; }
         public JunctionBatchCounters Counters { get; }
+        /// <summary>Story 5.40 (G7) : une resolution par cycle soumis au lot, triee par cle ; vide sans cycle.</summary>
+        public IReadOnlyList<GridlockResolution> Gridlocks { get; }
 
         public JunctionSnapshot(ulong sourceFrame, ulong effectiveFrame, IReadOnlyList<JunctionRecord> records,
-            JunctionBatchCounters counters)
+            JunctionBatchCounters counters, IReadOnlyList<GridlockResolution> gridlocks = null)
         {
             SourceFrame = sourceFrame; EffectiveFrame = effectiveFrame; Counters = counters;
+            var resolved = new GridlockResolution[gridlocks == null ? 0 : gridlocks.Count];
+            for (int i = 0; i < resolved.Length; i++) resolved[i] = gridlocks[i];
+            Gridlocks = Array.AsReadOnly(resolved);
             this.records = new JunctionRecord[records == null ? 0 : records.Count];
             for (int i = 0; i < this.records.Length; i++) this.records[i] = records[i];
             Array.Sort(this.records, Compare);
@@ -559,6 +566,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             text.Append("Junction snapshot source ").Append(SourceFrame.ToString(CultureInfo.InvariantCulture)).Append(" effectif ")
                 .Append(EffectiveFrame.ToString(CultureInfo.InvariantCulture)).Append(" / ").Append(Counters.ToText());
             for (int i = 0; i < records.Length; i++) text.Append("\n  ").Append(records[i].ToText());
+            for (int i = 0; i < Gridlocks.Count; i++) text.Append("\n  ").Append(Gridlocks[i].ToText());
             return text.ToString();
         }
 
@@ -570,6 +578,101 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             if (order != 0) return order;
             order = ((int)a.Status).CompareTo((int)b.Status);
             return order != 0 ? order : ((int)a.Reason).CompareTo((int)b.Reason);
+        }
+    }
+
+    /// <summary>
+    /// Story 5.40 : palier d'escalade d'interblocage, authore dans TrafficV2Settings.GridlockEscalationTiers et evalue par le
+    /// coordinateur seul. Aucune valeur ne retire, ne teleporte, ne reinsere ni ne deplace un vehicule.
+    /// </summary>
+    public enum GridlockEscalationTier
+    {
+        None = 0,
+        /// <summary>G6 : ignore seulement YieldToPriority et SeniorRequestPending dont la cause est un membre du cycle.</summary>
+        PrecedenceRelaxation = 1
+    }
+
+    /// <summary>Story 5.40 : issue d'un cycle soumis a un lot.</summary>
+    public enum GridlockOutcome
+    {
+        /// <summary>Un membre a obtenu un grant neuf par les regles normales ou le briseur 5.35 : aucune escalade.</summary>
+        Progressed = 0,
+        /// <summary>Un membre a ete servi par un palier.</summary>
+        Escalated = 1,
+        /// <summary>Aucun palier n'admet aucun membre : pire cas borne, rien n'est retire.</summary>
+        Exhausted = 2
+    }
+
+    /// <summary>Story 5.40 : arc d'attente A -> B du graphe, avec le genre du blocker qui le porte.</summary>
+    public readonly struct GridlockArc
+    {
+        public readonly RoadId From, To;
+        public readonly string Kind;
+
+        public GridlockArc(RoadId from, RoadId to, string kind) { From = from; To = to; Kind = kind; }
+
+        public string ToText() { return From + " -" + Kind + "-> " + To; }
+    }
+
+    /// <summary>Story 5.40 : composante fortement connexe (2 membres ou plus) du graphe d'attente ; membres tries.</summary>
+    public sealed class GridlockCycle
+    {
+        public IReadOnlyList<RoadId> Members { get; }
+        /// <summary>Arcs internes au cycle, tries par (From, To, Kind).</summary>
+        public IReadOnlyList<GridlockArc> Arcs { get; }
+        /// <summary>Identite du cycle : ses membres.</summary>
+        public string Key { get; }
+
+        public GridlockCycle(IEnumerable<RoadId> members, IEnumerable<GridlockArc> arcs)
+        {
+            var m = new List<RoadId>(members);
+            m.Sort();
+            var a = new List<GridlockArc>(arcs ?? new GridlockArc[0]);
+            a.Sort((x, y) =>
+            {
+                int order = x.From.CompareTo(y.From);
+                if (order == 0) order = x.To.CompareTo(y.To);
+                return order != 0 ? order : string.CompareOrdinal(x.Kind, y.Kind);
+            });
+            Members = m.AsReadOnly();
+            Arcs = a.AsReadOnly();
+            var key = new StringBuilder();
+            for (int i = 0; i < m.Count; i++) key.Append(i == 0 ? "" : ",").Append(m[i]);
+            Key = key.ToString();
+        }
+
+        public bool Contains(RoadId id)
+        {
+            for (int i = 0; i < Members.Count; i++) if (Members[i] == id) return true;
+            return false;
+        }
+
+        public string ToText()
+        {
+            var text = new StringBuilder("{").Append(Key).Append('}');
+            for (int i = 0; i < Arcs.Count; i++) text.Append(i == 0 ? " " : ", ").Append(Arcs[i].ToText());
+            return text.ToString();
+        }
+    }
+
+    /// <summary>Story 5.40 (G7) : resolution publiee d'un cycle soumis.</summary>
+    public readonly struct GridlockResolution
+    {
+        public readonly GridlockCycle Cycle;
+        public readonly GridlockOutcome Outcome;
+        public readonly GridlockEscalationTier Tier;
+        /// <summary>Membre servi (Escalated) ou progressant (Progressed) ; None si Exhausted.</summary>
+        public readonly RoadId Served;
+
+        public GridlockResolution(GridlockCycle cycle, GridlockOutcome outcome, GridlockEscalationTier tier, RoadId served)
+        {
+            Cycle = cycle; Outcome = outcome; Tier = tier; Served = served;
+        }
+
+        public string ToText()
+        {
+            return "Gridlock " + Cycle.ToText() + " " + Outcome + (Tier == GridlockEscalationTier.None ? "" : " " + Tier)
+                + (Served.IsEmpty ? "" : " @" + Served);
         }
     }
 
