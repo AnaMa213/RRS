@@ -73,6 +73,69 @@ namespace RoadRage.Features.Vehicles.Traffic.Perception
                 unmeasured, buffer.Total, buffer.Saturated);
         }
 
+        /// <summary>
+        /// Story 5.42 (M5) : faits d'obstacle le long d'une reference de manoeuvre, sans aucun canal structure. Tout acteur
+        /// (autre que l'agent) et tout danger de la frame pres de la courbe devient un fait d'obstacle, ecart lateral mesure
+        /// sur la courbe du chemin : le vehicule contourne n'est plus un leader du corridor propre. Distances depuis le
+        /// pare-chocs avant de l'agent projete sur le chemin. Memes genres de faits que <see cref="Observe"/>.
+        /// </summary>
+        public static ObservationChannel<ObstacleFact> ObserveAlong(TrafficFrame frame, RoadId trafficId, RoadCurve path,
+            PerceptionLimits limits, SpatialQueryBuffer buffer)
+        {
+            if (frame == null) throw new ArgumentNullException("frame");
+            if (path == null) throw new ArgumentNullException("path");
+            if (buffer == null) throw new ArgumentNullException("buffer");
+            limits.Validate();
+            TrafficActor agent;
+            if (!frame.TryGetActor(trafficId, out agent)) throw new ArgumentException("UnknownTrafficId", "trafficId");
+            if (!agent.FootprintDeclared) return ObservationChannel<ObstacleFact>.Unavailable(PerceptionStatus.UndeclaredFootprint);
+            var footprint = agent.Pose.Footprint;
+            float self = path.Project(agent.Pose.Position).SMeters;
+            float front = self + footprint.FrontMeters, rear = self - footprint.RearMeters;
+            float lateralRange = limits.LateralRangeMeters;
+            float vertical = frame.Model.LocalizationProfile.AcceptanceDistanceMeters;
+            var query = path.FullBounds;
+            query.Expand(2f * (Mathf.Max(footprint.LeftMeters, footprint.RightMeters) + lateralRange + vertical));
+
+            var facts = new List<ObstacleFact>();
+            int total = 0, offset = 0;
+            buffer.Clear();
+            do
+            {
+                frame.QuerySpatial(query, buffer, offset);
+                for (int e = 0; e < buffer.Count; e++)
+                {
+                    var entry = buffer[e];
+                    if (entry.Id == trafficId) continue;
+                    Vector3 center = entry.Bounds.center, extents = entry.Bounds.extents;
+                    var projection = path.Project(center);
+                    float along = projection.SMeters;
+                    if (projection.LongitudinalOverrunMeters > 0f)
+                        along += projection.SMeters <= path.StartS + 1e-3f ? -projection.LongitudinalOverrunMeters : projection.LongitudinalOverrunMeters;
+                    var point = projection.Point;
+                    float halfLong = HalfExtent(extents, point.Tangent);
+                    if (along + halfLong < rear || along - halfLong > path.Length) continue;
+                    float side = projection.LateralOffsetMeters >= 0f ? footprint.RightMeters : footprint.LeftMeters;
+                    float lateralGap = Mathf.Abs(projection.LateralOffsetMeters) - HalfExtent(extents, point.Right) - side;
+                    float verticalGap = Mathf.Abs(projection.NormalOffsetMeters) - HalfExtent(extents, point.Up);
+                    if (lateralGap > lateralRange || verticalGap > vertical) continue;
+                    float confidence = entry.IsTrafficActor ? Mathf.Min(agent.Location.Confidence, entry.Confidence) : entry.Confidence;
+                    var fact = new ObstacleFact(entry.Id, Kind(entry), along - halfLong - front, lateralGap, verticalGap, entry.Velocity,
+                        new ObservationMetadata(frame.FrameId, ObservationSource.SpatialQuery, path.Length - self, confidence));
+                    total++;
+                    int at = 0;
+                    while (at < facts.Count && CompareObstacle(facts[at], fact) <= 0) at++;
+                    if (at >= limits.ListCapacity) continue;
+                    facts.Insert(at, fact);
+                    if (facts.Count > limits.ListCapacity) facts.RemoveAt(facts.Count - 1);
+                }
+                offset += buffer.Count;
+            }
+            while (offset < buffer.Total);
+            return new ObservationChannel<ObstacleFact>(PerceptionStatus.Evaluated, facts, total,
+                buffer.Saturated || total > limits.ListCapacity, path.Length - self);
+        }
+
         private sealed class Context
         {
             public readonly TrafficFrame Frame;

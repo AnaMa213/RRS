@@ -463,6 +463,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         // Story 5.41 (P6, option 1 du 2026-10-09) : politique effective resolue a chaque pas prepare depuis le profil courant ;
         // seule source des parametres de conduite.
         private EffectivePolicy policy;
+        // Story 5.42 : declenchement D1, candidat suivi, cause contournee, attente d'exception (M4) et texte publie du pas.
+        private readonly ManeuverTrigger maneuverTrigger = new ManeuverTrigger();
+        private ManeuverCandidate maneuverCandidate;
+        private ManeuverObstacle maneuverCause;
+        private bool awaitingException;
+        private ulong maneuverRequestFrame;
+        private ulong maneuverDeniedFrame;
+        private string maneuverTextOfStep;
+        private float preparedManeuverProgress;
+        private bool maneuverScopeExited;
 
         /// <summary>Empreinte du BoxCollider de caisse depuis le point de reference (contrat AD-45, H3 5.31).</summary>
         public VehicleFootprint Footprint { get { return footprint; } }
@@ -506,6 +516,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public TacticalDecision Tactical { get { return tactical; } }
         /// <summary>Politique effective du vehicule (5.41), resolue au dernier pas prepare.</summary>
         public EffectivePolicy Policy { get { return policy; } }
+        /// <summary>Derniere evaluation de manoeuvre (5.42) ; nulle avant la premiere.</summary>
+        public ManeuverEvaluationResult LastManeuverEvaluation { get; private set; }
+        /// <summary>Faits d'obstacle le long de la reference de manoeuvre au dernier pas en manoeuvre (5.42) ; nul sinon.</summary>
+        public ObservationChannel<ObstacleFact> LastManeuverFacts { get; private set; }
+        /// <summary>Demande d'exception emise au dernier pas (5.42, M4) ; le runner ne soumet que celle de la frame courante.</summary>
+        public RuleExceptionRequest PendingRuleExceptionRequest { get; private set; }
+        /// <summary>Demandes d'exception emises depuis le spawn (5.42).</summary>
+        public int RuleExceptionRequestCount { get; private set; }
         /// <summary>Faits de collision du dernier pas decide (5.38).</summary>
         public CollisionFacts LastCollisionFacts { get; private set; }
         /// <summary>Requete de collision soumise au dernier pas ; nulle sans collision significative ni faits invalides.</summary>
@@ -694,7 +712,20 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 physicsBody.GroundedWheelCount, physicsBody.WheelCount, displacement, body.mass);
             // Decision D3 (5.38) : le verrou 2a est suspendu pendant un but de collision et tant qu'un contact dure ; la
             // reprise nominale exige d <= epsilon_t (C6).
-            bool collisionHoldsLatch = CollisionPredicates.SuspendsToleranceLatch(tactical.Active, preparedFacts);
+            // Story 5.42 (M5) : pendant une manoeuvre, epsilon_t se mesure contre la reference de manoeuvre, verrou non suspendu ;
+            // d nominal (faits du pas) reste mesure sur la route, pour le retour Resumed.
+            bool maneuvering = tactical.ManeuverActive;
+            preparedManeuverProgress = 0f;
+            if (maneuvering)
+            {
+                int maneuverPiece;
+                var maneuverTrack = tactical.ManeuverPath.Track;
+                preparedManeuverProgress = maneuverTrack.Project(state.Position, 0, out maneuverPiece);
+                displacement = TrackingMeasurement.StepDisplacement(state, maneuverTrack, preparedManeuverProgress, gauge);
+            }
+            // Manoeuvre : seul un contact de caisse suspend le verrou ; sinon decision D3 de la 5.38 inchangee.
+            bool collisionHoldsLatch = maneuvering ? CollisionPredicates.SuspendsToleranceLatch(false, preparedFacts)
+                : CollisionPredicates.SuspendsToleranceLatch(tactical.Active, preparedFacts);
             // Hors mesure, observer avant toute progression/replanification ou detection de sortie.
             preparedDisplacement = MeasurementLabel == null
                 ? ObserveTrackingTolerance(step, displacement, !collisionHoldsLatch) : (float?)null;
@@ -739,6 +770,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         {
             if (!stepPrepared) return;
             stepPrepared = false;
+            PendingRuleExceptionRequest = null;
+            maneuverTextOfStep = null;
+            LastManeuverFacts = null;
             var driver = policy.Driver;
             var model = admission.Model;
             float dt = Time.fixedDeltaTime;
@@ -797,7 +831,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             // Garder la reference aussi au pas de terminaison : d a ete mesure sur cette reference.
             bool preserveGoalRoute = tactical.Active;
             tactical.Update(facts, dt, declared.Meters, HasReachedExitPortal,
-                new RecoveryMotion(speed, preparedTravel, driver.MaxAcceleration));
+                new RecoveryMotion(speed, preparedTravel, driver.MaxAcceleration), preparedManeuverProgress);
             bool collisionGoal = tactical.CollisionActive;
             bool tacticalGoal = tactical.Active;
             tacticalTextOfStep = wasGoal || tacticalGoal || LastTacticalResponse.HasValue || LastRecoveryResponse.HasValue
@@ -880,6 +914,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             double perceptionMs;
             long perceptionBytes = EndStage(PerceptionMarker, out perceptionMs);
 
+            // P6 (5.41) : exceptions effectives a cette frame. La manoeuvre (5.42) les lit ; le SafetyFilter jamais.
+            IReadOnlyList<EffectiveRuleException> ruleExceptions = EffectiveRuleException.None;
+            if (junctions != null) junctions.TryGetEffectiveExceptions(insertion.TrafficId, frameId, out ruleExceptions);
+
             BeginStage(SpeedPlanMarker);
             double arbitrationMs = 0d, trackMs = 0d;
             SpeedPlan plan = null;
@@ -922,7 +960,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             stepDistance = track.Project(state.Position, pieceHint, out stepPiece);
             pieceHint = stepPiece;
             float nominalHeading = track.NominalHeadingErrorDegrees(stepPiece, stepDistance);
-            if (tacticalGoal)
+            IPathGeometry safetyPath = decision != null ? decision.Path : null;
+            if (tactical.ManeuverActive)
+            {
+                // Story 5.42 (M5) : abandon ou engagement, puis suivi de la reference de manoeuvre ; proximite et SafetyFilter
+                // mesures le long de cette reference (la cause contournee n'y est plus un leader).
+                SuperviseManeuver(frame, located, actor, frameId, speed, ruleExceptions, junctions, hazardQuery.Saturated);
+                ObservationChannel<ObstacleFact> maneuverFacts = null;
+                perceived = frame == null ? null : ManeuverEvaluation.NearField(frame, insertion.TrafficId, tactical.ManeuverPath,
+                    TrafficV2Settings.PerceptionLimits, spatialBuffer, hazardQuery.Saturated, out maneuverFacts);
+                LastManeuverFacts = maneuverFacts;
+                command = TacticalDecision.ManeuverCommand(frameId, TrafficV2Settings.PlanValiditySteps, tactical.ManeuverPath,
+                    model.DrivabilityProfile, driver, pose.Position, pose.Forward, speed, dt, perceived);
+                safetyPath = tactical.ManeuverPath;
+            }
+            else if (tacticalGoal)
             {
                 // But de reponse a collision (5.38, C5) : commande sans propulsion, a la place du suivi de route. Manoeuvre de
                 // recuperation (5.39, R5) : realignement par la loi de suivi vers la pose nominale de la reference projetee,
@@ -965,13 +1017,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             if (command.HasValue && !toleranceResponse.Latched)
             {
                 LastSafety = SafetyFilter.Evaluate(command.Value, frameId, frame, insertion.TrafficId, speed,
-                    decision != null ? decision.Path : null, perceived, safetyLimits);
+                    safetyPath, perceived, safetyLimits);
                 command = LastSafety.Command;
                 if (LastSafety.Verdict == SafetyVerdict.Reject) refusal = LastSafety.Refusal;
             }
-            // P6 (5.41) : exceptions effectives a cette frame, portees sur la commande apres le SafetyFilter, qui n'en lit aucune.
-            IReadOnlyList<EffectiveRuleException> ruleExceptions = EffectiveRuleException.None;
-            if (junctions != null) junctions.TryGetEffectiveExceptions(insertion.TrafficId, frameId, out ruleExceptions);
+            // P6 (5.41) : exceptions effectives portees sur la commande apres le SafetyFilter, qui n'en lit aucune.
             if (command.HasValue) command = command.Value.WithRuleExceptions(ruleExceptions);
             if (toleranceResponse.Latched)
             {
@@ -1013,6 +1063,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             LastJunctionReportFrameId = frameId;
             blockers = BlockerTracker.Update(blockers, commanded ? longitudinal : null, driver, frameId,
                 JunctionCause(junctionReport, junctions));
+            // Story 5.42 (D1, M1-M4) : evaluation des candidats quand la meme cause liante lente tient ; aucune pendant un but.
+            EvaluateManeuver(frame, located, actor, frameId, speed, offset, commanded ? longitudinal : null, ruleExceptions, junctions,
+                hazardQuery.Saturated, faulted);
             // R1/R2 (5.39) : le superviseur lit les faits du pas compose ; sa requete eventuelle part au pas suivant.
             recovery.Observe(new RecoveryObservation(frameId, tactical.Active, tactical.AwaitingRecovery,
                 toleranceResponse.Latched && composed.Terminal == V2FallbackTerminal.Held, commanded, commanded ? longitudinal : null,
@@ -1033,12 +1086,168 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                         blockers, hazardQuery.Hits, hazardQuery.Saturated, collector))
                     .WithJunction(junctionReport == null ? null
                         : new TrafficJunctionOutcome(frameId, junctionReport, junctions, commanded && entry.Active))
-                    .WithPolicy(policy, ruleExceptions);
+                    .WithPolicy(policy, ruleExceptions)
+                    .WithManeuver(maneuverTextOfStep ?? (tactical.ManeuverActive ? "Maneuver " + tactical.ToText() : null));
             lastIntent = composed.Intent;
             double instrumentationMs;
             long instrumentationBytes = EndStage(InstrumentationMarker, out instrumentationMs);
             Timings.AddDetail(arbitrationMs, trackMs, instrumentationMs, frameBytes, spineBytes, perceptionBytes, planBytes,
                 composeBytes, instrumentationBytes);
+        }
+
+        /// <summary>
+        /// Story 5.42 (D1, M1-M4) : quand la meme cause liante lente tient 2 s, evaluation des candidats sur la frame du pas. Un
+        /// candidat pret devient le but Maneuver ; un candidat qui attend l'exception produit une demande au lot N, puis une
+        /// reevaluation complete a N+1 ou l'exception est effective. Sans selection, la cause doit tenir a nouveau D1.
+        /// </summary>
+        private void EvaluateManeuver(TrafficFrame frame, bool located, TrafficActor actor, ulong frameId, float speed, float offset,
+            LongitudinalDecision longitudinal, IReadOnlyList<EffectiveRuleException> exceptions, JunctionSnapshot junctions,
+            bool collectorSaturated, bool faulted)
+        {
+            NoteDenial(junctions);
+            bool ready = maneuverTrigger.Observe(frameId, longitudinal, blockers, policy.Driver.DesiredSpeed, Time.fixedDeltaTime);
+            // Seulement sur un corridor de la route, dans son sens : jamais depuis un mouvement, un corridor hors route ou a
+            // contresens (vehicule deplace), ou les candidats seraient construits dans le mauvais repere.
+            if (tactical.Active || faulted || toleranceResponse.Latched || frame == null || !located
+                || actor.Location.ElementKind != RoadElementKind.LaneCorridor
+                || (actor.Location.Flags & RoadLocationFlags.WrongWay) != 0 || !OnRoute(actor.Location.ElementId))
+            {
+                awaitingException = false;
+                return;
+            }
+            if (!ready && !awaitingException) return;
+            awaitingException = false;
+            EffectiveLaneCorridor own;
+            ManeuverObstacle cause;
+            if (!frame.Model.TryGetCorridor(actor.Location.ElementId, out own)
+                || !ManeuverEvaluation.TryCause(frame, own.Curve, maneuverTrigger.CauseId, maneuverTrigger.ObstacleKind, out cause))
+            {
+                maneuverTrigger.Reset();
+                return;
+            }
+            var result = ManeuverEvaluation.Evaluate(Situation(frame, own, actor.Location.SMeters, offset, speed, cause, exceptions,
+                collectorSaturated, frameId), frameId);
+            LastManeuverEvaluation = result;
+            maneuverTextOfStep = result.ToText();
+            if (result.Ready)
+            {
+                if (tactical.SubmitManeuver(result.Selected, cause.Id, frameId).Accepted)
+                {
+                    maneuverCandidate = result.Selected;
+                    maneuverCause = cause;
+                    maneuverScopeExited = false;
+                }
+                maneuverTrigger.Reset();
+                return;
+            }
+            RuleExceptionRequest request;
+            if (result.Selected != null && result.Selected.Verdict == ManeuverVerdict.ExceptionPending
+                && DrivingPolicy.TryPropose(policy, TrafficRule.OpposingCorridor, result.Selected.OtherCorridorId, RoadId.None,
+                    "Contournement de " + cause.Id, new RuleExceptionTermination(RuleExceptionTerminationKind.ScopeExited,
+                        result.Selected.ExceptionExpiryFrame), frameId, out request))
+            {
+                PendingRuleExceptionRequest = request;
+                RuleExceptionRequestCount++;
+                maneuverRequestFrame = frameId;
+                awaitingException = true;
+                return;
+            }
+            maneuverTrigger.Reset();
+        }
+
+        private bool OnRoute(RoadId element)
+        {
+            if (route == null) return false;
+            for (int i = route.ProgressOccurrenceIndex; i < route.Occurrences.Count; i++)
+                if (route.Occurrences[i].Id == element) return true;
+            return false;
+        }
+
+        /// <summary>D4 : un refus de l'autorite sur la derniere demande ouvre le delai avant une nouvelle demande.</summary>
+        private void NoteDenial(JunctionSnapshot junctions)
+        {
+            if (junctions == null || maneuverRequestFrame == 0UL) return;
+            for (int i = 0; i < junctions.RuleExceptions.Count; i++)
+            {
+                var record = junctions.RuleExceptions[i];
+                if (record.Status == RuleExceptionStatus.Denied && record.Request != null
+                    && record.Request.Requester == insertion.TrafficId && record.SourceFrame == maneuverRequestFrame)
+                    maneuverDeniedFrame = maneuverRequestFrame + 1UL;
+            }
+        }
+
+        private ManeuverSituation Situation(TrafficFrame frame, EffectiveLaneCorridor own, float s, float offset, float speed,
+            ManeuverObstacle cause, IReadOnlyList<EffectiveRuleException> exceptions, bool collectorSaturated, ulong frameId)
+        {
+            float dt = Time.fixedDeltaTime;
+            return new ManeuverSituation
+            {
+                Frame = frame, TrafficId = insertion.TrafficId, Own = own, SelfSMeters = s, SelfOffsetRadians = offset,
+                SpeedMetersPerSecond = Math.Max(0f, speed), Cause = cause, Policy = policy, Gauge = gauge, EpsilonMeters = declared.Meters,
+                DeltaTimeSeconds = dt, Exceptions = exceptions ?? EffectiveRuleException.None,
+                ExceptionDenied = maneuverDeniedFrame != 0UL
+                    && (frameId - maneuverDeniedFrame) * (double)dt < TrafficV2Settings.ManeuverRetrySeconds,
+                Limits = safetyLimits, PerceptionLimits = TrafficV2Settings.PerceptionLimits, Buffer = spatialBuffer,
+                HazardCollectorSaturated = collectorSaturated
+            };
+        }
+
+        /// <summary>
+        /// Story 5.42 (M4-M5) : a chaque pas d'une manoeuvre non engagee, decision pure de supervision
+        /// (<see cref="ManeuverEvaluation.Supervise"/>) : abandon prouve derriere la cause, sinon engagement (SafetyFilter actif).
+        /// Une fin ScopeExited publiee par l'autorite apres le retour normal est un succes, jamais une perte. Un corridor du modele
+        /// introuvable engage la manoeuvre (fail-closed : plus aucun abandon fonde sur des faits absents).
+        /// </summary>
+        private void SuperviseManeuver(TrafficFrame frame, bool located, TrafficActor actor, ulong frameId, float speed,
+            IReadOnlyList<EffectiveRuleException> exceptions, JunctionSnapshot junctions, bool collectorSaturated)
+        {
+            if (frame == null || !located || maneuverCandidate == null || tactical.ManeuverAborting || tactical.ManeuverCommitted
+                || tactical.ManeuverStage == ManeuverPhase.Settling) return;
+            var path = tactical.ManeuverPath;
+            float progress = tactical.ManeuverProgressMeters;
+            EffectiveLaneCorridor own, found;
+            EffectiveLaneCorridor? other = null;
+            bool otherMissing = false;
+            if (!tactical.ManeuverOtherCorridorId.IsEmpty)
+            {
+                if (frame.Model.TryGetCorridor(tactical.ManeuverOtherCorridorId, out found)) other = found;
+                else otherMissing = true;
+            }
+            if (!frame.Model.TryGetCorridor(path.CorridorId, out own) || otherMissing)
+            {
+                tactical.CommitManeuver();
+                maneuverTextOfStep = "Maneuver " + tactical.ToText() + " / corridor introuvable";
+                return;
+            }
+            NoteScopeExit(junctions, tactical.ManeuverOtherCorridorId);
+            ManeuverObstacle cause;
+            if (ManeuverEvaluation.TryCause(frame, own.Curve, maneuverCause.Id, maneuverCause.Kind, out cause)) maneuverCause = cause;
+            var situation = Situation(frame, own, own.Curve.Project(actor.Pose.Position).SMeters, 0f, speed, maneuverCause, exceptions,
+                collectorSaturated, frameId);
+            ManeuverCandidate back;
+            bool exceptionLost;
+            var decision = ManeuverEvaluation.Supervise(situation, maneuverCandidate, progress, path.Track.OffsetRadians(0, progress),
+                other, tactical.ManeuverExceptionUntilMeters, maneuverScopeExited, out back, out exceptionLost);
+            if (decision == ManeuverSupervision.Continue) return;
+            if (decision == ManeuverSupervision.Abort
+                && tactical.AbortManeuver(back.Path, back.RequiresException ? back.Proof.LastOtherDistanceMeters : -1f))
+                maneuverCandidate = back;
+            else tactical.CommitManeuver();
+            maneuverTextOfStep = "Maneuver " + tactical.ToText() + (exceptionLost ? " / exception perdue" : " / conflit en face");
+        }
+
+        /// <summary>M4 : fin ScopeExited publiee pour l'exception OpposingCorridor de ce vehicule sur ce corridor.</summary>
+        private void NoteScopeExit(JunctionSnapshot junctions, RoadId corridor)
+        {
+            if (junctions == null || maneuverScopeExited) return;
+            for (int i = 0; i < junctions.RuleExceptions.Count; i++)
+            {
+                var record = junctions.RuleExceptions[i];
+                if (record.Status == RuleExceptionStatus.Ended && record.Reason == RuleExceptionReason.ScopeExited && record.Request != null
+                    && record.Request.Requester == insertion.TrafficId && record.Request.Rule == TrafficRule.OpposingCorridor
+                    && record.Request.Scope == corridor)
+                    maneuverScopeExited = true;
+            }
         }
 
         /// <summary>

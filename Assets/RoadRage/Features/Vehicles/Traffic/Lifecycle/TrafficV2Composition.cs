@@ -176,8 +176,32 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public static readonly IReadOnlyList<Policy.TrafficRule> ViolableTrafficRules =
             Array.AsReadOnly(new[] { Policy.TrafficRule.OpposingCorridor });
 
-        /// <summary>Story 5.41 (D3) : duree maximale d'une exception, en pas hote (10 s a 50 Hz). Revision : Ask First.</summary>
-        public const int MaxRuleExceptionFrames = 500;
+        /// <summary>
+        /// Story 5.41 (D3) : duree maximale d'une exception, en pas hote. Porte de 500 a 1000 pas (20 s a 50 Hz) par la decision
+        /// proprietaire 4A du 2026-10-09 (Story 5.42) : un contournement par le corridor oppose depuis l'approche ne tenait pas en
+        /// 10 s. Revision : Ask First.
+        /// </summary>
+        public const int MaxRuleExceptionFrames = 1000;
+
+        // Story 5.42 (decisions D1 a D4 approuvees le 2026-10-09) : reglages des manoeuvres non structurees. Revision : Ask First.
+        /// <summary>D1 : duree minimale de la meme cause liante (leader ou obstacle) avant une evaluation (s).</summary>
+        public const float ManeuverConsiderSeconds = 2f;
+        /// <summary>D1 : vitesse de la cause au plus cette fraction de la vitesse desiree.</summary>
+        public const float ManeuverSlowSpeedFraction = 0.5f;
+        /// <summary>D2 : acceleration laterale admise sur la reference de manoeuvre (m/s2).</summary>
+        public const float ManeuverLateralAccelerationMetersPerSecondSquared = 2f;
+        /// <summary>D2 : degagement longitudinal avant et apres la cause (m).</summary>
+        public const float ManeuverLongitudinalClearanceMeters = 1f;
+        /// <summary>D2 : degagement lateral vis-a-vis de la cause (m).</summary>
+        public const float ManeuverLateralClearanceMeters = 0.5f;
+        /// <summary>D2 : pas de la preuve continue, en abscisse de reference (m).</summary>
+        public const float ManeuverProofStepMeters = 0.1f;
+        /// <summary>D3 : vitesse de rapprochement minimale v_m - v_cause d'un depassement (m/s).</summary>
+        public const float ManeuverMinimumClosingSpeedMetersPerSecond = 2f;
+        /// <summary>D4 : marge ajoutee a la duree de manoeuvre pour l'expiration de l'exception (s).</summary>
+        public const float ManeuverExceptionMarginSeconds = 2f;
+        /// <summary>D4 : delai avant une nouvelle demande apres un refus de l'autorite (s).</summary>
+        public const float ManeuverRetrySeconds = 2f;
 
         /// <summary>Verification du modele M par pas : ecart de position du centre de masse (m).</summary>
         public const float ModelPositionToleranceMeters = 0.002f;

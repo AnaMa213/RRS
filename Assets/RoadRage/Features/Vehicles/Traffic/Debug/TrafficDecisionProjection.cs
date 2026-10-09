@@ -240,6 +240,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         public EffectivePolicy? Policy { get; private set; }
         /// <summary>Exceptions effectives du vehicule a cette frame (5.41) ; jamais nul.</summary>
         public IReadOnlyList<EffectiveRuleException> RuleExceptions { get; private set; } = EffectiveRuleException.None;
+        /// <summary>Evaluation de manoeuvre du pas (5.42) : candidats, verdicts et selection ; nulle sans evaluation.</summary>
+        public string Maneuver { get; private set; }
 
         internal TrafficDecisionProjection(ulong frameId, RoadModelVersion version, RoadId trafficId,
             RoadLocation location, RouteResult route, MotionPlan motion, string code)
@@ -310,6 +312,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
             return copy;
         }
 
+        /// <summary>Copie immuable portant l'evaluation de manoeuvre du pas (5.42) ; nulle l'efface.</summary>
+        public TrafficDecisionProjection WithManeuver(string maneuver)
+        {
+            var copy = (TrafficDecisionProjection)MemberwiseClone();
+            copy.Maneuver = maneuver;
+            return copy;
+        }
+
         private static string F(float value) { return value.ToString("R", CultureInfo.InvariantCulture); }
 
         private static RouteOccurrence[] Copy(IReadOnlyList<RouteOccurrence> source)
@@ -362,6 +372,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
                 if (RuleExceptions.Count == 0) text.Append("aucune");
                 for (int i = 0; i < RuleExceptions.Count; i++) text.Append(i == 0 ? "" : "; ").Append(RuleExceptions[i].ToText());
             }
+            if (Maneuver != null) text.Append('\n').Append(Maneuver);
             if (Longitudinal != null) text.Append('\n').Append(Longitudinal.ToText());
             if (Junction != null) text.Append('\n').Append(Junction.ToText());
             return text.ToString();

@@ -230,7 +230,7 @@ development_status:
   # 2026-10-09 independent review patch resolved: Story541 35/35 EditMode, healthy compilation, 0 Console errors.
   # Owner explicitly requested done for both spec and sprint tracking after verification.
   5-41-driving-policy-and-traffic-rule-exception-protocol: done
-  5-42-unstructured-maneuvers-bypass-overtaking-head-on: backlog
+  5-42-unstructured-maneuvers-bypass-overtaking-head-on: review
   5-43-rage-and-fear-as-continuous-policy-modulation: backlog
   5-44-targeted-aggression-and-authorized-contact: backlog
   5-45-thrown-litter-on-v2-contracts: backlog

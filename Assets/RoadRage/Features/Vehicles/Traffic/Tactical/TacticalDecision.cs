@@ -3,6 +3,7 @@ using System.Globalization;
 using RoadRage.Features.Vehicles.Traffic.Collisions;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Planning;
+using RoadRage.Features.Vehicles.Traffic.Policy;
 using RoadRage.Features.Vehicles.Traffic.Recovery;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 using UnityEngine;
@@ -85,8 +86,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
         Nominal = 0,
         CollisionResponse = 1,
         /// <summary>Manoeuvre de recuperation acceptee (Story 5.39) : realignement ou recul controle.</summary>
-        Recovery = 2
+        Recovery = 2,
+        /// <summary>Story 5.42 : manoeuvre non structuree (contournement, depassement) sur une reference de manoeuvre prouvee.</summary>
+        Maneuver = 3
     }
+
+    /// <summary>Story 5.42 (M5) : phase du but Maneuver, lue sur la progression le long de la reference de manoeuvre.</summary>
+    public enum ManeuverPhase { None = 0, Departure = 1, Passing = 2, Return = 3, Settling = 4 }
 
     /// <summary>Phase du but de reponse a collision : reaction tiree, freinage, puis attente de la recuperation (5.39).</summary>
     public enum CollisionGoalPhase { None = 0, Reacting = 1, Braking = 2, AwaitingRecovery = 3 }
@@ -117,7 +123,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
         /// <summary>Story 5.39 : recul controle termine sur sa distance.</summary>
         ManeuverCompleted = 13,
         /// <summary>Story 5.39 : manoeuvre annulee par une collision significative acceptee.</summary>
-        CollisionPreempted = 14
+        CollisionPreempted = 14,
+        /// <summary>Story 5.42 : abandon, retour derriere la cause sur une reference de retour prouvee.</summary>
+        ManeuverAborted = 15,
+        /// <summary>Story 5.42 : abandon impossible (retour non prouvable) ; la manoeuvre continue, SafetyFilter actif.</summary>
+        ManeuverCommitted = 16
     }
 
     /// <summary>Faits de mouvement d'un pas pour la manoeuvre de recuperation (R5).</summary>
@@ -179,6 +189,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
         private float phaseSeconds;
         private readonly ProgressLedger maneuverLedger = new ProgressLedger();
         private bool recoveryIsLatest;
+        private bool maneuverIsLatest;
+        private float maneuverProgress;
 
         public TacticalGoalKind Goal { get; private set; }
         /// <summary>Manoeuvre de recuperation acceptee (but Recovery), ou la derniere.</summary>
@@ -202,8 +214,26 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
         public TacticalReason LastReason { get; private set; }
         public StabilityBlocker LastBlocker { get; private set; }
 
-        /// <summary>Un but (collision ou recuperation) remplace la conduite nominale.</summary>
+        /// <summary>Story 5.42 : reference de manoeuvre suivie (chemin initial, ou chemin de retour apres un abandon).</summary>
+        public ManeuverPath ManeuverPath { get; private set; }
+        public ManeuverKind ManeuverKind { get; private set; }
+        public RoadId ManeuverCauseId { get; private set; }
+        /// <summary>Corridor adjacent ou oppose emprunte ; None pour un decalage dans le corridor.</summary>
+        public RoadId ManeuverOtherCorridorId { get; private set; }
+        /// <summary>La reference occupe l'autre corridor (exception OpposingCorridor exigee) jusqu'a cette distance (-1 : jamais).</summary>
+        public float ManeuverExceptionUntilMeters { get; private set; }
+        public ManeuverPhase ManeuverStage { get; private set; }
+        public bool ManeuverAborting { get; private set; }
+        public bool ManeuverCommitted { get; private set; }
+        /// <summary>Progression monotone de la caisse le long de la reference de manoeuvre (m).</summary>
+        public float ManeuverProgressMeters { get { return maneuverProgress; } }
+        /// <summary>Frame d'acceptation et raison de la derniere manoeuvre terminee ; None sinon.</summary>
+        public ulong ManeuverOutcomeFrame { get; private set; }
+        public TacticalReason ManeuverOutcome { get; private set; }
+
+        /// <summary>Un but (collision, recuperation ou manoeuvre) remplace la conduite nominale.</summary>
         public bool Active { get { return Goal != TacticalGoalKind.Nominal; } }
+        public bool ManeuverActive { get { return Goal == TacticalGoalKind.Maneuver; } }
         public bool CollisionActive { get { return Goal == TacticalGoalKind.CollisionResponse; } }
         public bool RecoveryActive { get { return Goal == TacticalGoalKind.Recovery; } }
         /// <summary>Stable mais deplace : la recuperation (5.39) peut prendre le relais.</summary>
@@ -222,11 +252,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             if (fallbackLatched) return Respond(request.Version, TacticalReason.FallbackLatched);
             // Le but garde sa raison publiee : un second choc pendant le but est refuse sans la masquer.
             if (CollisionActive) return new TacticalResponse(request.Version, TacticalReason.GoalAlreadyActive);
-            // Un choc significatif annule la manoeuvre de recuperation (5.39) : la physique d'abord.
+            // Un choc significatif annule la manoeuvre de recuperation (5.39) ou non structuree (5.42) : la physique d'abord.
             if (RecoveryActive) EndRecovery(TacticalReason.CollisionPreempted);
+            if (ManeuverActive) EndManeuver(TacticalReason.CollisionPreempted);
 
             Goal = TacticalGoalKind.CollisionResponse;
             recoveryIsLatest = false;
+            maneuverIsLatest = false;
             GoalVersion = request.Version;
             AcceptedAtFrame = frameId;
             Reaction = weights.Select(RoutePlanner.UnitDraw(seed.Value, request.TrafficId, ReactionDrawDomain, request.Version, RoadId.None));
@@ -256,7 +288,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
                 return Respond(request == null ? 0UL : request.Version, TacticalReason.InvalidRequest);
             lastRecoveryVersion = request.Version;
             if (request.SourceFrameId != frameId) return Respond(request.Version, TacticalReason.StaleRequest);
-            if (RecoveryActive || (CollisionActive && !AwaitingRecovery))
+            if (RecoveryActive || ManeuverActive || (CollisionActive && !AwaitingRecovery))
                 return new TacticalResponse(request.Version, TacticalReason.GoalAlreadyActive);
             if (stability != StabilityBlocker.None) return Respond(request.Version, TacticalReason.Unstable);
             if (request.Maneuver == RecoveryManeuver.Realign && !hasReference) return Respond(request.Version, TacticalReason.NoReference);
@@ -264,6 +296,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
 
             Goal = TacticalGoalKind.Recovery;
             recoveryIsLatest = true;
+            maneuverIsLatest = false;
             Phase = CollisionGoalPhase.None;
             Maneuver = request.Maneuver;
             RecoveryVersion = request.Version;
@@ -278,18 +311,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
         /// Avance le but d'un pas (C6) : fin de la phase de reaction, compte de stabilite, terminaison Resumed seulement stable
         /// dans l'enveloppe epsilon_t ; stable mais deplace : AwaitingRecovery. Sortie atteinte : annulation.
         /// </summary>
+        /// <param name="maneuverProgressMeters">Story 5.42 : distance de la caisse le long de la reference de manoeuvre.</param>
         public void Update(CollisionFacts facts, float deltaTimeSeconds, float toleranceMeters, bool exitReached,
-            RecoveryMotion motion = default(RecoveryMotion))
+            RecoveryMotion motion = default(RecoveryMotion), float maneuverProgressMeters = 0f)
         {
             if (!Active) return;
             if (exitReached)
             {
                 if (RecoveryActive) EndRecovery(TacticalReason.ExitPortalReached);
+                else if (ManeuverActive) EndManeuver(TacticalReason.ExitPortalReached);
                 else End(TacticalReason.ExitPortalReached);
                 return;
             }
             float dt = Finite(deltaTimeSeconds) && deltaTimeSeconds > 0f ? deltaTimeSeconds : 0f;
             if (RecoveryActive) { UpdateRecovery(facts, dt, toleranceMeters, motion); return; }
+            if (ManeuverActive) { UpdateManeuver(facts, dt, toleranceMeters, motion, maneuverProgressMeters); return; }
             // Les faits de ce pas decrivent la commande precedente, pas celle produite apres Update.
             bool braking = Phase != CollisionGoalPhase.Reacting;
             if (Phase == CollisionGoalPhase.Reacting)
@@ -318,6 +354,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             float lockDegrees, RecoveryCommandInput recovery = default(RecoveryCommandInput))
         {
             if (!Active) throw new InvalidOperationException("NoCollisionGoal");
+            // La commande d'une manoeuvre suit sa reference : ManeuverCommand.
+            if (ManeuverActive) throw new InvalidOperationException("ManeuverGoalUsesManeuverCommand");
             ulong validTo = frameId + (ulong)Math.Max(0, validitySteps - 1);
             if (RecoveryActive)
             {
@@ -355,6 +393,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
         public string ToText()
         {
             string text = Goal + " " + LastReason;
+            if (maneuverIsLatest)
+                return text + " " + ManeuverKind + "/" + ManeuverStage + " cause " + ManeuverCauseId
+                    + (ManeuverOtherCorridorId.IsEmpty ? "" : " via " + ManeuverOtherCorridorId) + " accepte "
+                    + AcceptedAtFrame.ToString(CultureInfo.InvariantCulture) + " o " + (ManeuverPath == null ? "0"
+                        : ManeuverPath.TargetOffsetMeters.ToString("0.###", CultureInfo.InvariantCulture)) + " parcours "
+                    + ManeuverTravelMeters.ToString("0.###", CultureInfo.InvariantCulture)
+                    + (ManeuverAborting ? " abandon" : "") + (ManeuverCommitted ? " engage" : "") + " stabilite " + LastBlocker;
             if (recoveryIsLatest)
                 return text + " " + Maneuver + " v" + RecoveryVersion.ToString(CultureInfo.InvariantCulture) + " accepte "
                     + AcceptedAtFrame.ToString(CultureInfo.InvariantCulture) + " parcours "
@@ -398,6 +443,129 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             float speed = Finite(motion.SpeedMetersPerSecond) ? Math.Abs(motion.SpeedMetersPerSecond) : 0f;
             if (maneuverLedger.Observe(true, motion.MaxAccelerationMetersPerSecondSquared, speed, ManeuverTravelMeters, dt, cap))
                 EndRecovery(TacticalReason.Stalled);
+        }
+
+        /// <summary>
+        /// Story 5.42 (M5) : manoeuvre acceptee seulement sans but. La tactique possede ensuite la reference jusqu'a Resumed,
+        /// Stalled, NoProgress, ExitPortalReached ou CollisionPreempted.
+        /// </summary>
+        public TacticalResponse SubmitManeuver(ManeuverCandidate candidate, RoadId cause, ulong frameId)
+        {
+            if (candidate == null || candidate.Path == null || candidate.Verdict != ManeuverVerdict.Selected)
+                return Respond(frameId, TacticalReason.InvalidRequest);
+            if (Active) return new TacticalResponse(frameId, TacticalReason.GoalAlreadyActive);
+            Goal = TacticalGoalKind.Maneuver;
+            maneuverIsLatest = true;
+            recoveryIsLatest = false;
+            Phase = CollisionGoalPhase.None;
+            ManeuverPath = candidate.Path;
+            ManeuverKind = candidate.Kind;
+            ManeuverCauseId = cause;
+            ManeuverOtherCorridorId = candidate.OtherCorridorId;
+            ManeuverExceptionUntilMeters = candidate.RequiresException ? candidate.Proof.LastOtherDistanceMeters : -1f;
+            ManeuverStage = ManeuverPhase.Departure;
+            ManeuverAborting = false;
+            ManeuverCommitted = false;
+            AcceptedAtFrame = frameId;
+            ManeuverTravelMeters = 0f;
+            maneuverProgress = 0f;
+            stableSeconds = 0f;
+            maneuverLedger.Reset();
+            return Respond(frameId, TacticalReason.Accepted);
+        }
+
+        /// <summary>
+        /// Story 5.42 (M5) : abandon sur une reference de retour prouvee qui finit derriere la cause. Une seule fois, jamais apres
+        /// un engagement.
+        /// </summary>
+        /// <param name="exceptionUntilMeters">Region de l'autre corridor encore occupee par le retour (-1 : aucune).</param>
+        public bool AbortManeuver(ManeuverPath returnPath, float exceptionUntilMeters)
+        {
+            if (!ManeuverActive || ManeuverAborting || ManeuverCommitted || returnPath == null) return false;
+            ManeuverPath = returnPath;
+            ManeuverExceptionUntilMeters = exceptionUntilMeters;
+            ManeuverAborting = true;
+            ManeuverStage = ManeuverPhase.Return;
+            maneuverProgress = 0f;
+            stableSeconds = 0f;
+            LastReason = TacticalReason.ManeuverAborted;
+            return true;
+        }
+
+        /// <summary>Story 5.42 (M5) : abandon non prouvable ; la manoeuvre continue jusqu'a son terme, SafetyFilter actif.</summary>
+        public bool CommitManeuver()
+        {
+            if (!ManeuverActive || ManeuverAborting || ManeuverCommitted) return false;
+            ManeuverCommitted = true;
+            LastReason = TacticalReason.ManeuverCommitted;
+            return true;
+        }
+
+        /// <summary>
+        /// Phases sur la progression. Fin Resumed seulement de retour sur la reference nominale (d &lt;= epsilon_t des faits du
+        /// pas, mesure sur la route, stable 0,5 s) ; queue epuisee sans stabilite : NoProgress ; progression commandee absente
+        /// (registre R2) : Stalled.
+        /// </summary>
+        private void UpdateManeuver(CollisionFacts facts, float dt, float toleranceMeters, RecoveryMotion motion, float progress)
+        {
+            var path = ManeuverPath;
+            ManeuverTravelMeters += Finite(motion.TravelMeters) ? Math.Max(0f, motion.TravelMeters) : 0f;
+            if (Finite(progress)) maneuverProgress = Math.Max(maneuverProgress, progress);
+            ManeuverStage = maneuverProgress < path.DistanceAtReference(path.DepartEndSMeters) ? ManeuverPhase.Departure
+                : maneuverProgress < path.DistanceAtReference(path.ReturnStartSMeters) ? ManeuverPhase.Passing
+                : maneuverProgress < path.DistanceAtReference(path.ReturnEndSMeters) ? ManeuverPhase.Return : ManeuverPhase.Settling;
+            if (ManeuverAborting && ManeuverStage != ManeuverPhase.Settling) ManeuverStage = ManeuverPhase.Return;
+            LastBlocker = CollisionPredicates.Stability(facts, toleranceMeters);
+            if (ManeuverStage == ManeuverPhase.Settling)
+            {
+                stableSeconds = LastBlocker == StabilityBlocker.None && facts.DisplacementMeters <= toleranceMeters ? stableSeconds + dt : 0f;
+                if (stableSeconds >= CollisionThresholds.StableSeconds) { EndManeuver(TacticalReason.Resumed); return; }
+                if (maneuverProgress >= path.LengthMeters - 1e-3f) { EndManeuver(TacticalReason.NoProgress); return; }
+            }
+            float speed = Finite(motion.SpeedMetersPerSecond) ? Math.Abs(motion.SpeedMetersPerSecond) : 0f;
+            if (maneuverLedger.Observe(true, motion.MaxAccelerationMetersPerSecondSquared, speed, ManeuverTravelMeters, dt,
+                    path.SpeedMetersPerSecond))
+                EndManeuver(TacticalReason.Stalled);
+        }
+
+        private void EndManeuver(TacticalReason reason)
+        {
+            ManeuverOutcomeFrame = AcceptedAtFrame;
+            ManeuverOutcome = reason;
+            ManeuverStage = ManeuverPhase.None;
+            stableSeconds = 0f;
+            End(reason);
+        }
+
+        /// <summary>
+        /// Story 5.42 (M5) : commande de suivi de la reference de manoeuvre. Angle : loi de suivi 5.31 sur la courbe du chemin,
+        /// pose nominale cinematique du chemin. Acceleration : vers v_m (deceleration de confort, acceleration du profil), au plus
+        /// l'IDM (DriverModel.ComputeAcceleration) sur chaque fait du couloir balaye le long du chemin.
+        /// </summary>
+        public static MotionCommand ManeuverCommand(ulong frameId, int validitySteps, ManeuverPath path, DrivabilityProfile drivability,
+            DriverProfile driver, Vector3 position, Vector3 forward, float speedMetersPerSecond, float deltaTimeSeconds,
+            LongitudinalPerception nearField)
+        {
+            if (path == null) throw new ArgumentNullException("path");
+            float speed = Finite(speedMetersPerSecond) ? Math.Max(0f, speedMetersPerSecond) : 0f;
+            float dt = Finite(deltaTimeSeconds) && deltaTimeSeconds > 0f ? deltaTimeSeconds : 1f;
+            var curve = path.Piece.Curve;
+            float progress = curve.Project(position).SMeters;
+            float lateral, heading, curvature, referenceS;
+            float angle = MotionCommand.TrackingWheelAngleDegrees(drivability, curve, progress, position, forward, speed,
+                path.Track.NominalHeadingErrorDegrees(0, progress), out lateral, out heading, out curvature, out referenceS);
+            float acceleration = Mathf.Clamp((path.SpeedMetersPerSecond - speed) / dt, -driver.ComfortableDeceleration, driver.MaxAcceleration);
+            if (nearField != null)
+                for (int i = 0; i < nearField.Obstacles.Count; i++)
+                {
+                    var obstacle = nearField.Obstacles[i];
+                    acceleration = Math.Min(acceleration, DriverModel.ComputeAcceleration(driver, speed,
+                        obstacle.SpeedAlongPathMetersPerSecond, Math.Max(0f, obstacle.NearDistanceMeters)));
+                }
+            ulong validTo = frameId + (ulong)Math.Max(0, validitySteps - 1);
+            return new MotionCommand(frameId, frameId, validTo, acceleration,
+                Mathf.Clamp(angle, -drivability.LowSpeedLockDegrees, drivability.LowSpeedLockDegrees), SpeedConstraint.None, lateral,
+                heading, curvature, referenceS);
         }
 
         private void EndRecovery(TacticalReason reason)

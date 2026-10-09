@@ -45,6 +45,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private readonly List<TrafficV2VehicleDriver> prepared = new List<TrafficV2VehicleDriver>();
         private readonly List<TrafficV2VehicleDriver> actorsInFrame = new List<TrafficV2VehicleDriver>();
         private readonly List<JunctionActorReport> reports = new List<JunctionActorReport>();
+        // Story 5.42 (M4) : demandes d'exception emises par les pilotes au pas N, soumises au lot de N.
+        private readonly List<Policy.RuleExceptionRequest> ruleRequests = new List<Policy.RuleExceptionRequest>();
         private JunctionCoordinator coordinator;
         private SignalPhaseController signals;
         private readonly List<TrafficActorInput> inputs = new List<TrafficActorInput>();
@@ -132,7 +134,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 if (driver != null && driver.IsBound) ordered.Add(driver);
             ordered.Sort((a, b) => a.TrafficId.CompareTo(b.TrafficId));
 
-            inputs.Clear(); prepared.Clear(); queries.Clear(); actorIds.Clear(); actorsInFrame.Clear();
+            inputs.Clear(); prepared.Clear(); queries.Clear(); actorIds.Clear(); actorsInFrame.Clear(); ruleRequests.Clear();
             long allocated = GC.GetAllocatedBytesForCurrentThread();
             sectionWatch.Restart();
             PrepareMarker.Begin();
@@ -206,6 +208,13 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             // Story 5.40 : graphe d'attente des pas de N, cycles soumis au lot de N.
             var cycles = DetectGridlocks(frame);
 
+            // Story 5.42 (M4) : demandes d'exception du pas N, seulement celles emises a cette frame.
+            for (int i = 0; i < prepared.Count; i++)
+            {
+                var request = prepared[i].PendingRuleExceptionRequest;
+                if (request != null && request.SourceFrame == FrameId) ruleRequests.Add(request);
+            }
+
             // Resolution des demandes de N apres tous les pas : instantane effectif a N+1 seulement.
             Coordinate(frame, snapshot, ref cost, cycles);
             gridlock.Report(coordinator.Current);
@@ -248,7 +257,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 }
             bool refused = frame == null && inputs.Count > 0;
             if (refused) coordinator.ResolveUnavailableFrame(FrameId);
-            else coordinator.Resolve(FrameId, reports, frame, cycles);
+            else if (ruleRequests.Count == 0) coordinator.Resolve(FrameId, reports, frame, cycles);
+            // Story 5.42 (M4) : les demandes d'exception du pas N entrent dans le meme lot.
+            else coordinator.Resolve(FrameId, reports, frame, cycles, ruleRequests);
             CoordinateMarker.End();
             cost.CoordinatorMilliseconds = sectionWatch.Elapsed.TotalMilliseconds;
             cost.CoordinatorBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;

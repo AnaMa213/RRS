@@ -185,6 +185,7 @@ Decisions proposees a l'approbation :
   - `AuthorizedSurface` : non volontaire.
 
   `MaxRuleExceptionFrames` = 500 pas, soit 10 s a 50 Hz.
+  **Amende le 2026-10-09 (decision proprietaire 4A, Story 5.42) :** plafond porte a 1000 pas (20 s a 50 Hz). Un contournement par le corridor oppose depuis l'approche ne tenait pas en 10 s. Une expiration au-dela de N + 1000 reste `Denied Malformed` (bornes 1000/1001 prouvees par `Story542ManeuverTests`).
 - **D4, placement.** `DrivingPolicy` est dans `Policy/`, l'autorite dans `Junction/` (Coordination, AD-39). Les deux partagent l'assembly `RoadRage.Features.Vehicles` : la separation tient au constructeur `internal` d'`EffectiveRuleException` et au scan structurel.
 
 ## Verification
