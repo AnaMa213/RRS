@@ -160,6 +160,34 @@ namespace RoadRage.Features.Vehicles
         }
 
         /// <summary>
+        /// Story 5.43 (E4) : modulation continue du profil authore par le poids gouvernant de rage ou de peur, sans
+        /// branche : effectif = base x max(0, 1 + gR.wR + gP.wP) sur v0, T, s0, a, b et b_safe. Politesse, seuil de
+        /// changement de voie, temps de reaction, intervalle, consistance et vitesse de rappel traversent tels quels.
+        /// Une lecture calme rend le profil identique bit a bit. Le noyau discret V1 ci-dessus reste inchange.
+        /// </summary>
+        public static DriverProfile ResolveEffectiveProfile(DriverProfile profile, EmotionModulation modulation, EmotionReading emotion)
+        {
+            // Modulation non valide (gain non fini ou < -1) : profil authore, jamais un levier NaN.
+            string invalid;
+            if (!modulation.TryValidate(out invalid)) return profile;
+            var rage = modulation.Rage;
+            var fear = modulation.Fear;
+            return new DriverProfile(
+                profile.DesiredSpeed * EmotionModulation.Factor(rage.DesiredSpeed, fear.DesiredSpeed, emotion),
+                profile.TimeHeadway * EmotionModulation.Factor(rage.TimeHeadway, fear.TimeHeadway, emotion),
+                profile.MinimumGap * EmotionModulation.Factor(rage.MinimumGap, fear.MinimumGap, emotion),
+                profile.MaxAcceleration * EmotionModulation.Factor(rage.MaxAcceleration, fear.MaxAcceleration, emotion),
+                profile.ComfortableDeceleration * EmotionModulation.Factor(rage.ComfortableDeceleration, fear.ComfortableDeceleration, emotion),
+                profile.Politeness,
+                profile.LaneChangeThreshold,
+                profile.SafeBrakingLimit * EmotionModulation.Factor(rage.SafeBrakingLimit, fear.SafeBrakingLimit, emotion),
+                profile.ReactionTime,
+                profile.LaneChangeEvaluationInterval,
+                profile.Consistency,
+                profile.AimPointRecallSpeed);
+        }
+
+        /// <summary>
         /// Lissage de premier ordre de l'acceleration appliquee vers l'acceleration IDM visee : le
         /// mecanisme le plus simple qui exprime un temps de reaction sans tampon d'historique. Le
         /// facteur reste dans l'intervalle ]0, 1], donc la convergence ne depasse jamais la cible.

@@ -463,6 +463,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         // Story 5.41 (P6, option 1 du 2026-10-09) : politique effective resolue a chaque pas prepare depuis le profil courant ;
         // seule source des parametres de conduite.
         private EffectivePolicy policy;
+        // Story 5.43 (E5) : lecture etroite des jauges du meme GameObject ; absente : calme.
+        private RoadRage.Shared.Domain.IEmotionSource emotionSource;
         // Story 5.42 : declenchement D1, candidat suivi, cause contournee, attente d'exception (M4) et texte publie du pas.
         private readonly ManeuverTrigger maneuverTrigger = new ManeuverTrigger();
         private ManeuverCandidate maneuverCandidate;
@@ -578,6 +580,14 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             physicsBody = GetComponent<VehiclePhysicsBody>();
             bodyCollider = GetComponent<BoxCollider>();
             footprint = FootprintOf(bodyCollider);
+            emotionSource = GetComponent<RoadRage.Shared.Domain.IEmotionSource>();
+        }
+
+        /// <summary>Story 5.43 (E5) : lecture hote de l'emotion du vehicule ; source absente ou detruite : calme.</summary>
+        private RoadRage.Shared.Domain.EmotionReading CurrentEmotion()
+        {
+            var component = emotionSource as UnityEngine.Object;
+            return component != null ? emotionSource.CurrentEmotion : RoadRage.Shared.Domain.EmotionReading.Calm;
         }
 
         /// <summary>
@@ -674,7 +684,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             input = new TrafficActorInput(insertion.TrafficId, pose, speed, previousElement, TrafficV2Lifecycle.ExpectedElements(route),
                 current.KinematicAnchors(currentPiece));
             if (!drivable) { contactsOfStep.Reset(); return true; }
-            policy = DrivingPolicy.Resolve(driverProfile, insertion.TrafficId, insertion.Seed.Value);
+            policy = DrivingPolicy.Resolve(driverProfile, insertion.TrafficId, insertion.Seed.Value, CurrentEmotion());
 
             if (composer == null)
             {
@@ -695,7 +705,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                     }
                     return true;
                 }
-                composer = new VehicleDriveIntentComposer(physicsBody.Profile, policy.Driver.SafeBrakingLimit, dt);
+                // Story 5.43 : le repli V2 est un chemin de securite, jamais module par l'emotion (b_safe authore).
+                composer = new VehicleDriveIntentComposer(physicsBody.Profile, policy.AuthoredDriver.SafeBrakingLimit, dt);
                 FixedDeltaTimeSeconds = dt;
             }
             ulong step = ++stepCounter;

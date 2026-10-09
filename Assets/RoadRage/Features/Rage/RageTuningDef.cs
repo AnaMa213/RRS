@@ -80,6 +80,30 @@ namespace RoadRage.Features.Rage
         [Tooltip("Story 5.5 : canal(aux) affecte(s) par le klaxon.")]
         private ReactionChannel honkChannel = ReactionChannel.Rage;
 
+        [SerializeField]
+        [Tooltip("Story 5.43 : decroissance de RageValue sans source, en % de MaxRageValue par seconde (1 par defaut).")]
+        private float rageDecayPercentPerSecond = 1f;
+
+        [SerializeField]
+        [Tooltip("Story 5.43 : decroissance de FearValue sans source, en % de MaxFearValue par seconde (1 par defaut).")]
+        private float fearDecayPercentPerSecond = 1f;
+
+        [SerializeField]
+        [Tooltip("Story 5.43 : gel de la decroissance de rage a l'entree d'un palier superieur, en secondes (10 par defaut). La jauge peut monter pendant le gel.")]
+        private float tierFreezeSeconds = 10f;
+
+        [SerializeField]
+        [Tooltip("Story 5.43 : peur (% de MaxFearValue) a partir de laquelle la peur l'emporte sur toute rage (100 par defaut).")]
+        private float fearOverridePercent = 100f;
+
+        [SerializeField]
+        [Tooltip("Story 5.43 : peur (%) a partir de laquelle la fuite s'ouvre si elle depasse strictement la rage (50 par defaut).")]
+        private float escapeEnterPercent = 50f;
+
+        [SerializeField]
+        [Tooltip("Story 5.43 : peur (%) au plus de laquelle la fuite se ferme (30 par defaut).")]
+        private float escapeExitPercent = 30f;
+
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
         {
@@ -137,6 +161,42 @@ namespace RoadRage.Features.Rage
             get { return honkChannel; }
         }
 
+        /// <summary>Story 5.43 : decroissance de rage sans source (% de MaxRageValue par seconde).</summary>
+        public float RageDecayPercentPerSecond
+        {
+            get { return rageDecayPercentPerSecond; }
+        }
+
+        /// <summary>Story 5.43 : decroissance de peur sans source (% de MaxFearValue par seconde).</summary>
+        public float FearDecayPercentPerSecond
+        {
+            get { return fearDecayPercentPerSecond; }
+        }
+
+        /// <summary>Story 5.43 : gel de decroissance de rage a l'entree d'un palier superieur (s).</summary>
+        public float TierFreezeSeconds
+        {
+            get { return tierFreezeSeconds; }
+        }
+
+        /// <summary>Story 5.43 : seuil de peur saturee (% de MaxFearValue).</summary>
+        public float FearOverridePercent
+        {
+            get { return fearOverridePercent; }
+        }
+
+        /// <summary>Story 5.43 : seuil d'entree en fuite (%).</summary>
+        public float EscapeEnterPercent
+        {
+            get { return escapeEnterPercent; }
+        }
+
+        /// <summary>Story 5.43 : seuil de sortie de fuite (%).</summary>
+        public float EscapeExitPercent
+        {
+            get { return escapeExitPercent; }
+        }
+
         public bool TryValidate(out string error)
         {
             if (string.IsNullOrWhiteSpace(RawId) || RawId != RawId.Trim() || RawId != RawId.ToLowerInvariant())
@@ -186,6 +246,28 @@ namespace RoadRage.Features.Rage
             if (honkChannel == ReactionChannel.None || ((int)honkChannel & ~(int)ReactionChannel.Both) != 0)
             {
                 error = "HonkChannel invalide : 'honkChannel' doit se limiter a Rage, Fear ou Both.";
+                return false;
+            }
+
+            if (!float.IsFinite(rageDecayPercentPerSecond) || rageDecayPercentPerSecond < 0f
+                || !float.IsFinite(fearDecayPercentPerSecond) || fearDecayPercentPerSecond < 0f)
+            {
+                error = "Decroissance invalide : 'rageDecayPercentPerSecond' et 'fearDecayPercentPerSecond' doivent etre finis et superieurs ou egaux a 0.";
+                return false;
+            }
+
+            if (!float.IsFinite(tierFreezeSeconds) || tierFreezeSeconds < 0f)
+            {
+                error = "TierFreezeSeconds invalide : 'tierFreezeSeconds' doit etre fini et superieur ou egal a 0.";
+                return false;
+            }
+
+            // Arbitrage (Story 5.43) : 0 <= sortie < entree <= saturation <= 100, tout fini.
+            if (!float.IsFinite(escapeExitPercent) || !float.IsFinite(escapeEnterPercent) || !float.IsFinite(fearOverridePercent)
+                || escapeExitPercent < 0f || escapeExitPercent >= escapeEnterPercent || escapeEnterPercent > fearOverridePercent
+                || fearOverridePercent > 100f)
+            {
+                error = "Arbitrage invalide : 0 <= 'escapeExitPercent' < 'escapeEnterPercent' <= 'fearOverridePercent' <= 100.";
                 return false;
             }
 

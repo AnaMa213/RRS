@@ -49,6 +49,10 @@ namespace RoadRage.Features.Vehicles
         [Tooltip("Story 5.41 : politique de conduite authoree (risque, creneau, surfaces, manoeuvres), resolue par DrivingPolicy (Traffic V2). Hors de la struct de conduite : le V1 ne la lit pas.")]
         private DrivingPolicyProfile policy = DrivingPolicyProfile.Default;
 
+        [SerializeField]
+        [Tooltip("Story 5.43 : gains de modulation continue de la politique par la rage et la peur (Traffic V2). Hors de la struct de conduite : le V1 ne la lit pas.")]
+        private EmotionModulation emotionModulation = EmotionModulation.Default;
+
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
         {
@@ -77,6 +81,12 @@ namespace RoadRage.Features.Vehicles
         public DrivingPolicyProfile Policy
         {
             get { return policy; }
+        }
+
+        /// <summary>Modulation authoree par la rage et la peur (Story 5.43), lue par DrivingPolicy.Resolve.</summary>
+        public EmotionModulation EmotionModulation
+        {
+            get { return emotionModulation; }
         }
 
         public bool TryValidate(out string error)
@@ -170,6 +180,11 @@ namespace RoadRage.Features.Vehicles
             }
 
             if (!policy.TryValidate(out error))
+            {
+                return false;
+            }
+
+            if (!emotionModulation.TryValidate(out error))
             {
                 return false;
             }

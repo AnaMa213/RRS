@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using RoadRage.Features.Vehicles.Traffic.Routing;
+using RoadRage.Shared.Domain;
 using UnityEngine;
 
 namespace RoadRage.Features.Vehicles.Traffic.Policy
@@ -149,23 +150,49 @@ namespace RoadRage.Features.Vehicles.Traffic.Policy
     /// <summary>
     /// Story 5.41 (P1) : parametres effectifs d'un vehicule, immuables, derives sans muter la definition authoree. Ce que le
     /// conducteur accepte de tenter ; jamais ce qui est permis (autorite des regles) ni ce qui est faisable (tactique, 5.42).
+    /// Story 5.43 (E4) : modules continument par la lecture d'emotion ; une lecture calme les laisse identiques a la 5.41.
     /// </summary>
     public readonly struct EffectivePolicy
     {
         private readonly DrivingPolicyProfile authored;
         private readonly float phase;
+        private readonly float acceptedRisk;
+        private readonly float acceptedGapSeconds;
+        private readonly float maneuverCostFactor;
 
         public readonly RoadId TrafficId;
-        /// <summary>Vitesse desiree, temps inter-vehiculaire et ecart minimal effectifs (5.41 : le profil authore).</summary>
+        /// <summary>Profil de conduite effectif : le profil authore module par l'emotion (5.43).</summary>
         public readonly DriverProfile Driver;
+        /// <summary>Profil authore avant modulation : chemins de securite qui ne dependent jamais de l'emotion (repli V2).</summary>
+        public readonly DriverProfile AuthoredDriver;
+        /// <summary>Lecture d'emotion appliquee (5.43) ; calme sans source.</summary>
+        public readonly EmotionReading Emotion;
 
-        internal EffectivePolicy(RoadId trafficId, DriverProfile driver, DrivingPolicyProfile authored, float phase)
+        internal EffectivePolicy(RoadId trafficId, DriverProfile driver, DriverProfile authoredDriver, DrivingPolicyProfile authored,
+            float phase, float acceptedRisk, float acceptedGapSeconds, float maneuverCostFactor, EmotionReading emotion)
         {
-            TrafficId = trafficId; Driver = driver; this.authored = authored; this.phase = phase;
+            TrafficId = trafficId; Driver = driver; AuthoredDriver = authoredDriver; this.authored = authored; this.phase = phase;
+            this.acceptedRisk = acceptedRisk; this.acceptedGapSeconds = acceptedGapSeconds;
+            this.maneuverCostFactor = maneuverCostFactor; Emotion = emotion;
         }
 
-        public float AcceptedRisk { get { return authored.AcceptedRisk; } }
-        public float AcceptedGapSeconds { get { return authored.AcceptedGapSeconds; } }
+        public float AcceptedRisk { get { return acceptedRisk; } }
+        public float AcceptedGapSeconds { get { return acceptedGapSeconds; } }
+        /// <summary>Vrai si chaque levier module est fini (5.43 : un gain fini mais enorme peut deborder).</summary>
+        internal bool LeversFinite
+        {
+            get
+            {
+                if (!float.IsFinite(Driver.DesiredSpeed) || !float.IsFinite(Driver.TimeHeadway) || !float.IsFinite(Driver.MinimumGap)
+                    || !float.IsFinite(Driver.MaxAcceleration) || !float.IsFinite(Driver.ComfortableDeceleration)
+                    || !float.IsFinite(Driver.SafeBrakingLimit) || !float.IsFinite(acceptedRisk) || !float.IsFinite(acceptedGapSeconds))
+                    return false;
+                for (int i = 0; i < DrivingPolicy.ManeuverCount; i++)
+                    if (!float.IsFinite(Maneuver((ManeuverKind)i).Cost)) return false;
+                return true;
+            }
+        }
+
         public float RoutePreferenceWeight { get { return authored.RoutePreferenceWeight; } }
         public DrivingSurface AllowedSurfaces { get { return authored.AllowedSurfaces; } }
         /// <summary>Phase de variation dans ]0, 1[, tiree de (graine, TrafficId).</summary>
@@ -179,7 +206,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Policy
         public ManeuverPolicy Maneuver(ManeuverKind kind)
         {
             var preference = authored.PreferenceOf(kind);
-            return new ManeuverPolicy(preference.Willing && Allows(DrivingPolicy.SurfaceOf(kind)), preference.Cost);
+            return new ManeuverPolicy(preference.Willing && Allows(DrivingPolicy.SurfaceOf(kind)), preference.Cost * maneuverCostFactor);
         }
 
         /// <summary>P2 : vitesse desiree a l'instant donne, deterministe et bornee par l'enveloppe de Consistency.</summary>
@@ -197,7 +224,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Policy
                 var maneuver = Maneuver((ManeuverKind)i);
                 text += " " + (ManeuverKind)i + (maneuver.Eligible ? ":" + F(maneuver.Cost) : ":non");
             }
-            return text;
+            return text + " emotion " + Emotion.Governor + " rage " + F(Emotion.Rage01) + " peur " + F(Emotion.Fear01);
         }
 
         private static string F(float value) { return value.ToString("0.###", CultureInfo.InvariantCulture); }
@@ -263,17 +290,39 @@ namespace RoadRage.Features.Vehicles.Traffic.Policy
         public const string VariationDrawDomain = "policy";
         public const int ManeuverCount = 4;
 
-        public static EffectivePolicy Resolve(DriverProfileDef definition, RoadId trafficId, ulong seed)
+        public static EffectivePolicy Resolve(DriverProfileDef definition, RoadId trafficId, ulong seed,
+            EmotionReading emotion = default(EmotionReading))
         {
             if (definition == null) throw new ArgumentNullException("definition");
-            return Resolve(definition.Profile, definition.Policy, trafficId, seed);
+            return Resolve(definition.Profile, definition.Policy, trafficId, seed, definition.EmotionModulation, emotion);
         }
 
-        /// <summary>P1 : fonction pure ; les structs sont copiees, rien n'est partage entre vehicules.</summary>
-        public static EffectivePolicy Resolve(DriverProfile driver, DrivingPolicyProfile authored, RoadId trafficId, ulong seed)
+        /// <summary>
+        /// P1 : fonction pure ; les structs sont copiees, rien n'est partage entre vehicules. Story 5.43 (E4) : chaque levier
+        /// vaut base x max(0, 1 + gR.wR + gP.wP), une seule formule, sans branche sur l'emotion ; le risque reste dans
+        /// [0, 1]. Une modulation non valide est ignoree (politique authoree), jamais propagee en valeur non finie.
+        /// </summary>
+        public static EffectivePolicy Resolve(DriverProfile driver, DrivingPolicyProfile authored, RoadId trafficId, ulong seed,
+            EmotionModulation modulation = default(EmotionModulation), EmotionReading emotion = default(EmotionReading))
         {
             float phase = (float)RoutePlanner.UnitDraw(seed, trafficId, VariationDrawDomain, 0UL, RoadId.None);
-            return new EffectivePolicy(trafficId, driver, authored, phase);
+            string invalid;
+            if (!modulation.TryValidate(out invalid)) modulation = default(EmotionModulation);
+            var modulated = Modulate(driver, authored, trafficId, phase, modulation, emotion);
+            // Un levier deborde (gain fini mais enorme) : la politique authoree reste la seule valeur sure, jamais un infini.
+            return modulated.LeversFinite ? modulated
+                : Modulate(driver, authored, trafficId, phase, default(EmotionModulation), EmotionReading.Calm);
+        }
+
+        private static EffectivePolicy Modulate(DriverProfile driver, DrivingPolicyProfile authored, RoadId trafficId, float phase,
+            EmotionModulation modulation, EmotionReading emotion)
+        {
+            var rage = modulation.Rage;
+            var fear = modulation.Fear;
+            return new EffectivePolicy(trafficId, DriverModel.ResolveEffectiveProfile(driver, modulation, emotion), driver, authored,
+                phase, Mathf.Clamp01(authored.AcceptedRisk * EmotionModulation.Factor(rage.AcceptedRisk, fear.AcceptedRisk, emotion)),
+                authored.AcceptedGapSeconds * EmotionModulation.Factor(rage.AcceptedGap, fear.AcceptedGap, emotion),
+                EmotionModulation.Factor(rage.ManeuverCost, fear.ManeuverCost, emotion), emotion);
         }
 
         /// <summary>Surface requise par une manoeuvre.</summary>

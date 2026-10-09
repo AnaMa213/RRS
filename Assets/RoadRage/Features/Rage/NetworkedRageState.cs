@@ -11,7 +11,7 @@ namespace RoadRage.Features.Rage
     /// cible, pas d'une collection interne.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class NetworkedRageState : HostOwnedNetworkStateBehaviour, IRageDispositionSource
+    public sealed class NetworkedRageState : HostOwnedNetworkStateBehaviour, IRageDispositionSource, IEmotionSource
     {
         public NetworkVariable<RageDisposition> Disposition = new NetworkVariable<RageDisposition>(
             RageDisposition.Calm,
@@ -28,6 +28,10 @@ namespace RoadRage.Features.Rage
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
 
+        // Story 5.43 : palier, gel, maintien et fuite, hote seul (jamais replique), et dernier tuning applique.
+        private EmotionMeterState meters;
+        private RageTuningDef meterTuning;
+
         /// <summary>
         /// Implementation de <see cref="IRageDispositionSource"/> (Story 5.4) : lecture seule de la
         /// disposition synchronisee, pour les consommateurs qui ne peuvent pas dependre de
@@ -36,6 +40,40 @@ namespace RoadRage.Features.Rage
         public RageDisposition CurrentDisposition
         {
             get { return Disposition.Value; }
+        }
+
+        /// <summary>
+        /// Story 5.43 (E3, E5) : lecture hote arbitree, a partir des jauges courantes et du dernier tuning applique ;
+        /// <see cref="EmotionReading.Calm"/> tant qu'aucun tuning n'a ete applique.
+        /// </summary>
+        public EmotionReading CurrentEmotion
+        {
+            get { return EmotionMeters.Read(Current(meterTuning), meterTuning); }
+        }
+
+        /// <summary>
+        /// Story 5.43 (E1, E2) : avance hote des jauges sans source. Aucun appel automatique (le V1 reste inchange) : le
+        /// tick de production et l'evenement associe sont cables par la 5.44. No-op si tuning est nul.
+        /// </summary>
+        public void Advance(float deltaTime, RageTuningDef tuning, bool associatedEventActive)
+        {
+            if (tuning == null)
+            {
+                return;
+            }
+
+            meters = EmotionMeters.Advance(Current(tuning), deltaTime, tuning, associatedEventActive);
+            meterTuning = tuning;
+            if (meters.Rage != RageValue.Value)
+            {
+                RageValue.Value = meters.Rage;
+                Disposition.Value = tuning.ResolveDisposition(meters.Rage);
+            }
+
+            if (meters.Fear != FearValue.Value)
+            {
+                FearValue.Value = meters.Fear;
+            }
         }
 
         /// <summary>
@@ -51,9 +89,11 @@ namespace RoadRage.Features.Rage
                 return;
             }
 
+            var previous = Current(tuning);
             var next = Mathf.Clamp(RageValue.Value + delta, 0f, tuning.MaxRageValue);
             RageValue.Value = next;
             Disposition.Value = tuning.ResolveDisposition(next);
+            Track(previous, tuning);
         }
 
         /// <summary>
@@ -68,7 +108,9 @@ namespace RoadRage.Features.Rage
                 return;
             }
 
+            var previous = Current(tuning);
             FearValue.Value = Mathf.Clamp(FearValue.Value + delta, 0f, tuning.MaxFearValue);
+            Track(previous, tuning);
         }
 
         /// <summary>
@@ -90,6 +132,7 @@ namespace RoadRage.Features.Rage
                 return;
             }
 
+            var previous = Current(tuning);
             var previousRage = RageValue.Value;
             var rageDelta = effect.AffectsRage ? effect.Magnitude * tuning.RageSensitivity : 0f;
             var fearDelta = effect.AffectsFear ? effect.Magnitude * tuning.FearSensitivity : 0f;
@@ -108,6 +151,32 @@ namespace RoadRage.Features.Rage
             {
                 Disposition.Value = tuning.ResolveDisposition(RageValue.Value);
             }
+
+            Track(previous, tuning);
+        }
+
+        /// <summary>
+        /// Etat hote aligne sur les NetworkVariables courantes. Un tuning different du dernier applique (premier appel,
+        /// jauge ecrite directement, autre jeu de paliers) reamorce le palier : aucun gel n'est arme par erreur.
+        /// </summary>
+        private EmotionMeterState Current(RageTuningDef tuning)
+        {
+            var current = meters;
+            current.Rage = RageValue.Value;
+            current.Fear = FearValue.Value;
+            if (tuning != null && !ReferenceEquals(tuning, meterTuning))
+            {
+                current.Tier = EmotionMeters.TierOf(current.Rage, tuning);
+            }
+
+            return current;
+        }
+
+        /// <summary>Story 5.43 : transitions apres une variation explicite ; les valeurs ecrites restent celles du V1.</summary>
+        private void Track(EmotionMeterState previous, RageTuningDef tuning)
+        {
+            meters = EmotionMeters.Change(previous, RageValue.Value, FearValue.Value, tuning);
+            meterTuning = tuning;
         }
     }
 }
