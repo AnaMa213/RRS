@@ -673,6 +673,256 @@ namespace RoadRage.Tests.EditMode
             return opposing;
         }
 
+        // ================================================================== correctifs de revue R1-R9
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        public void AnAdjacentDepartureRequiresPermissionAndCoverageThroughItsReturn(int invalid)
+        {
+            var model = TwoWay(2f, true, configure: source =>
+            {
+                var a = source.Adjacencies[0];
+                if (invalid == 0) a.Permission = LaneChangePermission.Forbidden;
+                if (invalid == 1) a.FromEndSMeters = 53f;
+                if (invalid == 2) a.ToEndSMeters = 53f;
+                source.Adjacencies[0] = a;
+                if (invalid == 3)
+                {
+                    a = source.Adjacencies[1]; a.Permission = LaneChangePermission.Forbidden; source.Adjacencies[1] = a;
+                }
+            });
+            var result = Evaluate(Frame(model, 10f, stalledAt: 50f), 10f, Stalled, PerceivedObstacleKind.TrafficActor);
+            var adjacent = Candidate(result, ManeuverKind.AdjacentCorridor);
+            Assert.That(adjacent.Verdict, Is.EqualTo(invalid == 0 ? ManeuverVerdict.NotOffered : ManeuverVerdict.GeometryInfeasible),
+                result.ToText());
+            if (invalid != 0) Assert.That(adjacent.GeometryCause, Is.EqualTo(ManeuverGeometryCause.AdjacencyNotCovered));
+            Assert.That(result.Ready, Is.False);
+        }
+
+        [TestCase(PerceptionUnavailableReason.ChannelUnavailable)]
+        [TestCase(PerceptionUnavailableReason.ChannelSaturated)]
+        [TestCase(PerceptionUnavailableReason.HazardCollectorSaturated)]
+        public void IncompleteManeuverPerceptionBrakesAndCannotPropel(PerceptionUnavailableReason reason)
+        {
+            var model = TwoWay(2f, false);
+            var path = SelectedOpposing(model).Path;
+            var actor = Actor(Corridor(model, Own), Self, 10f, 0f);
+            var near = new LongitudinalPerception(reason, null, null);
+            foreach (float speed in new[] { 0f, 6f })
+            {
+                var command = TacticalDecision.ManeuverCommand(2UL, 1, path, model.DrivabilityProfile, FixturePolicy().Driver,
+                    actor.Pose.Position, actor.Pose.Forward, speed, Dt, near);
+                Assert.That(command.Binding, Is.EqualTo(SpeedConstraint.PerceptionUnavailable));
+                Assert.That(command.TargetAccelerationMetersPerSecondSquared, Is.LessThan(0f));
+                var vehicle = AssetDatabase.LoadAssetAtPath<VehicleProfileDef>("Assets/RoadRage/ScriptableObjects/Vehicles/VehicleProfileDef_Default.asset");
+                Assert.That(vehicle, Is.Not.Null);
+                var composer = new RoadRage.Features.Vehicles.Traffic.Intent.VehicleDriveIntentComposer(vehicle.Profile, 4f, Dt);
+                var composed = composer.Compose(2UL, command, RoadRage.Features.Vehicles.Traffic.Intent.V2FallbackReason.None, speed, 0f);
+                Assert.That(composed.Intent.Throttle, Is.EqualTo(0f), "aucune propulsion depuis une observation incomplete");
+            }
+        }
+
+        [TestCase(PerceptionUnavailableReason.ChannelUnavailable)]
+        [TestCase(PerceptionUnavailableReason.ChannelSaturated)]
+        [TestCase(PerceptionUnavailableReason.HazardCollectorSaturated)]
+        public void IncompletePerceptionAtAdmissionProposesNoException(PerceptionUnavailableReason reason)
+        {
+            var model = TwoWay(2f, false);
+            var s = Situation(model, Frame(model, 10f, stalledAt: 50f), 10f, Stalled, PerceivedObstacleKind.TrafficActor);
+            s.HazardCollectorSaturated = reason == PerceptionUnavailableReason.HazardCollectorSaturated;
+            if (reason == PerceptionUnavailableReason.ChannelSaturated) s.Buffer = new SpatialQueryBuffer(1);
+            else if (reason == PerceptionUnavailableReason.ChannelUnavailable) s.Buffer = null;
+            var result = ManeuverEvaluation.Evaluate(s, 1UL);
+            var candidate = Candidate(result, ManeuverKind.OpposingCorridor);
+            Assert.That(candidate.Verdict, Is.EqualTo(ManeuverVerdict.SafetyRejected), result.ToText());
+            Assert.That(candidate.PerceptionReason, Is.EqualTo(reason));
+            Assert.That(result.Selected, Is.Null, "aucune selection permettant de proposer une exception");
+        }
+
+        [Test]
+        public void CurvedPathProofChecksTheCombinedLateralAcceleration()
+        {
+            var profile = TwoWay(2f, false).DrivabilityProfile;
+            const float radius = 25f, kappa = 1f / radius;
+            var samples = Enumerable.Range(0, 701).Select(i =>
+            {
+                float s = i * 0.1f, angle = s / radius;
+                return new RoadCurveSample { SMeters = s, Position = new Vector3(radius * (1f - Mathf.Cos(angle)), 0f, radius * Mathf.Sin(angle)),
+                    Tangent = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)), Up = Vector3.up, CurvaturePerMeter = kappa,
+                    HalfWidthLeftMeters = 10f, HalfWidthRightMeters = 10f };
+            }).ToArray();
+            var curve = new RoadCurve(samples);
+            var own = new EffectiveLaneCorridor { CorridorId = Own, SectionId = Section, Curve = curve, LengthMeters = 70f };
+            var path = ManeuverPath.Build(Own, curve, 10f, 0f, 2f, 15f, 10f, 15f, 4f, 6f, 0.1f,
+                profile.ReferencePointAheadRearAxleMeters, 0f);
+            Assert.That(path.MaximumAbsoluteCurvaturePerMeter, Is.LessThan(1f / RoadModelCompiler.AdmissionRadiusMeters(profile)));
+            Assert.That(path.MaximumAbsoluteCurvaturePerMeter * 36f, Is.GreaterThan(2f));
+            var proof = ManeuverProof.Prove(path, own, null, profile, Gauge, Epsilon, default(ManeuverObstacle),
+                new ManeuverTiming(6f, 6f, 1.5f, 2f), 1f, 0.5f, 0.05f);
+            Assert.That(proof.Cause, Is.EqualTo(ManeuverGeometryCause.LateralAccelerationExceeded));
+        }
+
+        [Test]
+        public void ANewCauseCannotBorrowThePendingExceptionsTriggerDelay()
+        {
+            var trigger = new ManeuverTrigger();
+            bool ready = false;
+            for (ulong frame = 1; frame <= 102; frame++)
+                ready = trigger.Observe(frame, LongitudinalCandidateKind.Obstacle, Stalled, 0f, PerceivedObstacleKind.Vehicle,
+                    false, DesiredSpeed, Dt);
+            Assert.That(trigger.CanEvaluate(ready, RoadId.None), Is.True);
+            ready = trigger.Observe(103UL, LongitudinalCandidateKind.Obstacle, HazardId, 0f, PerceivedObstacleKind.Pedestrian,
+                false, DesiredSpeed, Dt);
+            Assert.That(trigger.CanEvaluate(ready, Stalled), Is.False, "l'attente de A n'ouvre pas l'evaluation de B");
+            for (ulong frame = 104; frame <= 203; frame++)
+                Assert.That(trigger.CanEvaluate(trigger.Observe(frame, LongitudinalCandidateKind.Obstacle, HazardId, 0f,
+                    PerceivedObstacleKind.Pedestrian, false, DesiredSpeed, Dt), Stalled), Is.False);
+            ready = trigger.Observe(204UL, LongitudinalCandidateKind.Obstacle, HazardId, 0f, PerceivedObstacleKind.Pedestrian,
+                false, DesiredSpeed, Dt);
+            Assert.That(trigger.CanEvaluate(ready, Stalled), Is.True, "B tient son propre delai");
+        }
+
+        [TestCase(0f, false)]
+        [TestCase(10f, true)]
+        public void CorridorOffsetIncludesApproachingFollowers(float followerSpeed, bool conflict)
+        {
+            var model = TwoWay(4.5f, false);
+            var cause = Box(TrafficHazardKind.Obstacle, model, 50f, 0f, new Vector3(0.5f, 0.75f, 1f));
+            var frame = new TrafficFrame(1UL, model, new[] { Actor(Corridor(model, Own), Self, 10f, 0f),
+                Actor(Corridor(model, Own), Oncoming, 3f, followerSpeed) }, new[] { cause });
+            var candidate = Candidate(Evaluate(frame, 10f, HazardId, PerceivedObstacleKind.Obstacle), ManeuverKind.CorridorOffset);
+            Assert.That(candidate.Verdict, Is.EqualTo(conflict ? ManeuverVerdict.TrafficConflict : ManeuverVerdict.Selected), candidate.ToText());
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void IncomingElementsContributeToTheManeuverArrivalMargin(bool movement)
+        {
+            var upstream = Id(120); var upstreamSection = Id(121); var junction = Id(122); var movementId = Id(123);
+            var model = TwoWay(4.5f, false, configure: source =>
+            {
+                var section = source.Sections[0]; section.Id = upstreamSection;
+                source.Sections = source.Sections.Concat(new[] { section }).ToArray();
+                var lane = Lane(upstream, new Vector3(4.5f, 0f, movement ? -30f : -20f), Vector3.forward, 20f, 4.5f, 0, true);
+                lane.SectionId = upstreamSection; source.Corridors = source.Corridors.Concat(new[] { lane }).ToArray();
+                if (!movement) source.Connections = new[] { new LaneConnection { Id = Id(124), FromCorridorId = upstream,
+                    ToCorridorId = Own, Kind = LaneConnectionKind.Continuation } };
+                else
+                {
+                    source.Junctions = new[] { new Junction { Id = junction,
+                        Boundary = new RoadBoundsBox { Center = new Vector3(4.5f, 0f, -5f), Extents = new Vector3(5f, 2f, 5f) } } };
+                    source.Movements = new[] { new JunctionMovement { Id = movementId, JunctionId = junction, FromCorridorId = upstream,
+                        ToCorridorId = Own, LengthMeters = 10f, Samples = Lane(movementId, new Vector3(4.5f, 0f, -10f), Vector3.forward,
+                            10f, 4.5f, 0, true).Samples, RoutePreferenceWeight = 1f } };
+                    source.Controls = new[] { new JunctionControl { Id = Id(125), JunctionId = junction,
+                        Kind = JunctionControlKind.Uncontrolled, ControlledMovementIds = new[] { movementId } } };
+                }
+            });
+            TrafficActorInput approaching;
+            if (!movement) approaching = Actor(Corridor(model, upstream), Oncoming, 15f, 10f);
+            else
+            {
+                CompiledJunctionMovement m; Assert.That(model.TryGetMovement(movementId, out m), Is.True);
+                var at = m.Curve.Sample(5f);
+                approaching = new TrafficActorInput(Oncoming, new VehicleFootprintPose { Position = at.Position, Forward = at.Tangent,
+                    Up = at.Up, Footprint = Car }, 10f, movementId);
+            }
+            var frame = new TrafficFrame(1UL, model, new[] { Actor(Corridor(model, Own), Self, 10f, 0f), approaching },
+                new[] { Box(TrafficHazardKind.Obstacle, model, 50f, 0f, new Vector3(0.5f, 0.75f, 1f)) });
+            var candidate = Candidate(Evaluate(frame, 10f, HazardId, PerceivedObstacleKind.Obstacle), ManeuverKind.CorridorOffset);
+            Assert.That(candidate.Verdict, Is.EqualTo(ManeuverVerdict.TrafficConflict), candidate.ToText());
+            Assert.That(candidate.SlackSeconds, Is.LessThan(0f).And.GreaterThan(float.NegativeInfinity));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void GapAndRiskHaveIndependentRefusalBoundaries(bool gap)
+        {
+            var model = TwoWay(2f, false);
+            var baseline = Candidate(Evaluate(Frame(model, 10f, stalledAt: 50f), 10f, Stalled, PerceivedObstacleKind.TrafficActor),
+                ManeuverKind.OpposingCorridor);
+            float desiredSlack = 5f;
+            float approachSpeed = (baseline.Proof.OtherSMinMeters - 5f - Car.FrontMeters)
+                / (baseline.DurationSeconds + desiredSlack);
+            var frame = Frame(model, 10f, stalledAt: 50f, oncomingAtOpposingS: 5f, oncomingSpeed: approachSpeed);
+            var permissive = ReviewPolicy(1f, 0f);
+            var accepted = Candidate(Evaluate(frame, 10f, Stalled, PerceivedObstacleKind.TrafficActor, permissive), ManeuverKind.OpposingCorridor);
+            Assert.That(accepted.SlackSeconds, Is.GreaterThan(0f));
+            Assert.That(accepted.Verdict, Is.EqualTo(ManeuverVerdict.ExceptionPending), accepted.ToText());
+            var policy = gap ? ReviewPolicy(1f, accepted.SlackSeconds + 0.1f) : ReviewPolicy(accepted.Risk - 0.01f, 0f);
+            var result = Evaluate(frame, 10f, Stalled, PerceivedObstacleKind.TrafficActor, policy);
+            var refused = Candidate(result, ManeuverKind.OpposingCorridor);
+            Assert.That(refused.PolicyRefusal, Is.EqualTo(gap ? ManeuverPolicyRefusal.Gap : ManeuverPolicyRefusal.Risk), result.ToText());
+            Assert.That(result.Selected, Is.Null);
+            var boundary = Evaluate(frame, 10f, Stalled, PerceivedObstacleKind.TrafficActor,
+                gap ? ReviewPolicy(1f, accepted.SlackSeconds - 0.1f) : ReviewPolicy(accepted.Risk + 0.01f, 0f));
+            Assert.That(boundary.Selected, Is.Not.Null, boundary.ToText());
+        }
+
+        private static EffectivePolicy ReviewPolicy(float risk, float gap)
+        {
+            var preference = new ManeuverPreference(true, 1f);
+            return DrivingPolicy.Resolve(Def.Profile.WithDesiredSpeed(DesiredSpeed), new DrivingPolicyProfile(risk, gap, 1f,
+                DrivingSurface.Carriageway | DrivingSurface.OpposingCorridor, preference, preference, preference,
+                new ManeuverPreference(false, 1f)), Self, 1UL);
+        }
+
+        [TestCase(TrafficHazardKind.Vehicle)]
+        [TestCase(TrafficHazardKind.Pedestrian)]
+        [TestCase(TrafficHazardKind.WalkingPlayer)]
+        public void CrossingHazardsArePredictedWithTheirWorldVelocity(TrafficHazardKind kind)
+        {
+            var model = TwoWay(2f, false);
+            var baseFrame = Frame(model, 10f, stalledAt: 50f);
+            var s = Situation(model, baseFrame, 10f, Stalled, PerceivedObstacleKind.TrafficActor);
+            var candidate = Candidate(ManeuverEvaluation.Evaluate(s, 1UL), ManeuverKind.OpposingCorridor);
+            float d = candidate.Path.DistanceAtReference(0.5f * (candidate.Path.DepartEndSMeters + candidate.Path.ReturnStartSMeters));
+            var at = candidate.Path.Track.Nominal(0, d).Position;
+            var bounds = new RoadBoundsBox { Center = at + new Vector3(-12f, 0.75f, 0f), Extents = new Vector3(0.2f, 0.75f, 0.2f) };
+            foreach (float velocity in new[] { 2f, -2f })
+            {
+                var hazard = new TrafficHazardInput(HazardId, kind, bounds, new Vector3(velocity, 0f, 0f), 1f);
+                var frame = Frame(model, 10f, stalledAt: 50f, hazards: new[] { hazard });
+                var result = Evaluate(frame, 10f, Stalled, PerceivedObstacleKind.TrafficActor, ReviewPolicy(1f, 0f));
+                var outcome = Candidate(result, ManeuverKind.OpposingCorridor);
+                Assert.That(outcome.Verdict, Is.EqualTo(velocity > 0f ? ManeuverVerdict.TrafficConflict : ManeuverVerdict.ExceptionPending),
+                    result.ToText());
+                if (velocity > 0f) Assert.That(outcome.SlackSeconds, Is.LessThan(0f).And.GreaterThan(float.NegativeInfinity));
+            }
+        }
+
+        [Test]
+        public void BypassedCauseKeepsItsLateralMotionInTheAvoidanceProof()
+        {
+            var model = TwoWay(2f, false);
+            var own = Corridor(model, Own);
+            var path = SelectedOpposing(model).Path;
+            float d = path.DistanceAtReference(0.5f * (path.DepartEndSMeters + path.ReturnStartSMeters));
+            var timing = new ManeuverTiming(0f, 6f, FixturePolicy().Driver.MaxAcceleration, FixturePolicy().Driver.ComfortableDeceleration);
+            float time = timing.SecondsAt(d);
+            var at = path.Track.Nominal(0, d).Position;
+            var center = at + new Vector3(12f, 0f, 0f);
+            var bounds = new RoadBoundsBox { Center = center + Vector3.up * 0.75f, Extents = new Vector3(0.2f, 0.75f, 0.2f) };
+            var velocity = new Vector3(-12f / time, 0f, 0f);
+            var frame = Frame(model, 10f, hazards: new[] {
+                new TrafficHazardInput(HazardId, TrafficHazardKind.Pedestrian, bounds, velocity, 1f) });
+            ManeuverObstacle cause;
+            Assert.That(ManeuverEvaluation.TryCause(frame, own.Curve, HazardId, PerceivedObstacleKind.Pedestrian, out cause), Is.True);
+            Assert.That(cause.WorldVelocity, Is.EqualTo(velocity), "vitesse complete conservee depuis la frame");
+            var proof = ManeuverProof.Prove(path, own, Corridor(model, Opposing), model.DrivabilityProfile, Gauge, Epsilon, cause,
+                timing, 1f, 0.5f, model.ValidationProfile.EnvelopeOverlapToleranceMeters);
+            Assert.That(cause.SpeedMetersPerSecond, Is.EqualTo(0f));
+            Assert.That(proof.Cause, Is.EqualTo(ManeuverGeometryCause.ObstacleClearance), "le mouvement lateral coupe le chemin prouve");
+            var stationaryFrame = Frame(model, 10f, hazards: new[] {
+                new TrafficHazardInput(HazardId, TrafficHazardKind.Pedestrian, bounds, Vector3.zero, 1f) });
+            ManeuverObstacle stationary;
+            Assert.That(ManeuverEvaluation.TryCause(stationaryFrame, own.Curve, HazardId, PerceivedObstacleKind.Pedestrian, out stationary), Is.True);
+            Assert.That(ManeuverProof.Prove(path, own, Corridor(model, Opposing), model.DrivabilityProfile, Gauge, Epsilon, stationary,
+                timing, 1f, 0.5f, model.ValidationProfile.EnvelopeOverlapToleranceMeters).Proven, Is.True);
+        }
+
         // ================================================================== aides
 
         private static readonly Vector3 CarExtents = new Vector3(1.03f, 0.75f, 2.22f);
@@ -767,7 +1017,8 @@ namespace RoadRage.Tests.EditMode
         /// optionnellement un corridor adjacent de meme sens (x = +3w, vers +z) avec adjacence authoree. Demi-largeurs w.
         /// Profils de drivabilite, validation et localisation authores de MVP_Run.
         /// </summary>
-        private static CompiledRoadModel TwoWay(float halfWidth, bool adjacent, float length = CorridorLength, float gap = 0f)
+        private static CompiledRoadModel TwoWay(float halfWidth, bool adjacent, float length = CorridorLength, float gap = 0f,
+            Action<RoadModelSource> configure = null)
         {
             var authored = RoadModelDocument.Load(File.ReadAllText(TrafficV2Settings.ModelPath));
             var corridors = new List<LaneCorridor>
@@ -795,6 +1046,7 @@ namespace RoadRage.Tests.EditMode
                 Corridors = corridors.ToArray(), Adjacencies = adjacencies.ToArray(), Junctions = new Junction[0],
                 Movements = new JunctionMovement[0], Controls = new JunctionControl[0], ConflictZones = new ConflictZone[0]
             };
+            if (configure != null) configure(source);
             return RoadModelCompiler.Compile(source);
         }
 

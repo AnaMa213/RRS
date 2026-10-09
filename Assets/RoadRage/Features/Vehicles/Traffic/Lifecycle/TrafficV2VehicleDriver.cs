@@ -467,7 +467,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private readonly ManeuverTrigger maneuverTrigger = new ManeuverTrigger();
         private ManeuverCandidate maneuverCandidate;
         private ManeuverObstacle maneuverCause;
-        private bool awaitingException;
+        private RoadId awaitingExceptionCause;
         private ulong maneuverRequestFrame;
         private ulong maneuverDeniedFrame;
         private string maneuverTextOfStep;
@@ -1112,11 +1112,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 || actor.Location.ElementKind != RoadElementKind.LaneCorridor
                 || (actor.Location.Flags & RoadLocationFlags.WrongWay) != 0 || !OnRoute(actor.Location.ElementId))
             {
-                awaitingException = false;
+                awaitingExceptionCause = RoadId.None;
                 return;
             }
-            if (!ready && !awaitingException) return;
-            awaitingException = false;
+            bool continuing = maneuverTrigger.CanEvaluate(ready, awaitingExceptionCause);
+            awaitingExceptionCause = RoadId.None;
+            if (!continuing) return;
             EffectiveLaneCorridor own;
             ManeuverObstacle cause;
             if (!frame.Model.TryGetCorridor(actor.Location.ElementId, out own)
@@ -1149,7 +1150,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 PendingRuleExceptionRequest = request;
                 RuleExceptionRequestCount++;
                 maneuverRequestFrame = frameId;
-                awaitingException = true;
+                awaitingExceptionCause = cause.Id;
                 return;
             }
             maneuverTrigger.Reset();

@@ -45,6 +45,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
         public ManeuverGeometryCause GeometryCause { get; internal set; }
         public ManeuverPolicyRefusal PolicyRefusal { get; internal set; }
         public SafetyReason SafetyReason { get; internal set; }
+        public PerceptionUnavailableReason PerceptionReason { get; internal set; }
         /// <summary>Corridor adjacent ou oppose du candidat ; None pour le decalage dans le corridor.</summary>
         public RoadId OtherCorridorId { get; internal set; }
         public ManeuverPath Path { get; internal set; }
@@ -64,7 +65,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             var text = Kind + ":" + Verdict;
             if (Verdict == ManeuverVerdict.GeometryInfeasible) text += "(" + GeometryCause + ")";
             else if (Verdict == ManeuverVerdict.PolicyRefused) text += "(" + PolicyRefusal + ")";
-            else if (Verdict == ManeuverVerdict.SafetyRejected) text += "(" + SafetyReason + ")";
+            else if (Verdict == ManeuverVerdict.SafetyRejected) text += "(" + (PerceptionReason != PerceptionUnavailableReason.None
+                ? PerceptionReason.ToString() : SafetyReason.ToString()) + ")";
             if (Path != null)
                 text += " o " + F(Path.TargetOffsetMeters) + " v " + F(Path.SpeedMetersPerSecond) + " T " + F(DurationSeconds)
                     + " marge " + (float.IsPositiveInfinity(SlackSeconds) ? "inf" : F(SlackSeconds)) + " risque " + F(Risk);
@@ -181,6 +183,11 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
                 return Verdict(candidate, ManeuverVerdict.GeometryInfeasible);
             }
             candidate.RequiresException = kind == ManeuverKind.OpposingCorridor && candidate.Proof.EntersOther;
+            if (kind == ManeuverKind.AdjacentCorridor && !AdjacentCoverage(model, s.Own, other.Value, candidate.Path))
+            {
+                candidate.GeometryCause = ManeuverGeometryCause.AdjacencyNotCovered;
+                return Verdict(candidate, ManeuverVerdict.GeometryInfeasible);
+            }
 
             // 2. Conflits dynamiques (tactique).
             candidate.SlackSeconds = Slack(s, candidate, other, 0f);
@@ -194,6 +201,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             if (!policy.Eligible) return Refuse(candidate, ManeuverPolicyRefusal.Ineligible);
             if (candidate.SlackSeconds < s.Policy.AcceptedGapSeconds) return Refuse(candidate, ManeuverPolicyRefusal.Gap);
             if (candidate.Risk > s.Policy.AcceptedRisk) return Refuse(candidate, ManeuverPolicyRefusal.Risk);
+            // La perception incomplete ne peut ni autoriser un depart ni produire une demande d'exception.
+            ObservationChannel<ObstacleFact> admissionFacts;
+            var admissionNear = NearField(s.Frame, s.TrafficId, candidate.Path, s.PerceptionLimits, s.Buffer,
+                s.HazardCollectorSaturated, out admissionFacts);
+            if (admissionNear.UnavailableReason != PerceptionUnavailableReason.None)
+            {
+                candidate.PerceptionReason = admissionNear.UnavailableReason;
+                return Verdict(candidate, ManeuverVerdict.SafetyRejected);
+            }
             if (candidate.RequiresException)
             {
                 // D4, decision 4A : fenetre jusqu'au dernier point qui occupe l'enveloppe opposee, plus la marge ; jamais raccourcie.
@@ -336,6 +352,31 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             return proof.Cause;
         }
 
+        private static bool AdjacentCoverage(CompiledRoadModel model, EffectiveLaneCorridor own, EffectiveLaneCorridor other,
+            ManeuverPath path)
+        {
+            bool departure = false, returning = false;
+            for (int i = 0; i < model.Adjacencies.Count; i++)
+            {
+                var a = model.Adjacencies[i];
+                bool outbound = a.FromCorridorId == own.CorridorId && a.ToCorridorId == other.CorridorId;
+                bool inbound = a.FromCorridorId == other.CorridorId && a.ToCorridorId == own.CorridorId;
+                if ((!outbound && !inbound) || a.Permission != LaneChangePermission.Allowed) continue;
+                bool covers = true;
+                for (int p = 0; p < path.SampleCount && covers; p++)
+                {
+                    var projection = other.Curve.Project(path.Samples[p].Position);
+                    float from = outbound ? path.SampleReferenceS(p) : projection.SMeters;
+                    float to = outbound ? projection.SMeters : path.SampleReferenceS(p);
+                    covers = projection.LongitudinalOverrunMeters == 0f && from >= a.FromStartSMeters && from <= a.FromEndSMeters
+                        && to >= a.ToStartSMeters && to <= a.ToEndSMeters;
+                }
+                if (outbound) departure |= covers;
+                else returning |= covers;
+            }
+            return departure && returning;
+        }
+
         /// <summary>
         /// M3 : marge en temps = arrivee la plus precoce d'un acteur (vitesse constante) ou d'un danger dans la region balayee,
         /// moins la duree restante. Region sur l'autre corridor (et ses elements amont), et devant l'agent sur le corridor
@@ -371,8 +412,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             ElementOccupant self;
             float selfFront = frame.TryGetOccupancy(s.TrafficId, out self) && self.ElementId == s.Own.CorridorId ? self.SMaxMeters
                 : s.SelfSMeters;
-            arrival = Math.Min(arrival, Arrival(frame, s.Own.CorridorId, selfFront, ownEnd, s.TrafficId, s.Cause.Id, selfFront, false));
-            arrival = Math.Min(arrival, HazardArrival(frame, s, path, selfFront, ownEnd));
+            arrival = Math.Min(arrival, Arrival(frame, s.Own.CorridorId, selfFront, ownEnd, s.TrafficId, s.Cause.Id,
+                float.NegativeInfinity, true));
+            arrival = Math.Min(arrival, HazardArrival(frame, s, path, progressMeters));
             return float.IsPositiveInfinity(arrival) ? float.PositiveInfinity : arrival - remaining;
         }
 
@@ -391,39 +433,78 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             }
             if (!upstream) return arrival;
             var model = frame.Model;
+            for (int c = 0; c < model.Connections.Count; c++)
+            {
+                var connection = model.Connections[c];
+                EffectiveLaneCorridor from;
+                if (connection.ToCorridorId != corridor || !model.TryGetCorridor(connection.FromCorridorId, out from)) continue;
+                arrival = Math.Min(arrival, UpstreamArrival(frame, from.CorridorId, from.LengthMeters, r0, self, cause));
+            }
             for (int m = 0; m < model.Movements.Count; m++)
             {
                 var movement = model.Movements[m];
                 if (movement.ToCorridorId != corridor) continue;
-                var onMovement = frame.GetOccupants(movement.Id);
-                for (int i = 0; i < onMovement.Count; i++)
+                arrival = Math.Min(arrival, UpstreamArrival(frame, movement.Id, movement.LengthMeters, r0, self, cause));
+            }
+            return arrival;
+        }
+
+        private static float UpstreamArrival(TrafficFrame frame, RoadId element, float length, float regionStart, RoadId self, RoadId cause)
+        {
+            float arrival = float.PositiveInfinity;
+            var occupants = frame.GetOccupants(element);
+            for (int i = 0; i < occupants.Count; i++)
+            {
+                var o = occupants[i];
+                if (o.TrafficId == self || o.TrafficId == cause || !(o.SpeedMetersPerSecond > 0f)) continue;
+                arrival = Math.Min(arrival, Math.Max(0f, length - o.SMaxMeters + regionStart) / o.SpeedMetersPerSecond);
+            }
+            return arrival;
+        }
+
+        /// <summary>R9 : arrivee continue d'une boite mobile dans l'union du balayage restant, vitesse monde complete.</summary>
+        private static float HazardArrival(TrafficFrame frame, ManeuverSituation s, ManeuverPath path, float progress)
+        {
+            float arrival = float.PositiveInfinity;
+            float returnEnd = path.DistanceAtReference(path.ReturnEndSMeters);
+            for (int i = 0; i < frame.Hazards.Count; i++)
+            {
+                var hazard = frame.Hazards[i];
+                if (hazard.Id == s.Cause.Id) continue;
+                for (int p = 0; p < path.SampleCount; p++)
                 {
-                    var o = onMovement[i];
-                    float speed = Math.Max(0f, o.SpeedMetersPerSecond);
-                    if (o.TrafficId == self || o.TrafficId == cause || !(speed > 0f)) continue;
-                    arrival = Math.Min(arrival, (movement.LengthMeters - o.SMaxMeters + r0) / speed);
+                    float d = path.Samples[p].SMeters;
+                    float before = p > 0 ? path.Samples[p - 1].SMeters : d;
+                    float after = p + 1 < path.SampleCount ? path.Samples[p + 1].SMeters : d;
+                    if (after < progress || before > returnEnd) continue;
+                    var pose = path.Track.Nominal(0, d);
+                    var right = Vector3.Cross(pose.Up, pose.Forward).normalized;
+                    float r = s.EpsilonMeters + 0.5f * Math.Max(d - before, after - d)
+                        * (1f + s.Gauge.Rho * path.Track.BodyRateMax(0, before, after));
+                    var center = pose.Position + pose.Up * (0.5f * (s.Gauge.BottomMeters + s.Gauge.TopMeters));
+                    var extents = Abs(right) * s.Gauge.HalfWidthMeters + Abs(pose.Forward) * (0.5f * s.Gauge.LengthMeters)
+                        + Abs(pose.Up) * (0.5f * (s.Gauge.TopMeters - s.Gauge.BottomMeters)) + Vector3.one * r;
+                    float enters = 0f, leaves = float.PositiveInfinity;
+                    Vector3 total = extents + hazard.Bounds.Extents;
+                    Vector3 relative = hazard.Bounds.Center - center;
+                    if (!Slab(relative.x, hazard.Velocity.x, total.x, ref enters, ref leaves)
+                        || !Slab(relative.y, hazard.Velocity.y, total.y, ref enters, ref leaves)
+                        || !Slab(relative.z, hazard.Velocity.z, total.z, ref enters, ref leaves)) continue;
+                    if (enters == 0f) return float.NegativeInfinity;
+                    arrival = Math.Min(arrival, enters);
                 }
             }
             return arrival;
         }
 
-        /// <summary>Dangers (hors acteurs) dans la bande balayee du corridor propre : marge negative, quel que soit leur genre.</summary>
-        private static float HazardArrival(TrafficFrame frame, ManeuverSituation s, ManeuverPath path, float r0, float r1)
+        private static Vector3 Abs(Vector3 v) { return new Vector3(Math.Abs(v.x), Math.Abs(v.y), Math.Abs(v.z)); }
+
+        private static bool Slab(float position, float velocity, float half, ref float enters, ref float leaves)
         {
-            var curve = s.Own.Curve;
-            float reach = s.Gauge.HalfWidthMeters + s.EpsilonMeters;
-            float low = Math.Min(0f, path.TargetOffsetMeters) - reach, high = Math.Max(0f, path.TargetOffsetMeters) + reach;
-            for (int i = 0; i < frame.Hazards.Count; i++)
-            {
-                var hazard = frame.Hazards[i];
-                if (hazard.Id == s.Cause.Id) continue;
-                var projection = curve.Project(hazard.Bounds.Center);
-                float half = Math.Max(hazard.Bounds.Extents.x, hazard.Bounds.Extents.z);
-                if (projection.LongitudinalOverrunMeters > half || projection.SMeters + half < r0 || projection.SMeters - half > r1) continue;
-                if (projection.LateralOffsetMeters + half >= low && projection.LateralOffsetMeters - half <= high)
-                    return float.NegativeInfinity;
-            }
-            return float.PositiveInfinity;
+            if (velocity == 0f) return Math.Abs(position) <= half;
+            float a = (-half - position) / velocity, b = (half - position) / velocity;
+            enters = Math.Max(enters, Math.Min(a, b)); leaves = Math.Min(leaves, Math.Max(a, b));
+            return enters <= leaves;
         }
 
         /// <summary>M1 : corridor de meme sens d'une adjacence authoree qui couvre l'etendue de la manoeuvre.</summary>
@@ -434,7 +515,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             for (int i = 0; i < model.Adjacencies.Count; i++)
             {
                 var adjacency = model.Adjacencies[i];
-                if (adjacency.FromCorridorId != s.Own.CorridorId || adjacency.FromStartSMeters > s.SelfSMeters
+                if (adjacency.Permission != LaneChangePermission.Allowed || adjacency.FromCorridorId != s.Own.CorridorId
+                    || adjacency.FromStartSMeters > s.SelfSMeters
                     || adjacency.FromEndSMeters < s.Cause.FarSMeters) continue;
                 if (best.IsEmpty || adjacency.ToCorridorId.CompareTo(best) < 0) best = adjacency.ToCorridorId;
             }
@@ -546,7 +628,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
 
         /// <summary>
         /// M6 : emprise de la cause lue dans la frame, par le meme calcul pour tous les genres. Acteur : empreinte declaree et
-        /// vitesse tangentielle ; danger : boite de la frame et vitesse le long du corridor. Faux si la cause a disparu.
+        /// vitesse tangentielle ; danger : boite de la frame et vitesse monde complete. Faux si la cause a disparu.
         /// </summary>
         public static bool TryCause(TrafficFrame frame, RoadCurve curve, RoadId id, PerceivedObstacleKind kind, out ManeuverObstacle cause)
         {
@@ -568,8 +650,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
                 var corners = new Vector3[8];
                 for (int k = 0; k < 8; k++)
                     corners[k] = c + new Vector3((k & 1) == 0 ? -e.x : e.x, (k & 2) == 0 ? -e.y : e.y, (k & 4) == 0 ? -e.z : e.z);
-                float along = Vector3.Dot(hazard.Velocity, curve.Project(c).Point.Tangent);
-                cause = ManeuverObstacle.FromCorners(id, kind, curve, corners, along);
+                cause = ManeuverObstacle.FromCorners(id, kind, curve, corners, hazard.Velocity);
                 return cause.Valid;
             }
             return false;
@@ -646,6 +727,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
         public float CauseSpeedMetersPerSecond { get; private set; }
 
         public void Reset() { cause = RoadId.None; since = 0UL; }
+
+        /// <summary>D1 : une attente ne prolonge que l'evaluation de sa cause d'origine.</summary>
+        public bool CanEvaluate(bool triggerReady, RoadId pendingCause)
+        {
+            return triggerReady || (!cause.IsEmpty && cause == pendingCause);
+        }
 
         public bool Observe(ulong frameId, LongitudinalDecision decision, IReadOnlyList<Blocker> blockers, float desiredSpeed,
             float deltaTimeSeconds)

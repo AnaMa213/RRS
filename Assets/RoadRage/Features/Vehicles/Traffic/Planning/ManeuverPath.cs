@@ -28,7 +28,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         /// <summary>Aucune longueur de depart avant l'obstacle.</summary>
         TooClose = 9,
         /// <summary>Depassement : v_m - v_cause sous la vitesse de rapprochement minimale (D3).</summary>
-        NoClosingSpeed = 10
+        NoClosingSpeed = 10,
+        LateralAccelerationExceeded = 11,
+        AdjacencyNotCovered = 12
     }
 
     /// <summary>
@@ -45,12 +47,37 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         public readonly float LateralMaxMeters;
         /// <summary>Vitesse le long du corridor propre, positive ou nulle (m/s).</summary>
         public readonly float SpeedMetersPerSecond;
+        private readonly Vector3[] worldCorners;
+        public readonly Vector3 WorldVelocity;
+        public bool HasWorldFootprint { get { return worldCorners != null; } }
 
         public ManeuverObstacle(RoadId id, PerceivedObstacleKind kind, float nearS, float farS, float lateralMin, float lateralMax,
             float speed)
         {
             Id = id; Kind = kind; NearSMeters = nearS; FarSMeters = farS; LateralMinMeters = lateralMin; LateralMaxMeters = lateralMax;
             SpeedMetersPerSecond = speed;
+            worldCorners = null; WorldVelocity = Vector3.zero;
+        }
+
+        private ManeuverObstacle(ManeuverObstacle bounds, IReadOnlyList<Vector3> corners, Vector3 velocity) : this(bounds.Id,
+            bounds.Kind, bounds.NearSMeters, bounds.FarSMeters, bounds.LateralMinMeters, bounds.LateralMaxMeters, bounds.SpeedMetersPerSecond)
+        {
+            worldCorners = new Vector3[corners.Count];
+            for (int i = 0; i < corners.Count; i++) worldCorners[i] = corners[i];
+            WorldVelocity = velocity;
+        }
+
+        /// <summary>Emprise monde conservative entre deux instants, translation par le vecteur vitesse complet.</summary>
+        public void WorldBounds(float fromSeconds, float toSeconds, out Vector3 min, out Vector3 max)
+        {
+            min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+            max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+            for (int i = 0; i < worldCorners.Length; i++)
+            {
+                var a = worldCorners[i] + WorldVelocity * fromSeconds;
+                var b = worldCorners[i] + WorldVelocity * toSeconds;
+                min = Vector3.Min(min, Vector3.Min(a, b)); max = Vector3.Max(max, Vector3.Max(a, b));
+            }
         }
 
         public bool Valid
@@ -66,6 +93,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         /// <summary>Projection des coins monde sur la courbe du corridor propre (abscisse et lateral).</summary>
         public static ManeuverObstacle FromCorners(RoadId id, PerceivedObstacleKind kind, RoadCurve curve, IReadOnlyList<Vector3> corners,
             float speed)
+        {
+            // Les acteurs localises gardent leur prediction tangentielle dans le repere courbe du corridor.
+            return ProjectCorners(id, kind, curve, corners, speed);
+        }
+
+        public static ManeuverObstacle FromCorners(RoadId id, PerceivedObstacleKind kind, RoadCurve curve, IReadOnlyList<Vector3> corners,
+            Vector3 velocity)
+        {
+            var projection = curve.Project(corners[0]);
+            return new ManeuverObstacle(ProjectCorners(id, kind, curve, corners, Vector3.Dot(velocity, projection.Point.Tangent)),
+                corners, velocity);
+        }
+
+        private static ManeuverObstacle ProjectCorners(RoadId id, PerceivedObstacleKind kind, RoadCurve curve,
+            IReadOnlyList<Vector3> corners, float speed)
         {
             float near = float.PositiveInfinity, far = float.NegativeInfinity, low = float.PositiveInfinity, high = float.NegativeInfinity;
             for (int i = 0; i < corners.Count; i++)
@@ -398,6 +440,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
                 if (Math.Abs(path.Samples[i].CurvaturePerMeter) > admission
                     || PathHorizon.NominalSteeringCeilingMetersPerSecond(profile, track.OffsetRadians(0, d)) < path.SpeedMetersPerSecond)
                     return Fail(ManeuverGeometryCause.SteeringInfeasible, d);
+                if (Math.Abs(path.Samples[i].CurvaturePerMeter) * path.SpeedMetersPerSecond * path.SpeedMetersPerSecond
+                    > TrafficV2Settings.ManeuverLateralAccelerationMetersPerSecondSquared)
+                    return Fail(ManeuverGeometryCause.LateralAccelerationExceeded, d);
 
                 var pose = track.Nominal(0, d);
                 Vector3 up = pose.Up.normalized;
@@ -448,6 +493,23 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
 
                 if (!obstacle.Id.IsEmpty)
                 {
+                    if (obstacle.HasWorldFootprint)
+                    {
+                        Vector3 causeMin, causeMax;
+                        // Le reste couvre aussi le mouvement de la cause entre les echantillons de preuve.
+                        obstacle.WorldBounds(timing.SecondsAt(before), timing.SecondsAt(after), out causeMin, out causeMax);
+                        Vector3 bodyMin = corners[0], bodyMax = corners[0];
+                        for (int k = 1; k < 4; k++)
+                        { bodyMin = Vector3.Min(bodyMin, corners[k]); bodyMax = Vector3.Max(bodyMax, corners[k]); }
+                        Vector3 inflation = new Vector3(Math.Abs(forward.x) * longitudinalClearance + Math.Abs(right.x) * lateralClearance + r,
+                            Math.Abs(forward.y) * longitudinalClearance + Math.Abs(right.y) * lateralClearance + r,
+                            Math.Abs(forward.z) * longitudinalClearance + Math.Abs(right.z) * lateralClearance + r);
+                        // Preuve plane, comme l'enveloppe routiere : aucune hauteur ne rend la cause traversable.
+                        if (bodyMax.x + inflation.x > causeMin.x && bodyMin.x - inflation.x < causeMax.x
+                            && bodyMax.z + inflation.z > causeMin.z && bodyMin.z - inflation.z < causeMax.z)
+                            return Fail(ManeuverGeometryCause.ObstacleClearance, d);
+                        continue;
+                    }
                     float moved = obstacle.SpeedMetersPerSecond * timing.SecondsAt(d);
                     bool overlapsS = boxSMax + r > obstacle.NearSMeters + moved - longitudinalClearance
                         && boxSMin - r < obstacle.FarSMeters + moved + longitudinalClearance;

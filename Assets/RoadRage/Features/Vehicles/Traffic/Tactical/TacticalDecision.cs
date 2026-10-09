@@ -555,6 +555,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
             float angle = MotionCommand.TrackingWheelAngleDegrees(drivability, curve, progress, position, forward, speed,
                 path.Track.NominalHeadingErrorDegrees(0, progress), out lateral, out heading, out curvature, out referenceS);
             float acceleration = Mathf.Clamp((path.SpeedMetersPerSecond - speed) / dt, -driver.ComfortableDeceleration, driver.MaxAcceleration);
+            bool unavailable = nearField != null && nearField.UnavailableReason != PerceptionUnavailableReason.None;
+            if (unavailable) acceleration = Math.Min(acceleration, -driver.ComfortableDeceleration);
             if (nearField != null)
                 for (int i = 0; i < nearField.Obstacles.Count; i++)
                 {
@@ -564,7 +566,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Tactical
                 }
             ulong validTo = frameId + (ulong)Math.Max(0, validitySteps - 1);
             return new MotionCommand(frameId, frameId, validTo, acceleration,
-                Mathf.Clamp(angle, -drivability.LowSpeedLockDegrees, drivability.LowSpeedLockDegrees), SpeedConstraint.None, lateral,
+                Mathf.Clamp(angle, -drivability.LowSpeedLockDegrees, drivability.LowSpeedLockDegrees),
+                unavailable ? SpeedConstraint.PerceptionUnavailable : SpeedConstraint.None, lateral,
                 heading, curvature, referenceS);
         }
 

@@ -38,6 +38,8 @@ context:
   - le cout ;
   - le creneau accepte (marge ≥ `AcceptedGapSeconds`) ;
   - le risque accepte (`T_m / (T_m + marge)` ≤ `AcceptedRisk`).
+
+  **Clarification proprietaire R9 du 2026-10-09 (option 1).** La prediction couvre aussi les faits mobiles `Vehicle`, `Pedestrian` et `WalkingPlayer`, avec leur vecteur vitesse monde constant, composante laterale comprise. La cause contournee reste exclue de la marge de conflit, mais sa position predite pour la preuve d'evitement conserve aussi sa composante laterale.
 - **M4, exception.** Un candidat hors de la surface permise (`OpposingCorridor`) ne part qu'apres trois etapes :
   - `DrivingPolicy.TryPropose(OpposingCorridor)`, portee : corridor oppose, terminaison `ScopeExited`, expiration bornee ;
   - soumission au lot N par le runner ;
@@ -155,6 +157,20 @@ context:
     | 5.36 | 14/14 | -- |
 
     5.35 (51/51, 7/7) et 5.37 (22/22) ont ete rejouees avant les correctifs de revue, qui ne touchent pas leurs chemins.
+
+### Review Findings — 2026-10-09 — Independent requested review
+
+Four configured layers completed on `cec5ba3..90d4017`, inspected at `e61d378`. The owner resolved R9 with option 1, then selected option 1 to apply all nine patches. All R1–R9 are fixed and covered by 22 added regression cases; no scope decision or patch remains open. Six other claims were dismissed after deduplication. Final targeted validation: Story542 47/47 EditMode and 1/1 PlayMode, compilation healthy, zero Console errors since cursor 2907, MVP_Run clean. The first patch-validation run failed three new tests because their vehicle-profile asset path was incorrect; the path was corrected before the successful run. Existing owner-approved deferrals are unchanged. Spec and sprint tracking `done`, explicitly requested by the owner after successful targeted verification. [Detailed evidence, applied corrections and exact validation recaps](code-review-5-42-2026-10-09.md).
+
+- [x] [Review][Patch][High] R1 — Reject forbidden authored adjacency before maneuver evaluation. Forbidden-adjacency regression passes.
+- [x] [Review][Patch][High] R2 — Require allowed outbound and return adjacency domains to cover the complete built maneuver on both corridors. Source/target truncation and forbidden-return regressions pass.
+- [x] [Review][Patch][High] R3 — Reject admission before an exception request when perception is unavailable/saturated; brake with `PerceptionUnavailable` during a maneuver. All three reasons pass admission and zero-throttle tests, at rest and in motion.
+- [x] [Review][Patch][Medium] R4 — Reject actual combined path curvature exceeding the unchanged 2 m/s² lateral-acceleration cap. Curved-path regression passes while admission/steering remain feasible.
+- [x] [Review][Patch][Medium] R5 — Bind pending exception wait to its original cause. A new cause waits its own complete two-second D1 interval in the regression.
+- [x] [Review][Patch][High] R6 — Include immediate incoming LaneConnection actors in arrival prediction alongside JunctionMovement occupants. Both empty-target/upstream regression cases pass.
+- [x] [Review][Patch][High] R7 — Include approaching followers and upstream actors for CorridorOffset/own-corridor return conflicts. Faster-follower refusal and stationary nonconflicting follower regressions pass.
+- [x] [Review][Patch][Medium] R8 — Independently assert nonnegative-margin Gap refusal and gap-compliant Risk refusal, no selected departure/request, and nearby accepted boundaries.
+- [x] [Review][Patch][Medium] R9 — Predict moving Vehicle/Pedestrian/WalkingPlayer hazards with full constant world velocity, including lateral motion of the bypassed cause. Crossing and moving-away cases pass for all three kinds; bypassed-cause avoidance preserves velocity from the actual frame. Owner approved option 1 on 2026-10-09; M3 clarified above.
 
 ## Design Notes
 
