@@ -319,7 +319,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             double acceleration = driver.MaxAcceleration * (double)PlanningBoundMargin;
 
             // Faisabilite du plafond seul depuis l'etat courant, a la deceleration de confort.
-            double planningDeceleration = comfortable * (double)PlanningBoundMargin;
+            // Story 5.43 : a b_safe nul, ni la passe arriere ni la passe avant n'inventent de freinage.
+            // Le domaine positif garde exactement le calcul existant (invariance calme).
+            double planningDeceleration = driver.SafeBrakingLimit == 0f ? 0d : comfortable * (double)PlanningBoundMargin;
             bool unreachable = !CeilingReachable(d, ceiling, ceilingUnbounded, terminalStop, v0, planningDeceleration);
             if (unreachable) planningDeceleration = driver.SafeBrakingLimit * (double)PlanningBoundMargin;
 

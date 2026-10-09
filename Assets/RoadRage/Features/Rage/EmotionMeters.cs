@@ -73,7 +73,7 @@ namespace RoadRage.Features.Rage
         /// <summary>Lecture arbitree (E3) : peur saturee, sinon fuite ouverte, sinon la rage gouverne.</summary>
         public static EmotionReading Read(EmotionMeterState state, RageTuningDef tuning)
         {
-            if (tuning == null) return EmotionReading.Calm;
+            if (tuning == null || !float.IsFinite(state.Rage) || !float.IsFinite(state.Fear)) return EmotionReading.Calm;
             float rage = Percent(state.Rage, tuning.MaxRageValue), fear = Percent(state.Fear, tuning.MaxFearValue);
             var governor = fear >= tuning.FearOverridePercent ? EmotionGovernor.FearSaturated
                 : state.Escape ? EmotionGovernor.Escape : EmotionGovernor.Rage;
@@ -105,7 +105,8 @@ namespace RoadRage.Features.Rage
 
         private static float Percent(float value, float max)
         {
-            return max > 0f && float.IsFinite(value) ? value / max * 100f : 0f;
+            // Normaliser en double garde les seuils exacts (30/100 -> 30) et borne les entrees finies enormes.
+            return max > 0f && float.IsFinite(value) ? Mathf.Clamp((float)((double)value / max * 100d), 0f, 100f) : 0f;
         }
     }
 }

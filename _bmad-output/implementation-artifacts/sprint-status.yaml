@@ -235,6 +235,9 @@ development_status:
   # Owner explicitly requested done for both spec and sprint tracking after verification.
   # Existing deferrals unchanged.
   5-42-unstructured-maneuvers-bypass-overtaking-head-on: done
+  # 2026-10-09 independent review: owner-authorized R1-R5 patches resolved; no open finding.
+  # Story543 52/52, Story541 35/35 and Story542 47/47 EditMode; healthy compilation, 0 Console errors.
+  # Spec done; sprint review under the checkpoint-promotion rule.
   5-43-rage-and-fear-as-continuous-policy-modulation: review
   5-44-targeted-aggression-and-authorized-contact: backlog
   5-45-thrown-litter-on-v2-contracts: backlog

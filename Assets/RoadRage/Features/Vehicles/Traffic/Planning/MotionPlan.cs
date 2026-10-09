@@ -35,7 +35,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         {
             MaxAcceleration = acceleration; MaxDeceleration = deceleration;
         }
-        public bool Valid { get { return MaxAcceleration > 0f && MaxDeceleration > 0f
+        // Story 5.43 : b_safe = 0 est une borne comportementale valide, aucun freinage autorise dans le profil.
+        // Les capacites physiques et le freinage de securite sont des bornes distinctes, toujours positives.
+        public bool Valid { get { return MaxAcceleration > 0f && MaxDeceleration >= 0f
             && !float.IsNaN(MaxAcceleration) && !float.IsInfinity(MaxAcceleration)
             && !float.IsNaN(MaxDeceleration) && !float.IsInfinity(MaxDeceleration); } }
     }

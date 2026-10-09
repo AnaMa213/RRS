@@ -178,8 +178,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Policy
 
         public float AcceptedRisk { get { return acceptedRisk; } }
         public float AcceptedGapSeconds { get { return acceptedGapSeconds; } }
-        /// <summary>Vrai si chaque levier module est fini (5.43 : un gain fini mais enorme peut deborder).</summary>
-        internal bool LeversFinite
+        /// <summary>Leviers finis, a et b strictement positifs : la modulation peut deborder ou sous-deborder.</summary>
+        internal bool LeversValid
         {
             get
             {
@@ -187,6 +187,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Policy
                     || !float.IsFinite(Driver.MaxAcceleration) || !float.IsFinite(Driver.ComfortableDeceleration)
                     || !float.IsFinite(Driver.SafeBrakingLimit) || !float.IsFinite(acceptedRisk) || !float.IsFinite(acceptedGapSeconds))
                     return false;
+                if (!(Driver.MaxAcceleration > 0f) || !(Driver.ComfortableDeceleration > 0f)) return false;
                 for (int i = 0; i < DrivingPolicy.ManeuverCount; i++)
                     if (!float.IsFinite(Maneuver((ManeuverKind)i).Cost)) return false;
                 return true;
@@ -309,8 +310,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Policy
             string invalid;
             if (!modulation.TryValidate(out invalid)) modulation = default(EmotionModulation);
             var modulated = Modulate(driver, authored, trafficId, phase, modulation, emotion);
-            // Un levier deborde (gain fini mais enorme) : la politique authoree reste la seule valeur sure, jamais un infini.
-            return modulated.LeversFinite ? modulated
+            // Debordement, ou a/b arrondi a zero : repli sur la politique authoree, sans violer leurs domaines.
+            return modulated.LeversValid ? modulated
                 : Modulate(driver, authored, trafficId, phase, default(EmotionModulation), EmotionReading.Calm);
         }
 

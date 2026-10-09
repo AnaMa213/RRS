@@ -11,12 +11,14 @@ using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Blockers;
 using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
+using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
 using RoadRage.Features.Vehicles.Traffic.Policy;
 using RoadRage.Features.Vehicles.Traffic.Recovery;
 using RoadRage.Features.Vehicles.Traffic.Routing;
+using RoadRage.Features.Vehicles.Traffic.Safety;
 using RoadRage.Shared.Domain;
 using Unity.Netcode;
 using UnityEditor;
@@ -215,6 +217,47 @@ namespace RoadRage.Tests.EditMode
 
         // ============================================================ E4 : modulation continue et bornee
 
+        [TestCase(true, float.NaN)]
+        [TestCase(true, float.PositiveInfinity)]
+        [TestCase(true, float.NegativeInfinity)]
+        [TestCase(false, float.NaN)]
+        [TestCase(false, float.PositiveInfinity)]
+        [TestCase(false, float.NegativeInfinity)]
+        public void NonFiniteRawMetersMakeTheKernelAndHostReadingEntirelyCalm(bool invalidRage, float invalid)
+        {
+            var tuning = Tuning();
+            var meters = EmotionMeters.Change(default(EmotionMeterState), invalidRage ? invalid : 60f,
+                invalidRage ? 80f : invalid, tuning);
+            var state = NewRageState("Story543InvalidMeter");
+            state.ApplyRageDelta(60f, tuning);
+            state.ApplyFearDelta(80f, tuning);
+            if (invalidRage) state.RageValue.Value = invalid;
+            else state.FearValue.Value = invalid;
+
+            foreach (var reading in new[] { EmotionMeters.Read(meters, tuning), state.CurrentEmotion })
+            {
+                Assert.That(reading.Rage01, Is.Zero);
+                Assert.That(reading.Fear01, Is.Zero);
+                Assert.That(reading.Governor, Is.EqualTo(EmotionGovernor.Rage));
+                AssertSameBits(DrivingPolicy.Resolve(Def, A, 1UL, reading).Driver, Def.Profile);
+            }
+        }
+
+        [Test]
+        public void FiniteRawMetersAreBoundedEvenWhenNormalizationWouldOverflow()
+        {
+            var tuning = Tuning();
+            SetPrivate(tuning, "maxRageValue", 0.001f);
+            SetPrivate(tuning, "maxFearValue", 0.001f);
+            var meters = EmotionMeters.Change(default(EmotionMeterState), float.MaxValue, float.MaxValue, tuning);
+            var reading = EmotionMeters.Read(meters, tuning);
+            Assert.That(reading.Rage01, Is.EqualTo(1f));
+            Assert.That(reading.Fear01, Is.EqualTo(1f));
+            Assert.That(reading.Governor, Is.EqualTo(EmotionGovernor.FearSaturated));
+            reading = EmotionMeters.Read(EmotionMeters.Change(meters, -20f, -30f, tuning), tuning);
+            Assert.That(reading.Rage01 + reading.Fear01, Is.Zero);
+        }
+
         [Test]
         public void ACalmReadingResolvesExactlyThe541Policy()
         {
@@ -296,6 +339,46 @@ namespace RoadRage.Tests.EditMode
             AssertSameBits(raged.AuthoredDriver, def.Profile);
             Assert.That(raged.Driver.SafeBrakingLimit, Is.GreaterThan(raged.AuthoredDriver.SafeBrakingLimit), "b_safe effectif module");
             AssertSameBits(def.Profile, Def.Profile);
+        }
+
+        [TestCase(EmotionGovernor.Escape)]
+        [TestCase(EmotionGovernor.FearSaturated)]
+        public void EveryFearLeverFollowsItsAuthoredFormulaContinuouslyAndMonotonically(EmotionGovernor governor)
+        {
+            var gains = new EmotionGains(-0.4f, 0.2f, -0.3f, 0.4f, 0.5f, -0.6f, 3f, -0.7f, 0.8f);
+            var modulation = new EmotionModulation(EmotionModulation.Default.Rage, gains);
+            var baseline = PolicyLevers(DrivingPolicy.Resolve(Def, A, 1UL));
+            var gain = new[] { -0.4f, 0.2f, -0.3f, 0.4f, 0.5f, -0.6f, 3f, -0.7f, 0.8f };
+            var previous = baseline;
+            bool riskClamped = false;
+            for (int step = 0; step <= 20; step++)
+            {
+                float weight = step / 20f;
+                var policy = DrivingPolicy.Resolve(Def.Profile, Def.Policy, A, 1UL, modulation,
+                    new EmotionReading(0.9f, weight, governor));
+                var actual = PolicyLevers(policy);
+                var near = PolicyLevers(DrivingPolicy.Resolve(Def.Profile, Def.Policy, A, 1UL, modulation,
+                    new EmotionReading(0.9f, Mathf.Min(1f, weight + 1e-4f), governor)));
+                for (int lever = 0; lever < actual.Length; lever++)
+                {
+                    float expected = baseline[lever] * (1f + gain[lever] * weight);
+                    if (lever == 6) expected = Mathf.Clamp01(expected);
+                    Assert.That(actual[lever], Is.EqualTo(expected).Within(1e-5f), "levier " + lever);
+                    Assert.That((actual[lever] - previous[lever]) * Mathf.Sign(gain[lever]), Is.GreaterThanOrEqualTo(0f), "monotonie " + lever);
+                    Assert.That(Math.Abs(near[lever] - actual[lever]),
+                        Is.LessThanOrEqualTo(Math.Abs(baseline[lever] * gain[lever]) * 1e-4f + 1e-5f), "continuite " + lever);
+                }
+                riskClamped |= policy.AcceptedRisk == 1f;
+                previous = actual;
+            }
+            Assert.That(riskClamped, Is.True, "le balayage couvre la saturation du risque");
+        }
+
+        private static float[] PolicyLevers(EffectivePolicy policy)
+        {
+            return new[] { policy.Driver.DesiredSpeed, policy.Driver.TimeHeadway, policy.Driver.MinimumGap,
+                policy.Driver.MaxAcceleration, policy.Driver.ComfortableDeceleration, policy.Driver.SafeBrakingLimit,
+                policy.AcceptedRisk, policy.AcceptedGapSeconds, policy.Maneuver(ManeuverKind.OpposingCorridor).Cost };
         }
 
         [Test]
@@ -385,6 +468,82 @@ namespace RoadRage.Tests.EditMode
 
         // ============================================================ integration hote
 
+        [TestCase(false, 0f)]
+        [TestCase(false, 3f)]
+        [TestCase(true, 0f)]
+        [TestCase(true, 3f)]
+        public void ZeroSafeBrakingSupportsPlanningAndKeepsPhysicalSafety(bool immobilize, float speed)
+        {
+            var gains = new EmotionGains(immobilize ? -1f : 0f, 0f, 0f, 0f, 0f, -1f, 0f, 0f, 0f);
+            var modulation = new EmotionModulation(gains, gains);
+            var vehicle = AssetDatabase.LoadAssetAtPath<VehicleProfileDef>(
+                "Assets/RoadRage/ScriptableObjects/Vehicles/VehicleProfileDef_Default.asset").Profile;
+            foreach (var governor in new[] { EmotionGovernor.Rage, EmotionGovernor.FearSaturated })
+            {
+                var policy = DrivingPolicy.Resolve(Def.Profile, Def.Policy, A, 1UL, modulation, new EmotionReading(1f, 1f, governor));
+                Assert.That(policy.Driver.SafeBrakingLimit, Is.Zero);
+                Assert.That(policy.AuthoredDriver.SafeBrakingLimit, Is.GreaterThan(0f));
+                var result = Decide(policy.Driver, speed);
+                Assert.That(result.Plan.PlanningDecelerationMetersPerSecondSquared, Is.Zero, "aucun freinage invente par le plan");
+                Assert.That(result.Command.IsFinite, Is.True);
+                if (immobilize || speed > 0f)
+                    Assert.That(result.Command.TargetAccelerationMetersPerSecondSquared, Is.LessThanOrEqualTo(0f));
+                else
+                    Assert.That(result.Command.TargetAccelerationMetersPerSecondSquared,
+                        Is.GreaterThan(0f).And.LessThanOrEqualTo(policy.Driver.MaxAcceleration), "demarrage permis sans freinage");
+                var bounds = new LongitudinalBounds(policy.Driver.MaxAcceleration, 0f);
+                float length = result.Motion.Path.LengthMeters;
+                Assert.That(result.Motion.VerifySpeedProfile(new[] { new SpeedProfilePoint(0f, 3f),
+                    new SpeedProfilePoint(length, 3f) }, bounds).Issue, Is.EqualTo(SpeedProfileIssue.None), "vitesse constante permise");
+                Assert.That(result.Motion.VerifySpeedProfile(new[] { new SpeedProfilePoint(0f, 3f),
+                    new SpeedProfilePoint(length, 0f) }, bounds).Issue, Is.EqualTo(SpeedProfileIssue.AccelerationBoundExceeded), "freinage hors borne refuse");
+                Assert.That(new LongitudinalBounds(policy.Driver.MaxAcceleration, -1f).Valid, Is.False);
+                Assert.That(new LongitudinalBounds(0f, 0f).Valid, Is.False);
+
+                if (immobilize && speed == 0f)
+                {
+                    var blockers = BlockerTracker.Update(null, result.Decision, policy.Driver, 8);
+                    Assert.That(blockers.Single(b => b.Kind == BlockerKind.PolicyImmobilization).Legitimate, Is.True);
+                    float route;
+                    Assert.That(RecoverySupervisor.ProgressExpected(result.Decision, blockers, out route), Is.False);
+                }
+
+                // Le b_safe comportemental nul ne leve aucune borne physique et ne reduit pas le repli de securite.
+                var limits = new SafetyLimits(8f, 6f, 35f, 0.2f, Dt);
+                var severe = new MotionCommand(1, 1, 1, -20f, 0f);
+                var safe = SafetyFilter.Evaluate(severe, 1, result.Frame, A, speed, result.Motion.Path, null, limits);
+                Assert.That(safe.Verdict, Is.EqualTo(SafetyVerdict.Clamp));
+                Assert.That(safe.Command.Value.TargetAccelerationMetersPerSecondSquared, Is.EqualTo(-8f));
+                var composer = new VehicleDriveIntentComposer(vehicle, policy.AuthoredDriver.SafeBrakingLimit, Dt);
+                var baseline = new VehicleDriveIntentComposer(vehicle, Def.Profile.SafeBrakingLimit, Dt);
+                Assert.That(composer.ServiceBandMetersPerSecond, Is.EqualTo(baseline.ServiceBandMetersPerSecond));
+                var fallback = composer.Compose(1, null, V2FallbackReason.NoCommand, 3f, 0f);
+                var expected = baseline.Compose(1, null, V2FallbackReason.NoCommand, 3f, 0f);
+                Assert.That(fallback.Intent.BrakeReverse, Is.EqualTo(expected.Intent.BrakeReverse).And.GreaterThan(0f));
+                Assert.That(fallback.Intent.Throttle, Is.Zero);
+            }
+        }
+
+        [Test]
+        public void TheHostPublishesFearDecayAndClosesEscapeAtTheExitThreshold()
+        {
+            var tuning = Tuning();
+            var state = NewRageState("Story543FearDecay");
+            state.ApplyFearDelta(60f, tuning);
+            Assert.That(state.CurrentEmotion.Governor, Is.EqualTo(EmotionGovernor.Escape));
+            state.Advance(29f, tuning, false);
+            Assert.That(state.FearValue.Value, Is.EqualTo(31f).Within(1e-4f));
+            Assert.That(state.CurrentEmotion.Fear01, Is.EqualTo(0.31f).Within(1e-6f));
+            Assert.That(state.CurrentEmotion.Governor, Is.EqualTo(EmotionGovernor.Escape));
+            state.Advance(2f, tuning, false);
+            Assert.That(state.FearValue.Value, Is.EqualTo(29f).Within(1e-4f));
+            Assert.That(state.CurrentEmotion.Fear01, Is.EqualTo(0.29f).Within(1e-6f));
+            Assert.That(state.CurrentEmotion.Governor, Is.EqualTo(EmotionGovernor.Rage));
+            state.Advance(1f, tuning, false);
+            Assert.That(state.FearValue.Value, Is.EqualTo(28f).Within(1e-4f), "repart de la valeur publiee");
+            Assert.That(state.CurrentEmotion.Fear01, Is.EqualTo(0.28f).Within(1e-6f));
+        }
+
         [Test]
         public void TheHostStateKeepsTheV1ValuesAndEvolvesOnlyWhenAdvanced()
         {
@@ -454,6 +613,37 @@ namespace RoadRage.Tests.EditMode
 
             var invalid = new EmotionModulation(new EmotionGains(float.NaN, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f), default(EmotionGains));
             AssertSameBits(DriverModel.ResolveEffectiveProfile(Def.Profile, invalid, new EmotionReading(1f, 0f, EmotionGovernor.Rage)), Def.Profile);
+        }
+
+        [TestCase(true, EmotionGovernor.Rage)]
+        [TestCase(false, EmotionGovernor.Rage)]
+        [TestCase(true, EmotionGovernor.Escape)]
+        [TestCase(false, EmotionGovernor.Escape)]
+        public void UnderflowOfEitherStrictlyPositiveLeverFallsBackToTheEntireAuthoredPolicy(bool acceleration, EmotionGovernor governor)
+        {
+            var baseProfile = Def.Profile;
+            var authored = new DriverProfile(baseProfile.DesiredSpeed, baseProfile.TimeHeadway, baseProfile.MinimumGap,
+                acceleration ? 1e-38f : baseProfile.MaxAcceleration,
+                acceleration ? baseProfile.ComfortableDeceleration : 1e-38f,
+                baseProfile.Politeness, baseProfile.LaneChangeThreshold, baseProfile.SafeBrakingLimit,
+                baseProfile.ReactionTime, baseProfile.LaneChangeEvaluationInterval, baseProfile.Consistency, baseProfile.AimPointRecallSpeed);
+            var gains = new EmotionGains(0.2f, 0f, 0f, acceleration ? -0.99999994f : 0f,
+                acceleration ? 0f : -0.99999994f, 0f, 0.5f, 0f, 0f);
+            var modulation = new EmotionModulation(gains, gains);
+            var definition = UnityEngine.Object.Instantiate(Def);
+            spawned.Add(definition);
+            SetPrivate(definition, "profile", authored);
+            SetPrivate(definition, "emotionModulation", modulation);
+            string error;
+            Assert.That(definition.TryValidate(out error), Is.True, error);
+            var emotion = new EmotionReading(1f, 1f, governor);
+            var raw = DriverModel.ResolveEffectiveProfile(authored, modulation, emotion);
+            Assert.That(acceleration ? raw.MaxAcceleration : raw.ComfortableDeceleration, Is.Zero, "cas de sous-debordement reel");
+            var policy = DrivingPolicy.Resolve(definition, A, 1UL, emotion);
+            AssertSameBits(policy.Driver, authored);
+            Assert.That(policy.AcceptedRisk, Is.EqualTo(definition.Policy.AcceptedRisk));
+            Assert.That(policy.Emotion.RageWeight + policy.Emotion.FearWeight, Is.Zero, "repli entier");
+            AssertSameBits(DrivingPolicy.Resolve(definition, A, 1UL).Driver, authored);
         }
 
         [Test]
@@ -586,6 +776,12 @@ namespace RoadRage.Tests.EditMode
         /// </summary>
         private static LongitudinalDecision DecideAtRest(DriverProfile effective)
         {
+            return Decide(effective, 0f).Decision;
+        }
+
+        private static (LongitudinalDecision Decision, SpeedPlan Plan, MotionPlan Motion, MotionCommand Command, TrafficFrame Frame)
+            Decide(DriverProfile effective, float speed)
+        {
             var admission = TrafficV2Lifecycle.Admit(File.ReadAllText(TrafficV2Settings.ModelPath),
                 File.ReadAllText(TrafficV2Settings.SignoffPath), File.ReadAllText(TrafficV2Settings.ReportPath));
             Assert.That(admission.Admitted, Is.True, admission.Code.ToString());
@@ -612,17 +808,23 @@ namespace RoadRage.Tests.EditMode
             int piece = track.PieceAt(distance);
             var nominal = track.Nominal(piece, distance);
             var pose = new VehicleFootprintPose { Position = nominal.Position, Forward = nominal.Forward, Up = nominal.Up, Footprint = Car };
-            var actor = new TrafficActorInput(A, pose, 0f, track.Pieces[piece].Id, result.Plan.Occurrences.Select(o => o.Id).ToArray(),
+            var actor = new TrafficActorInput(A, pose, speed, track.Pieces[piece].Id, result.Plan.Occurrences.Select(o => o.Id).ToArray(),
                 track.KinematicAnchors(piece));
             var frame = new TrafficFrame(1, model, new[] { actor }, null);
             var spine = PlanningSpine.Evaluate(new PlanningRequest(frame, A, result.Plan, result.Plan.ExitPortalId, new RouteSeed(0),
                 TrafficV2Settings.LookAheadMeters, null, null, null, effective, TrackingTolerance.Undeclared, null, null,
                 admission.Evidence, RoadId.None, track.OffsetRadians(piece, distance)));
             Assert.That(spine.Motion, Is.Not.Null, spine.Projection.Code);
-            var plan = SpeedPlan.Build(spine.Motion, model, effective, 0f);
-            Assert.That(plan.Accepted, Is.True, "le profil immobilisant est accepte : aucun repli ProfileRefused");
-            return LongitudinalArbitration.Decide(plan, effective, 0f, Dt, new LongitudinalPerception(PerceptionUnavailableReason.None, null, null),
+            var plan = SpeedPlan.Build(spine.Motion, model, effective, speed);
+            Assert.That(plan.Accepted, Is.True, "profil effectif accepte : " + plan.Issue + "/" + plan.Verification.Issue);
+            var decision = LongitudinalArbitration.Decide(plan, effective, speed, Dt, new LongitudinalPerception(PerceptionUnavailableReason.None, null, null),
                 LongitudinalMemory.None, TrafficV2Settings.StopHold);
+            EffectiveLaneCorridor corridor;
+            Assert.That(model.TryGetCorridor(best.FromCorridorId, out corridor), Is.True);
+            var command = MotionCommand.Track(1, 1, plan, effective, model.DrivabilityProfile, corridor.Curve,
+                spine.Motion.Path.Intervals[0].StartSMeters, pose.Position, pose.Forward, speed, Dt,
+                -track.OffsetRadians(piece, distance) * Mathf.Rad2Deg, decision);
+            return (decision, plan, spine.Motion, command, frame);
         }
     }
 }

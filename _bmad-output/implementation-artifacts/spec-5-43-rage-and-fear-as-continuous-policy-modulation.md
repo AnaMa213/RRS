@@ -113,6 +113,16 @@ context:
     | 5.41 | 35/35 |
     | 5.42 | 47/47 |
 
+### Review Findings — 2026-10-09 — Independent requested review
+
+Four configured layers completed on `2e3964c..f777f72`, inspected at `3088e6e`. The owner authorized all five patches; all are now implemented with regression coverage. Eight claims were dismissed after checking callers and approved boundaries. Final EditMode validation: Story543 52/52 (18 additional cases), Story541 35/35 and Story542 47/47, with healthy compilation, zero Console errors in each window and clean MVP_Run. The first patch validation failed 2/52; normalization rounding and an incorrect new-test expectation were corrected without changing the existing arbitration assertion. [Detailed findings, resolution and exact validation recaps](code-review-5-43-2026-10-09.md). Spec remains done; sprint tracking remains review under the project checkpoint-promotion rule.
+
+- [x] [Review][Patch][Medium] R1 — Zero b_safe is accepted by LongitudinalBounds and plans with zero behavioral deceleration; negative braking and zero acceleration bounds remain invalid. Regression traverses spine, verifier, speed plan, arbitration and MotionCommand at rest/moving, both governors and v0=0. It also proves physical clamping and unchanged authored fallback braking. `Assets/RoadRage/Features/Vehicles/Traffic/Planning/MotionPlan.cs:40`; `SpeedPlan.cs:325`; `Tests/EditMode/Story543EmotionModulationTests.cs:475`.
+- [x] [Review][Patch][Medium] R2 — Either nonfinite raw meter returns whole-reading Calm before normalization. Six NaN/infinity cases cover both kernel and real host producer; finite huge values remain bounded, with exact escape-exit percentage normalization. E5. `Assets/RoadRage/Features/Rage/EmotionMeters.cs:76`; `Tests/EditMode/Story543EmotionModulationTests.cs:226`.
+- [x] [Review][Patch][Medium] R3 — Every fear lever now has formula, monotonicity and continuity assertions over governing weights, for Escape and FearSaturated, with distinct nonzero gains and risk saturation. E4. `Assets/RoadRage/Tests/EditMode/Story543EmotionModulationTests.cs:346`.
+- [x] [Review][Patch][Medium] R4 — Host publication is checked at fear 31 (escape held), 29 (escape closed) and 28 (subsequent decay starts from the published value), observing both FearValue and CurrentEmotion. E1/E3. `Assets/RoadRage/Tests/EditMode/Story543EmotionModulationTests.cs:528`.
+- [x] [Review][Patch][Low] R5 — LeversValid rejects underflowed a/b=0 and restores the entire authored policy. Four cases cover both strict-positive levers and both governing channels, verify valid authoring and preserve calm bits. `Assets/RoadRage/Features/Vehicles/Traffic/Policy/DrivingPolicy.cs:190`; `Tests/EditMode/Story543EmotionModulationTests.cs:622`.
+
 ## Design Notes
 
 Gains par defaut (gR / gP) :
