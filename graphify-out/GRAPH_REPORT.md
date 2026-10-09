@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `be1a6eee`
+- Built from commit: `b1db1de4`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -73,7 +73,7 @@
 - ImportedCurve
 - .AddMovement
 - TrafficDriveOutcome
-- RoutePlan
+- LongitudinalDecision
 - PassengerActionVerdictCode
 - GridlockSupervisor
 - TrafficV2HazardCollector
@@ -117,7 +117,7 @@
 - LocalVehicleCameraRig
 - Vector3
 - NetworkedAIVehicleState
-- RoadRage.Shared.Definitions
+- RoutePlan
 - NetworkedPlayerState
 - .FingerprintWithInputs
 - .UpdateSteeringState
@@ -131,19 +131,19 @@
 - NetworkedPlayerLifecycleIntent
 - RoadModelVersion
 - SignalPhaseController
-- LongitudinalDecision
+- SpeedConstraint
 - JunctionClearanceResult
 - TrafficSettingsDef
-- PathIssue
+- TrafficJunctionOutcome
 - DriverProfile
 - StatusFilter
-- .HandleRosterChanged
+- ReferenceTrack
 - AIVehicleBehaviorDebugView
 - PairRelation
 - TrafficV2VehicleDriver
 - PairReviewWindow
 - PortalTrafficSpawner
-- RouteReason
+- .HandleRosterChanged
 - RoadRageBootstrap
 - TrafficV2StepRunner
 - .Run
@@ -161,21 +161,21 @@
 - LaneNode
 - OccupancyExclusion
 - RoadModelCanonicalWriter
-- SpeedConstraint
-- SafetyReason
+- RoadRage.Shared.Definitions
+- RouteReason
 - ImportContext
-- PlanningReach
+- SafetyReason
 - TacticalDecision
 - NetworkedVehicleSeatIntent
 - VehicleCoverage
-- ReferenceTrack
+- PathIssue
 - .Configure
 - .Read
-- TrafficJunctionOutcome
 - .Bind
 - AppSceneRouter.cs
-- NetworkedPlayerLifecycleService
 - PairReviewStatus
+- NetworkedPlayerLifecycleService
+- PlanningReach
 - SpeedPlanIssue
 - .Build
 - RoutePath
@@ -456,9 +456,9 @@ Nodes (12): Dictionary, IReadOnlyList, KeyValuePair, List, Predicate, RoadCurve,
 Cohesion: 0.10
 Nodes (19): IReadOnlyList, TrafficDriveOutcome, AppliedConstraints, Binding, BrakeReverse, DecisionEpoch, DeferredConstraints, Fallback (+11 more)
 
-### Community 58 - "RoutePlan"
-Cohesion: 0.12
-Nodes (17): IReadOnlyList, RoadModelVersion, RoutePlan, Diagnostics, DistanceMeters, ExitPortalId, ModelId, ModelVersion (+9 more)
+### Community 58 - "LongitudinalDecision"
+Cohesion: 0.09
+Nodes (24): IReadOnlyList, LongitudinalDecision, AppliedAccelerationMetersPerSecondSquared, Binding, Candidates, FreeRoadAccelerationMetersPerSecondSquared, Hold, HoldCauses (+16 more)
 
 ### Community 59 - "PassengerActionVerdictCode"
 Cohesion: 0.05
@@ -632,6 +632,10 @@ Nodes (6): List, Vector3, HermiteSegment, RoadCurveBuilder, SegmentWalker, Hermi
 Cohesion: 0.31
 Nodes (6): IReadOnlyList, Vector3, AiRageTargetResolution, NetworkVariable, NetworkedAIVehicleState, NetworkObjectReference
 
+### Community 102 - "RoutePlan"
+Cohesion: 0.12
+Nodes (17): IReadOnlyList, RoadModelVersion, RoutePlan, Diagnostics, DistanceMeters, ExitPortalId, ModelId, ModelVersion (+9 more)
+
 ### Community 103 - "NetworkedPlayerState"
 Cohesion: 0.16
 Nodes (11): Key, Rpc, RpcParams, NetworkedPlayerReviveIntent, FixedString32Bytes, NetworkVariable, Vector3, NetworkedPlayerState (+3 more)
@@ -680,9 +684,9 @@ Nodes (5): RoadModelVersion, High, IsEmpty, Low, SchemaVersion
 Cohesion: 0.29
 Nodes (6): CompiledRoadModel, IReadOnlyList, SignalPhaseController, Current, Model, CompiledSignalPlan
 
-### Community 116 - "LongitudinalDecision"
-Cohesion: 0.09
-Nodes (24): IReadOnlyList, LongitudinalDecision, AppliedAccelerationMetersPerSecondSquared, Binding, Candidates, FreeRoadAccelerationMetersPerSecondSquared, Hold, HoldCauses (+16 more)
+### Community 116 - "SpeedConstraint"
+Cohesion: 0.13
+Nodes (15): SpeedConstraint, AnticipatedDeceleration, CurrentSpeedDeceleration, CurveLimit, DesiredSpeed, HorizonTerminalStop, JunctionEntry, LeaderFollowing (+7 more)
 
 ### Community 117 - "JunctionClearanceResult"
 Cohesion: 0.31
@@ -692,9 +696,9 @@ Nodes (7): RoadId, JunctionClearanceRelief, JunctionClearanceResult, Passed, Jun
 Cohesion: 0.14
 Nodes (12): TrafficSettingsDef, ConnectorJoinDistance, DefaultLitterThrowers, DefaultTargetPopulation, EdgeBudgetFactor, Id, MaxLitterThrowers, MaxTargetPopulation (+4 more)
 
-### Community 119 - "PathIssue"
-Cohesion: 0.29
-Nodes (7): PathIssue, CurvatureSlope, MissingElement, None, SeamCurvature, SeamGap, SeamTangent
+### Community 119 - "TrafficJunctionOutcome"
+Cohesion: 0.18
+Nodes (8): TrafficJunctionOutcome, Counters, EntryActive, FrameId, Records, Report, SnapshotEffectiveFrame, SnapshotStale
 
 ### Community 120 - "DriverProfile"
 Cohesion: 0.11
@@ -704,9 +708,9 @@ Nodes (14): DriverModel, DriverProfile, AimPointRecallSpeed, ComfortableDecelera
 Cohesion: 0.29
 Nodes (7): StatusFilter, Inchangees, Modifiees, Nouvelles, Retirees, SansDecisionConfirmee, Tous
 
-### Community 122 - ".HandleRosterChanged"
-Cohesion: 0.24
-Nodes (5): Difficulty, Difficulty, Easy, Hard, Normal
+### Community 122 - "ReferenceTrack"
+Cohesion: 0.08
+Nodes (31): IReadOnlyList, Quaternion, RoadCurve, RoadElementKind, RoadKinematicAnchor, Vector3, BodyState, GaugeBox (+23 more)
 
 ### Community 123 - "AIVehicleBehaviorDebugView"
 Cohesion: 0.29
@@ -728,9 +732,9 @@ Nodes (7): IList, List, MenuItem, Vector2, PairReviewWindow, EditorWindow, Statu
 Cohesion: 0.10
 Nodes (19): CharacterController, Collider, GameObject, IEnumerator, IReadOnlyList, List, NetworkObject, Vector3 (+11 more)
 
-### Community 128 - "RouteReason"
-Cohesion: 0.20
-Nodes (10): RouteReason, DestinationUnavailable, DestinationUnreachable, InvalidStart, NoRouteAfterObjective, NoRouteToObjective, ObjectiveUnknown, Requested (+2 more)
+### Community 128 - ".HandleRosterChanged"
+Cohesion: 0.24
+Nodes (5): Difficulty, Difficulty, Easy, Hard, Normal
 
 ### Community 129 - "RoadRageBootstrap"
 Cohesion: 0.07
@@ -800,17 +804,17 @@ Nodes (5): OccupancyExclusion, None, NotLocalized, OccupancyNotBounded, Undeclar
 Cohesion: 0.26
 Nodes (5): BinaryWriter, Comparison, IReadOnlyList, Vector3, RoadModelCanonicalWriter
 
-### Community 146 - "SpeedConstraint"
-Cohesion: 0.13
-Nodes (15): SpeedConstraint, AnticipatedDeceleration, CurrentSpeedDeceleration, CurveLimit, DesiredSpeed, HorizonTerminalStop, JunctionEntry, LeaderFollowing (+7 more)
-
-### Community 147 - "SafetyReason"
-Cohesion: 0.22
-Nodes (9): SafetyReason, ImminentUnintendedCollision, InvalidActorState, LocalPlanInvalidated, None, NonFiniteOutput, PhysicallyInvalidIntent, PhysicallyInvalidPath (+1 more)
+### Community 147 - "RouteReason"
+Cohesion: 0.20
+Nodes (10): RouteReason, DestinationUnavailable, DestinationUnreachable, InvalidStart, NoRouteAfterObjective, NoRouteToObjective, ObjectiveUnknown, Requested (+2 more)
 
 ### Community 148 - "ImportContext"
 Cohesion: 0.24
 Nodes (6): RoadBoundsBox, RoadCurvePoint, Vector3, CircleFit, ImportContext, CircleFit
+
+### Community 149 - "SafetyReason"
+Cohesion: 0.22
+Nodes (9): SafetyReason, ImminentUnintendedCollision, InvalidActorState, LocalPlanInvalidated, None, NonFiniteOutput, PhysicallyInvalidIntent, PhysicallyInvalidPath (+1 more)
 
 ### Community 150 - "TacticalDecision"
 Cohesion: 0.05
@@ -824,9 +828,9 @@ Nodes (5): Key, Rpc, RpcParams, NetworkedVehicleSeatIntent, Keyboard
 Cohesion: 0.25
 Nodes (8): VehicleCoverage, Covered, GateAEvidenceMissing, GateAEvidenceStale, NotCoveredByGateA, NotEstablished, PoseModelMismatch, TrackingToleranceUndeclared
 
-### Community 153 - "ReferenceTrack"
-Cohesion: 0.08
-Nodes (31): IReadOnlyList, Quaternion, RoadCurve, RoadElementKind, RoadKinematicAnchor, Vector3, BodyState, GaugeBox (+23 more)
+### Community 153 - "PathIssue"
+Cohesion: 0.29
+Nodes (7): PathIssue, CurvatureSlope, MissingElement, None, SeamCurvature, SeamGap, SeamTangent
 
 ### Community 154 - ".Configure"
 Cohesion: 0.25
@@ -836,25 +840,21 @@ Nodes (6): CinemachineCamera, CinemachineOrbitalFollow, Transform, ThirdPersonCa
 Cohesion: 0.25
 Nodes (6): Collider, List, MonoBehaviour, Scene, Transform, SidewalkDeclarations
 
-### Community 156 - "TrafficJunctionOutcome"
-Cohesion: 0.18
-Nodes (8): TrafficJunctionOutcome, Counters, EntryActive, FrameId, Records, Report, SnapshotEffectiveFrame, SnapshotStale
-
-### Community 157 - ".Bind"
+### Community 156 - ".Bind"
 Cohesion: 0.40
 Nodes (4): CompiledRoadModel, GateAEvidenceBinding, Signoff, Signoff
 
-### Community 158 - "AppSceneRouter.cs"
+### Community 157 - "AppSceneRouter.cs"
 Cohesion: 0.40
 Nodes (3): AppPlayModeEntry, PlayModeStateChange, SceneAsset
+
+### Community 158 - "PairReviewStatus"
+Cohesion: 0.40
+Nodes (5): PairReviewStatus, Modified, New, Removed, Unchanged
 
 ### Community 159 - "NetworkedPlayerLifecycleService"
 Cohesion: 0.15
 Nodes (8): IEnumerable, NetworkedPlayerLifecycleService, Instance, PlayerLifecycle, Alive, Dead, Disconnected, Downed
-
-### Community 160 - "PairReviewStatus"
-Cohesion: 0.40
-Nodes (5): PairReviewStatus, Modified, New, Removed, Unchanged
 
 ### Community 161 - "SpeedPlanIssue"
 Cohesion: 0.40
@@ -944,7 +944,7 @@ Nodes (4): Answer, Outcome, Q: Corriger la camera du lock rage pour rester au PO
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `TrafficV2VehicleDriver` connect `TrafficV2VehicleDriver` to `RoadRage.Features.Vehicles.Traffic.Planning`, `.Run`, `TrafficV2StepRunner`, `GateAEvidenceParameters`, `RecoverySupervisor`, `JunctionActorReport`, `Blocker`, `TacticalDecision`, `ReferenceTrack`, `.PrepareStep`, `.Step`, `CampaignTraceability`, `V2FallbackReason`, `.Evaluate`, `TrackingTolerance`, `RoutePlan`, `.Decide`, `TrafficV2Insertion`, `AgentObservation`, `TrafficDecisionProjection`, `ElementOccupant`, `.Collect`, `TrafficV2Admission`, `JunctionConflictIndex`, `NetworkedPlayerState`, `LongitudinalDecision`, `PortalTrafficSpawner`?**
+- **Why does `TrafficV2VehicleDriver` connect `TrafficV2VehicleDriver` to `RoadRage.Features.Vehicles.Traffic.Planning`, `.Run`, `TrafficV2StepRunner`, `GateAEvidenceParameters`, `RecoverySupervisor`, `JunctionActorReport`, `Blocker`, `TacticalDecision`, `.PrepareStep`, `.Step`, `CampaignTraceability`, `V2FallbackReason`, `.Evaluate`, `TrackingTolerance`, `LongitudinalDecision`, `.Decide`, `TrafficV2Insertion`, `AgentObservation`, `TrafficDecisionProjection`, `ElementOccupant`, `.Collect`, `TrafficV2Admission`, `JunctionConflictIndex`, `RoutePlan`, `NetworkedPlayerState`, `ReferenceTrack`, `PortalTrafficSpawner`?**
   _High betweenness centrality (0.257) - this node is a cross-community bridge._
 - **Why does `PortalTrafficSpawner` connect `PortalTrafficSpawner` to `RoadRage.Shared.Domain`, `TrafficV2StepRunner`, `TrafficV2Insertion`, `.Step`, `MonoBehaviour`, `RageRoadEventFlowController`, `TrafficV2Admission`, `TrafficV2Composition.cs`, `TrafficV2Code`, `TrafficSettingsDef`, `LaneGraph`, `TrafficV2VehicleDriver`?**
   _High betweenness centrality (0.170) - this node is a cross-community bridge._
