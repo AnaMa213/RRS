@@ -322,6 +322,32 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
+        public void AnExceptionAcceptedInsideItsScopeEndsOnTheImmediatelyFollowingExit()
+        {
+            var coordinator = new JunctionCoordinator(Crossing);
+            var accepted = coordinator.Resolve(5UL, new[] { On(A, C0) }, null, null,
+                new[] { Ask(A, 5UL, kind: RuleExceptionTerminationKind.ScopeExited, expiry: 50UL) });
+            Assert.That(Only(accepted).Status, Is.EqualTo(RuleExceptionStatus.Accepted));
+            IReadOnlyList<EffectiveRuleException> effective;
+            Assert.That(accepted.TryGetEffectiveExceptions(A, 6UL, out effective), Is.True);
+            Assert.That(effective.Single().Request.Scope, Is.EqualTo(C0));
+            Assert.That(coordinator.ActiveRuleExceptions, Is.EqualTo(1));
+
+            var exited = coordinator.Resolve(6UL, new[] { On(A, C1) });
+            var record = Only(exited);
+            Assert.That(record.Status, Is.EqualTo(RuleExceptionStatus.Ended), record.ToText());
+            Assert.That(record.Reason, Is.EqualTo(RuleExceptionReason.ScopeExited));
+            Assert.That(record.SourceFrame, Is.EqualTo(6UL));
+            Assert.That(record.EffectiveFrame, Is.EqualTo(7UL));
+            Assert.That(record.Exception, Is.Null);
+            Assert.That(exited.TryGetEffectiveExceptions(A, 7UL, out effective), Is.False);
+            Assert.That(effective, Is.Not.Null.And.Empty);
+            Assert.That(coordinator.ActiveRuleExceptions, Is.Zero);
+            Assert.That(coordinator.Resolve(7UL, new[] { On(A, C1) }).RuleExceptions, Is.Empty,
+                "une sortie immediate termine l'exception une seule fois, avant son expiration");
+        }
+
+        [Test]
         public void AnExceptionEndsWhenItsRequesterOrTargetLeavesTheFrame()
         {
             var coordinator = new JunctionCoordinator(Crossing);

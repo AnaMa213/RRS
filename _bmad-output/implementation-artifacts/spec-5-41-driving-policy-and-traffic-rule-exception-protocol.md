@@ -165,6 +165,12 @@ context:
 
     5.35 et 5.39 ont ete rejouees apres l'option 1.
 
+### Review Findings — 2026-10-09 — Independent requested review
+
+Four configured layers completed on `7795bf7..c321da6`, inspected at `d60b86a`. The owner authorized the verification patch and explicit promotion to done. R1 is resolved: Story541 passes 35/35 EditMode, compilation is healthy, Console has zero errors since cursor 927, and MVP_Run is clean. Existing P6/Gate D deferrals remain accepted. Runtime code is unchanged. Graphify updated: 4,971 nodes / 11,430 edges / 197 communities. [Detailed findings and exact validation recap](code-review-5-41-2026-10-09.md).
+
+- [x] [Review][Patch][Medium] R1 — Acceptance while already inside the scope now has termination regression proof. A ScopeExited request accepted while A is on C0, followed immediately by A on C1 at the next batch, requires Ended ScopeExited, correct publication frames, zero active exceptions, no effective exception and no repeated termination. The outside-then-entered case is preserved. P4. `Assets/RoadRage/Tests/EditMode/Story541DrivingPolicyTests.cs:324`; `TrafficRuleAuthority.cs:154`.
+
 ## Design Notes
 
 Decisions proposees a l'approbation :
