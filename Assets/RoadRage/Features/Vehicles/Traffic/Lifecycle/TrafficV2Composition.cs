@@ -169,6 +169,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public static readonly IReadOnlyList<Coordination.GridlockEscalationTier> GridlockEscalationTiers =
             Array.AsReadOnly(new[] { Coordination.GridlockEscalationTier.PrecedenceRelaxation });
 
+        /// <summary>
+        /// Story 5.41 (decision D2 du 2026-10-09) : seules regles que l'autorite peut accepter de voir derogees. Tout ajout est une
+        /// decision proprietaire (Ask First) ; KeepClear reste exclue (grant cyclique, 5.40 D1).
+        /// </summary>
+        public static readonly IReadOnlyList<Policy.TrafficRule> ViolableTrafficRules =
+            Array.AsReadOnly(new[] { Policy.TrafficRule.OpposingCorridor });
+
+        /// <summary>Story 5.41 (D3) : duree maximale d'une exception, en pas hote (10 s a 50 Hz). Revision : Ask First.</summary>
+        public const int MaxRuleExceptionFrames = 500;
+
         /// <summary>Verification du modele M par pas : ecart de position du centre de masse (m).</summary>
         public const float ModelPositionToleranceMeters = 0.002f;
 

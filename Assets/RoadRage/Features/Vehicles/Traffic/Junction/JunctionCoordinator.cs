@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using RoadRage.Features.Vehicles.Traffic.Diagnostics;
 using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
+using RoadRage.Features.Vehicles.Traffic.Policy;
 
 namespace RoadRage.Features.Vehicles.Traffic.Coordination
 {
@@ -85,6 +86,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         // Frame du lot courant (Story 5.36) : seule source de l'etat des feux ; nulle hors lot ou sans frame.
         private TrafficFrame signalFrame;
         private Dictionary<RoadId, Seniority> seniority = new Dictionary<RoadId, Seniority>();
+        // Story 5.41 : autorite des TrafficRules, decidee dans le lot apres les grants, sans les lire ni les modifier.
+        private readonly TrafficRuleAuthority ruleAuthority = new TrafficRuleAuthority();
 
         /// <param name="firstEffectiveFrame">Frame a laquelle l'instantane initial, vide, est lu.</param>
         public JunctionCoordinator(CompiledRoadModel model, ulong firstEffectiveFrame = 1UL)
@@ -104,16 +107,21 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         /// <summary>Lot de la frame <paramref name="frameId"/>, construite : un rapport par acteur present.</summary>
         /// <param name="frame">Frame N du lot, source de l'etat des feux ; nulle : tout mouvement Signalized est SignalUnavailable.</param>
         /// <param name="cycles">Story 5.40 : cycles d'attente soumis par le superviseur d'interblocage ; nul ou vide : aucune escalade.</param>
+        /// <param name="ruleExceptions">Story 5.41 : demandes d'exception du lot ; nul ou vide : aucune nouvelle exception.</param>
         public JunctionSnapshot Resolve(ulong frameId, IReadOnlyList<JunctionActorReport> reports, TrafficFrame frame = null,
-            IReadOnlyList<GridlockCycle> cycles = null)
+            IReadOnlyList<GridlockCycle> cycles = null, IReadOnlyList<RuleExceptionRequest> ruleExceptions = null)
         {
             if (frame != null && (frame.FrameId != frameId || frame.Model != Model)) throw new ArgumentException("FrameMismatch", "frame");
             signalFrame = frame;
-            try { return ResolveBatch(frameId, reports, cycles); }
+            try { return ResolveBatch(frameId, reports, cycles, ruleExceptions); }
             finally { signalFrame = null; }
         }
 
-        private JunctionSnapshot ResolveBatch(ulong frameId, IReadOnlyList<JunctionActorReport> reports, IReadOnlyList<GridlockCycle> cycles)
+        /// <summary>Exceptions actives apres le dernier lot (Story 5.41).</summary>
+        public int ActiveRuleExceptions { get { return ruleAuthority.ActiveCount; } }
+
+        private JunctionSnapshot ResolveBatch(ulong frameId, IReadOnlyList<JunctionActorReport> reports, IReadOnlyList<GridlockCycle> cycles,
+            IReadOnlyList<RuleExceptionRequest> ruleExceptions)
         {
             Batches++;
             TrafficV2WorkCounters.Work.JunctionBatches++;
@@ -366,6 +374,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             traceGap = traceEta = float.NaN;
             BreakDeadlocks(yielded, threats, live, occupants, kept, records, frameId, effective);
             var gridlocks = EscalateGridlocks(cycles, byId, unserved, threats, refused, live, occupants, kept, records, frameId, effective);
+            // Story 5.41 (P4) : apres toute decision de grant ; les exceptions n'entrent dans aucun predicat de carrefour.
+            var exceptions = (ruleExceptions == null || ruleExceptions.Count == 0) && ruleAuthority.ActiveCount == 0 ? null
+                : ruleAuthority.Resolve(frameId, byId, ruleExceptions, Model, TrafficV2Settings.ViolableTrafficRules,
+                    TrafficV2Settings.MaxRuleExceptionFrames);
 
             // 3. Publication : tout grant vivant est republie, sinon il expire.
             kept.Sort(CompareGrants);
@@ -375,7 +387,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             grants = kept;
             Current = Publish(frameId, effective, records, true, actors.Count, occupantCount, requests, valid, entered, incompatible,
                 TrafficV2WorkCounters.Work.JunctionPairChecks - pairStart, batchStopRequired, batchYield, batchMergeGaps,
-                batchDeadlockBreaks, batchCrossingRefusals, batchMergeGapRefusals, gridlocks);
+                batchDeadlockBreaks, batchCrossingRefusals, batchMergeGapRefusals, gridlocks, exceptions);
             return Current;
         }
 
@@ -403,7 +415,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 else records.Add(Record(grant, grant.Movements, frameId, effective, JunctionGrantStatus.Revoked, JunctionReason.FrameUnavailable));
             }
             grants = kept;
-            Current = Publish(frameId, effective, records, false, 0, 0, 0, 0, 0, 0, 0L);
+            Current = Publish(frameId, effective, records, false, 0, 0, 0, 0, 0, 0, 0L,
+                ruleExceptions: ruleAuthority.ActiveCount == 0 ? null : ruleAuthority.FailClosed(frameId));
             return Current;
         }
 
@@ -921,7 +934,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         private static JunctionSnapshot Publish(ulong frameId, ulong effective, List<JunctionRecord> records, bool frameValid,
             int actors, int occupants, int requests, int valid, int entered, int incompatible, long pairs, int stopRequired = 0,
             int yieldToPriority = 0, int mergeGaps = 0, int deadlockBreaks = 0, int crossingRefusals = 0, int mergeGapRefusals = 0,
-            List<GridlockResolution> gridlocks = null)
+            List<GridlockResolution> gridlocks = null, List<RuleExceptionRecord> ruleExceptions = null)
         {
             int granted = 0, held = 0, denied = 0, revoked = 0, released = 0;
             foreach (var record in records)
@@ -934,7 +947,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             }
             return new JunctionSnapshot(frameId, effective, records, new JunctionBatchCounters(frameValid, actors, occupants, requests,
                 valid, granted, held, denied, revoked, released, entered, incompatible, pairs, stopRequired, yieldToPriority, mergeGaps,
-                deadlockBreaks, crossingRefusals, mergeGapRefusals), gridlocks);
+                deadlockBreaks, crossingRefusals, mergeGapRefusals), gridlocks, ruleExceptions);
         }
     }
 }

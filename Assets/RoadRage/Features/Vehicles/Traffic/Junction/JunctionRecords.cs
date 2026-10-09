@@ -516,11 +516,18 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
         public JunctionBatchCounters Counters { get; }
         /// <summary>Story 5.40 (G7) : une resolution par cycle soumis au lot, triee par cle ; vide sans cycle.</summary>
         public IReadOnlyList<GridlockResolution> Gridlocks { get; }
+        /// <summary>Story 5.41 (P5) : decisions d'exception du lot, triees par (demandeur, regle, statut) ; vide sans exception.</summary>
+        public IReadOnlyList<RuleExceptionRecord> RuleExceptions { get; }
 
         public JunctionSnapshot(ulong sourceFrame, ulong effectiveFrame, IReadOnlyList<JunctionRecord> records,
-            JunctionBatchCounters counters, IReadOnlyList<GridlockResolution> gridlocks = null)
+            JunctionBatchCounters counters, IReadOnlyList<GridlockResolution> gridlocks = null,
+            IReadOnlyList<RuleExceptionRecord> ruleExceptions = null)
         {
             SourceFrame = sourceFrame; EffectiveFrame = effectiveFrame; Counters = counters;
+            var decided = new RuleExceptionRecord[ruleExceptions == null ? 0 : ruleExceptions.Count];
+            for (int i = 0; i < decided.Length; i++) decided[i] = ruleExceptions[i];
+            Array.Sort(decided, CompareExceptions);
+            RuleExceptions = Array.AsReadOnly(decided);
             var resolved = new GridlockResolution[gridlocks == null ? 0 : gridlocks.Count];
             for (int i = 0; i < resolved.Length; i++) resolved[i] = gridlocks[i];
             Gridlocks = Array.AsReadOnly(resolved);
@@ -560,6 +567,27 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
             return found;
         }
 
+        /// <summary>
+        /// Story 5.41 (P5) : exceptions effectives du vehicule a la frame lue ; faux et liste vide si l'instantane est decale ou
+        /// si aucune n'est effective, sans allocation dans ce cas.
+        /// </summary>
+        public bool TryGetEffectiveExceptions(RoadId trafficId, ulong frameId, out IReadOnlyList<EffectiveRuleException> exceptions)
+        {
+            exceptions = EffectiveRuleException.None;
+            if (EffectiveFrame != frameId) return false;
+            List<EffectiveRuleException> found = null;
+            for (int i = 0; i < RuleExceptions.Count; i++)
+            {
+                var record = RuleExceptions[i];
+                if (!record.IsEffective || record.Request.Requester != trafficId) continue;
+                if (found == null) found = new List<EffectiveRuleException>();
+                found.Add(record.Exception);
+            }
+            if (found == null) return false;
+            exceptions = found.AsReadOnly();
+            return true;
+        }
+
         public string ToText()
         {
             var text = new StringBuilder();
@@ -567,7 +595,16 @@ namespace RoadRage.Features.Vehicles.Traffic.Coordination
                 .Append(EffectiveFrame.ToString(CultureInfo.InvariantCulture)).Append(" / ").Append(Counters.ToText());
             for (int i = 0; i < records.Length; i++) text.Append("\n  ").Append(records[i].ToText());
             for (int i = 0; i < Gridlocks.Count; i++) text.Append("\n  ").Append(Gridlocks[i].ToText());
+            for (int i = 0; i < RuleExceptions.Count; i++) text.Append("\n  ").Append(RuleExceptions[i].ToText());
             return text.ToString();
+        }
+
+        private static int CompareExceptions(RuleExceptionRecord a, RuleExceptionRecord b)
+        {
+            int order = a.Request.Requester.CompareTo(b.Request.Requester);
+            if (order == 0) order = ((int)a.Request.Rule).CompareTo((int)b.Request.Rule);
+            if (order == 0) order = ((int)a.Status).CompareTo((int)b.Status);
+            return order != 0 ? order : ((int)a.Reason).CompareTo((int)b.Reason);
         }
 
         private static int Compare(JunctionRecord a, JunctionRecord b)

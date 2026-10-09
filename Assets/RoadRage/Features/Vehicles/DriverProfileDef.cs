@@ -1,3 +1,4 @@
+using RoadRage.Features.Vehicles.Traffic.Policy;
 using RoadRage.Features.Vehicles.Traffic.Tactical;
 using RoadRage.Shared.Definitions;
 using UnityEngine;
@@ -44,6 +45,10 @@ namespace RoadRage.Features.Vehicles
         [Tooltip("Story 5.38 : distribution authoree des reactions a une collision significative (Traffic V2) et duree de leur premiere phase. Hors de la struct de conduite : le V1 ne la lit pas.")]
         private CollisionReactionWeights collisionReaction = CollisionReactionWeights.Default;
 
+        [SerializeField]
+        [Tooltip("Story 5.41 : politique de conduite authoree (risque, creneau, surfaces, manoeuvres), resolue par DrivingPolicy (Traffic V2). Hors de la struct de conduite : le V1 ne la lit pas.")]
+        private DrivingPolicyProfile policy = DrivingPolicyProfile.Default;
+
         /// <summary>Id stable expose sous la forme partagee attendue par les autres couches.</summary>
         public DefinitionId Id
         {
@@ -66,6 +71,12 @@ namespace RoadRage.Features.Vehicles
         public CollisionReactionWeights CollisionReaction
         {
             get { return collisionReaction; }
+        }
+
+        /// <summary>Politique de conduite authoree (Story 5.41), lue par DrivingPolicy.Resolve.</summary>
+        public DrivingPolicyProfile Policy
+        {
+            get { return policy; }
         }
 
         public bool TryValidate(out string error)
@@ -154,6 +165,11 @@ namespace RoadRage.Features.Vehicles
             }
 
             if (!collisionReaction.TryValidate(out error))
+            {
+                return false;
+            }
+
+            if (!policy.TryValidate(out error))
             {
                 return false;
             }

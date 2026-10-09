@@ -6,6 +6,7 @@ using RoadRage.Features.Vehicles.Traffic.Blockers;
 using RoadRage.Features.Vehicles.Traffic.Coordination;
 using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
+using RoadRage.Features.Vehicles.Traffic.Policy;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 
 namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
@@ -235,6 +236,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
         public TrafficLongitudinalOutcome Longitudinal { get; private set; }
         /// <summary>Partie coordination de carrefour (5.34) ; nulle sans rapport de coordination a ce pas.</summary>
         public TrafficJunctionOutcome Junction { get; private set; }
+        /// <summary>Partie politique (5.41) : parametres effectifs ; nulle sans politique resolue.</summary>
+        public EffectivePolicy? Policy { get; private set; }
+        /// <summary>Exceptions effectives du vehicule a cette frame (5.41) ; jamais nul.</summary>
+        public IReadOnlyList<EffectiveRuleException> RuleExceptions { get; private set; } = EffectiveRuleException.None;
 
         internal TrafficDecisionProjection(ulong frameId, RoadModelVersion version, RoadId trafficId,
             RoadLocation location, RouteResult route, MotionPlan motion, string code)
@@ -296,6 +301,15 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
             return copy;
         }
 
+        /// <summary>Copie immuable portant la politique et les exceptions effectives (5.41) ; la decision d'origine est inchangee.</summary>
+        public TrafficDecisionProjection WithPolicy(EffectivePolicy policy, IReadOnlyList<EffectiveRuleException> exceptions)
+        {
+            var copy = (TrafficDecisionProjection)MemberwiseClone();
+            copy.Policy = policy;
+            copy.RuleExceptions = exceptions ?? EffectiveRuleException.None;
+            return copy;
+        }
+
         private static string F(float value) { return value.ToString("R", CultureInfo.InvariantCulture); }
 
         private static RouteOccurrence[] Copy(IReadOnlyList<RouteOccurrence> source)
@@ -341,6 +355,12 @@ namespace RoadRage.Features.Vehicles.Traffic.Diagnostics
                 if (Drive.Safety != null) text.Append('\n').Append("Safety ").Append(Drive.Safety);
                 if (Drive.Tactical != null) text.Append('\n').Append("Tactical ").Append(Drive.Tactical);
                 if (Drive.Recovery != null) text.Append('\n').Append("Recovery ").Append(Drive.Recovery);
+            }
+            if (Policy.HasValue)
+            {
+                text.Append('\n').Append("Policy ").Append(Policy.Value.ToText()).Append(" / exceptions ");
+                if (RuleExceptions.Count == 0) text.Append("aucune");
+                for (int i = 0; i < RuleExceptions.Count; i++) text.Append(i == 0 ? "" : "; ").Append(RuleExceptions[i].ToText());
             }
             if (Longitudinal != null) text.Append('\n').Append(Longitudinal.ToText());
             if (Junction != null) text.Append('\n').Append(Junction.ToText());

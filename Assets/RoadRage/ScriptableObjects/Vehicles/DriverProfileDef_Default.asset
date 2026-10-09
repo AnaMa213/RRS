@@ -32,3 +32,20 @@ MonoBehaviour:
     misReact: 0.1
     evadeSeconds: 0.8
     misReactSeconds: 0.6
+  policy:
+    acceptedRisk: 0.3
+    acceptedGapSeconds: 4
+    routePreferenceWeight: 1
+    allowedSurfaces: 3
+    corridorOffset:
+      willing: 1
+      cost: 1
+    adjacentCorridor:
+      willing: 1
+      cost: 1
+    opposingCorridor:
+      willing: 1
+      cost: 1
+    authorizedSurface:
+      willing: 0
+      cost: 1

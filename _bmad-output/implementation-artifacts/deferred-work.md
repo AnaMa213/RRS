@@ -601,3 +601,7 @@ evidence: Revue d'overlay 5.28 : V1 a connu des interblocages face a face sur gi
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-40-gridlock-detection-and-bounded-escalation.md`
   summary: Le cablage du runner (blockers reels des pilotes -> arcs -> cycles soumis -> resolutions publiees) n'a qu'une preuve par scan de source, aucune execution avec des pilotes V2 lies.
   evidence: Revue verification-gap 5.40 du 2026-10-08 ; aucun pilote V2 n'est liable en EditMode et l'epic place toute verification PlayMode d'interblocage en observation candidate de Gate D (epics.md, Story 5.40). A couvrir par un interblocage mis en scene a la Gate D, ou par une fixture PlayMode si un banc a 3+ vehicules devient bon marche.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-41-driving-policy-and-traffic-rule-exception-protocol.md`
+  summary: Le cablage P6 du pilote V2 (lecture des exceptions effectives dans l'instantane, portage sur la commande, ligne Policy de la projection) n'est prouve que par scan de source et par les composants isoles, jamais a l'execution.
+  evidence: Revue verification-gap 5.41 du 2026-10-09 ; le runner ne soumet aucune demande avant 5.42 (aucun producteur), donc aucun run ne peut publier d'exception non vide ; la preuve runtime revient au premier producteur (5.42) ou a la Gate D.

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using RoadRage.Features.Vehicles.Traffic.Coordination;
 using UnityEngine;
 
 namespace RoadRage.Features.Vehicles.Traffic.Planning
@@ -29,6 +31,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
         public readonly float HeadingErrorDegrees;
         public readonly float ReferenceCurvaturePerMeter;
         public readonly float ReferenceSMeters;
+        private readonly IReadOnlyList<EffectiveRuleException> ruleExceptions;
 
         public MotionCommand(ulong sourceFrameId, ulong validFromStep, ulong validToStep, float targetAcceleration,
             float targetWheelAngleDegrees, SpeedConstraint binding = SpeedConstraint.None, float lateralError = 0f,
@@ -39,6 +42,28 @@ namespace RoadRage.Features.Vehicles.Traffic.Planning
             TargetWheelAngleDegrees = targetWheelAngleDegrees; Binding = binding;
             LateralErrorMeters = lateralError; HeadingErrorDegrees = headingError;
             ReferenceCurvaturePerMeter = referenceCurvature; ReferenceSMeters = referenceS;
+            ruleExceptions = null;
+        }
+
+        private MotionCommand(MotionCommand command, IReadOnlyList<EffectiveRuleException> exceptions)
+        {
+            this = command;
+            ruleExceptions = exceptions;
+        }
+
+        /// <summary>
+        /// Story 5.41 (P6) : exceptions effectives du vehicule a la frame de la commande, publiees par l'autorite des regles ;
+        /// jamais nul. Aucun consommateur avant 5.42.
+        /// </summary>
+        public IReadOnlyList<EffectiveRuleException> RuleExceptions
+        {
+            get { return ruleExceptions ?? EffectiveRuleException.None; }
+        }
+
+        /// <summary>Copie portant les exceptions effectives ; nul vaut aucune.</summary>
+        public MotionCommand WithRuleExceptions(IReadOnlyList<EffectiveRuleException> exceptions)
+        {
+            return new MotionCommand(this, exceptions);
         }
 
         public bool IsValidAt(ulong step) { return step >= ValidFromStep && step <= ValidToStep; }

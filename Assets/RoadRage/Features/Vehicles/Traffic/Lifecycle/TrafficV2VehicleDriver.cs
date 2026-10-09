@@ -10,6 +10,7 @@ using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Intent;
 using RoadRage.Features.Vehicles.Traffic.Perception;
 using RoadRage.Features.Vehicles.Traffic.Planning;
+using RoadRage.Features.Vehicles.Traffic.Policy;
 using RoadRage.Features.Vehicles.Traffic.Recovery;
 using RoadRage.Features.Vehicles.Traffic.Routing;
 using RoadRage.Features.Vehicles.Traffic.Safety;
@@ -459,6 +460,9 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         private bool hasLastStepPosition;
         private float preparedTravel;
         private string recoveryTextOfStep;
+        // Story 5.41 (P6, option 1 du 2026-10-09) : politique effective resolue a chaque pas prepare depuis le profil courant ;
+        // seule source des parametres de conduite.
+        private EffectivePolicy policy;
 
         /// <summary>Empreinte du BoxCollider de caisse depuis le point de reference (contrat AD-45, H3 5.31).</summary>
         public VehicleFootprint Footprint { get { return footprint; } }
@@ -500,6 +504,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         public SafetyResult LastSafety { get; private set; }
         /// <summary>Decision tactique du vehicule (5.38) : but courant, reaction, phase et derniere raison.</summary>
         public TacticalDecision Tactical { get { return tactical; } }
+        /// <summary>Politique effective du vehicule (5.41), resolue au dernier pas prepare.</summary>
+        public EffectivePolicy Policy { get { return policy; } }
         /// <summary>Faits de collision du dernier pas decide (5.38).</summary>
         public CollisionFacts LastCollisionFacts { get; private set; }
         /// <summary>Requete de collision soumise au dernier pas ; nulle sans collision significative ni faits invalides.</summary>
@@ -650,6 +656,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
             input = new TrafficActorInput(insertion.TrafficId, pose, speed, previousElement, TrafficV2Lifecycle.ExpectedElements(route),
                 current.KinematicAnchors(currentPiece));
             if (!drivable) { contactsOfStep.Reset(); return true; }
+            policy = DrivingPolicy.Resolve(driverProfile, insertion.TrafficId, insertion.Seed.Value);
 
             if (composer == null)
             {
@@ -670,7 +677,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                     }
                     return true;
                 }
-                composer = new VehicleDriveIntentComposer(physicsBody.Profile, driverProfile.Profile.SafeBrakingLimit, dt);
+                composer = new VehicleDriveIntentComposer(physicsBody.Profile, policy.Driver.SafeBrakingLimit, dt);
                 FixedDeltaTimeSeconds = dt;
             }
             ulong step = ++stepCounter;
@@ -732,7 +739,7 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
         {
             if (!stepPrepared) return;
             stepPrepared = false;
-            var driver = driverProfile.Profile;
+            var driver = policy.Driver;
             var model = admission.Model;
             float dt = Time.fixedDeltaTime;
             var state = preparedState;
@@ -962,6 +969,10 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                 command = LastSafety.Command;
                 if (LastSafety.Verdict == SafetyVerdict.Reject) refusal = LastSafety.Refusal;
             }
+            // P6 (5.41) : exceptions effectives a cette frame, portees sur la commande apres le SafetyFilter, qui n'en lit aucune.
+            IReadOnlyList<EffectiveRuleException> ruleExceptions = EffectiveRuleException.None;
+            if (junctions != null) junctions.TryGetEffectiveExceptions(insertion.TrafficId, frameId, out ruleExceptions);
+            if (command.HasValue) command = command.Value.WithRuleExceptions(ruleExceptions);
             if (toleranceResponse.Latched)
             {
                 // Decision 2a (Story 5.52) : hors mesure, la borne depassee retire toute commande ; repli V2 jusqu'a
@@ -1021,7 +1032,8 @@ namespace RoadRage.Features.Vehicles.Traffic.Lifecycle
                     ? null : new TrafficLongitudinalOutcome(frameId, observation, LastLongitudinal, plan == null ? null : plan.RoadLimits,
                         blockers, hazardQuery.Hits, hazardQuery.Saturated, collector))
                     .WithJunction(junctionReport == null ? null
-                        : new TrafficJunctionOutcome(frameId, junctionReport, junctions, commanded && entry.Active));
+                        : new TrafficJunctionOutcome(frameId, junctionReport, junctions, commanded && entry.Active))
+                    .WithPolicy(policy, ruleExceptions);
             lastIntent = composed.Intent;
             double instrumentationMs;
             long instrumentationBytes = EndStage(InstrumentationMarker, out instrumentationMs);
