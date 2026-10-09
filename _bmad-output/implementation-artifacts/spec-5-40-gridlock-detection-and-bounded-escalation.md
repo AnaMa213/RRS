@@ -93,7 +93,16 @@ context:
 - Given une relaxation de regle demandee, when elle est evaluee, then le coordinateur la decide ; le superviseur ne fait que la soumettre.
 - Given aucun cycle, when les campagnes PlayMode 5.35 tournent, then elles restent vertes et `MVP_Run` est inchange.
 
+### Review Findings — 2026-10-08 — Independent requested review
+
+Four configured review layers completed on `be1a6ee..09c8c59`, inspected at `b1db1de`. The owner's option 1 authorized both medium-severity verification patches; both are applied and verified. Story540 passes 21/21 EditMode, compilation is healthy, Console has zero errors in the validation window, and MVP_Run is clean. Existing approved Gate D deferrals were not reopened. [Detailed findings and validation evidence](code-review-5-40-2026-10-08.md).
+
+- [x] [Review][Patch][Medium] R1 — Actual Red and Yellow phases now reach the coordinateur in a TrafficFrame with a submitted cycle and require SignalStop, Exhausted and no grant. A valid single-Green control proves normal progress, and the missing-state case is retained. G6. `Assets/RoadRage/Tests/EditMode/Story540GridlockTests.cs:254`.
+- [x] [Review][Patch][Medium] R2 — Merge fixtures now exercise a regular live holder and a holder originally admitted through GrantedMergeGap. The ordinary gap is proved, but a member's senior reservation prevents normal progress; escalation must remain Exhausted until the external holder disappears. The invariant excludes escalation from the ordinary MergeGap exception. The multi-movement distance helper includes intermediate corridors, following Story535. G6 and AC2. `Assets/RoadRage/Tests/EditMode/Story540GridlockTests.cs:291`.
+
 ## Spec Change Log
+
+- **2026-10-08 — Owner-authorized independent review patches (option 1).** Both findings are fixed in Story540 fixtures only; no runtime code changed. Five new parameterized cases (Red, Yellow, Green, regular Merge holder, MergeGap holder) bring Story540 to 21/21 EditMode. Final validate.ps1 window: cursor 1003, compilation healthy, zero Console errors, no skipped/inconclusive tests, MVP_Run clean. Initial fixture failures and the interrupted CLI recompilation are recorded in the review report. Graphify updated: 4,848 nodes / 11,211 edges / 183 communities. Story535 PlayMode passed 7/7 during the independent review; it was not repeated after these test-only patches. Spec is done; sprint tracking returns to review under the existing checkpoint promotion rule.
 
 - **2026-10-08 -- Revue.**
   - **Couches actives.** `blind-hunter` (en ligne), `edge-case-hunter` et `verification-gap`. `security-review` est inactive : aucune frontiere reseau n'est deplacee.

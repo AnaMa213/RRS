@@ -8,6 +8,7 @@ using RoadRage.Features.Vehicles;
 using RoadRage.Features.Vehicles.Traffic;
 using RoadRage.Features.Vehicles.Traffic.Blockers;
 using RoadRage.Features.Vehicles.Traffic.Coordination;
+using RoadRage.Features.Vehicles.Traffic.Frame;
 using RoadRage.Features.Vehicles.Traffic.Lifecycle;
 using RoadRage.Features.Vehicles.Traffic.Recovery;
 using UnityEditor;
@@ -226,7 +227,7 @@ namespace RoadRage.Tests.EditMode
         }
 
         [Test]
-        public void ARedOrMissingSignalIsNeverRelaxedByTheEscalation()
+        public void AMissingSignalIsNeverRelaxedByTheEscalation()
         {
             var source = CrossingSource(0f, -90f, 180f, 90f);
             for (int i = 0; i < source.Controls.Length; i++) source.Controls[i].Kind = JunctionControlKind.Signalized;
@@ -245,6 +246,114 @@ namespace RoadRage.Tests.EditMode
                 Is.EqualTo(new[] { JunctionReason.SignalUnavailable }), snapshot.ToText());
             Assert.That(snapshot.Records.Any(r => r.IsEffectiveGrant), Is.False, snapshot.ToText());
             Assert.That(snapshot.Gridlocks.Single().Outcome, Is.EqualTo(GridlockOutcome.Exhausted));
+        }
+
+        [TestCase(SignalState.Red)]
+        [TestCase(SignalState.Yellow)]
+        [TestCase(SignalState.Green)]
+        public void AnActualSignalStateIsRespectedWhenACycleIsSubmitted(SignalState state)
+        {
+            var source = CrossingSource(0f, -90f, 180f, 90f);
+            for (int i = 0; i < source.Controls.Length; i++) source.Controls[i].Kind = JunctionControlKind.Signalized;
+            source.SignalPlans = new[] { new SignalPlan { Id = Id(1600), JunctionId = Id(1001),
+                Groups = source.Movements.Select((x, g) => new SignalGroup { GroupId = Id(1610 + g), MemberMovementIds = new[] { x.Id } }).ToArray(),
+                Phases = new[] { new SignalPhase { PhaseId = Id(1620), DurationSeconds = 2f,
+                    GroupStates = source.Movements.Select((x, g) => new SignalGroupState { GroupId = Id(1610 + g),
+                        State = state == SignalState.Green && g != 0 ? SignalState.Red : state }).ToArray() } } } };
+            var m = RoadModelCompiler.Compile(source);
+            var index = JunctionConflictIndex.For(m);
+            var moves = m.Movements.OrderBy(x => x.Id).Select(x => Traversal(index, x.Id)).ToArray();
+            var reports = Enumerable.Range(0, 4).Select(i => Requesting(m, Id(i + 1), moves[i], 0.3f, 0f)).ToArray();
+            var cycle = new GridlockCycle(reports.Select(r => r.TrafficId), null);
+            var frame = new TrafficFrame(1, m, new TrafficActorInput[0], null, new[] { new SignalPhaseInput(Id(1600), Id(1620)) });
+            SignalState actual;
+            Assert.That(frame.TryGetSignalState(moves[0].FirstMovementId, out actual), Is.True);
+            Assert.That(actual, Is.EqualTo(state), "la phase est presente dans la frame du lot");
+            var snapshot = new JunctionCoordinator(m).Resolve(1, reports, frame, new[] { cycle });
+            AssertGrantInvariant(m, snapshot);
+            Assert.That(snapshot.Records.Any(r => r.Reason == JunctionReason.GrantedGridlockEscalation), Is.False, snapshot.ToText());
+            if (state == SignalState.Green)
+            {
+                Assert.That(snapshot.Records.Count(r => r.IsEffectiveGrant), Is.EqualTo(1), snapshot.ToText());
+                Assert.That(snapshot.Gridlocks.Single().Outcome, Is.EqualTo(GridlockOutcome.Progressed));
+            }
+            else
+            {
+                Assert.That(snapshot.Records.All(r => r.Status == JunctionGrantStatus.Denied && r.Reason == JunctionReason.SignalStop),
+                    Is.True, snapshot.ToText());
+                Assert.That(snapshot.Records.Any(r => r.IsEffectiveGrant), Is.False, snapshot.ToText());
+                Assert.That(snapshot.Gridlocks.Single().Outcome, Is.EqualTo(GridlockOutcome.Exhausted));
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void EscalationNeverUsesAMergeGapAgainstALiveGrant(bool holderAdmittedByGap)
+        {
+            // Geometrie Merge authoree, controles Stop seulement dans ce modele en memoire : aucune preseance sur l'ancien.
+            var source = RoadModelDocument.Load(File.ReadAllText(TrafficV2Settings.ModelPath));
+            var junction = source.Junctions.Single(x => x.Label == "Roundabout_SouthWest").Id;
+            Func<string, RoadId> movement = label =>
+            {
+                var matches = source.Movements.Where(x => x.JunctionId == junction && x.Label.Contains(label)).ToArray();
+                Assert.That(matches.Length, Is.EqualTo(1), "mouvement authore : " + label);
+                return matches[0].Id;
+            };
+            var entryId = movement("Connector_West_In ->");
+            var ringId = movement("Ring_Split_West -> Ring_Merge_West");
+            for (int i = 0; i < source.Controls.Length; i++)
+                if (source.Controls[i].ControlledMovementIds.Contains(entryId) || source.Controls[i].ControlledMovementIds.Contains(ringId))
+                    source.Controls[i].Kind = JunctionControlKind.Stop;
+            var m = RoadModelCompiler.Compile(source);
+            var index = JunctionConflictIndex.For(m);
+            var entry = Traversal(index, entryId);
+            var ring = Traversal(index, ringId);
+            RoadId zone;
+            ConflictKind kind;
+            float sa, sb;
+            Assert.That(index.TryGetConflict(entryId, ringId, out zone, out kind, out sa, out sb), Is.True);
+            Assert.That(kind, Is.EqualTo(ConflictKind.Merge));
+            Assert.That(index.HasPrecedence(ringId, entryId), Is.False);
+            var senior = Requesting(m, Id(1), entry, 0.3f, 3f); // Stop non marque, reserve contre le membre plus jeune.
+            var marking = Requesting(m, Id(2), ring, 0.24f, 0f, exitFree: 0f);
+            var coordinator = new JunctionCoordinator(m);
+            Batch(m, coordinator, 1, null, senior, marking,
+                Requesting(m, Id(7), entry, 0.24f, 0f, holderAdmittedByGap ? 0f : 100f));
+            var second = new List<JunctionActorReport> { senior, marking, Requesting(m, Id(7), entry, 2f, 8f) };
+            if (holderAdmittedByGap)
+            {
+                var far = Traversal(index, movement("Connector_South_In ->"), movement("Ring_Split_Diagonal -> Ring_Merge_Diagonal"),
+                    ringId, movement("Ring_Split_South -> Connector_South_Out"));
+                second.Add(Inside(m, Id(8), far, 0, 0f, 0f));
+            }
+            var seeded = Batch(m, coordinator, 2, null, second.ToArray());
+            Assert.That(seeded.Records.Count(r => r.TrafficId == Id(7) && r.IsEffectiveGrant), Is.EqualTo(1), seeded.ToText());
+            var holderGrant = seeded.Records.Single(r => r.TrafficId == Id(7) && r.IsEffectiveGrant);
+            Assert.That(holderGrant.MergeGap, Is.EqualTo(holderAdmittedByGap), seeded.ToText());
+            if (holderAdmittedByGap) Assert.That(holderGrant.Reason, Is.EqualTo(JunctionReason.GrantedMergeGap));
+
+            // Titulaire non engage, assez loin pour un creneau ordinaire. Les deux membres attendent seulement la reservation
+            // du Stop non marque : l'escalade doit ignorer ce membre, mais jamais le grant Merge exterieur, meme MergeGap.
+            const float holderSpeed = 40f;
+            float distance = 0.9f * JunctionDistances.For(Driver, holderSpeed, Dt,
+                TrafficV2Settings.JunctionStopControlMarginMeters).RequestThresholdMeters;
+            var holder = Requesting(m, Id(7), entry, distance, holderSpeed);
+            var requester = Requesting(m, Id(2), ring, 0.3f, 3f);
+            var cycle = new GridlockCycle(new[] { Id(1), Id(2) }, null);
+            var plain = Batch(m, coordinator, 3, null, senior, requester, holder);
+            var denied = Decision(plain, Id(2));
+            Assert.That(denied.Reason, Is.EqualTo(JunctionReason.SeniorRequestPending), plain.ToText());
+            Assert.That(denied.EtaSeconds, Is.GreaterThanOrEqualTo(denied.GapSeconds), "le creneau ordinaire est prouve");
+            Assert.That(plain.Counters.MergeGapRefusals, Is.Zero, plain.ToText());
+            var blocked = Batch(m, coordinator, 4, new[] { cycle }, senior, requester, holder);
+            Assert.That(blocked.Gridlocks.Single().Outcome, Is.EqualTo(GridlockOutcome.Exhausted), blocked.ToText());
+            Assert.That(blocked.Records.Any(r => r.Reason == JunctionReason.GrantedGridlockEscalation), Is.False, blocked.ToText());
+            Assert.That(blocked.Records.Single(r => r.IsEffectiveGrant).TrafficId, Is.EqualTo(Id(7)), blocked.ToText());
+
+            // Controle positif : quand le titulaire disparait, le seul refus restant est relaxable.
+            var freed = Batch(m, coordinator, 5, new[] { cycle }, senior, requester);
+            Assert.That(freed.Gridlocks.Single().Outcome, Is.EqualTo(GridlockOutcome.Escalated), freed.ToText());
+            Assert.That(freed.Gridlocks.Single().Served, Is.EqualTo(Id(2)));
         }
 
         [Test]
@@ -428,7 +537,7 @@ namespace RoadRage.Tests.EditMode
             return snapshot;
         }
 
-        /// <summary>Invariant 5.34 amende : deux grants effectifs incompatibles seulement sur des zones Merge, l'un admis par creneau.</summary>
+        /// <summary>Exception MergeGap ordinaire de 5.35 ; un grant d'escalade ne profite jamais de cette exception (G6).</summary>
         private static void AssertGrantInvariant(CompiledRoadModel m, JunctionSnapshot snapshot)
         {
             var index = JunctionConflictIndex.For(m);
@@ -444,7 +553,8 @@ namespace RoadRage.Tests.EditMode
                             ConflictKind kind;
                             float sa, sb;
                             if (!index.TryGetConflict(ma, mb, out zone, out kind, out sa, out sb)) continue;
-                            Assert.That(kind == ConflictKind.Merge && (a.MergeGap || b.MergeGap), Is.True,
+                            Assert.That(kind == ConflictKind.Merge && (a.MergeGap || b.MergeGap)
+                                && a.Reason != JunctionReason.GrantedGridlockEscalation && b.Reason != JunctionReason.GrantedGridlockEscalation, Is.True,
                                 "grants incompatibles effectifs hors creneau de fusion : " + a.ToText() + " / " + b.ToText());
                         }
                 }
@@ -468,11 +578,17 @@ namespace RoadRage.Tests.EditMode
             return new JunctionKinematics(v, driver.MaxAcceleration, driver.DesiredSpeed, driver.ComfortableDeceleration, CarLength);
         }
 
-        private static float[] Starts(JunctionConflictIndex index, JunctionTraversal traversal, float firstStart)
+        private static float[] Starts(CompiledRoadModel m, JunctionConflictIndex index, JunctionTraversal traversal, float firstStart)
         {
             var starts = new float[traversal.MovementIds.Count];
             starts[0] = firstStart;
-            for (int i = 1; i < starts.Length; i++) starts[i] = starts[i - 1] + index.LengthOf(traversal.MovementIds[i - 1]);
+            for (int i = 1; i < starts.Length; i++)
+            {
+                RoadId previous = traversal.MovementIds[i - 1];
+                EffectiveLaneCorridor between;
+                float length = m.TryGetCorridor(index.ToCorridorOf(previous), out between) ? between.LengthMeters : 0f;
+                starts[i] = starts[i - 1] + index.LengthOf(previous) + length;
+            }
             return starts;
         }
 
@@ -484,7 +600,7 @@ namespace RoadRage.Tests.EditMode
             var distances = JunctionDistances.For(Driver, v, Dt, TrafficV2Settings.JunctionStopControlMarginMeters);
             float b = index.BoundaryOf(traversal.FirstMovementId);
             var approach = new JunctionApproach(traversal, d, distances, true, RoadId.None, false, false,
-                new JunctionExitAssessment(exitFree, JunctionExitBound.Occupant, exitOccupant, Reservation), Starts(index, traversal, d - b), b);
+                new JunctionExitAssessment(exitFree, JunctionExitBound.Occupant, exitOccupant, Reservation), Starts(m, index, traversal, d - b), b);
             bool valid = d <= distances.RequestThresholdMeters;
             var positions = traversal.MovementIds.Select(x => new JunctionMovementPosition(x, JunctionMovementStatus.Ahead)).ToArray();
             return new JunctionActorReport(id, true, index.FromCorridorOf(traversal.FirstMovementId), FarAway, null, null, positions,
@@ -503,7 +619,7 @@ namespace RoadRage.Tests.EditMode
             var remaining = new JunctionTraversal(traversal.JunctionId, movements.Skip(occupied).ToArray(), traversal.ExitCorridorId);
             var distances = JunctionDistances.For(Driver, v, Dt, TrafficV2Settings.JunctionStopControlMarginMeters);
             var approach = new JunctionApproach(remaining, -sInMovement, distances, true, RoadId.None, true, true,
-                default(JunctionExitAssessment), Starts(index, remaining, -sInMovement));
+                default(JunctionExitAssessment), Starts(m, index, remaining, -sInMovement));
             Junction junction;
             m.TryGetJunction(traversal.JunctionId, out junction);
             var corners = Enumerable.Repeat(junction.Boundary.Center, 4).ToArray();
