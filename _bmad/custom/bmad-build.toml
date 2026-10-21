@@ -39,8 +39,7 @@ For trivial or localized changes, an empty list is acceptable.
 Prefer at most three findings unless there is clear evidence of serious risk.
 Do not request more tests unless an important changed behavior is unverified by the nearest relevant check.
 
-CONTENT:
-{diff_output}
+CONTENT: the unified diff at `{diff_file}`. Read that file before reviewing.
 """
 
 # Enabled conditionally: this is not a default review pass.
@@ -73,9 +72,9 @@ Launch a context-free subagent with this prompt:
 
 Read `{skill-root}/review-prompts/edge-case-hunter.md` completely and follow it as your review instructions.
 
-Review content:
+claims_file (leave unread until your instructions call for it): {claims_file}
 
-{diff_output}
+Review content: the unified diff at `{diff_file}`. Read that file before reviewing.
 
 Do not invoke any skill.
 If the instruction file is unreadable, report that exact failure and stop.
@@ -103,9 +102,7 @@ Launch a context-free subagent with this prompt:
 
 Read `{skill-root}/review-prompts/verification-gap.md` completely and follow it as your review instructions.
 
-Review content:
-
-{diff_output}
+Review content: the unified diff at `{diff_file}`. Read that file before reviewing.
 
 Do not invoke any skill.
 If the instruction file is unreadable, report that exact failure and stop.
@@ -138,8 +135,7 @@ Launch a context-free subagent with this prompt:
 Review CONTENT strictly against one question:
 does the change create or move a network trust boundary that a client can abuse?
 
-CONTENT:
-{diff_output}
+CONTENT: the unified diff at `{diff_file}`. Read that file before reviewing.
 
 Focus only on real reachable weaknesses introduced or exposed by this change:
 
