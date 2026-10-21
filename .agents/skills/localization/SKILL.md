@@ -1,6 +1,6 @@
 ---
 name: localization
-description: "Sets up and configures Unity Localization, including locales, String/Asset Tables, CJK font support, and Addressables workflows. Use when the user wants to add languages to a project, translate UI text, support Asian (CJK) languages with TMP fonts, or mentions i18n, l10n, multilingual support, or making a game support multiple languages."
+description: Sets up and configures Unity Localization, including locales, String and Asset Tables, and CJK fonts. Use when the user asks to add languages, translate UI text, or mentions i18n or multilingual support.
 ---
 
 This guide covers setting up and configuring Unity Localization, including locales, String and Asset Tables, Addressables integration, and CJK font support via Asset Tables.
@@ -331,6 +331,8 @@ To localize an entire project efficiently, use a batch processing script that ha
 > "This will open every scene in the project, attach `LocalizeStringEvent` components, and save all modified scenes. This cannot be undone automatically. Shall I proceed?"
 
 Only proceed once the user has confirmed. The batch processor template is in [resources/L10nBatchProcessor.cs](resources/L10nBatchProcessor.cs).
+
+`LocalizeAll` also enforces this itself, so do not remove or bypass these checks when adapting the template: it refuses to run in batch mode, prompts the user to save or discard unsaved scene changes, and shows a blocking Editor dialog that lists the scenes it will rewrite. Tell the user to watch the Editor and click the confirm button; if they cancel, it throws `OperationCanceledException` and writes nothing. Report that as a cancellation, not an error to work around.
 
 It walks **both** `Text` and `TMP_Text`, and `LocalizeAll` **returns the labels it could not match**
 (as `scene :: object :: "text"`). Print that list. It is the whole point of the return value: a run

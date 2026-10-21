@@ -4,11 +4,80 @@ All notable changes to the `unity-cli` skill documentation are recorded here. Th
 skill documents the published [`unity` CLI](https://public-cdn.cloud.unity3d.com/hub/prod/cli/);
 each entry notes the CLI version the skill was aligned to.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with one
-deliberate departure: there is no `Unreleased` section. Sections are cut per CLI release, and
-documentation for a CLI version that has not shipped publicly is not recorded here until that
-release is out — so this file never names unreleased surface. Pending skill work is tracked
-alongside the CLI change itself, not here.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Sections are
+normally cut per CLI release once that release has shipped publicly, so pending skill work is
+usually tracked alongside the CLI change itself, not here. The `[Unreleased]` section below is
+the narrow exception: a surface documented ahead of its CLI release. It folds into that
+release's own dated section once the CLI actually ships it.
+
+## [Unreleased]
+
+## CLI `1.0.0-beta.12` (2026-09-30)
+
+Aligned to the CLI's `1.0.0-beta.12` release. Everything below was documented ahead of the release and ships in it.
+
+### Added
+
+- **`--with-pipeline` on `unity projects create`**: `projects-templates.md` documents adding `com.unity.pipeline` during creation, its never-fails-the-create warnings, the `pipeline` result field and its error codes, and the agent-session hint; `integration-advanced.md` points at it from the Pipeline setup section.
+- **`--cloud-org` and `--no-sign` on `unity assets export`**: `projects-templates.md` documents that Unity 6.6+ exports are signed by default, how the signing organization resolves, the pre-spawn refusals (exit `3` / `4`), `ASSETS_EXPORT_SIGNING_FAILED`, and the new `signed` / `signingOrganizationId` result fields.
+- **`--no-wait` and `--wait-timeout <seconds>` on `install`, `install-modules` and `projects require`**: documented in `editors-install.md` under "Waiting on another install", with exit code 9 and the `INSTALL_LOCK_BUSY` error code they fail with, including that exit 9 can follow a partial install. Exit 9 is also in `SKILL.md`'s exit code table.
+- **Experimental FEX-Emu support on Linux arm64**: `editors-install.md` documents the `UNITY_EXPERIMENTAL_FEX_EMU=1` opt-in, the FEX-Emu and RootFS it requires, the `fex-emu` doctor row, and the `FEX_EMU_EXPERIMENTAL` notification.
+- **The `source` field on plugin runtime rows**: `integration-advanced.md`'s `unity plugin` section says what `machine`, `package-manager` and `managed` mean on `plugin install`/`upgrade`/`list` and `doctor` rows, and what a runtime row ending `dependency-unavailable` means.
+- `--coppa <status>` on `projects create`, `projects link cloud`, `projects link vcs`, and `vcs setup`, and the `coppa` field those commands report when they create a Unity Cloud project. Documented as a "COPPA declaration" note under `projects create` in `projects-templates.md`, with the flag added to the cloud-question, `link` and URL-form flag lists in the same file.
+- **`unity projects close`**: documented in `projects-templates.md` beside the existing `unity close` docs. Same shipping command under its `projects` mount, previously missing from this skill even though it has been part of the published CLI for a while.
+- **`--key-from-stdin` on `unity collaboration jira server add`, `update`, and `test`**: the Collaboration reference's `jira server` table lists it next to a warning that `--key` exposes the API token in the process list and CI logs, and every example there now pipes the token with `printf '%s' "$JIRA_TOKEN" | ... --key-from-stdin`.
+- **`unity templates list --brief`**: documented in `projects-templates.md`'s Templates section, and the template-picking step now runs the list with `--brief --format json` instead of the untrimmed form. The flag trims the JSON data to the same name/displayName/type/version/status columns the table already renders, which matters because the untrimmed payload can run into the hundreds of KB for the default catalog.
+
+- `unity build`'s json/ndjson result gains `data.outputPath`: the absolute, resolved `--output-path` a build was told to write to, `null` only for an `--execute-method` build invoked without `--output-path`. Documented in the Build section of `build-run-test.md`, under a new "Output path in the result" paragraph beside the existing provenance-manifest one.
+- **`unity bug --area <cli|pipeline-package|editor|licensing|not-sure>`**: which part of Unity the issue is in, documented under Bug in `diagnostics-maintenance.md`. Optional and never blocking: on a terminal the reporter asks with "Not sure" preselected, and a non-interactive run without it sends no area. The answer rides as an `Issue area:` line in the report text, which is what triage reads. An `editor` or `pipeline-package` answer makes the project-copy question explain why a copy helps; it still defaults to no, and a `licensing` answer does not get that hint (a licensing or sign-in issue is rarely about the project itself).
+
+### Changed
+
+- **The "Bootstrap a new project from scratch" recipe now installs the Pipeline package before the first open and builds the scene in the live Editor.** It used to end at `unity open` without mentioning `unity pipeline install`, which led agents to build scenes through `unity run -- -executeMethod` and to report success on output they couldn't inspect. New steps 5 and 6 run `pipeline install`, `open` and `status --until-ready`. The recipe now says to set up scenes and assets with `unity command eval` against the running Editor, with batch mode as the headless fallback. `integration-advanced.md` and the recipe also document `STATUS_PIPELINE_LOAD_PENDING`, the `unity status` state for a package installed into an Editor that is already open but hasn't loaded it yet.
+- The Auth reference now notes, beside the `unity auth login --secret-from-stdin` example, that the secret must be piped in: a terminal on stdin is refused, and the command stops waiting after 30 seconds if the pipe is never closed.
+- The Config reference's proxy section said credentials missing from a proxy URL are read from the OS keyring, which the CLI doesn't do. It now says so, warns that credentials in a URL passed on the command line show in the process list and CI logs, and points at your OS identity or `UNITY_PROXY` instead.
+- `projects new`'s `--help` description now says it never links to Unity Cloud, matching the fact already documented in this file's `projects new` section.
+- `version-control.md`'s `vcs providers` section documents the new `cm` row, taken from `unity plugin list`'s own registry lookup, and the `unity plugin install uvcs` suggestion inside a UVCS workspace with no `cm`. It previously said the command does not report `cm`.
+
+## CLI `1.0.0-beta.11` (2026-09-22)
+
+Aligned to the CLI's `1.0.0-beta.11` release. Cut automatically by the release that published it, from the skill as it stood in that release — so this entry covers the documentation changes that had already landed by then. Anything worth calling out individually is added here in a follow-up pass.
+
+### Added
+
+- **`unity assets export <asset-path...> --output <file.unitypackage>`**: new subcommand, the write-side companion to `unity assets inspect`. The Assets section in `projects-templates.md` (retitled to cover both) documents the flags (`--project`, `--no-dependencies`), the batchmode-Editor requirement, pre-spawn path validation (exit `6` on a missing, outside-project, or non-`Assets`/`Packages` path), and the `--format json`/`ndjson`/`tsv` shapes.
+
+### Changed
+
+- The install one-liners in SKILL.md no longer set `UNITY_CLI_CHANNEL=beta`. A bare `install.sh` / `install.ps1` run already installs the latest beta until a stable release exists, and the stable release after that.
+- `projects-templates.md`'s `projects create` walkthrough said the interactive Unity Cloud question defaults to No. It defaults to Yes, matching what the rest of the same file already said. Corrected the one contradicting sentence.
+- `cloud-automation.md` said missing arguments or flag values could produce plain-text usage errors even under `--format json`. They fail with exit `2` and the ordinary JSON failure shape, `errors[].code` `INVALID_COMMAND_ARGS`.
+- SKILL.md and `auth-license-cloud.md` no longer mention a feature-gated command family that isn't part of the public command surface.
+
+## CLI `1.0.0-beta.10` (2026-09-14)
+
+Aligned to the CLI's `1.0.0-beta.10` release. Much of this release's surface was already documented ahead of it shipping — `unity context`, `unity watch test`, `unity commands`, `unity vcs blame`, `unity skill refresh`, and the Unity Accelerator settings (`unity config accelerator` / `--accelerator` / `unity diagnose accelerator`, listed under Deferred in the `1.0.0-beta.9` entry) — so this entry records what was still missing.
+
+### Added
+
+- **`unity assets inspect <file.unitypackage>`** — new command family. A new Assets section in `projects-templates.md` covers the offline listing (asset path, GUID, payload size, preview flag), the machine formats, and the constant-memory streaming.
+- **`unity build --list-targets` / `--list-profiles` / `--create-profile <target>`** and **`unity build run`** — the build discovery and Build Profile creation options, plus launching the most recent recorded build (`--path` for another). A new subsection under Build in `build-run-test.md`, rows in the Build options table, and the `BUILD_INVALID_TARGET` pointer at `--profile`.
+- **`unity open --wait`** (also `projects open` / `projects upgrade`) — documented under Projects in `projects-templates.md`: blocks until the Editor exits, exit `0` / `6`, macOS and Linux only, refused with exit `2` on Windows; plus the signal-killed-Editor reporting (inside the 150 ms startup watch without `--wait`, for the whole run with it).
+- **`ProjectSettings/UnityCliConfig.json` and `unity config resolve <key> [project]`** — the committed per-project build/test defaults layer (nine keys), the global `config set build.target …` layer beneath it, the precedence order, and the command that names which layer a value came from — in `config-hub.md`, with a pointer from Build.
+- **`unity command <name> --result-only`** — the envelope-free JSON result mode, in `integration-advanced.md`, alongside the readable rendering of `recompile` / `recompile_status` / `test_status` / `run_tests` results.
+- **`unity license status`'s `floatingServer` / `machineId` fields** — in `auth-license-cloud.md`.
+- **`UNITY_NO_AUTH_BROKER`, `UNITY_PEER_AUTH_MODE` / `UNITY_PEER_AUTH_LINUX_ALLOWED_HASHES`, `UNITY_CLI_HOME`, `UNITY_NO_EDITOR_IDENTITY_SERVER`** — added to the environment-variables table in SKILL.md, with a short paragraph under Auth explaining the on-demand resident auth broker, the hardware-sealed token store, and the peer code-signature check.
+
+### Changed
+
+- `unity mcp configure` — `continue` now prints `config.yaml` instructions instead of writing a file, `--dry-run` previews only the entry being changed, `codex` also relaxes the Codex sandbox network policy and refuses an unsafe `config.toml` edit, and every client config write is atomic; the MCP section also notes the desktop-screenshot fallback of `capture_game_view` / `capture_scene_view` and the `tools/list_changed` notification.
+- `unity status` — the `starting` state (Editor still booting) noted alongside `unreachable`.
+- `unity self-update` — noted that an interrupted download resumes on the next run and that a Brotli-compressed artifact is preferred when published.
+- `unity install` — noted the bounded retry on transient download failures and that `--resume` also recovers an interrupted module download.
+- Command index (SKILL.md) refreshed: `assets` added; `config` gains `resolve`; `build` gains `run`.
+- Refreshed the latest-version note to `1.0.0-beta.10`.
+- The `unity commands` note no longer links to a Hub-only doc; it was the skill’s only relative link outside its own tree, so the standalone copy published to Unity-Technologies/skills is now self-contained.
+- **Template selection defaults to URP.** The bootstrap workflow in `SKILL.md` and the Templates section of `projects-templates.md` now name `com.unity.template.urp-blank` (Universal 3D) and `com.unity.template.universal-2d` (Universal 2D) as the defaults, mark `com.unity.template.3d` / `com.unity.template.2d` as the Built-in Render Pipeline templates (deprecated from 6.5, removed in 6.7), and note that `renderPipeline` is blank for `universal-2d` in `templates list` output. Every `projects create` / `projects new` / `templates info` example now uses `urp-blank`. Previously the skill's examples all used the Built-in `com.unity.template.3d` and said the URP id “varies by version”.
 
 ## CLI `1.0.0-beta.9` (2026-09-08)
 
@@ -20,15 +89,14 @@ Aligned to the CLI's `1.0.0-beta.9` release. Several pieces of this release's su
 - **A `unity plugin` reference section**, new — this command family (`install`/`remove`/`upgrade`/`list`/`changelog`) shipped across earlier releases (`install`/`remove`/`upgrade` in `1.0.0-beta.7`) but had never had a dedicated write-up beyond a passing mention of `plugin install plastic`. Added now because `plugin upgrade`'s real version-comparison behavior and the new `plugin changelog <id>` needed somewhere to live, and documenting them in isolation without the surrounding command family would have been more confusing than useful.
 - **`--color <auto|always|never>` / `--no-color`** — the new global flag, added to the global-flags table.
 - **`unity auth consumers`** / **`unity auth revoke <application>`** — list and manage the applications using this machine's Unity sign-in through the auth broker.
-- **`unity config get|set|list|unset <key>`** — the generic key-value interface over the existing `proxy` / `proxy.bypass` / `update-check` settings, documented in `config-hub.md` alongside the purpose-built subcommands it shares storage with.
+- **`unity config get|set|list|unset <key>`** — the generic key-value interface over the existing `proxy` / `proxy.bypass` / `accelerator` / `update-check` settings, documented in `config-hub.md` alongside the purpose-built subcommands it shares storage with.
 - **`unity doctor`'s bundled third-party components section** — noted as a one-paragraph addition to the existing Doctor writeup; it's informational, not a check, so it didn't need more than that.
 - The always-on `cli telemetry` usage ping, the sign-in token store's machine-sealing, and the self-installed-vs-Homebrew PATH-conflict warning — each is a background/security behavior with no new command surface, so each got a sentence in the relevant existing section (Analytics, SKILL.md's Notes, and Self-update respectively) rather than a section of its own.
-
-- **A `unity vcs` reference section**, new (`version-control.md`) — the whole command family (`setup`/`status`/`sync`/`switch`/`doctor`/`providers`/`merge-setup`/`conflicts`/`explain`/`resolve`/`diff`/`blame`/`summarize`/`affected`/`hooks`, `vcs git` `migrate-lfs`/`worktree`, `vcs uvcs` `locks`/`changesets`/`review`) has shipped since `1.0.0-beta.7` but had no dedicated write-up until now. `SKILL.md`'s UVCS day-to-day section is reworded to point at it and to name `review` alongside the other wrapped reads.
-- **"Sandboxed agent tooling can hide a running Editor"**, a new `integration-advanced.md` section under `status`, plus a matching callout in `SKILL.md` and in the `unity status`-first scene/GameObject/asset editing workflow. Interim guidance: a restrictive sandbox around an agent's own shell commands can make `unity status`/`command`/`list` report no reachable Editor even when one is genuinely running, on Windows (a separate restricted account can't read the Editor's discovery file) and macOS (a network sandbox can block the loopback connection to it). Says plainly not to conclude the Editor is down from that alone, not to quietly substitute an undisclosed workaround (e.g. a separate headless Editor invocation) for a disclosed file edit, and never to suggest disabling the sandbox. Superseded once the CLI itself reports this case with its own distinct message — this section says so and should shrink to match at that point.
+- **"Sandboxed agent tooling can hide a running Editor"**, a new `integration-advanced.md` section under `status`, plus a matching callout in SKILL.md. Interim guidance: a restrictive sandbox around an agent's own shell commands can make `unity status`/`command`/`list` report no reachable Editor even when one is genuinely running, on Windows (a separate restricted account can't read the Editor's discovery file) and macOS (a network sandbox can block the loopback connection to it). Says plainly not to conclude the Editor is down from that alone, and never to suggest disabling the sandbox. Superseded once the CLI itself reports this case with its own distinct message — this section says so and should shrink to match at that point.
 
 ### Changed
 
+- **Extended the sandboxed-agent guidance into the scene/GameObject/asset editing workflow.** The "Sandboxed agent tooling can hide a running Editor" note (added above) was previously reachable only from the top-of-skill "Drive a running Editor" quickstart. The `unity status`-first Common workflow — the section that actually fires before any scene/GameObject/prefab/asset edit — had no mention of it, so a sandboxed agent hitting a false "no Editor" there had nothing telling it to doubt that result. Observed in the wild: a Codex-sandboxed agent took a `unity status` false negative at face value and improvised an undocumented headless-Editor workaround instead of saying so and falling back to a disclosed file edit, producing an asset that wasn't actually materialized until a later build ran. The workflow now rules out Safe Mode and sandbox interference side by side before permitting the file-edit fallback, and `integration-advanced.md`'s own guidance now names the improvised-workaround failure mode explicitly, not just silent file-editing.
 - Command index (SKILL.md) and global-flags/environment tables refreshed for the above.
 - `unity install`/`install-modules`'s child-modules flag examples now lead with `--child-modules`/`--no-child-modules` (matching `unity editors module add`), noting the old `--cm`/`--no-cm` shorts still work.
 - `unity modules list`'s column table now names the last column `Aliases` (renamed from `downloaderName` in `--format json`).
@@ -36,9 +104,7 @@ Aligned to the CLI's `1.0.0-beta.9` release. Several pieces of this release's su
 
 ### Deferred
 
-- The Unity Accelerator feature (`unity config accelerator`, `--accelerator`/`--no-accelerator`, `unity diagnose accelerator`, the `accelerator` config key, `unity doctor`'s Accelerator section) is withheld from this publish — it is still `[Unreleased]` in the CLI's own changelog as of this release, so nothing about it appears here.
-- One paragraph distinguishing `unity vcs uvcs review`'s four auth-shaped error codes is withheld from this publish for the same reason: it describes behavior a still-unreleased fix introduces (pre-fix, every failure surfaces as one generic error). The rest of that section — the commands themselves, released since `1.0.0-beta.7` — is unaffected.
-- Three more pieces of hub-ahead content are withheld for the same reason, having landed in the hub's own docs after this alignment pass began: `unity context` (`save`/`use`/`list`/`current`/`delete`), `unity commands` (the plural, machine-readable command-tree introspection), and `unity watch test`/`unity watch build`. None has a published `cli-v` release yet per the CLI's own changelog.
+- The `unity config accelerator` / `--accelerator` / `unity diagnose accelerator` feature itself is still `[Unreleased]` in the CLI's own changelog as of this release — despite the skill already documenting it from an earlier ahead-of-release pass. Left as-is (documenting a subset of the shipped surface is safe); this stamp does not newly assert that feature shipped.
 - Auth broker client libraries (the .NET/TypeScript SDKs for other products to use Unity sign-in) are not `unity` CLI commands, so nothing in this skill changes for them.
 
 ## CLI `1.0.0-beta.8` (2026-09-01)

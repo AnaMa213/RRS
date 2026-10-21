@@ -18,6 +18,8 @@ unity auth login
 # Login with service account credentials (CI — skips browser)
 # Preferred: read secret from stdin to avoid shell-history and process-list exposure
 unity auth login --client-id <id> --secret-from-stdin
+# The secret must be piped in: a terminal on stdin is refused, and the
+# command stops waiting after 30 seconds if the pipe is never closed.
 
 # A --client-secret flag also exists, but passing a secret as a
 # command-line argument exposes it in shell history and the process list.
@@ -36,6 +38,8 @@ unity auth logout user@example.com
 # Skip the confirmation prompt
 unity auth logout --yes
 ```
+
+**How sign-in is served.** Every command’s OAuth token read goes through a resident auth broker — a background `unity` process started on demand by the first command that needs a token, exiting on its own after two idle minutes. It seals the token store to the machine’s hardware where available (a non-exportable TPM key on Windows, TPM2 via `systemd-creds` on Linux, then DPAPI, the Secret Service, the Keychain and a local key file, in that order), and `unity doctor` reports the active tier. On macOS and Windows it verifies a connecting process’s code signature and refuses an unsigned or non-Unity-signed peer; set `UNITY_PEER_AUTH_MODE=identify-only` to log without refusing (for an Editor you built from source), and `UNITY_NO_AUTH_BROKER=1` to bypass the broker and read the OS keyring directly. `unity auth consumers` (below) lists the applications that have used this machine’s sign-in through it.
 
 #### Multiple accounts
 
@@ -131,6 +135,8 @@ unity license server status    # reachability + available seats
 
 `list` columns: product, license type (`Floating` / `Assigned` / `ULF`), organization, and expiry. `status` prints a one-glance summary — the active license(s) and whether you're signed in — and exits non-zero (`4`) when no license is active, so it works as a scriptable health check. The first licensing command downloads the Unity licensing client on demand; as of `0.1.0-beta.8`, if the client is unavailable `list` reports a clear error and exits non-zero (matching `status`), rather than printing an empty list.
 
+`unity license status` also reports `floatingServer` (the licensing server this machine is configured against) and `machineId` (the identity the licensing client reports to it) — the two values to match against a lease record when a floating seat looks stuck. Both are always present in `--format json` / `ndjson`; human and `tsv` output shows them only when a floating server is configured.
+
 `activate` takes a single mode flag (combining them is a usage error). The default (no flag) and `--personal` activate the signed-in user's entitlements — sign in first with `unity auth login`. `--personal` also requires `--accept-eula` to acknowledge the Unity Personal license terms. `--serial` / `--file` work offline without sign-in. `--floating` requires a configured floating license server (exit `4` if none is set). `--generate-request` writes a `.alf` request for air-gapped activation instead of activating. `return` returns the active licenses, prompting for confirmation first — pass `--yes` to skip (required in non-interactive shells and with `--json`). All honor `--json` / `--format` and exit non-zero on failure (`2` bad usage, `3` sign-in required, `4` floating not configured, `6` licensing-client error).
 
 **Service accounts.** The `license` commands recognize service-account sessions (`UNITY_SERVICE_ACCOUNT_ID` / `UNITY_SERVICE_ACCOUNT_SECRET`, or `unity auth login --client-id`): `unity license status` reports `Signed in: yes (service account)` and includes the auth mode in JSON. Unity's licensing backend does **not** accept service-account tokens for license activation, so with a service-account session the default entitlement mode and `--personal` fail up front — before contacting the licensing client — with guidance toward the unattended options (`--floating`, `--file`, `--generate-request`, or a perpetual `--serial`). `unity license return` lists and returns serial-activated licenses too (not just assigned/subscription seats) — important for CI machines that activate per run — and returns each license individually, so when only some can be freed it reports what succeeded (in text and in the JSON `returned` / `failed` fields) instead of an all-or-nothing failure.
@@ -153,6 +159,10 @@ unity cloud org current                       # print the active default org id
 unity cloud org set-default <id-or-name>      # set active default org
 unity cloud org clear-default                 # revert to "All Organizations"
 
+# Create an organization
+unity cloud org create "<name>" --industry gaming
+unity cloud org create "<name>" --industry oil-and-gas --set-default
+
 # Projects in the active organization
 unity cloud project list --format json               # * marks the active default project
 
@@ -165,6 +175,18 @@ unity cloud project clear-default                     # drop this organization's
 unity cloud project list --cloud-org <id-or-name>   # also via UNITY_CLOUD_ORG env var
 ```
 
+**Creating an organization takes a name and an industry.** The name is trimmed and capped at 40
+characters; `--industry` accepts either the kebab key (`consumer-electronics`, `oil-and-gas`) or the
+display spelling (`"Oil & gas"`), and an unknown value is rejected up front with the accepted list.
+Both are validated before anything is sent, so a typo costs no network call. Omitting `--industry`
+opens a picker on a terminal and is a usage error under `--non-interactive` or when output is
+redirected. `--set-default` makes the new organization active, exactly as `org set-default` would; if the
+setting cannot be written the organization is still reported as created, with a warning that the
+default did not take effect. A name already in use is reported as such rather than as an HTTP
+status. Machine output is a create-specific shape carrying `id` and `name` only — deliberately not
+`org list`'s row, since the create response omits `role` and the default marker describes a list
+rather than a single new organization.
+
 **The default project is per organization.** `set-default` stores the project's UUID against the
 active organization's Genesis id, so switching your active organization switches which default
 applies, and `clear-default` only drops the active organization's. `cloud project current` and
@@ -175,8 +197,8 @@ so that path requires a session like the rest.
 **What consumes it.** Commands that need a Unity Cloud project but were not given one fall back to
 the stored default. The order is the explicit flag (`--project-id`), then `UNITY_CLOUD_PROJECT`,
 then the cloud link in the project directory's `ProjectSettings/PlayerSettings.asset`, then the
-stored default, so inside a cloud-linked project the link still wins. `unity collaboration` and
-the `cloud-pipeline` preview family both use this chain.
+stored default, so inside a cloud-linked project the link still wins. `unity collaboration` uses
+this chain.
 
 **Exit codes.** The `cloud` and `auth` commands map an authentication failure (expired or missing session, rejected sign-in) to `3`, and any other operational failure (network, server error) to `6` — so scripts can distinguish "sign in again" from a genuine command failure. `unity auth status` / `logout` follow the same convention.
 
